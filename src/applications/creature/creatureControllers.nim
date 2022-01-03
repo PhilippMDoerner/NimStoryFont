@@ -1,0 +1,79 @@
+import prologue
+import creatureRepository
+import creatureModel
+import std/[strutils, uri, db_sqlite]
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../utils/djangoDateTime/serialization
+import norm/model
+import jsony
+import ../base_generics/controllerTemplates
+
+
+proc getAllCreaturesView*(ctx: Context) {.async.} = 
+    let ctx = JWTContext(ctx)
+
+    respondBadRequestOnDbError():
+        let creatures: seq[CreatureRead] = creatureRepository.getCreatureList()
+        resp jsonyResponse[seq[CreatureRead]](ctx, creatures)
+
+
+proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 
+    let ctx = JWTContext(ctx)
+    
+    let campaignName: string = ctx.getPathParams("campaignName")
+
+    respondBadRequestOnDbError():
+        let creatures: seq[CreatureOverview] = creatureRepository.getCampaignCreatureListOverview(campaignName)
+        resp jsonyResponse[seq[CreatureOverview]](ctx, creatures)
+
+
+proc getCreatureByIdView*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+    
+    let creatureId: int = parseInt(ctx.getPathParams("id"))
+
+    respondBadRequestOnDbError():
+        let creature = creatureRepository.getCreaturebyId(creatureId)
+        resp jsonyResponse[CreatureRead](ctx, creature)
+
+
+proc getCreatureByNameView*(ctx: Context) {.async.} = 
+    let ctx = JWTContext(ctx)
+    
+    let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
+    let creatureName: string = ctx.getPathParams("creatureName").decodeUrl()
+
+    respondBadRequestOnDbError():
+        let creature = getCreatureByName(campaignName, creatureName)
+        resp jsonyResponse[CreatureRead](ctx, creature)
+
+
+proc createCreatureView*(ctx: Context) {.async, gcsafe.}=
+    let ctx = JWTContext(ctx)
+
+    let jsonData: string = ctx.request.body()
+    
+    respondBadRequestOnDbError():
+        let newCreatureEntry: CreatureRead = createCreature(jsonData)
+        resp jsonyResponse[CreatureRead](ctx, newCreatureEntry)
+
+
+proc deleteCreatureView*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let creatureId: int = parseInt(ctx.getPathParams("id"))
+
+    respondBadRequestOnDbError():
+        deleteCreature(creatureId)
+        respDefault(Http204)
+
+
+proc updateCreatureView*(ctx: Context) {.async, gcsafe.} =
+    let ctx = JWTContext(ctx)
+
+    let creatureId: int = parseInt(ctx.getPathParams("id"))
+    let jsonData: string = ctx.request.body()
+
+    respondBadRequestOnDbError():
+        let updatedCreatureEntry = updateCreature(creatureId, jsonData)
+        resp jsonyResponse[CreatureRead](ctx, updatedCreatureEntry)
