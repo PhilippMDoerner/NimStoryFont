@@ -1,6 +1,12 @@
 import norm/[model, pragmas]
 import std/[options]
 import ../campaign/campaignModel
+import ../item/itemModel
+import ../organization/organizationModel
+import ../encounter/encounterModel
+import ../location/locationModel
+import ../image/imageModel
+import ../playerclass/playerClassModel
 import ../../applicationSettings
 import ../../utils/djangoDateTime/djangoDateTimeType
 
@@ -14,11 +20,11 @@ type Character* {.tableName: CHARACTER_TABLE.} = ref object of Model
     race*: string
     title*: Option[string] # A title the character might have, e.g. "Lord", "Duke", "Doctor"
     description*: Option[string] # A description of the character
-    current_location_id*: Option[int] # The id of the location at which the character is currently located
+    current_location_id* {.fk: Location.} : Option[int] # The id of the location at which the character is currently located
     creation_datetime*: DjangoDateTime
     update_datetime*: DjangoDateTime
-    campaign_id*: int # The id of the campaign that this character occurred in
-
+    campaign_id* {.fk: Campaign.}: int64 # The id of the campaign that this character occurred in
+    organization_id* {.fk: Organization.} : Option[int64]
 
 type CharacterParentLocation {.tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The parent location of a location, that a character 
@@ -26,7 +32,7 @@ type CharacterParentLocation {.tableName: LOCATION_TABLE.} = ref object of Model
     name*: string
 
 
-type CharacterLocation {.tableName: LOCATION_TABLE.} = ref object of Model
+type CharacterLocation* {.tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
     name*: string
     parent_location_id*: Option[CharacterParentLocation]
@@ -46,7 +52,7 @@ type CharacterRead* {.tableName: CHARACTER_TABLE.} = ref object of Model
     creation_datetime*: DjangoDateTime
     update_datetime*: DjangoDateTime
     campaign_id*: MinimumCampaignOverview
-
+    organization_id*: Option[OrganizationOverview]
 
 type CharacterOverview* {.tableName: CHARACTER_TABLE.} = ref object of Model
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
@@ -99,6 +105,14 @@ proc newCharacterRead(
         creation_datetime: creationDatetime,
         campaign_id: campaign
     )
+
+
+type CharacterSerializable* = ref object
+    character*: CharacterRead
+    images*: seq[Image]
+    encounters*: seq[EncounterRead]
+    items*: seq[ItemOverview]
+    playerClassConnections*: seq[PlayerClass]
 
 
 proc newCharacter(

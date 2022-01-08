@@ -45,7 +45,7 @@ proc getCharacterByNameView*(ctx: Context) {.async.} =
 
     respondBadRequestOnDbError():
         let character = getCharacterByName(campaignName, characterName)
-        resp jsonyResponse[CharacterRead](ctx, character)
+        resp jsonyResponse[CharacterSerializable](ctx, character)
 
 
 proc createCharacterView*(ctx: Context) {.async, gcsafe.}=

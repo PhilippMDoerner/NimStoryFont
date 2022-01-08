@@ -1,5 +1,12 @@
 import ../base_generics/genericArticleRepository
 import characterModel
+import ../image/[imageModel, imageRepository]
+import ../item/itemRepository
+import ../encounter/[encounterModel, characterEncounterModel]
+import ../playerclass/playerClassRepository
+import ../organization/organizationModel
+import ../../utils/database
+
 
 
 proc getCharacterList*(): seq[CharacterRead] =
@@ -16,8 +23,20 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     result = getCampaignList[CharacterRead](campaignName)
 
 
-proc getCharacterByName*(campaignName: string, characterName: string): CharacterRead = 
-    result = getEntryByName[CharacterRead](campaignName, characterName)
+proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
+    let character: CharacterRead = getEntryByName[CharacterRead](campaignName, characterName)
+    let images = getArticleImage(ImageType.CHARACTERTYPE, character.id)
+    let encounters = getManyToMany(character, CharacterEncounterRead, "encounter_id")
+    let playerClassConnections = getCharacterPlayerClasses(character.id)
+    let items = getCharacterItems(character.id)
+
+    result = CharacterSerializable(
+        character: character,
+        images: images,
+        items: items,
+        encounters: encounters,
+        playerClassConnections: playerClassConnections
+    )
 
 
 proc getCharacterById*(characterId: int64): CharacterRead =
@@ -34,3 +53,14 @@ proc updateCharacter*(characterId: int, characterJsonData: string): CharacterRea
 
 proc createCharacter*(characterJsonData: string): CharacterRead =
     result = createEntry[Character, CharacterRead](characterJsonData)
+
+
+proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
+    let db = getDatabaseConnection()
+    var entries: seq[OrganizationCharacter] = @[]
+    entries.add(newModel(OrganizationCharacter))
+
+    let condition: string = "organization_id = ?"
+    db.select(entries, condition, organizationId)
+
+    result = entries
