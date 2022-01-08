@@ -2,6 +2,8 @@ import ../../utils/database
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
 import norm/[model, sqlite]
 import jsony
+import options
+import genericUtils
 
 export sqlite
 export serialization
@@ -91,6 +93,48 @@ proc getEntryById*[M: Model](entryId: int64): M =
     db.select(targetEntry, sqlCondition, entryId)
 
     result = targetEntry
+
+
+
+##TODO: You want to not narrow this down to a specific type. You want to check if the field value is a Model type
+##TODO: Then you want to check if that model type's table is the type of table you're looking for
+
+##[What I need: 
+    1) The starter table name that the other field should point to (instance.tablename())
+    2) A model of that other table that contains a Model-Field of this table (TableModel will do or just a model with the FK annotated with the 'fk' pragma)
+    3) An id on that starter table (instance.id)
+]##
+proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+    mixin newModel
+
+    let db: DbConn = getDatabaseConnection()
+    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
+
+    let oneTableName: string = oneEntry.type().table()
+    var foreignKeyFieldName: string = oneEntry.type().getForeignKeyFieldNameOn(relatedManyType)
+
+    let manyTableName: string = relatedManyType.table()
+    let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
+    db.select(targetEntries, sqlCondition, oneEntry.id)
+
+    result = targetEntries
+
+
+proc getManyToMany*[MS: Model, J: Model](queryStartEntry: MS, joinModel: typedesc[J], foreignKeyField: static string): seq[untyped] =
+    mixin newModel
+
+    let db = getDatabaseConnection()
+    var joinModelEntries: seq[joinModel] = @[]
+    joinModelEntries.add(newModel(joinModel))
+
+    let fkColumnFromJoinToManyStart: string = queryStartEntry.type().getForeignKeyFieldNameOn(joinModel)
+    let joinTableName = joinModel.table()
+
+    let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
+    db.select(joinModelEntries, sqlCondition, queryStartEntry.id)
+
+    let manyEntries = unpackFromJoinModel[J](joinModelEntries, foreignKeyField)
+    result = manyEntries
 
 
 proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
