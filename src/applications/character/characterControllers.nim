@@ -34,7 +34,7 @@ proc getCharacterByIdView*(ctx: Context) {.async.} =
 
     respondBadRequestOnDbError():
         let character = characterRepository.getCharacterbyId(characterId)
-        resp jsonyResponse[CharacterRead](ctx, character)
+        resp jsonyResponse[CharacterSerializable](ctx, character)
 
 
 proc getCharacterByNameView*(ctx: Context) {.async.} = 
@@ -54,8 +54,8 @@ proc createCharacterView*(ctx: Context) {.async, gcsafe.}=
     let jsonData: string = ctx.request.body()
     
     respondBadRequestOnDbError():
-        let newCharacterEntry: CharacterRead = createCharacter(jsonData)
-        resp jsonyResponse[CharacterRead](ctx, newCharacterEntry)
+        let newCharacterEntry: CharacterSerializable = createCharacter(jsonData)
+        resp jsonyResponse[CharacterSerializable](ctx, newCharacterEntry)
 
 
 proc deleteCharacterView*(ctx: Context) {.async.} =
@@ -76,4 +76,4 @@ proc updateCharacterView*(ctx: Context) {.async, gcsafe.} =
 
     respondBadRequestOnDbError():
         let updatedCharacterEntry = updateCharacter(characterId, jsonData)
-        resp jsonyResponse[CharacterRead](ctx, updatedCharacterEntry)
+        resp jsonyResponse[CharacterSerializable](ctx, updatedCharacterEntry)

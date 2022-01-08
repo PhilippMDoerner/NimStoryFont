@@ -22,9 +22,7 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     ## lists all campaign entries using a detailed representation of a character
     result = getCampaignList[CharacterRead](campaignName)
 
-
-proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
-    let character: CharacterRead = getEntryByName[CharacterRead](campaignName, characterName)
+proc getFullCharacterData*(character: CharacterRead): CharacterSerializable =
     let images = getArticleImage(ImageType.CHARACTERTYPE, character.id)
     let encounters = getManyToMany(character, CharacterEncounterRead, "encounter_id")
     let playerClassConnections = getCharacterPlayerClasses(character.id)
@@ -38,21 +36,28 @@ proc getCharacterByName*(campaignName: string, characterName: string): Character
         playerClassConnections: playerClassConnections
     )
 
+proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
+    let character: CharacterRead = getEntryByName[CharacterRead](campaignName, characterName)
+    result = getFullCharacterData(character)
 
-proc getCharacterById*(characterId: int64): CharacterRead =
-    result = getEntryById[CharacterRead](characterId)
+
+proc getCharacterById*(characterId: int64): CharacterSerializable =
+    let character: CharacterRead = getEntryById[CharacterRead](characterId)
+    result = getFullCharacterData(character)
 
 
 proc deleteCharacter*(characterId: int) =
     deleteEntry[Character](characterId)
 
 
-proc updateCharacter*(characterId: int, characterJsonData: string): CharacterRead =
-    result = updateEntry[Character, CharacterRead](characterId, characterJsonData)
+proc updateCharacter*(characterId: int, characterJsonData: string): CharacterSerializable =
+    let character: CharacterRead = updateEntry[Character, CharacterRead](characterId, characterJsonData)
+    result = getFullCharacterData(character)
 
 
-proc createCharacter*(characterJsonData: string): CharacterRead =
-    result = createEntry[Character, CharacterRead](characterJsonData)
+proc createCharacter*(characterJsonData: string): CharacterSerializable =
+    let character: CharacterRead = createEntry[Character, CharacterRead](characterJsonData)
+    result = getFullCharacterData(character)
 
 
 proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
