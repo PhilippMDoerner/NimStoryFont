@@ -8,6 +8,7 @@ import genericUtils
 export sqlite
 export serialization
 export normConversion
+export jsony
 
 proc getList*[M: Model](): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
