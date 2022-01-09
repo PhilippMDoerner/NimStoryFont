@@ -1,15 +1,12 @@
 import norm/[model, pragmas]
 import std/[options]
 import ../campaign/campaignModel
-import ../item/itemModel
 import ../organization/organizationModel
-import ../encounter/encounterModel
 import ../location/locationModel
-import ../image/imageModel
-import ../playerclass/playerClassModel
 import ../../applicationSettings
 import ../../utils/djangoDateTime/djangoDateTimeType
 import constructor/defaults
+
 
 ##[This file defines models that can be used with SQL Tables.
 Every model's field correspond to a table column. Every id field, even if an fk field
@@ -104,11 +101,3 @@ implDefaults(CharacterOverview)
 generic methods that only read the database in genericArticleRepository ]##
 proc newModel*(T: typedesc[CharacterOverview]): CharacterOverview = result = newCharacterOverview()
  
-
-
-type CharacterSerializable* = ref object
-    character*: CharacterRead
-    images*: seq[Image]
-    encounters*: seq[EncounterRead]
-    items*: seq[ItemOverview]
-    playerClassConnections*: seq[PlayerClass]

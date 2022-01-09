@@ -1,5 +1,6 @@
 import ../base_generics/genericArticleRepository
 import characterModel
+import characterSerializable
 import ../image/[imageModel, imageRepository]
 import ../item/itemRepository
 import ../encounter/[encounterModel, characterEncounterModel]
