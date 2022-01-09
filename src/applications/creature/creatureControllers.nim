@@ -9,14 +9,6 @@ import jsony
 import ../base_generics/controllerTemplates
 
 
-proc getAllCreaturesView*(ctx: Context) {.async.} = 
-    let ctx = JWTContext(ctx)
-
-    respondBadRequestOnDbError():
-        let creatures: seq[CreatureRead] = creatureRepository.getCreatureList()
-        resp jsonyResponse[seq[CreatureRead]](ctx, creatures)
-
-
 proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     

@@ -2,10 +2,6 @@ import ../base_generics/genericArticleRepository
 import creatureModel
 
 
-proc getCreatureList*(): seq[CreatureRead] =
-    result = getList[CreatureRead]()
-
-
 proc getCampaignCreatureListOverview*(campaignName: string): seq[CreatureOverview] =
     ## lists all campaign entries using a limited but performant representation of a Creature
     result = getCampaignList[CreatureOverview](campaignName)

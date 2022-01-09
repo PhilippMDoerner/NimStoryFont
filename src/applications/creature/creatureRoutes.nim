@@ -4,13 +4,6 @@ import creatureControllers
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
-        re"/creature/", 
-        creatureControllers.getAllCreaturesView, 
-        httpMethod = HttpGet,
-        middlewares = @[loginMiddleware()]
-    )
-
-    app.addRoute(
         re"/creature/",
         handler = creatureControllers.createCreatureView,
         httpMethod = HttpPost,
