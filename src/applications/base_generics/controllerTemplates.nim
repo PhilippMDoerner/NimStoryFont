@@ -12,6 +12,6 @@ template respondBadRequestOnDbError*(body: untyped) =
     except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
         resp get404NotFoundResponse()
 
-    except CatchableError as e:
+    except Exception as e:
         echo "Error of type '" & $e.name & "'"
         raise e
