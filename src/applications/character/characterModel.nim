@@ -11,6 +11,16 @@ import ../../applicationSettings
 import ../../utils/djangoDateTime/djangoDateTimeType
 import constructor/defaults
 
+##[This file defines models that can be used with SQL Tables.
+Every model's field correspond to a table column. Every id field, even if an fk field
+is always defined with an id64 or another model. There's also a default value associated
+with each field, to make instantiation easier. `implDefaults` provides a constructor for
+the given type if it has been given the `defaults` pragma.
+The `newModel` methods are necessary for generic access to models for select statements made
+by the genericArticleRepository.
+The `newTableModel`procs are necessary for generic access to table models for insert/update/delete statement
+made by the genericArticleRepository.
+]##
 
 type Character* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
     ##[TableModel of the table of story characters. ]##
