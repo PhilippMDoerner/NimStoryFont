@@ -109,7 +109,7 @@ proc extractTokenData*(token: JWT): TokenData =
 
 
 proc randomString(length: int): string =
-    for _ in .. length:
+    for _ in 0..length:
         add(result, char(rand(int('A') .. int('z'))))
 
 
