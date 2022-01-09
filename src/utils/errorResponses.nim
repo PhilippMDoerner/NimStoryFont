@@ -9,3 +9,6 @@ proc get400BadRequestResponse*(errorMsg: string): Response {.inline.}  =
 
 proc get403ForbiddenResponse*(ctx: Context): Response {.inline.} =
     result = jsonResponse(%*"You lack access rights for the requested action", Http403)
+
+proc get404NotFoundResponse*(): Response {.inline.} =
+    result = jsonResponse(%*"We couldn't find the requested resource", Http404)
