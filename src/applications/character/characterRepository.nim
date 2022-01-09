@@ -6,11 +6,7 @@ import ../encounter/[encounterModel, characterEncounterModel]
 import ../playerclass/playerClassRepository
 import ../organization/organizationModel
 import ../../utils/database
-
-
-
-proc getCharacterList*(): seq[CharacterRead] =
-    result = getList[CharacterRead]()
+import norm/[model, sqlite]
 
 
 proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverview] =
@@ -64,7 +60,7 @@ proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
     let db = getDatabaseConnection()
     var entries: seq[OrganizationCharacter] = @[]
     entries.add(newModel(OrganizationCharacter))
-
+    
     let condition: string = "organization_id = ?"
     db.select(entries, condition, organizationId)
 

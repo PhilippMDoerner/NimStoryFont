@@ -4,13 +4,6 @@ import characterControllers
 
 proc addCharacterRoutes*(app: Prologue) =
     app.addRoute(
-        re"/character/", 
-        characterControllers.getAllCharactersView, 
-        httpMethod = HttpGet,
-        middlewares = @[loginMiddleware()]
-    )
-
-    app.addRoute(
         re"/character/",
         handler = characterControllers.createCharacterView,
         httpMethod = HttpPost,

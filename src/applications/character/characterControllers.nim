@@ -1,20 +1,11 @@
 import prologue
 import characterRepository
 import characterModel
-import std/[strutils, uri, db_sqlite]
+import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
-import norm/model
 import jsony
 import ../base_generics/controllerTemplates
-
-
-proc getAllCharactersView*(ctx: Context) {.async.} = 
-    let ctx = JWTContext(ctx)
-
-    respondBadRequestOnDbError():
-        let characters: seq[CharacterRead] = characterRepository.getCharacterList()
-        resp jsonyResponse[seq[CharacterRead]](ctx, characters)
 
 
 proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} = 
