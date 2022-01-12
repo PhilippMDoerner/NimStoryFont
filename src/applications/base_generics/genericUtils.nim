@@ -32,7 +32,7 @@ proc table(model: Option[Model]): string =
   result = model.get().type().table()
 
 
-proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): static string =
+proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string =
     for sourceFieldName, sourceFieldValue in M()[].fieldPairs:
         #Handles case where field is an int64 with fk pragma
         when sourceFieldValue.hasCustomPragma(fk):
@@ -54,7 +54,7 @@ proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType
     raise newException(FieldDefect, errorMsg)
 
 
-proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): static string =
+proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): string =
     result = getRelatedFieldNameOn(O.table(), sourceType)
 
 

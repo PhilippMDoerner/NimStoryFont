@@ -55,7 +55,7 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string): M =
     let db = getDatabaseConnection()
     var entry: M = newModel(M)
     
-    let modelTableName: string = M.table()
+    const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".name = ? AND campaign_id.name = ?"
     db.select(entry, sqlCondition, entryName, campaignName)
 
@@ -75,7 +75,7 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M =
     let db = getDatabaseConnection()
     var entry: M = newModel(M)
     
-    let modelTableName: string = M.table()
+    const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & '.' & fieldName & "= ?"
     db.select(entry, sqlCondition, fieldValue)
 
@@ -89,7 +89,7 @@ proc getEntryById*[M: Model](entryId: int64): M =
     let db = getDatabaseConnection()
     var targetEntry: M = newModel(M)
     
-    let modelTableName: string = M.table()
+    const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".id = ?"
     db.select(targetEntry, sqlCondition, entryId)
 
@@ -109,32 +109,35 @@ proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[
     mixin newModel
 
     let db: DbConn = getDatabaseConnection()
+
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
 
-    let oneTableName: string = oneEntry.type().table()
-    var foreignKeyFieldName: string = oneEntry.type().getForeignKeyFieldNameOn(relatedManyType)
-
-    let manyTableName: string = relatedManyType.table()
+    const foreignKeyFieldName: string = oneEntry.type().getForeignKeyFieldNameOn(relatedManyType)
+    const manyTableName: string = relatedManyType.table()
     let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
+
     db.select(targetEntries, sqlCondition, oneEntry.id)
 
     result = targetEntries
 
 
-proc getManyToMany*[MS: Model, J: Model](queryStartEntry: MS, joinModel: typedesc[J], foreignKeyField: static string): seq[untyped] =
+proc getManyToMany*[M1: Model, J: Model, M2: Model](
+    manyStartInstance: M1, 
+    joinModel: typedesc[J], 
+    otherManyModel: typedesc[M2]
+): seq[M2] =
     mixin newModel
 
     let db = getDatabaseConnection()
-    var joinModelEntries: seq[joinModel] = @[]
-    joinModelEntries.add(newModel(joinModel))
+    var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
 
-    let fkColumnFromJoinToManyStart: string = queryStartEntry.type().getRelatedFieldNameOn(joinModel)
-    let joinTableName = joinModel.table()
-
+    const fkColumnFromJoinToManyStart: string = manyStartInstance.type().getRelatedFieldNameOn(J)
+    const joinTableName = J.table()
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
-    db.select(joinModelEntries, sqlCondition, queryStartEntry.id)
+    db.select(joinModelEntries, sqlCondition, manyStartInstance.id)
 
-    let manyEntries = unpackFromJoinModel[J](joinModelEntries, foreignKeyField)
+    const fkColumnFromJoinToManyEnd = M2.getRelatedFieldNameOn(J)
+    let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
     result = manyEntries
 
 

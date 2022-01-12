@@ -21,7 +21,7 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
 
 proc getFullCharacterData*(character: CharacterRead): CharacterSerializable =
     let images = getArticleImage(ImageType.CHARACTERTYPE, character.id)
-    let encounters = getManyToMany(character, CharacterEncounterRead, "encounter_id")
+    let encounters = getManyToMany(character, CharacterEncounterRead, EncounterRead)
     let playerClassConnections = getCharacterPlayerClasses(character.id)
     let items = getCharacterItems(character.id)
 
