@@ -1,7 +1,6 @@
 import norm/[model, pragmas]
 import ../../applicationSettings
 import std/options
-import ../character/characterModel
 
 type ImageType* = enum
     CHARACTERTYPE = "character", 
