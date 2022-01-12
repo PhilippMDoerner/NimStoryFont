@@ -128,7 +128,7 @@ proc getManyToMany*[MS: Model, J: Model](queryStartEntry: MS, joinModel: typedes
     var joinModelEntries: seq[joinModel] = @[]
     joinModelEntries.add(newModel(joinModel))
 
-    let fkColumnFromJoinToManyStart: string = queryStartEntry.type().getForeignKeyFieldNameOn(joinModel)
+    let fkColumnFromJoinToManyStart: string = queryStartEntry.type().getRelatedFieldNameOn(joinModel)
     let joinTableName = joinModel.table()
 
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
