@@ -4,11 +4,14 @@ import ../../applicationSettings
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 
+type ItemOwner* {.tableName: CHARACTER_TABLE.} = ref object of Model
+    name*: string
+
 
 type Item* {.tableName: ITEM_TABLE.} = ref object of Model
     description*: Option[string]
     name*: string
-    owner_id*: Option[int64]
+    owner_id* {.fk: ItemOwner.}: Option[int64]
     campaign_id*: int64
     update_datetime*: DjangoDateTime
     creation_datetime*: DjangoDateTime
@@ -17,10 +20,7 @@ type Item* {.tableName: ITEM_TABLE.} = ref object of Model
 type ItemOverview* {.tableName: ITEM_TABLE.} = ref object of Model
     name*: string
     campaign_id*: int64
-
-
-type ItemOwner* {.tableName: CHARACTER_TABLE.} = ref object of Model
-    name*: string
+    owner_id* {.fk: ItemOwner.}: Option[int64]
 
 
 type ItemRead* {.tableName: ITEM_TABLE.} = ref object of Model

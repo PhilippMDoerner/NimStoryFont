@@ -2,9 +2,9 @@ import ../base_generics/genericArticleRepository
 import characterModel
 import characterSerializable
 import ../image/[imageModel, imageRepository]
-import ../item/itemRepository
+import ../item/itemModel
 import ../encounter/[encounterModel, characterEncounterModel]
-import ../playerclass/playerClassRepository
+import ../playerclass/playerClassModel
 import ../organization/organizationModel
 import ../../utils/database
 import norm/[model, sqlite]
@@ -20,10 +20,10 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     result = getCampaignList[CharacterRead](campaignName)
 
 proc getFullCharacterData*(character: CharacterRead): CharacterSerializable =
-    let images = getArticleImage(ImageType.CHARACTERTYPE, character.id)
+    let images = getManyFromOne(character, Image)
     let encounters = getManyToMany(character, CharacterEncounterRead, EncounterRead)
-    let playerClassConnections = getCharacterPlayerClasses(character.id)
-    let items = getCharacterItems(character.id)
+    let playerClassConnections = getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
+    let items = getManyFromOne(character, ItemOverview)
 
     result = CharacterSerializable(
         character: character,

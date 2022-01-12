@@ -112,8 +112,8 @@ proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
 
-    const foreignKeyFieldName: string = oneEntry.type().getForeignKeyFieldNameOn(relatedManyType)
-    const manyTableName: string = relatedManyType.table()
+    const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
+    const manyTableName: string = M.table()
     let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
 
     db.select(targetEntries, sqlCondition, oneEntry.id)

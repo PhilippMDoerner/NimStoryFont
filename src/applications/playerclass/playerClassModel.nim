@@ -1,5 +1,6 @@
 import norm/[model, pragmas]
 import ../../applicationSettings
+import ../character/characterModel
 import ../../utils/djangoDateTime/djangoDateTimeType
 
 
@@ -11,6 +12,7 @@ type PlayerClass* {.tableName: PLAYERCLASS_TABLE.} = ref object of Model
 
 type PlayerClassConnectionRead* {.tableName: CHARACTER_PLAYERCLASS_TABLE.} = ref object of Model
     player_class_id*: PlayerClass
+    character_id* {.fk: Character.}: int64
 
 
 type PlayerClassConnection* {.tableName: CHARACTER_PLAYERCLASS_TABLE.} = ref object of Model
