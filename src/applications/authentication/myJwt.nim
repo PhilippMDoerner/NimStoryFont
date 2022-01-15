@@ -1,7 +1,7 @@
 import prologue
 import jwt
 import ../../applicationSettings
-import std/[options, logging, json, tables, random, times]
+import std/[options, logging, json, tables, random, times, sequtils]
 import authenticationModels
 
 
@@ -128,7 +128,11 @@ proc getExpirationTimestamp(tokenType: JWTTYPE): int64 =
     result = expirationTime.toUnix()
 
 
-proc createToken*(user: User, tokenType: JWTType): JWT =
+# proc parseGroups(groups: seq[Group]): Table =
+#     var groupTable = initTable[string, string]
+    
+
+proc createToken*(userContainer: UserContainer, tokenType: JWTType): JWT =
     let expirationTimestamp: int64 = getExpirationTimestamp(tokenType)
 
     result = toJWT(%*{
@@ -137,11 +141,11 @@ proc createToken*(user: User, tokenType: JWTType): JWT =
             "typ": "JWT"
         },
         "claims": {
-            "userId": user.id,
-            "user_name": user.username,
-            "isAdmin": user.is_staff,
-            "isSuperUser": user.is_superuser,
-            "campaign_memberships": "",
+            "user_id": userContainer.user.id,
+            "user_name": userContainer.user.username,
+            "isAdmin": userContainer.user.is_staff,
+            "isSuperUser": userContainer.user.is_superuser,
+            "campaign_memberships": userContainer.campaignMemberships,
             "exp": expirationTimestamp,
             "token_type": tokenType,
             "jti": randomString(50)

@@ -1,9 +1,11 @@
 import norm/[model, pragmas]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
-import std/options
+import std/[tables, options]
 import constructor/defaults
 
+type CampaignAccessLevel* = enum
+  GUEST = "guest", MEMBER = "member", ADMIN = "admin"
 
 
 type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
@@ -44,8 +46,8 @@ proc newModel*(T: typedesc[Permission]): Permission = newPermission()
 
 
 type GroupPermission* {.defaults, tableName: GROUP_PERMISSION_TABLE.} = ref object of Model
-    group_id* {.fk: Group.}: int64 = -1
-    permission_id* {.fk: Permission.}: int64 = -1
+    group_id*: Group = newModel(Group)
+    permission_id*: Permission = newModel(Permission)
 
 implDefaults(GroupPermission)
 proc newModel*(T: typedesc[GroupPermission]): GroupPermission = newGroupPermission()
@@ -53,8 +55,8 @@ proc newModel*(T: typedesc[GroupPermission]): GroupPermission = newGroupPermissi
 
 
 type UserGroup* {.defaults, tableName: USER_GROUP_TABLE.} = ref object of Model
-    user_id* {.fk: User.}: int64 = -1
-    group_id* {.fk: Group.}: int64 = -1
+    user_id*: User = newModel(User)
+    group_id*: Group = newModel(Group)
 
 implDefaults(UserGroup)
 proc newModel*(T: typedesc[UserGroup]): UserGroup = newUserGroup()
@@ -62,8 +64,13 @@ proc newModel*(T: typedesc[UserGroup]): UserGroup = newUserGroup()
 
 
 type UserPermission* {.defaults, tableName: USER_USERPERMISSIONS_TABLE.} = ref object of Model
-    user_id* {.fk: User.}: int64 = -1
-    permission_id* {.fk: Permission.}: int64 = -1
+    user_id*: User = newModel(User)
+    permission_id*: Permission = newModel(Permission)
 
 implDefaults(UserPermission)
 proc newModel*(T: typedesc[UserPermission]): UserPermission = newUserPermission()
+
+
+type UserContainer* = object
+    user*: User
+    campaignMemberships*: Table[string, CampaignAccessLevel]

@@ -1,0 +1,14 @@
+import norm/[model, pragmas]
+import options
+import constructor/defaults
+import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../applicationSettings
+import ../campaign/campaignModel
+
+type Map* {.defaults, tableName: MAP_TABLE} = ref object of Model
+  icon: Option[string] = none(string)
+  image: string = ""
+  creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  campaign_id* {.fk: Campaign.}: int64 = -1
+  name*: string = ""

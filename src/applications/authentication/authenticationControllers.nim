@@ -9,8 +9,6 @@ import ../../applicationSettings
 import jwt
 
 
-#proc createToken*(ctx: Context) {.async.} =
-
 proc getRefreshToken(ctx: Context): Option[JWT] =
     let requestBody: string = ctx.request.body()
     let parsedRequestBody: JsonNode = parseJson(requestBody)
@@ -20,7 +18,8 @@ proc getRefreshToken(ctx: Context): Option[JWT] =
 
 
 proc createNextToken(user: User, tokenType: JWTType): JWT =
-    var newToken: JWT = user.createToken(JWTType.REFRESH)
+    let userContainer: UserContainer = getUserContainer(user)
+    var newToken: JWT = userContainer.createToken(tokenType)
     newToken.sign(applicationSettings.SECRET_KEY)
     result = newToken
 

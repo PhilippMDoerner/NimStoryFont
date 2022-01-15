@@ -13,7 +13,6 @@ export jsony
 proc getList*[M: Model](): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
-    bind select
 
     let db = getDatabaseConnection()
     var entryList: seq[M] = @[]
