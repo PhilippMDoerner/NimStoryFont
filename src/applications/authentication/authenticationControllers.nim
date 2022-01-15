@@ -54,6 +54,7 @@ proc login*(ctx: Context) {.async.} =
     let plainPassword: string = requestBody.fields["password"].getStr()
     if not isValidPassword(plainPassword, user.password):
         resp get401UnauthorizedResponse(ctx)
+        return
     
     let newAccessToken: JWT = createNextToken(user, JWTType.ACCESS)
     let newRefreshToken: JWT = createNextToken(user, JWTType.REFRESH)
