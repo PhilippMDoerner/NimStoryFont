@@ -7,3 +7,9 @@ proc addAuthenticationRoutes*(app: Prologue) =
         authenticationControllers.refreshTokens, 
         httpMethod = HttpPost,
     )
+
+    app.addRoute(
+        re"/token/",
+        authenticationControllers.login,
+        httpMethod = HttpPost
+    )
