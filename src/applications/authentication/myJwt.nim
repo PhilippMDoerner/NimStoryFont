@@ -1,14 +1,14 @@
 import prologue
 import jwt
 import ../../applicationSettings
-import std/[options, logging, json, tables, random, times, sequtils]
+import std/[options, logging, json, tables, random, times, sequtils, strutils]
 import authenticationModels
 import constructor/defaults
 
 export jwt
 
 type TokenData* {.defaults.} = object
-    campaignMemberships*: Table[string, string] = initTable[string, string]()
+    campaignMemberships*: Table[string, CampaignAccessLevel] = initTable[string, CampaignAccessLevel]()
     isAdmin*: bool = false
     isSuperUser*: bool = false
     userId*: int64 = -1
@@ -98,9 +98,9 @@ proc extractTokenData*(token: JWT): TokenData =
         isSuperUser: bool = token.claims["isSuperUser"].node.bval
 
     let unparsedCampaignMemberships: OrderedTable[string, JsonNode] = token.claims["campaign_memberships"].node.fields
-    var campaignMemberships: Table[string, string] = initTable[string, string]()
+    var campaignMemberships: Table[string, CampaignAccessLevel] = initTable[string, CampaignAccessLevel]()
     for campaign, membership in unparsedCampaignMemberships.pairs:
-        campaignMemberships[campaign] = membership.getStr()
+        campaignMemberships[campaign] = parseEnum[CampaignAccessLevel](membership.getStr())
 
     result = TokenData(
         campaignMemberships: campaignMemberships, 
