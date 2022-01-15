@@ -1,7 +1,7 @@
 import ../base_generics/genericArticleRepository
 import characterModel
 import characterSerializable
-import ../image/[imageModel, imageRepository]
+import ../image/[imageModel]
 import ../item/itemModel
 import ../encounter/[encounterModel, characterEncounterModel]
 import ../playerclass/playerClassModel
