@@ -16,7 +16,7 @@ proc loginMiddleware*(): HandlerAsync =
         when not DEBUG:
             if not hasAccessToken(ctx):
                 echo "Loginmiddleware this has no access token"
-                errorResponses.set401Response(ctx)
+                resp get401UnauthorizedResponse(ctx)
                 return
                 
         await switch(ctx)
