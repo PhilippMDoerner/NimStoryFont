@@ -4,107 +4,71 @@ import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import ../campaign/campaignModel
 import ../image/imageModel
+import constructor/defaults
 
-type Organization* {.tableName: ORGANIZATION_TABLE.} = ref object of Model
-    name: string
-    campaign_id*: int64
-    update_datetime*: DjangoDateTime
-    creation_datetime*: DjangoDateTime
-    description: Option[string]
-    leader: Option[string]
-    headquarter_id: Option[int64]
+type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+    name: string = ""
+    campaign_id*: int64 = -1
+    update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    description: Option[string] = none(string)
+    leader: Option[string] = none(string)
+    headquarter_id: Option[int64] = none(int64)
 
-
-proc newOrganization(
-    name = "",
-    campaign_id = -1,
-    update_datetime = djangoDateTimeType.now(),
-    creation_datetime = djangoDateTimeType.now(),
-    description = none(string),
-    leader = none(string),
-    headquarter_id = none(int64)
-): Organization =
-    result = Organization(
-        name: name,
-        campaign_id: campaign_id,
-        update_datetime: update_datetime,
-        creation_datetime: creation_datetime,
-        description: description,
-        leader: leader,
-        headquarter_id: headquarter_id
-    )
-
-type OrganizationOverview* {.tableName: ORGANIZATION_TABLE.} = ref object of Model
-    name: string
-    campaign_id*: int64
-
-proc newOrganizationOverview(name = "", campaign_id = -1): OrganizationOverview =
-    result = OrganizationOverview(name: name, campaign_id: campaign_id)
+implDefaults(Organization)
+proc newModel*(T: typedesc[Organization]): Organization = newOrganization()
+proc newTableModel*(T: typedesc[Organization]): Organization = newOrganization()
 
 
-type OrganizationParentLocation {.tableName: LOCATION_TABLE.} = ref object of Model
+type OrganizationOverview* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+    name: string = ""
+    campaign_id*: int64 = -1
+
+implDefaults(OrganizationOverview)
+proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = newOrganizationOverview()
+
+
+type OrganizationParentLocation {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The parent location of a location, that a character 
     currently resides in]##
-    name*: string
+    name*: string = ""
+
+implDefaults(OrganizationParentLocation)
 
 
-type OrganizationLocation* {.tableName: LOCATION_TABLE.} = ref object of Model
+type OrganizationLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
-    name*: string
-    parent_location_id*: Option[OrganizationParentLocation]
+    name*: string = ""
+    parent_location_id*: Option[OrganizationParentLocation] = none(OrganizationParentLocation)
 
-type OrganizationRead* {.tableName: ORGANIZATION_TABLE.} = ref object of Model
-    name: string
-    campaign_id*: MinimumCampaignOverview
-    update_datetime*: DjangoDateTime
-    creation_datetime*: DjangoDateTime
-    description: Option[string]
-    leader: Option[string]
-    headquarter_id: Option[OrganizationLocation]
-
-proc newOrganizationRead(
-    name = "",
-    campaign_id = newMinimumCampaignOverview(),
-    update_datetime = djangoDateTimeType.now(),
-    creation_datetime = djangoDateTimeType.now(),
-    description = none(string),
-    leader = none(string),
-    headquarter_id = none(OrganizationLocation)
-): OrganizationRead =
-    result = OrganizationRead(
-        name: name,
-        campaign_id: campaign_id,
-        update_datetime: update_datetime,
-        creation_datetime: creation_datetime,
-        description: description,
-        leader: leader,
-        headquarter_id: headquarter_id
-    )
+implDefaults(OrganizationLocation)
+proc newModel*(T: typedesc[OrganizationLocation]): OrganizationLocation = newOrganizationLocation()
 
 
-type OrganizationCharacter* {.tableName: CHARACTER_TABLE.} = ref object of Model
+type OrganizationRead* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+    name: string = ""
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    description: Option[string] = none(string)
+    leader: Option[string] = none(string)
+    headquarter_id: Option[OrganizationLocation] = none(OrganizationLocation)
+
+implDefaults(OrganizationRead)
+proc newModel*(T: typedesc[OrganizationRead]): OrganizationRead = newOrganizationRead()
+
+
+type OrganizationCharacter* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
     make a list of characters with necessary meta data ]##
-    alive*: bool
-    name*: string
+    alive*: bool = true
+    name*: string = ""
 
-proc newOrganizationCharacter(name = "", alive = true): OrganizationCharacter =
-    result = OrganizationCharacter(name: name, alive: alive)
+implDefaults(OrganizationCharacter)
+proc newModel*(T: typedesc[OrganizationCharacter]): OrganizationCharacter = newOrganizationCharacter()
+
 
 type OrganizationSerializable* = ref object
     organization: OrganizationRead
     members: seq[OrganizationCharacter]
     images: seq[Image]
-
-
-proc newModel*(T: typedesc[OrganizationCharacter]): OrganizationCharacter = 
-    result = newOrganizationCharacter()
-proc newModel*(T: typedesc[OrganizationRead]): OrganizationRead = 
-    result = newOrganizationRead()
-proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = 
-    result = newOrganizationOverview()
-proc newModel*(T: typedesc[Organization]): Organization = 
-    result = newOrganization()
-proc newTableModel*(T: typedesc[Organization]): Organization = 
-    result = newOrganization()
-

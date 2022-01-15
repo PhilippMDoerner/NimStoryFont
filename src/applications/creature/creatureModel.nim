@@ -27,7 +27,7 @@ type CreatureRead* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
     description*: Option[string] = none(string) # A description of the character
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newMinimumCampaignOverview()
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
 
 implDefaults(CreatureRead)
 proc newModel*(T: typedesc[CreatureRead]): CreatureRead = newCreatureRead()
@@ -39,7 +39,7 @@ type CreatureOverview* {.defaults, tableName: CREATURE_TABLE.} = ref object of M
     make a list of characters with necessary meta data ]##
     name*: string = ""
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newMinimumCampaignOverview()
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
 
 implDefaults(CreatureOverview)
 proc newModel*(T: typedesc[CreatureOverview]): CreatureOverview = newCreatureOverview()

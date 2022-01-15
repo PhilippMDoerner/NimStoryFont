@@ -77,7 +77,7 @@ type CharacterRead* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Mod
     current_location_id*: Option[CharacterLocation] = none(CharacterLocation)
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newMinimumCampaignOverview()
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
     organization_id*: Option[OrganizationOverview] = none(OrganizationOverview)
 
 implDefaults(CharacterRead)
@@ -93,7 +93,7 @@ type CharacterOverview* {.defaults, tableName: CHARACTER_TABLE.} = ref object of
     alive*: bool = true
     name*: string = ""
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newMinimumCampaignOverview()
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
 
 implDefaults(CharacterOverview)
 
