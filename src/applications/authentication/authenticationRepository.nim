@@ -1,8 +1,8 @@
 import ../base_generics/genericArticleRepository
 import ../campaign/[campaignModel, campaignRepository]
 import authenticationModels
-import std/[options, sequtils, tables, strutils, json]
-import ../../utils/djangoDateTime/[serialization, normConversion, djangoDateTimeType]
+import std/[options, sequtils, tables, strutils]
+
 
 proc getUserById*(userId: int64): User =
     result = getEntryById[User](userId)
@@ -10,7 +10,6 @@ proc getUserById*(userId: int64): User =
 
 proc getUserByName*(userName: string): User =
     result = getEntryByField[User, string]("username", userName)
-
 
 
 proc addCampaignGroup(
@@ -33,8 +32,6 @@ proc getCampaignMembershipTable(): Table[string, Table[string, CampaignAccessLev
 
   var membershipTable = initTable[string, Table[string, CampaignAccessLevel]]()
   for campaign in campaigns:
-    echo "THE CAMPAIGN"
-    echo campaign.toJson()
     if campaign.guest_group_id.isSome():
         let guestGroupName: string = campaign.guest_group_id.get().name
         membershipTable.addCampaignGroup(guestGroupName, campaign.name, CampaignAccessLevel.GUEST)
@@ -59,8 +56,6 @@ proc getUserCampaignMemberships(user: User): Table[string, CampaignAccessLevel] 
     for group in userGroups:
         let isCampaignGroup: bool = campaignMembershipTable.hasKey(group.name)
         if not isCampaignGroup:
-            echo group.name & " is not a campaign group!"
-            echo %*campaignMembershipTable
             continue
 
         let campaignMemberships: Table[string, CampaignAccessLevel] = campaignMembershipTable[group.name]
