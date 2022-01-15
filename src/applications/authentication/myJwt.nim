@@ -16,6 +16,8 @@ type TokenData* {.defaults.} = object
 implDefaults(TokenData)
 proc newTokenData*(): TokenData = initTokenData()
 
+proc isInitTokenData*(tokenData: TokenData): bool = tokenData.userId == -1
+
 #[ parses a JWT from string form to JWT form]#
 proc parseJWT*(unparsedToken: string): Option[JWT] =
     result = none(JWT)
