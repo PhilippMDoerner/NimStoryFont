@@ -153,7 +153,7 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     db.delete(entryToDelete)  
 
 
-proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M {.gcsafe.} =
+proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
 
@@ -174,7 +174,7 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
     result = getEntryById[M](entry.id)
 
 
-proc createEntry*[T: Model, M: Model](entryJsonData: string): M {.gcsafe.} =
+proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
     ##[ Creates a new entry of a given TableModel T in the database
     and returns a different representation of that entry via model M.
     
