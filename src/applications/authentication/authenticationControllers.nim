@@ -5,9 +5,10 @@ import myJwt
 import ../../utils/database
 import authenticationRepository
 import authenticationModels
+import djangoEncryption
 import ../../applicationSettings
 import jwt
-import nimSHA2
+
 
 #proc createToken*(ctx: Context) {.async.} =
 
@@ -45,18 +46,13 @@ proc refreshTokens*(ctx: Context) {.async.} =
     resp jsonResponse(%*{"refresh": newRefreshToken, "access": newAccessToken})
 
 
-proc hasMatchingPassword(user: User, password: string): bool=
-    let hashedPassword = computeSHA256(password, 18000).toHex()
-    return true
-
-
 proc login*(ctx: Context) {.async.} =
     let requestBody: JsonNode = parseJson(ctx.request.body())
     let userName: string = requestBody.fields["username"].getStr()
     let user: User = getUserByName(userName)
 
     let plainPassword: string = requestBody.fields["password"].getStr()
-    if not user.hasMatchingPassword(plainPassword):
+    if not isValidPassword(plainPassword, user.password):
         resp get401UnauthorizedResponse(ctx)
     
     let newAccessToken: JWT = createNextToken(user, JWTType.ACCESS)

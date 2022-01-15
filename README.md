@@ -7,3 +7,4 @@ The tech stack of this project is:
 -   ORM: norm
 -   JWT-handling: jwt
 -   (De)Serializing JSON to/from ORM models: jsony
+-   Password hashing: nimcrypto
