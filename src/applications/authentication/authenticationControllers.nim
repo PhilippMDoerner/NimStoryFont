@@ -2,7 +2,6 @@ import prologue
 import json
 import ../../utils/errorResponses
 import myJwt
-import ../../utils/database
 import authenticationRepository
 import authenticationModels
 import djangoEncryption
