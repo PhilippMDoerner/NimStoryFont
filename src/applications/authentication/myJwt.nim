@@ -3,15 +3,18 @@ import jwt
 import ../../applicationSettings
 import std/[options, logging, json, tables, random, times, sequtils]
 import authenticationModels
+import constructor/defaults
 
+export jwt
 
-type TokenData* = object
-    campaignMemberships*: Table[string, string]
-    isAdmin*: bool
-    isSuperUser*: bool
-    userId*: int64
-    userName*: string
-
+type TokenData* {.defaults.} = object
+    campaignMemberships*: Table[string, string] = initTable[string, string]()
+    isAdmin*: bool = false
+    isSuperUser*: bool = false
+    userId*: int64 = -1
+    userName*: string = ""
+implDefaults(TokenData)
+proc newTokenData*(): TokenData = initTokenData()
 
 #[ parses a JWT from string form to JWT form]#
 proc parseJWT*(unparsedToken: string): Option[JWT] =
