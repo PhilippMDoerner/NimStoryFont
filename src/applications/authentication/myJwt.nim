@@ -1,7 +1,7 @@
 import prologue
 import jwt
 import ../../applicationSettings
-import std/[options, logging, json, tables, random, times, sequtils, strutils]
+import std/[options, logging, json, tables, random, times, strutils]
 import authenticationModels
 import constructor/defaults
 
