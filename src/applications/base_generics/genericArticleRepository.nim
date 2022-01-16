@@ -10,6 +10,27 @@ export serialization
 export normConversion
 export jsony
 
+##[
+    This generic repository allows general access to the database. It should be your ONLY way to
+    modify the database through, do NOT write custom code for insert/update/delete procs. Always use the ones
+    provided here.
+
+    When modifying data, you have hooks available to insert your own code just before or after a
+    create/delete/update operation occurs.
+
+    These hooks are:
+        - preCreateSignal(entryToCreate: T)
+        - postCreateSignal(entryToCreate: T)
+        - preDeleteSignal(entryToDelete: T)
+        - postDeleteSignal(entryToDelete: T)
+        - preUpdateSignal(entryToUpdate: T)
+        - postUpdateSignal(entryToUpdate: T)
+
+    To use them, merely define procs with the signature, T being the type of the model you pass to the
+    insert/update/delete proc.
+]##
+
+
 proc getList*[M: Model](): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
