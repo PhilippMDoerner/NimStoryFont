@@ -1,5 +1,6 @@
 import norm/[model, pragmas]
 import ../../applicationSettings
+import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import ../campaign/campaignModel
@@ -8,7 +9,7 @@ import constructor/defaults
 
 type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name: string = ""
-    campaign_id*: int64 = -1
+    campaign_id*: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     description: Option[string] = none(string)
@@ -22,7 +23,7 @@ proc newTableModel*(T: typedesc[Organization]): Organization = newOrganization()
 
 type OrganizationOverview* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name: string = ""
-    campaign_id*: int64 = -1
+    campaign_id*: int64 = MODEL_INIT_ID
 
 implDefaults(OrganizationOverview)
 proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = newOrganizationOverview()
