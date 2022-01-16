@@ -3,6 +3,7 @@ import options
 import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
+import ../../applicationConstants
 import ../campaign/campaignModel
 
 type Map* {.defaults, tableName: MAP_TABLE} = ref object of Model
@@ -10,5 +11,5 @@ type Map* {.defaults, tableName: MAP_TABLE} = ref object of Model
   image: string = ""
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  campaign_id* {.fk: Campaign.}: int64 = -1
+  campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
   name*: string = ""

@@ -1,6 +1,7 @@
 import prologue
 import jwt
 import ../../applicationSettings
+import ../../applicationConstants
 import std/[options, logging, json, tables, random, times, strutils]
 import authenticationModels
 import constructor/defaults
@@ -11,12 +12,12 @@ type TokenData* {.defaults.} = object
     campaignMemberships*: Table[string, CampaignAccessLevel] = initTable[string, CampaignAccessLevel]()
     isAdmin*: bool = false
     isSuperUser*: bool = false
-    userId*: int64 = -1
+    userId*: int64 = MODEL_INIT_ID
     userName*: string = ""
 implDefaults(TokenData)
 proc newTokenData*(): TokenData = initTokenData()
 
-proc isInitTokenData*(tokenData: TokenData): bool = tokenData.userId == -1
+proc isInitTokenData*(tokenData: TokenData): bool = tokenData.userId == MODEL_INIT_ID
 
 #[ parses a JWT from string form to JWT form]#
 proc parseJWT*(unparsedToken: string): Option[JWT] =

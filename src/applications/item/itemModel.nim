@@ -1,6 +1,7 @@
 import norm/[model, pragmas]
 import ../campaign/campaignModel
 import ../../applicationSettings
+import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import constructor/defaults
@@ -16,7 +17,7 @@ type Item* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
     description*: Option[string] = none(string)
     name*: string = ""
     owner_id* {.fk: ItemOwner.}: Option[int64] = none(int64)
-    campaign_id*: int64 = -1
+    campaign_id*: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 
@@ -27,7 +28,7 @@ proc newTableModel*(T: typedesc[Item]): Item = newItem()
 
 type ItemOverview* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
     name*: string = ""
-    campaign_id*: int64 = -1
+    campaign_id*: int64 = MODEL_INIT_ID
     owner_id* {.fk: ItemOwner.}: Option[int64] = none(int64)
 
 implDefaults(ItemOverview)

@@ -1,0 +1,1 @@
+const MODEL_INIT_ID*: int64 = -1

@@ -1,6 +1,7 @@
 import norm/[model, pragmas]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
+import ../../applicationConstants
 import std/[tables, options]
 import constructor/defaults
 
@@ -36,7 +37,7 @@ proc newModel*(T: typedesc[Group]): Group = newGroup()
 
 
 type Permission* {.defaults, tableName: PERMISSION_TABLE.} = ref object of Model
-    content_type_id*: int64 = -1
+    content_type_id*: int64 = MODEL_INIT_ID
     codename*: string = ""
     name*: string = ""
 
