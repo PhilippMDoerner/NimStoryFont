@@ -95,15 +95,6 @@ proc getEntryById*[M: Model](entryId: int64): M =
     result = targetEntry
 
 
-
-##TODO: You want to not narrow this down to a specific type. You want to check if the field value is a Model type
-##TODO: Then you want to check if that model type's table is the type of table you're looking for
-
-##[What I need: 
-    1) The starter table name that the other field should point to (instance.tablename())
-    2) A model of that other table that contains a Model-Field of this table (TableModel will do or just a model with the FK annotated with the 'fk' pragma)
-    3) An id on that starter table (instance.id)
-]##
 proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     mixin newModel
 
@@ -143,14 +134,20 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
-    mixin newTableModel
+    mixin preDeleteSignal
+    mixin postDeleteSignal
 
     let db = getDatabaseConnection()
 
-    var entryToDelete: T = newTableModel(T)
-    entryToDelete.id = entryId
+    var entryToDelete: T = getEntryById[T](entryId)
 
-    db.delete(entryToDelete)  
+    when compiles(preDeleteSignal(entryToDelete)):
+        preDeleteSignal(entryToDelete)
+
+    db.delete(entryToDelete)
+
+    when compiles(postDeleteSignal(entryToDelete)):
+        postDeleteSignal(entryToDelete)
 
 
 proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M =
@@ -169,9 +166,14 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
     if entry.id == 0:
         entry.id = entryId
 
-    db.update(entry)
+    when compiles(preUpdateSignal(entry)):
+        preUpdateSignal(entry)
 
+    db.update(entry)
     result = getEntryById[M](entry.id)
+
+    when compiles(postUpdateSignal(result)):
+        postUpdateSignal(result)
 
 
 proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
@@ -186,6 +188,12 @@ proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
 
+    when compiles(preCreateSignal(entry)):
+        postUpdateSignal(entry)
+
     db.insert(entry)
 
     result = getEntryById[M](entry.id)
+
+    when compiles(postCreateSignal(result)):
+        postUpdateSignal(result)
