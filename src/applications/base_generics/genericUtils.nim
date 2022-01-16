@@ -40,12 +40,12 @@ proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType
                 return sourceFieldName
         
         #Handles case where field is a Model type
-        when sourceFieldValue is Model:
+        elif sourceFieldValue is Model:
             when targetTableName == sourceFieldValue.type().table():
                 return sourceFieldName
         
         #Handles case where field is a Option[Model] type
-        when sourceFieldValue is Option:
+        elif sourceFieldValue is Option:
             when sourceFieldValue.get() is Model:
                 when targetTableName == genericParams(sourceFieldValue.type()).get(0).table():
                     return sourceFieldName
