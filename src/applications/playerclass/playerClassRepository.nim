@@ -5,7 +5,7 @@ import sequtils
 import ../base_generics/genericArticleRepository
 
 proc getCharacterPlayerClasses*(characterId: int64): seq[PlayerClass] =
-    let db = getDatabaseConnection()
+    let db = createRawDatabaseConnection()
     var entries: seq[PlayerClassConnectionRead] = @[]
     entries.add(newModel(PlayerClassConnectionRead))
 

@@ -6,7 +6,7 @@ import std/[options]
 
 
 proc getCampaignByName*(campaignName: string): Campaign =
-    let db = getDatabaseConnection()
+    let db = createRawDatabaseConnection()
     var entry: Campaign = newModel(Campaign)
     
     const modelTableName: string = Campaign.table()

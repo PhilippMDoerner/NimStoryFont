@@ -5,7 +5,7 @@ import ../base_generics/genericArticleRepository
 
 
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
-    let db = getDatabaseConnection()
+    let db = createRawDatabaseConnection()
     var entries: seq[Image] = @[]
     entries.add(newModel(Image))
 

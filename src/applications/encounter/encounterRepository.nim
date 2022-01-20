@@ -26,7 +26,7 @@ proc createCharacter*(encounterJsonData: string): EncounterRead =
 
 
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
-    let db = getDatabaseConnection()
+    let db = createRawDatabaseConnection()
     var entries: seq[CharacterEncounterRead] = @[]
     entries.add(newModel(CharacterEncounterRead))
 

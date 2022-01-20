@@ -25,7 +25,7 @@ proc createItem*(itemJsonData: string): ItemRead =
 
 
 proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
-    let db = getDatabaseConnection()
+    let db = createRawDatabaseConnection()
     var entries: seq[ItemOverview] = @[]
     entries.add(newModel(ItemOverview))
 
