@@ -35,11 +35,13 @@ proc getList*[M: Model](): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
 
-    let db = createRawDatabaseConnection()
     var entryList: seq[M] = @[]
     entryList.add(newModel(M))
 
-    db.selectAll(entryList)
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.selectAll(entryList)
+    recycleConnection(poolConnection)
+
 
     result = entryList
 
@@ -53,11 +55,12 @@ proc getCampaignList*[M: Model](campaignName: string): seq[M] =
     the comparison is case-sensitive.]##
     mixin newModel
 
-    let db = createRawDatabaseConnection()
     var entries: seq[M] = @[]
     entries.add(newModel(M))
     
-    db.select(entries, "campaign_id.name = ?", campaignName)
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(entries, "campaign_id.name = ?", campaignName)
+    recycleConnection(poolConnection)
 
     result = entries
 
@@ -72,12 +75,14 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string): M =
     the comparison is case-sensitive.]##
     mixin newModel
     
-    let db = createRawDatabaseConnection()
     var entry: M = newModel(M)
     
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".name = ? AND campaign_id.name = ?"
-    db.select(entry, sqlCondition, entryName, campaignName)
+
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(entry, sqlCondition, entryName, campaignName)
+    recycleConnection(poolConnection)
 
     result = entry
 
@@ -92,12 +97,13 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M =
     the comparison is case-sensitive.]##
     mixin newModel
     
-    let db = createRawDatabaseConnection()
     var entry: M = newModel(M)
-    
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & '.' & fieldName & "= ?"
-    db.select(entry, sqlCondition, fieldValue)
+
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(entry, sqlCondition, fieldValue)
+    recycleConnection(poolConnection)
 
     result = entry
 
@@ -106,12 +112,13 @@ proc getEntryById*[M: Model](entryId: int64): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     mixin newModel
 
-    let db = createRawDatabaseConnection()
     var targetEntry: M = newModel(M)
-    
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".id = ?"
-    db.select(targetEntry, sqlCondition, entryId)
+
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(targetEntry, sqlCondition, entryId)
+    recycleConnection(poolConnection)
 
     result = targetEntry
 
@@ -119,15 +126,15 @@ proc getEntryById*[M: Model](entryId: int64): M =
 proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     mixin newModel
 
-    let db: DbConn = createRawDatabaseConnection()
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
-
     const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
     const manyTableName: string = M.table()
     let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
 
-    db.select(targetEntries, sqlCondition, oneEntry.id)
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(targetEntries, sqlCondition, oneEntry.id)
+    recycleConnection(poolConnection)
 
     result = targetEntries
 
@@ -139,13 +146,15 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 ): seq[M2] =
     mixin newModel
 
-    let db = createRawDatabaseConnection()
     var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
 
     const fkColumnFromJoinToManyStart: string = manyStartInstance.type().getRelatedFieldNameOn(J)
     const joinTableName = J.table()
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
-    db.select(joinModelEntries, sqlCondition, manyStartInstance.id)
+
+    let poolConnection: PoolConnection = borrowConnection()
+    poolConnection.connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
+    recycleConnection(poolConnection)
 
     const fkColumnFromJoinToManyEnd = M2.getRelatedFieldNameOn(J)
     let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
@@ -158,15 +167,17 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     mixin preDeleteSignal
     mixin postDeleteSignal
 
-    let db = createRawDatabaseConnection()
-
     var entryToDelete: T = getEntryById[T](entryId)
 
     when compiles(preDeleteSignal(entryToDelete)):
         preDeleteSignal(entryToDelete)
 
+    let poolConnection: PoolConnection = borrowConnection()
+
     {.cast(gcsafe).}:
-      db.delete(entryToDelete)
+      poolConnection.connection.delete(entryToDelete)
+
+    recycleConnection(poolConnection)
 
     when compiles(postDeleteSignal(entryToDelete)):
         postDeleteSignal(entryToDelete)
@@ -180,10 +191,8 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
     then the given entryId is used. Otherwise the id in the given entryJsonData is used.
     
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
-    let db = createRawDatabaseConnection()
-
     var entry: T = entryJsonData.fromJson(T)
-    entry.update_datetime = djangoDateTimeType.now()
+    entry.update_datetime = djangoDateTimeType.now() #TODO: This is a bad idea, not all models have this field, fix this
 
     if entry.id == 0:
         entry.id = entryId
@@ -191,8 +200,9 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
     when compiles(preUpdateSignal(entry)):
         preUpdateSignal(entry)
 
+    let poolConnection: PoolConnection = borrowConnection()
     {.cast(gcsafe).}:
-      db.update(entry)
+      poolConnection.connection.update(entry)
       
     result = getEntryById[M](entry.id)
 
@@ -205,7 +215,6 @@ proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
     and returns a different representation of that entry via model M.
     
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
-    let db = createRawDatabaseConnection()
     var entry: T = entryJsonData.fromJson(T)
 
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
@@ -215,8 +224,10 @@ proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
     when compiles(preCreateSignal(entry)):
         postUpdateSignal(entry)
 
+    let poolConnection: PoolConnection = borrowConnection()
+
     {.cast(gcsafe).}:
-      db.insert(entry)
+      poolConnection.connection.insert(entry)
 
     result = getEntryById[M](entry.id)
 

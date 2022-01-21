@@ -58,11 +58,13 @@ proc createCharacter*(characterJsonData: string): CharacterSerializable =
 
 
 proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
-    let db = createRawDatabaseConnection()
     var entries: seq[OrganizationCharacter] = @[]
     entries.add(newModel(OrganizationCharacter))
     
     let condition: string = "organization_id = ?"
-    db.select(entries, condition, organizationId)
+    
+    let poolConnection = borrowConnection()
+    poolConnection.connection.select(entries, condition, organizationId)
+    recycleConnection(poolConnection)
 
     result = entries

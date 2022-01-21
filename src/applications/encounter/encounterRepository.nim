@@ -26,12 +26,14 @@ proc createCharacter*(encounterJsonData: string): EncounterRead =
 
 
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
-    let db = createRawDatabaseConnection()
     var entries: seq[CharacterEncounterRead] = @[]
     entries.add(newModel(CharacterEncounterRead))
 
     let condition: string = "character_id = ?"
-    db.select(entries, condition, characterId)
+    
+    let poolConnection = borrowConnection()
+    poolConnection.connection.select(entries, condition, characterId)
+    recycleConnection(poolConnection)
 
     result = entries.map(proc(enc: CharacterEncounterRead): EncounterRead = enc.encounter_id)
 

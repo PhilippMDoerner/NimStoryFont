@@ -6,12 +6,14 @@ import std/[options]
 
 
 proc getCampaignByName*(campaignName: string): Campaign =
-    let db = createRawDatabaseConnection()
     var entry: Campaign = newModel(Campaign)
     
     const modelTableName: string = Campaign.table()
     var sqlCondition: string = modelTableName & ".name LIKE ?"
-    db.select(entry, sqlCondition, campaignName)
+
+    let poolConnection = borrowConnection()
+    poolConnection.connection.select(entry, sqlCondition, campaignName)
+    recycleConnection(poolConnection)
 
     result = entry
   

@@ -5,11 +5,13 @@ import sequtils
 import ../base_generics/genericArticleRepository
 
 proc getCharacterPlayerClasses*(characterId: int64): seq[PlayerClass] =
-    let db = createRawDatabaseConnection()
     var entries: seq[PlayerClassConnectionRead] = @[]
     entries.add(newModel(PlayerClassConnectionRead))
 
     let condition: string = "character_id = ?"
-    db.select(entries, condition, characterId)
+
+    let poolConnection = borrowConnection()
+    poolConnection.connection.select(entries, condition, characterId)
+    recycleConnection(poolConnection)
 
     result = entries.map(proc(connection: PlayerClassConnectionRead): PlayerClass = connection.player_class_id)

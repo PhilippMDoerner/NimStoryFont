@@ -25,9 +25,11 @@ proc createItem*(itemJsonData: string): ItemRead =
 
 
 proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
-    let db = createRawDatabaseConnection()
     var entries: seq[ItemOverview] = @[]
     entries.add(newModel(ItemOverview))
 
     let condition: string = "owner_id = ?"
-    db.select(entries, condition, characterId)
+    
+    let poolConnection = borrowConnection()
+    poolConnection.connection.select(entries, condition, characterId)
+    recycleConnection(poolConnection)
