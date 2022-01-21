@@ -18,7 +18,7 @@ type ConnectionPool* = object
   lock: Lock
 
 
-var POOL: ConnectionPool
+var POOL {.global.}: ConnectionPool
 proc isEmptyPool(): bool = POOL.connections.len() == 0
 
 
