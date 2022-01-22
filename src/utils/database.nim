@@ -1,5 +1,5 @@
 import ../applicationSettings 
-import std/[times, monotimes, locks, db_sqlite, math]
+import std/[times, monotimes, locks, db_sqlite]
 
 
 proc createRawDatabaseConnection(): DbConn =
@@ -15,8 +15,7 @@ type ConnectionPool = object
 
 var POOL {.global.}: ConnectionPool
 proc isPoolEmpty(): bool = POOL.connections.len() == 0
-proc isPoolFull(): bool = POOL.connections.len() == CONNECTION_POOL_SIZE
-proc isPoolAlmostEmptyOrWorse(): bool = POOL.connections.len() < int(round(float(CONNECTION_POOL_SIZE) * 0.25))
+proc isPoolFull(): bool = POOL.connections.len() >= CONNECTION_POOL_SIZE
 
 proc refillPoolConnections() =
   withLock POOL.lock:
@@ -63,7 +62,7 @@ proc borrowConnection(): DbConn {.gcsafe.} =
       if isPoolEmpty():
         activateBurstMode()
 
-      elif isPoolAlmostEmptyOrWorse() and POOL.isInBurstMode: 
+      elif not isPoolFull() and POOL.isInBurstMode: 
         extendBurstModeLifetime()
         
       result = POOL.connections.pop()
