@@ -29,4 +29,4 @@ proc updateCreature*(entryId: int, entryJsonData: string): CreatureRead =
 
 
 proc createCreature*(entryJsonData: string): CreatureRead =
-    result = createEntry[Creature, CreatureRead](entryJsonData)
+    result = createArticleEntry[Creature, CreatureRead](entryJsonData)

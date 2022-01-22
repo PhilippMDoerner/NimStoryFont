@@ -21,7 +21,7 @@ proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
 
 
 proc createItem*(itemJsonData: string): ItemRead =
-    result = createEntry[Item, ItemRead](itemJsonData)
+    result = createArticleEntry[Item, ItemRead](itemJsonData)
 
 
 proc getCharacterItems*(characterId: int64): seq[ItemOverview] =

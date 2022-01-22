@@ -23,7 +23,7 @@ proc updateCharacter*(encounterId: int64, encounterJsonData: string): EncounterR
 
 
 proc createCharacter*(encounterJsonData: string): EncounterRead =
-    result = createEntry[Encounter, EncounterRead](encounterJsonData)
+    result = createArticleEntry[Encounter, EncounterRead](encounterJsonData)
 
 
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =

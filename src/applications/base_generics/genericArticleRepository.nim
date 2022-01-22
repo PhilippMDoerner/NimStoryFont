@@ -30,7 +30,7 @@ export jsony
     insert/update/delete proc.
 ]##
 
-
+# SELECT PROCS
 proc getList*[M: Model](): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
@@ -153,7 +153,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
     result = manyEntries
 
-
+#DELETE PROCS
 proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
@@ -174,6 +174,7 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
         postDeleteSignal(entryToDelete)
 
 
+#UPDATE PROCS
 proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
@@ -201,17 +202,10 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
         postUpdateSignal(result)
 
 
-proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
-    ##[ Creates a new entry of a given TableModel T in the database
-    and returns a different representation of that entry via model M.
-    
-    WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
-    var entry: T = entryJsonData.fromJson(T)
 
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
-    entry.creation_datetime = creationTime
-    entry.update_datetime = creationTime
 
+#CREATE PROCS
+proc createEntry*[T: Model, M: Model](entry: var T): M =
     when compiles(preCreateSignal(entry)):
         postUpdateSignal(entry)
 
@@ -223,3 +217,23 @@ proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
 
     when compiles(postCreateSignal(result)):
         postUpdateSignal(result)
+
+
+proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
+    ##[ Creates a new entry of a given TableModel T in the database
+    and returns a different representation of that entry via model M.
+    
+    WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
+    var entry: T = entryJsonData.fromJson(T)
+    result = createEntry[T, M](entry)
+
+
+proc createArticleEntry*[T: Model, M: Model](entryJsonData: string): M =
+    var entry: T = entryJsonData.fromJson(T)
+
+    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    entry.creation_datetime = creationTime
+    entry.update_datetime = creationTime
+
+    result = createEntry[T, M](entry)
+

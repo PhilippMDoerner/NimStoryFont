@@ -31,4 +31,4 @@ proc updateOrganization*(organizationId: int64, organizationJsonData: string): O
 
 
 proc createOrganization*(organizationJsonData: string): OrganizationRead =
-    result = createEntry[Organization, OrganizationRead](organizationJsonData)
+    result = createArticleEntry[Organization, OrganizationRead](organizationJsonData)
