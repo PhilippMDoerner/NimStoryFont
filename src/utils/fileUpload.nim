@@ -19,7 +19,7 @@ proc uploadArticleImage*(file: var UpLoadFile): string =
   var filePath = articleImageDirectory & '/' & file.filename
   if fileExists(filePath):
     let (directory, name, extension) = file.filename.splitFile()
-    let newFileName = name & '_' & randomString(10) & '.' & extension
+    let newFileName = name & '_' & randomString(10) & extension
     file.filename = newFileName
     filePath = articleImageDirectory & '/' & newFileName
 
