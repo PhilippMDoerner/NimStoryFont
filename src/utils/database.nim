@@ -1,107 +1,90 @@
 import ../applicationSettings 
-import std/[times, monotimes, locks, db_sqlite]
+import std/[times, monotimes, locks, db_sqlite, math]
 
 
 proc createRawDatabaseConnection(): DbConn =
     return open(applicationSettings.database, "", "", "")
 
 
-type BaseConnectionPool = object
+type ConnectionPool = object
   connections: seq[DbConn]
   lock: Lock
+  defaultPoolSize: int
+  burstEndTime: MonoTime
+  isInBurstMode: bool
 
+var POOL {.global.}: ConnectionPool
+proc isPoolEmpty(): bool = POOL.connections.len() == 0
+proc isPoolFull(): bool = POOL.connections.len() == CONNECTION_POOL_SIZE
+proc isPoolAlmostEmptyOrWorse(): bool = POOL.connections.len() < int(round(float(CONNECTION_POOL_SIZE) * 0.25))
 
-type BurstConnectionPool = object
-  connections: seq[DbConn]
-  lock: Lock
-  keepAliveUntilTimestamp: MonoTime
-  isActive: bool
-
-type ConnectionPool = BaseConnectionPool | BurstConnectionPool
-
-var POOL {.global.}: BaseConnectionPool
-var BURSTPOOL {.global.}: BurstConnectionPool
-proc isEmptyPool(pool: ConnectionPool): bool = pool.connections.len() == 0
-proc isBasePoolFull(): bool = POOL.connections.len() == CONNECTION_POOL_SIZE
-proc hasBurstPoolExceededLifetime(): bool = getMonoTime() > BURSTPOOL.keepAliveUntilTimestamp
-
-proc addConnections(pool: var ConnectionPool, count: int) =
-  withLock pool.lock:
-    for i in 1..count:
+proc refillPoolConnections() =
+  withLock POOL.lock:
+    for i in 1..POOL.defaultPoolSize:
       POOL.connections.add(createRawDatabaseConnection())
 
 
 proc initConnectionPool*() = 
   POOL.connections = @[]
+  POOL.isInBurstMode = false
+  POOL.burstEndTime = getMonoTime()
+  POOL.defaultPoolSize = CONNECTION_POOL_SIZE
   initLock(POOL.lock)
-  POOL.addConnections(CONNECTION_POOL_SIZE)
-
-  BURSTPOOL.connections = @[]
-  BURSTPOOL.isActive = false
-  initLock(BURSTPOOL.lock)
+  refillPoolConnections()
 
 
-proc activeBurstConnectionPool() =
-  BURSTPOOL.addConnections(CONNECTION_POOL_SIZE*2)
-  BURSTPOOL.isActive = true
-  BURSTPOOL.keepAliveUntilTimestamp = getMonoTime() + initDuration(minutes = 30)
+proc activateBurstMode() =
+  POOL.isInBurstMode = true
+  POOL.burstEndTime = getMonoTime() + initDuration(minutes = 30)
+  refillPoolConnections()
+
+proc updatePoolBurstModeState() =
+  if not POOL.isInBurstMode:
+    return
+
+  if getMonoTime() > POOL.burstEndTime:
+    POOL.isInBurstMode = false
 
 
-proc deactiveBurstConnectionPool*() =
-  BURSTPOOL.isActive = false
-  BURSTPOOL.connections = @[]
+proc extendBurstModeLifetime() =
+  if POOL.isInBurstMode == false:
+    raise newException(DbError, "Tried to extend pool lifetime while Pool wasn't in burst mode, there's a logic issue")
 
-
-proc extendBurstPoolLifetime() =
-  let hasMaxLifetimeDuration: bool = BURSTPOOL.keepAliveUntilTimestamp - getMonoTime() > initDuration(minutes = 30)
+  let hasMaxLifetimeDuration: bool = POOL.burstEndTime - getMonoTime() > initDuration(minutes = 30)
   if hasMaxLifetimeDuration:
     return
 
-  BURSTPOOL.keepAliveUntilTimestamp = BURSTPOOL.keepAliveUntilTimestamp + initDuration(seconds = 5)
+  POOL.burstEndTime = POOL.burstEndTime + initDuration(seconds = 5)
 
 
 proc borrowConnection(): DbConn {.gcsafe.} =
   {.cast(gcsafe).}:
     withLock POOL.lock:
-      withLock BURSTPOOL.lock:
-        if POOL.isEmptyPool():
-          if BURSTPOOL.isActive:
-            extendBurstPoolLifetime()
+      if isPoolEmpty():
+        activateBurstMode()
 
-            if BURSTPOOL.isEmptyPool():
-              result = createRawDatabaseConnection()
-            else: 
-              result = BURSTPOOL.connections.pop()
-          
-          else:
-            activeBurstConnectionPool()
-            result = BURSTPOOL.connections.pop()
-
-        else:
-          if BURSTPOOL.isActive and hasBurstPoolExceededLifetime():
-            deactiveBurstConnectionPool()
-          
-          result = POOL.connections.pop()
-
-        echo "After Borrow: POOL size: " & $POOL.connections.len() & " | BURSTPOOL size: " & $BURSTPOOL.connections.len()
-
+      elif isPoolAlmostEmptyOrWorse() and POOL.isInBurstMode: 
+        extendBurstModeLifetime()
+        
+      result = POOL.connections.pop()
+      echo "After Borrow: POOL size: " & $POOL.connections.len()
 
 
 proc recycleConnection(connection: DbConn) {.gcsafe.} =  
   {.cast(gcsafe).}:
     withLock POOL.lock:
-      withLock BURSTPOOL.lock:
-        if isBasePoolFull() and BURSTPOOL.isActive:
-          BURSTPOOL.connections.add(connection)
-        elif not isBasePoolFull():
-          POOL.connections.add(connection)
+      updatePoolBurstModeState()
 
-        echo "After Recycle: POOL size: " & $POOL.connections.len() & " | BURSTPOOL size: " & $BURSTPOOL.connections.len()
+      if isPoolFull() and not POOL.isInBurstMode:
+        connection.close()
+      else:
+        POOL.connections.add(connection)
+
+      echo "After Recycle: POOL size: " & $POOL.connections.len()
 
 
 proc destroyConnectionPool*() =
   deinitLock(POOL.lock)
-  deinitLock(BURSTPOOL.lock)
 
 
 template withDbConn*(connection: untyped, body: untyped) =
