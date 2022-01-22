@@ -175,7 +175,7 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
 
 
 #UPDATE PROCS
-proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M =
+proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
 
@@ -196,7 +196,7 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
       withDbConn(connection):
         connection.update(entry)
       
-    result = getEntryById[M](entry.id)
+    result = entry
 
     when compiles(postUpdateSignal(result)):
         postUpdateSignal(result)
@@ -205,7 +205,7 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
 
 
 #CREATE PROCS
-proc createEntry*[T: Model, M: Model](entry: var T): M =
+proc createEntry*[T: Model](entry: var T): T =
     when compiles(preCreateSignal(entry)):
         postUpdateSignal(entry)
 
@@ -213,27 +213,27 @@ proc createEntry*[T: Model, M: Model](entry: var T): M =
       withDbConn(connection):
         connection.insert(entry)
 
-    result = getEntryById[M](entry.id)
+    result = entry
 
     when compiles(postCreateSignal(result)):
         postUpdateSignal(result)
 
 
-proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
+proc createEntry*[T: Model](entryJsonData: string): T =
     ##[ Creates a new entry of a given TableModel T in the database
     and returns a different representation of that entry via model M.
     
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
     var entry: T = entryJsonData.fromJson(T)
-    result = createEntry[T, M](entry)
+    result = createEntry(entry)
 
 
-proc createArticleEntry*[T: Model, M: Model](entryJsonData: string): M =
+proc createArticleEntry*[T: Model](entryJsonData: string): T =
     var entry: T = entryJsonData.fromJson(T)
 
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
 
-    result = createEntry[T, M](entry)
+    result = createEntry(entry)
 
