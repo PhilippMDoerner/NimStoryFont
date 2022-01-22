@@ -8,7 +8,7 @@ import logging
 
 
 proc main() =
-    initConnectionPool(20)
+    initConnectionPool()
 
     var app: Prologue = newApp(core_settings)
     addAuthenticationRoutes(app)

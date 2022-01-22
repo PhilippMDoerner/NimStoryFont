@@ -30,6 +30,5 @@ proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
 
     let condition: string = "owner_id = ?"
     
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entries, condition, characterId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entries, condition, characterId)

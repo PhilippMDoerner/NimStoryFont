@@ -10,8 +10,7 @@ proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
 
     let condition: string = $articleType & "_article_id = ?"
 
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entries, condition, articleId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entries, condition, articleId)
 
     result = entries

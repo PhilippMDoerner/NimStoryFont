@@ -10,8 +10,7 @@ proc getCharacterPlayerClasses*(characterId: int64): seq[PlayerClass] =
 
     let condition: string = "character_id = ?"
 
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entries, condition, characterId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entries, condition, characterId)
 
     result = entries.map(proc(connection: PlayerClassConnectionRead): PlayerClass = connection.player_class_id)

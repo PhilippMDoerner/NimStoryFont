@@ -38,9 +38,8 @@ proc getList*[M: Model](): seq[M] =
     var entryList: seq[M] = @[]
     entryList.add(newModel(M))
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.selectAll(entryList)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.selectAll(entryList)
 
 
     result = entryList
@@ -58,9 +57,8 @@ proc getCampaignList*[M: Model](campaignName: string): seq[M] =
     var entries: seq[M] = @[]
     entries.add(newModel(M))
     
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(entries, "campaign_id.name = ?", campaignName)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(entries, "campaign_id.name = ?", campaignName)
 
     result = entries
 
@@ -80,9 +78,8 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".name = ? AND campaign_id.name = ?"
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(entry, sqlCondition, entryName, campaignName)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(entry, sqlCondition, entryName, campaignName)
 
     result = entry
 
@@ -101,9 +98,8 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & '.' & fieldName & "= ?"
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(entry, sqlCondition, fieldValue)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(entry, sqlCondition, fieldValue)
 
     result = entry
 
@@ -116,9 +112,8 @@ proc getEntryById*[M: Model](entryId: int64): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".id = ?"
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(targetEntry, sqlCondition, entryId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(targetEntry, sqlCondition, entryId)
 
     result = targetEntry
 
@@ -132,9 +127,8 @@ proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[
     const manyTableName: string = M.table()
     let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(targetEntries, sqlCondition, oneEntry.id)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(targetEntries, sqlCondition, oneEntry.id)
 
     result = targetEntries
 
@@ -152,9 +146,8 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     const joinTableName = J.table()
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
 
-    let poolConnection: PoolConnection = borrowConnection()
-    poolConnection.connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+        connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
 
     const fkColumnFromJoinToManyEnd = M2.getRelatedFieldNameOn(J)
     let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
@@ -172,12 +165,10 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     when compiles(preDeleteSignal(entryToDelete)):
         preDeleteSignal(entryToDelete)
 
-    let poolConnection: PoolConnection = borrowConnection()
 
     {.cast(gcsafe).}:
-      poolConnection.connection.delete(entryToDelete)
-
-    recycleConnection(poolConnection)
+      withDbConn(connection):
+        connection.delete(entryToDelete)
 
     when compiles(postDeleteSignal(entryToDelete)):
         postDeleteSignal(entryToDelete)
@@ -200,9 +191,9 @@ proc updateEntry*[T: Model, M: Model](entryId: int64, entryJsonData: string): M 
     when compiles(preUpdateSignal(entry)):
         preUpdateSignal(entry)
 
-    let poolConnection: PoolConnection = borrowConnection()
     {.cast(gcsafe).}:
-      poolConnection.connection.update(entry)
+      withDbConn(connection):
+        connection.update(entry)
       
     result = getEntryById[M](entry.id)
 
@@ -224,10 +215,9 @@ proc createEntry*[T: Model, M: Model](entryJsonData: string): M =
     when compiles(preCreateSignal(entry)):
         postUpdateSignal(entry)
 
-    let poolConnection: PoolConnection = borrowConnection()
-
     {.cast(gcsafe).}:
-      poolConnection.connection.insert(entry)
+      withDbConn(connection):
+        connection.insert(entry)
 
     result = getEntryById[M](entry.id)
 

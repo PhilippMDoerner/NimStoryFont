@@ -3,6 +3,8 @@ import times
 
 #Custom Settings
 const database* = "db.sqlite3"
+const CONNECTION_POOL_SIZE*: int = 20
+
 const DEBUG*: bool = true
 const ACCESS_TOKEN_LIFETIME*: TimeInterval = hours(1) # 1h in seconds
 const REFRESH_TOKEN_LIFETIME*: TimeInterval = days(100) # 100 days in seconds

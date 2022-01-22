@@ -63,8 +63,7 @@ proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
     
     let condition: string = "organization_id = ?"
     
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entries, condition, organizationId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entries, condition, organizationId)
 
     result = entries

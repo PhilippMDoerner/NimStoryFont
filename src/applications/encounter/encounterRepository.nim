@@ -1,4 +1,5 @@
 import encounterModel
+import characterEncounterModel
 import ../../utils/database
 import norm/[model, sqlite]
 import sequtils
@@ -31,9 +32,8 @@ proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
 
     let condition: string = "character_id = ?"
     
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entries, condition, characterId)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entries, condition, characterId)
 
     result = entries.map(proc(enc: CharacterEncounterRead): EncounterRead = enc.encounter_id)
 

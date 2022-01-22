@@ -11,9 +11,8 @@ proc getCampaignByName*(campaignName: string): Campaign =
     const modelTableName: string = Campaign.table()
     var sqlCondition: string = modelTableName & ".name LIKE ?"
 
-    let poolConnection = borrowConnection()
-    poolConnection.connection.select(entry, sqlCondition, campaignName)
-    recycleConnection(poolConnection)
+    withDbConn(connection):
+      connection.select(entry, sqlCondition, campaignName)
 
     result = entry
   
