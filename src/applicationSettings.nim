@@ -5,14 +5,17 @@ import times
 const database* = "db.sqlite3"
 const CONNECTION_POOL_SIZE*: int = 20
 
+const BASE_DIR* = "/home/isofruit/dev/nimstoryfont"
+const MEDIA_ROOT* = BASE_DIR & "/media"
+const MEDIA_URL* = "/media/"
+
 const DEBUG*: bool = true
 const ACCESS_TOKEN_LIFETIME*: TimeInterval = hours(1) # 1h in seconds
 const REFRESH_TOKEN_LIFETIME*: TimeInterval = days(100) # 100 days in seconds
 
 #Prologue Settings
 let coreSettings*: Settings = loadSettings("./settings.json")
-
-const SECRET_KEY*: string = "MyBeautifulSecretKey"
+const SECRET_KEY*: string = "MyBeautifulSecretKey" #TODO: write this so this can be loaded in on startup and not compiled into the binary
 const AUTHORIZATION_HEADER*: string = "Authorization"
 
 
