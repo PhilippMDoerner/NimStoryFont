@@ -34,8 +34,7 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
 
   var rows: seq[Row]
   withDbConn(connection):
-    echo "Looking in campaign: " & $campaign.id
-    let myrows = connection.getAllRows(
+    rows = connection.getAllRows(
       searchSQLQuery,
       searchText, 
       searchText, 
@@ -43,14 +42,10 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
       searchText,
       searchLimit
     )
-    echo $myrows.len()
-    rows = myrows
 
-  echo "Got this many hits: " & $rows.len()
   var searchEntries: seq[SearchSerializable] = @[]
   for row in rows:
     var searchEntry: SearchSerializable = newViewModel(SearchSerializable)
-    echo row
     row.to(searchEntry, nil)
     searchEntries.add(searchEntry)
 
