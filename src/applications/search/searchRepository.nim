@@ -3,10 +3,8 @@ import ../../utils/database
 import std/db_sqlite
 import ../campaign/campaignRepository
 import ../../utils/nisane/nisane
-import std/sequtils
 
 
-#TODO: This doesn't work because norm thinks a model should have an id field and search just doesn't
 proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
