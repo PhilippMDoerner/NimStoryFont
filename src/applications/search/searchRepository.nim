@@ -1,8 +1,8 @@
 import searchModel
-import ../../utils/database
 import std/db_sqlite
 import ../campaign/campaignRepository
 import ../../utils/nisane/nisane
+import tinypool
 
 
 proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =

@@ -1,8 +1,8 @@
 import ../base_generics/genericArticleRepository
 import campaignModel
-import ../../utils/database
 import norm/[sqlite, model]
 import std/[options]
+import tinypool
 
 
 proc getCampaignByName*(campaignName: string): Campaign =

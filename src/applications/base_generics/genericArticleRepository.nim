@@ -1,9 +1,9 @@
-import ../../utils/database
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
 import norm/[model, sqlite]
 import jsony
 import options
 import genericUtils
+import tinypool
 
 export sqlite
 export serialization
@@ -101,7 +101,7 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M =
     withDbConn(connection):
         connection.select(entry, sqlCondition, fieldValue)
 
-    result = entry
+    result = entry 
 
 
 proc getEntryById*[M: Model](entryId: int64): M =

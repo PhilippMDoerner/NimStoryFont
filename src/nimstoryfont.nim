@@ -1,16 +1,16 @@
 import prologue
 import applicationSettings
-import utils/[database, jwtContext]
+import utils/jwtContext
 import applications/character/characterRoutes
 import applications/creature/creatureRoutes
 import applications/image/imageRoutes
 import applications/authentication/authenticationRoutes
 import applications/search/searchRoutes
 import logging
-
+import tinypool
 
 proc main() =
-    initConnectionPool()
+    initConnectionPool(applicationSettings.database, CONNECTION_POOL_SIZE)
 
     var app: Prologue = newApp(core_settings)
     addAuthenticationRoutes(app)

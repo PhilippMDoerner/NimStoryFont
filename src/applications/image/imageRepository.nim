@@ -1,9 +1,10 @@
 import imageModel
 import prologue
 import std/[strutils]
-import ../../utils/[jwtContext, database, fileUpload]
+import ../../utils/[jwtContext, fileUpload]
 import norm/[model, sqlite]
 import ../base_generics/genericArticleRepository
+import tinypool
 
 
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =

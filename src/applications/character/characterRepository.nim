@@ -6,7 +6,7 @@ import ../item/itemModel
 import ../encounter/[encounterModel, characterEncounterModel]
 import ../playerclass/playerClassModel
 import ../organization/organizationModel
-import ../../utils/database
+import tinypool
 import norm/[model, sqlite]
 
 
