@@ -11,3 +11,4 @@ The dependencies of this project are:
 -   (De)Serializing JSON to/from ORM models: jsony - https://github.com/treeform/jsony
 -   Password hashing: nimcrypto - https://github.com/cheatfate/nimcrypto
 -   Simplifaction of model-object construction: constructor - https://github.com/beef331/constructor
+-   Connection pooling: tinypool - https://github.com/PhilippMDoerner/TinyPool
