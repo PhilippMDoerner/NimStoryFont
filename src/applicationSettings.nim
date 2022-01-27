@@ -3,7 +3,7 @@ import times
 
 #Custom Settings
 const database* = "db.sqlite3"
-const CONNECTION_POOL_SIZE*: int = 20
+const CONNECTION_POOL_SIZE*: int = 4
 
 const BASE_DIR* = "/home/isofruit/dev/nimstoryfont"
 const MEDIA_ROOT* = BASE_DIR & "/media"
