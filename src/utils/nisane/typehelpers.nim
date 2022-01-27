@@ -1,12 +1,13 @@
 import std/[macros, strutils]
+
 type
   TyKind* = enum
     TyUnsupported
-    TyString
-    TyInt
-    TyInt64
-    TyBool
-    TyFloat
+    TyString = "string"
+    TyInt = "int"
+    TyBool = "bool"
+    TyFloat = "float"
+    TyInt64 = "int64"
     TyTuple
     TyObj
     TyRef
@@ -42,25 +43,25 @@ proc gType*(ty: NimNode): tuple[kind: TyKind, ty: NimNode] =
     ## unpack the type (object and tuple) and call again
     return ty.getImpl()[2].gType()
 
-  let typeImpl = ty.getTypeImpl()
+  let typeImpl: NimNode = ty.getTypeImpl()
   case typeImpl.kind:
     of nnkSym:
       let typeTyKind: TyKind = parseEnum[TyKind](typeImpl.strVal())
       return (typeTyKind, typeImpl)
 
     of nnkObjectTy: 
-      return (TyObj, typeImpl)
+      return (TyObj, typeImpl[2])
 
     of nnkTupleTy: 
       return (TyTuple, typeImpl)
-
+    
     of nnkBracketExpr:
       ## unpack the type (int) and call again
       return typeImpl[1].gtype()
     
     of nnkRefTy:
       if typeImpl[0].kind == nnkSym:
-        return (TyRefObj, ty.getTypeImpl[0].getImpl) # [2])
+        return (TyRefObj, ty.getTypeImpl[0].getImpl[2][2]) # [2])
       else:
         return (TyUnsupported, newNimNode(nnkNone))
     
@@ -119,6 +120,7 @@ when isMainModule:
   # echo foo1(Robj).kind
   assert TyRefObj == foo1(Robj).kind
   assert TyRefObj == foo1(robj).kind
+
 
 
   # echo foo2(foo) # == TyObj
