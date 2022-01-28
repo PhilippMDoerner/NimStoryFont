@@ -6,13 +6,13 @@ import ../creature/creatureRepository
 #import ../diaryentry/diaryentryRepository
 import ../encounter/encounterRepository
 import ../item/itemRepository
-#import ../location/locationRepository
-#import ../map/mapRepository
+import ../location/locationRepository
+import ../map/mapRepository
 import ../organization/organizationRepository
-#import ../quest/questRepository
+import ../quest/questRepository
 #import ../sessionaudio/sessionaudioRepository
-#import ../spell/spellRepository
-#import ../rules/rulesRepository
+import ../spell/spellRepository
+import ../rules/ruleRepository
 import jsony
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
@@ -100,25 +100,20 @@ proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
     of ArticleTable.ITEM:
       jsonString = getItemById(articleId).toJson()
     of ArticleTable.LOCATION:
-      #jsonString = getLocationById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getLocationById(articleId).toJson()
     of ArticleTable.MAP:
-      #jsonString = getMapById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getMapById(articleId).toJson()
     of ArticleTable.ORGANIZATION:
       jsonString = getOrganizationById(articleId).toJson()
     of ArticleTable.QUEST:
-      #jsonString = getQuestById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getQuestById(articleId).toJson()
     of ArticleTable.SESSIONAUDIO:
       #jsonString = * getSessionAudioByid(articleId).toJson()
       jsonString = "[]"
     of ArticleTable.SPELL:
-      #jsonString = getSpellById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getSpellById(articleId).toJson()
     of ArticleTable.RULE:
-      #jsonString = getRuleById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getRuleById(articleId).toJson()
 
   result = parseJson(jsonString)
 
