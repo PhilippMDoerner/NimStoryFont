@@ -1,9 +1,7 @@
-import norm/[model, pragmas]
 import ../campaign/campaignModel
-import ../../applicationSettings
 import ../../applicationConstants
 import constructor/defaults
-import std/tables
+import std/[json]
 
 export campaignModel
 
@@ -22,11 +20,15 @@ proc newModel*(T: typedesc[Search]): Search = initSearch()
 proc newTableModel*(T: typedesc[Search]): Search = initSearch()
 
 
-type SearchSerializable* {.defaults.} = object
+type SearchHit* {.defaults.} = object
   title*: string = ""
-  guid*: string = ""
+  table_name*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID
   record_id*: int64 = MODEL_INIT_ID
-implDefaults(SearchSerializable)
+implDefaults(SearchHit)
 
-proc newViewModel*(T: typedesc[SearchSerializable]): SearchSerializable = initSearchSerializable()
+proc newViewModel*(T: typedesc[SearchHit]): SearchHit = initSearchHit()
+
+type SearchSerializable* {.defaults.} = object
+  hit*: SearchHit
+  articleDataJson*: JsonNode

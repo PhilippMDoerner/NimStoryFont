@@ -14,4 +14,4 @@ proc findArticles*(ctx: Context) {.async.} =
 
     respondBadRequestOnDbError():
         let articles: seq[SearchSerializable] = searchRepository.findArticles(campaignName, searchText)
-        resp jsonyResponse[seq[SearchSerializable]](ctx, articles)
+        resp jsonResponse(%articles)
