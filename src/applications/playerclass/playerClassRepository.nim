@@ -1,8 +1,8 @@
 import playerClassModel
-import ../../utils/database
 import norm/[model, sqlite]
 import sequtils
 import ../base_generics/genericArticleRepository
+import tinypool
 
 proc getCharacterPlayerClasses*(characterId: int64): seq[PlayerClass] =
     var entries: seq[PlayerClassConnectionRead] = @[]

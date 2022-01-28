@@ -1,8 +1,7 @@
-import ../../utils/database
 import norm/[model, sqlite]
 import ../base_generics/genericArticleRepository
 import itemModel
-
+import tinypool
 
 proc getItemList*(): seq[ItemRead] =
     result = getList[ItemRead]()
@@ -17,11 +16,13 @@ proc deleteItem*(itemId: int64) =
 
 
 proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
-    result = updateEntry[Item, ItemRead](itemId, itemJsonData)
+    let item: Item = updateEntry[Item](itemId, itemJsonData)
+    result = getItemById(item.id)
 
 
 proc createItem*(itemJsonData: string): ItemRead =
-    result = createArticleEntry[Item, ItemRead](itemJsonData)
+    let item: Item = createArticleEntry[Item](itemJsonData)
+    result = getItemById(item.id)
 
 
 proc getCharacterItems*(characterId: int64): seq[ItemOverview] =

@@ -1,6 +1,6 @@
 import encounterModel
 import characterEncounterModel
-import ../../utils/database
+import tinypool
 import norm/[model, sqlite]
 import sequtils
 import ../base_generics/genericArticleRepository
@@ -18,12 +18,14 @@ proc deleteEncounter*(encounterId: int64) =
     deleteEntry[Encounter](encounterId)
 
 
-proc updateCharacter*(encounterId: int64, encounterJsonData: string): EncounterRead =
-    result = updateEntry[Encounter, EncounterRead](encounterId, encounterJsonData)
+proc updateEncounter*(encounterId: int64, encounterJsonData: string): EncounterRead =
+    let encounter: Encounter = updateEntry[Encounter](encounterId, encounterJsonData)
+    result = getEncounterById(encounter.id)
 
 
-proc createCharacter*(encounterJsonData: string): EncounterRead =
-    result = createArticleEntry[Encounter, EncounterRead](encounterJsonData)
+proc createEncounter*(encounterJsonData: string): EncounterRead =
+    let encounter: Encounter =  createArticleEntry[Encounter](encounterJsonData)
+    result = getEncounterById(encounter.id)
 
 
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
