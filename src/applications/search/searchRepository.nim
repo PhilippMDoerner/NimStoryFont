@@ -1,23 +1,26 @@
 import searchModel
-import std/[db_sqlite, strutils, json]
+import std/[db_sqlite, strutils, json, strformat]
 import ../campaign/campaignRepository
 import ../character/characterRepository
 import ../creature/creatureRepository
-#import ../diaryentry/diaryentryRepository
+import ../diaryentry/diaryEntryRepository
 import ../encounter/encounterRepository
 import ../item/itemRepository
 import ../location/locationRepository
 import ../map/mapRepository
 import ../organization/organizationRepository
 import ../quest/questRepository
-#import ../sessionaudio/sessionaudioRepository
+import ../sessionaudio/sessionaudioRepository
 import ../spell/spellRepository
 import ../rules/ruleRepository
 import jsony
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
 import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../../utils/myStrutils
 import tinypool
+
+export searchRepository
 
 type ArticleTable = enum #TODO: Replace this with applicationSettings constants once that can compile
   CHARACTER = "wikientries_character"
@@ -33,6 +36,7 @@ type ArticleTable = enum #TODO: Replace this with applicationSettings constants 
   SPELL = "wikientries_spell"
   RULE = "wikientries_rules"
 
+type Article = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | Organization | Quest | SessionAudio | Spell | Rule
 
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
@@ -117,6 +121,7 @@ proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
 
   result = parseJson(jsonString)
 
+
 proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =
   let searchHits: seq[SearchHit] = search(campaignName, searchText, searchLimit)
 
@@ -126,3 +131,38 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
       let articleDataJsonString: JsonNode = getArticleData(articleTable, searchHit.record_id)
 
       result.add(SearchSerializable(hit: searchHit, articleDataJson: articleDataJsonString))
+
+
+proc addSearchEntry(article: Article) =
+  let searchTitle: string = article.getSearchTitle()
+  let searchBody: string = article.getSearchBody()
+  addSearchEntry(searchTitle, searchBody, article.table(), article.id, article.campaign_id)
+
+
+proc addSearchEntry*(searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
+  let addSearchEntryQuery = sql"""
+    INSERT INTO search_article_content (
+      title,
+      title_rev, 
+      body, 
+      body_rev, 
+      table_name, 
+      record_id, 
+      campaign_id, 
+      guid
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  """
+
+  withDbConn(connection):
+    connection.exec(
+      addSearchEntryQuery,
+      searchTitle,
+      searchTitle.reverseString(),
+      searchBody,
+      searchBody.reverseString(),
+      tableName,
+      $recordId,
+      $campaignId,
+      fmt "{tableName}_{record_id}"
+    )
