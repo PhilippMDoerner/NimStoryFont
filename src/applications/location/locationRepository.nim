@@ -2,6 +2,8 @@ import locationModel
 import ../base_generics/genericArticleRepository
 import ../../applicationSettings
 
+export locationModel
+
 #TODO: Figure out how to do this in norm
 # proc getLocationByName*(campaignName: string, parentLocationName: string, locationName: string): Location = 
     

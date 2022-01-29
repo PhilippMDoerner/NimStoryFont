@@ -4,6 +4,8 @@ import norm/[sqlite, model]
 import std/[options]
 import tinypool
 
+export campaignModel
+
 
 proc getCampaignByName*(campaignName: string): Campaign =
     var entry: Campaign = newModel(Campaign)

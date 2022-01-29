@@ -6,6 +6,8 @@ import norm/[model, sqlite]
 import ../base_generics/genericArticleRepository
 import tinypool
 
+export imageModel
+
 
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
     var entries: seq[Image] = @[]

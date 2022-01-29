@@ -5,6 +5,7 @@ import norm/[model, sqlite]
 import sequtils
 import ../base_generics/genericArticleRepository
 
+export encounterModel
 
 proc getEncounterList*(): seq[EncounterRead] =
     result = getList[EncounterRead]()

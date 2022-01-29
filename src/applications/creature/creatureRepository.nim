@@ -1,6 +1,7 @@
 import ../base_generics/genericArticleRepository
 import creatureModel
 
+export creatureModel
 
 proc getCampaignCreatureListOverview*(campaignName: string): seq[CreatureOverview] =
     ## lists all campaign entries using a limited but performant representation of a Creature

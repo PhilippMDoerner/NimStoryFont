@@ -4,6 +4,8 @@ import organizationModel
 import ../image/[imageModel, imageRepository]
 import tinypool
 
+export organizationModel
+
 proc getOrganizationList*(): seq[OrganizationRead] =
     result = getList[OrganizationRead]()
     

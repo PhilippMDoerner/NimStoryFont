@@ -3,6 +3,8 @@ import ../base_generics/genericArticleRepository
 import itemModel
 import tinypool
 
+export itemModel
+
 proc getItemList*(): seq[ItemRead] =
     result = getList[ItemRead]()
 

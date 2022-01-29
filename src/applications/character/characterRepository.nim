@@ -9,6 +9,8 @@ import ../organization/organizationModel
 import tinypool
 import norm/[model, sqlite]
 
+export characterModel
+
 
 proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverview] =
     ## lists all campaign entries using a limited but performant representation of a character
