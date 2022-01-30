@@ -3,6 +3,7 @@ import ../campaign/[campaignModel, campaignRepository]
 import authenticationModels
 import std/[options, sequtils, tables, strutils]
 
+export authenticationModels
 
 proc getUserById*(userId: int64): User =
     result = getEntryById[User](userId)
