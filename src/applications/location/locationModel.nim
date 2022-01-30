@@ -3,8 +3,9 @@ import ../campaign/campaignModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/options
+import std/[strformat, options, algorithm]
 import constructor/defaults
+import ../base_generics/genericArticleRepository
 
 type 
     Location* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
@@ -19,3 +20,17 @@ implDefaults(Location)
 
 proc newTableModel*(T: typedesc[Location]): Location = newLocation()
 proc newModel*(T: typedesc[Location]): Location = newLocation()
+
+proc `$`*(model: Location): string = 
+    var location = model
+    var parentLocations: seq[Location] = @[]
+    while location.parent_location_id.isSome():
+        let parentLocation: Location = getEntryById[Location](model.parent_location_id.get())
+        parentLocations.add(parentLocation)
+        location = parentLocation
+    
+    parentLocations.reverse()
+    for parentLocation in parentLocations:
+        result.add(fmt "{parentLocation.name} - ")
+    
+    result.add(location.name)

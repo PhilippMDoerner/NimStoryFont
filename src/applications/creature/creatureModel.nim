@@ -43,3 +43,7 @@ type CreatureOverview* {.defaults, tableName: CREATURE_TABLE.} = ref object of M
 
 implDefaults(CreatureOverview)
 proc newModel*(T: typedesc[CreatureOverview]): CreatureOverview = newCreatureOverview()
+
+
+proc `$`*(model: Creature | CreatureOverview | CreatureRead): string = 
+    model.name

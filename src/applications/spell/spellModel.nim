@@ -28,3 +28,6 @@ type Spell* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
 implDefaults(Spell)
 
 proc newModel*(T: typedesc[Spell]): Spell = newSpell()
+
+proc `$`*(model: Spell): string = 
+    model.name

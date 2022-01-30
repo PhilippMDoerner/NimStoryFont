@@ -46,3 +46,5 @@ type ItemRead* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
 implDefaults(ItemRead)
 proc newModel*(T: typedesc[ItemRead]): ItemRead = newItemRead()
 
+proc `$`*(model: Item | ItemRead | ItemOverview): string = 
+    result = model.name

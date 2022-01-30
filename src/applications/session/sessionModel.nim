@@ -7,7 +7,7 @@ import ../../applicationConstants
 import ../campaign/campaignModel
 
 type Session* {.defaults, tableName: SESSION_TABLE} = ref object of Model
-  session_number: int = -1
+  session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
   end_day*: Option[int] = some(-1)

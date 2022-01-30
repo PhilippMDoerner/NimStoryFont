@@ -1,5 +1,5 @@
 import norm/[model, pragmas]
-import options
+import std/[options, strformat]
 import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
@@ -23,3 +23,6 @@ type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
 implDefaults(Quest)
 
 proc newModel*(T: typedesc[Quest]): Quest = newQuest()
+
+proc `$`*(model: Quest): string =
+  result.add(fmt "{model.status} - {model.name}")

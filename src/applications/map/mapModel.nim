@@ -17,3 +17,6 @@ type Map* {.defaults, tableName: MAP_TABLE} = ref object of Model
 implDefaults(Map)
 
 proc newModel*(T: typedesc[Map]): Map = newMap()
+
+proc `$`*(model: Map): string = 
+    result = model.name
