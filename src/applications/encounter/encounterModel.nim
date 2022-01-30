@@ -2,7 +2,8 @@ import norm/[model, pragmas]
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/options
+import ../base_generics/genericArticleRepository
+import std/[strformat, options]
 import ../location/locationModel
 import constructor/defaults
 
@@ -19,7 +20,6 @@ implDefaults(Encounter)
 
 proc newModel*(T: typedesc[Encounter]): Encounter = newEncounter()
 proc newTableModel*(T: typedesc[Encounter]): Encounter = newEncounter()
-
 
 type EncounterParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL*: The parent location of a location, that an encounter happened 
@@ -38,11 +38,13 @@ type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Mo
     session_number*: int = -1
     is_main_session*: bool = true
 implDefaults(EncounterSession)
+proc newModel*(T: typedesc[EncounterSession]): EncounterSession = newEncounterSession()
 
 
 type EncounterDiaryentry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
     session_id*: EncounterSession = newEncounterSession()
 implDefaults(EncounterDiaryentry)
+proc newModel*(T: typedesc[EncounterDiaryentry]): EncounterDiaryentry = newEncounterDiaryentry()
 
 
 type EncounterRead* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
@@ -56,7 +58,15 @@ type EncounterRead* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Mod
 implDefaults(EncounterRead)
 
 proc newModel*(T: typedesc[EncounterRead]): EncounterRead = newEncounterRead()
+proc `$`*(encounter: EncounterRead): string =
+    let sessionType: string = if encounter.diaryentry_id.session_id.is_main_session: "Main " else: "Side "
+    result.add(fmt "{sessionType} Session {encounter.diaryentry_id.session_id.session_number} - {encounter.title}")
 
 
-
+proc `$`*(encounter: Encounter): string =
+    let diaryentry: EncounterDiaryentry = getEntryById[EncounterDiaryentry](encounter.diaryentry_id)
+    let sessionType: string = if diaryentry.session_id.is_main_session: "Main " else: "Side "
+    result.add(fmt "{sessionType} Session {diaryentry.session_id.session_number}")
+    if encounter.title.isSome():
+        result.add(fmt " - {encounter.title}")
 
