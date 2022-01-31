@@ -12,6 +12,7 @@ type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
   name*: string = ""
   status*: string = ""
   taker_id* {.fk: Character.}: Option[int64] = some(MODEL_INIT_ID)
+  giver_id* {.fk: Character.}: Option[int64] = some(MODEL_INIT_ID)
   abstract*: Option[string] = some("")
   description*: Option[string] = some("")
   start_session_id* {.fk: Session.}: int64 = MODEL_INIT_ID
