@@ -2,7 +2,7 @@ import locationModel
 import ../base_generics/genericArticleRepository
 import ../../applicationSettings
 import norm/model
-import std/[options, strformat]
+import std/[options, strformat, algorithm]
 import tinypool
 
 export locationModel
@@ -28,3 +28,15 @@ proc getLocationByName*(campaignName: string, parentLocationName: Option[string]
 
 proc getLocationById*(locationId: int64): Location =
     result = getEntryById[Location](locationId)
+
+
+proc getParentLocations*(location: Location): seq[Location] =
+    var currentLocation = location
+
+    withDbConn(connection):
+        while currentLocation.parent_location_id.isSome():
+            let parentLocation: Location = getEntryById[Location](currentLocation.parent_location_id.get())
+            result.add(parentLocation)
+            currentLocation = parentLocation
+        
+    result.reverse()
