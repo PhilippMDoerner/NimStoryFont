@@ -97,8 +97,7 @@ proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
     of ArticleTable.CREATURE:
       jsonString = getCreatureById(articleId).toJson()
     of ArticleTable.DIARYENTRY:
-      #jsonString = getDiaryentryById(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getDiaryentryById(articleId).toJson()
     of ArticleTable.ENCOUNTER:
       jsonString = getEncounterById(articleId).toJson()
     of ArticleTable.ITEM:
