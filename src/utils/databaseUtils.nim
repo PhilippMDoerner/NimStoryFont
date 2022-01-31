@@ -1,19 +1,21 @@
 import tinypool
 import std/db_sqlite
+import norm/sqlite
 
+type MyDbConn* = sqlite.DbConn | db_sqlite.DbConn
 
 template withDbTransaction*(connection: untyped, body: untyped) =
   block: #ensures connection exists only within the scope of this block
-    var connection: DbConn = borrowConnection()
+    var connection: db_sqlite.DbConn = borrowConnection()
 
-    connection.exec(sql"BEGIN")
+    db_sqlite.exec(connection, sql"BEGIN")
     try:
       body
-      db.exec(sql"COMMIT")
+      db_sqlite.exec(connection, sql"COMMIT")
     
     except:
       #If anything errors out, roll back the transaction and reraise the error
-      db.exec(sql"ROLLBACK")
+      db_sqlite.exec(connection, sql"ROLLBACK")
       raise
 
     finally:
