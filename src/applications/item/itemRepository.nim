@@ -18,7 +18,7 @@ proc deleteItem*(itemId: int64) =
 
 
 proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
-    let item: Item = updateEntry[Item](itemId, itemJsonData)
+    let item: Item = updateArticleEntry[Item](itemId, itemJsonData)
     result = getItemById(item.id)
 
 

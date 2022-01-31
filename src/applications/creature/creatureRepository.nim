@@ -26,7 +26,7 @@ proc deleteCreature*(entryId: int) =
 
 
 proc updateCreature*(entryId: int, entryJsonData: string): CreatureRead =
-    let creature: Creature = updateEntry[Creature](entryId, entryJsonData)
+    let creature: Creature = updateArticleEntry[Creature](entryId, entryJsonData)
     result = getCreatureById(creature.id)
 
 

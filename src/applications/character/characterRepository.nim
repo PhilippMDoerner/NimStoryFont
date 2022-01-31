@@ -50,7 +50,7 @@ proc deleteCharacter*(characterId: int) =
 
 
 proc updateCharacter*(characterId: int, characterJsonData: string): CharacterSerializable =
-    let character: Character = updateEntry[Character](characterId, characterJsonData)
+    let character: Character = updateArticleEntry[Character](characterId, characterJsonData)
     result = getFullCharacterData(character.id)
 
 

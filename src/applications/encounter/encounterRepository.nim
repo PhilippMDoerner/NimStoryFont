@@ -20,7 +20,7 @@ proc deleteEncounter*(encounterId: int64) =
 
 
 proc updateEncounter*(encounterId: int64, encounterJsonData: string): EncounterRead =
-    let encounter: Encounter = updateEntry[Encounter](encounterId, encounterJsonData)
+    let encounter: Encounter = updateArticleEntry[Encounter](encounterId, encounterJsonData)
     result = getEncounterById(encounter.id)
 
 
