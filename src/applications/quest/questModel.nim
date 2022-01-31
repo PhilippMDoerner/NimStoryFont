@@ -22,5 +22,8 @@ type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
   campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
 implDefaults(Quest)
-
 proc newModel*(T: typedesc[Quest]): Quest = newQuest()
+
+
+type QuestCharacter* {.defaults, tableName: CHARACTER_TABLE} = ref object of Model
+  name*: string
