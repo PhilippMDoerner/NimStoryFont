@@ -11,7 +11,8 @@ export diaryEntryModel
 proc getDiaryEntryById*(diaryentryId: int64): DiaryEntry =
   result = getEntryById[DiaryEntry](diaryentryId)
 
-proc getDiaryEntryEncounters(diaryentryId: int64): seq[Encounter] =
+
+proc getDiaryEntryEncounters*(diaryentryId: int64): seq[Encounter] =
     var encounters: seq[Encounter] = @[newModel(Encounter)]
     let sqlCondition: string = fmt "{ENCOUNTER_TABLE}.diaryentry_id = ?"
 
