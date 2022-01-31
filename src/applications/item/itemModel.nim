@@ -17,7 +17,7 @@ type Item* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
     description*: Option[string] = none(string)
     name*: string = ""
     owner_id* {.fk: ItemOwner.}: Option[int64] = none(int64)
-    campaign_id*: int64 = MODEL_INIT_ID
+    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 

@@ -9,7 +9,7 @@ import constructor/defaults
 
 type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
-    campaign_id*: int64 = MODEL_INIT_ID
+    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     description*: Option[string] = none(string)

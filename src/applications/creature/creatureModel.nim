@@ -2,6 +2,7 @@ import norm/[model, pragmas]
 import std/[options]
 import ../campaign/campaignModel
 import ../../applicationSettings
+import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import constructor/defaults
 
@@ -12,7 +13,7 @@ type Creature* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
     description*: Option[string] = none(string) # A description of the character
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: int # The id of the campaign that this character occurred in
+    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
 implDefaults(Creature)
 proc newModel*(T: typedesc[Creature]): Creature = newCreature()
