@@ -6,6 +6,7 @@ import applications/creature/creatureRoutes
 import applications/image/imageRoutes
 import applications/authentication/authenticationRoutes
 import applications/search/searchRoutes
+import applications/location/locationRoutes
 import logging
 import tinypool
 
@@ -17,6 +18,7 @@ proc main() =
     addCharacterRoutes(app)
     addCreatureRoutes(app)
     addImageRoutes(app)
+    addLocationRoutes(app)
     addSearchRoutes(app)
     app.run(JWTContext)
 

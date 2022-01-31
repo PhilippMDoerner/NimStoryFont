@@ -7,6 +7,7 @@ import std/[strformat, options, algorithm]
 import constructor/defaults
 import ../base_generics/genericArticleRepository
 
+
 type 
     Location* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
         name*: string = ""
@@ -20,6 +21,26 @@ implDefaults(Location)
 
 proc newTableModel*(T: typedesc[Location]): Location = newLocation()
 proc newModel*(T: typedesc[Location]): Location = newLocation()
+
+
+type ParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+    name*: string = ""
+implDefaults(ParentLocation)
+proc newModel*(T: typedesc[ParentLocation]): ParentLocation = newParentLocation()
+
+type 
+    LocationRead* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
+        name*: string = ""
+        description*: Option[string] = none(string)
+        creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+        update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+        parent_location_id*: Option[ParentLocation] = some(newModel(ParentLocation))
+        campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview) # The id of the campaign that this character occurred in
+
+implDefaults(LocationRead)
+
+proc newModel*(T: typedesc[LocationRead]): LocationRead = newLocationRead()
+
 
 proc `$`*(model: Location): string = 
     var location = model

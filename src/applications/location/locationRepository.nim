@@ -1,18 +1,29 @@
 import locationModel
 import ../base_generics/genericArticleRepository
 import ../../applicationSettings
+import norm/model
+import std/[options, strformat]
+import tinypool
 
 export locationModel
 
-#TODO: Figure out how to do this in norm
-# proc getLocationByName*(campaignName: string, parentLocationName: string, locationName: string): Location = 
-    
-#     var sqlCondition: string = fmt "{LOCATION_TABLE}.name = ? AND parentLocation.name = ?"
 
-#     withDbConn(connection):
-#         connection.select(entry, sqlCondition, locationName, parentLocationName)
+proc getLocationByName*(campaignName: string, parentLocationName: Option[string], locationName: string): LocationRead = 
+    var entry: LocationRead = newModel(LocationRead)
+    const locationTable: string = LocationRead.table()
 
-#     result = entry 
+    if parentLocationName.isSome():
+        var sqlCondition: string = fmt "{locationTable}.name = ? AND parent_location_id.name = ? AND campaign_id.name = ?"
+        withDbConn(connection):
+            connection.select(entry, sqlCondition, locationName, parentLocationName, campaignName)
+
+    else:
+        var sqlCondition: string = fmt "{locationTable}.name = ? AND {locationTable}.parent_location_id IS NULL AND campaign_id.name = ?"
+        withDbConn(connection):
+            connection.select(entry, sqlCondition, locationName, campaignName)
+ 
+
+    result = entry 
 
 
 proc getLocationById*(locationId: int64): Location =
