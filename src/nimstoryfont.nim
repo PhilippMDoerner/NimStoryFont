@@ -24,4 +24,8 @@ proc main() =
 
     destroyConnectionPool()
 
-main()
+when isMainModule:
+    setLogFilter(lvlNotice)
+    addHandler(newConsoleLogger())
+
+    main()
