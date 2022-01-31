@@ -30,23 +30,29 @@ export jsony
     insert/update/delete proc.
 ]##
 
+type MyDbConn = sqlite.DbConn | db_sqlite.DbConn
+
 # SELECT PROCS
-proc getList*[M: Model](): seq[M] =
+proc getList*[M: Model](connection: MyDbConn): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
 
     var entryList: seq[M] = @[]
     entryList.add(newModel(M))
 
-    withDbConn(connection):
-        connection.selectAll(entryList)
-
+    connection.selectAll(entryList)
 
     result = entryList
 
+proc getList*[M: Model](): seq[M] =
+    ##[ Helper proc for getList when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getList[M](connection)
+
+
 
 #TODO: Figure out how to infer the campaign_id field somehow
-proc getCampaignList*[M: Model](campaignName: string): seq[M] =
+proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string): seq[M] =
     ##[ Retrieves all rows/entries of a campaign with the given name and 
     returns them as Model M. 
     
@@ -57,13 +63,18 @@ proc getCampaignList*[M: Model](campaignName: string): seq[M] =
     var entries: seq[M] = @[]
     entries.add(newModel(M))
     
-    withDbConn(connection):
-        connection.select(entries, "campaign_id.name = ?", campaignName)
+    connection.select(entries, "campaign_id.name = ?", campaignName)
 
     result = entries
 
+proc getCampaignList*[M: Model](campaignName: string): seq[M] =
+    ##[ Helper proc for getCampaignList when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getCampaignList[M](connection, campaignName)
 
-proc getEntryByName*[M: Model](campaignName: string, entryName: string): M = 
+
+
+proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entryName: string): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -78,13 +89,18 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".name = ? AND campaign_id.name = ?"
 
-    withDbConn(connection):
-        connection.select(entry, sqlCondition, entryName, campaignName)
+    connection.select(entry, sqlCondition, entryName, campaignName)
 
     result = entry
 
+proc getEntryByName*[M: Model](campaignName: string, entryName: string): M = 
+    ##[ Helper proc for getEntryByName when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getEntryByName[M](connection, campaignName, entryName)
 
-proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M = 
+
+
+proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fieldValue: T): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -98,13 +114,18 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & '.' & fieldName & "= ?"
 
-    withDbConn(connection):
-        connection.select(entry, sqlCondition, fieldValue)
+    connection.select(entry, sqlCondition, fieldValue)
 
     result = entry 
 
+proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M = 
+    ##[ Helper proc for getEntryByField when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getEntryByField[M](connection, fieldName, fieldValue)
 
-proc getEntryById*[M: Model](entryId: int64): M =
+
+
+proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     mixin newModel
 
@@ -112,28 +133,38 @@ proc getEntryById*[M: Model](entryId: int64): M =
     const modelTableName: string = M.table()
     var sqlCondition: string = modelTableName & ".id = ?"
 
-    withDbConn(connection):
-        connection.select(targetEntry, sqlCondition, entryId)
+    connection.select(targetEntry, sqlCondition, entryId)
 
     result = targetEntry
 
+proc getEntryById*[M: Model](entryId: int64): M =
+    ##[ Helper proc for getEntryById when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getEntryById[M](connection, entryId)
 
-proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+
+
+proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     mixin newModel
-
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
     const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
     const manyTableName: string = M.table()
     let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
 
-    withDbConn(connection):
-        connection.select(targetEntries, sqlCondition, oneEntry.id)
+    connection.select(targetEntries, sqlCondition, oneEntry.id)
 
     result = targetEntries
 
+proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+    ##[ Helper proc for getManyFromOne when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getManyFromOne[O, M](connection, oneEntry, relatedManyType)
+
+
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
+    connection: MyDbConn,
     manyStartInstance: M1, 
     joinModel: typedesc[J], 
     otherManyModel: typedesc[M2]
@@ -146,15 +177,25 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     const joinTableName = J.table()
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
 
-    withDbConn(connection):
-        connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
+    connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
 
     const fkColumnFromJoinToManyEnd = M2.getRelatedFieldNameOn(J)
     let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
     result = manyEntries
 
+proc getManyToMany*[M1: Model, J: Model, M2: Model](
+    manyStartInstance: M1, 
+    joinModel: typedesc[J], 
+    otherManyModel: typedesc[M2]
+): seq[M2] =
+    ##[ Helper proc for getManyToMany when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        getManyToMany[M1, J, M2](connection, manyStartInstance, joinModel, otherManyModel)
+
+
+
 #DELETE PROCS
-proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
+proc deleteEntry*[T: Model](connection: MyDbConn, entryId: int64) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
     mixin preDeleteSignal
@@ -167,15 +208,20 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
 
 
     {.cast(gcsafe).}:
-      withDbConn(connection):
         connection.delete(entryToDelete)
 
     when compiles(postDeleteSignal(entryToDelete)):
         postDeleteSignal(entryToDelete)
 
+proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.} =
+    ##[ Helper proc for deleteEntry when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        deleteEntry[T](connection, entryId)
+
+
 
 #UPDATE PROCS
-proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
+proc updateEntry*[T: Model](connection: MyDbConn, entryId: int64, entryJsonData: string): T =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
 
@@ -193,7 +239,6 @@ proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
         preUpdateSignal(entry)
 
     {.cast(gcsafe).}:
-      withDbConn(connection):
         connection.update(entry)
       
     result = entry
@@ -201,16 +246,21 @@ proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
     when compiles(postUpdateSignal(result)):
         postUpdateSignal(result)
 
+proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
+    ##[ Helper proc for updateEntry when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = updateEntry[T](connection, entryId, entryJsonData)
 
 
 
 #CREATE PROCS
-proc createEntry*[T: Model](entry: var T): T =
+proc createEntry*[T: Model](connection: MyDbConn, entry: var T): T =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     when compiles(preCreateSignal(entry)):
         postUpdateSignal(entry)
 
     {.cast(gcsafe).}:
-      withDbConn(connection):
         connection.insert(entry)
 
     result = entry
@@ -218,17 +268,29 @@ proc createEntry*[T: Model](entry: var T): T =
     when compiles(postCreateSignal(result)):
         postUpdateSignal(result)
 
+proc createEntry*[T: Model](entry: var T): T =
+    ##[ Helper proc for createEntry when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = createEntry[T](connection, entry)
+
+proc createEntry*[T: Model](connection: MyDbConn, entryJsonData: string): T =
+    ##[ Helper proc for createEntry when you receive the entry as a jsonString
+    and want to provide your own connection ]##
+
+    var entry: T = entryJsonData.fromJson(T)
+    result = createEntry(connection, entry)
 
 proc createEntry*[T: Model](entryJsonData: string): T =
-    ##[ Creates a new entry of a given TableModel T in the database
-    and returns a different representation of that entry via model M.
-    
-    WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
+    ##[ Helper proc for createEntry when you receive the entry as a jsonString
+    and don't want to provide the connection yourself ]##
     var entry: T = entryJsonData.fromJson(T)
     result = createEntry(entry)
 
 
-proc createArticleEntry*[T: Model](entryJsonData: string): T =
+proc createArticleEntry*[T: Model](connection: MyDbConn, entryJsonData: string): T =
+    ##[ Helper proc for createEntry when you receive the entry as a jsonString
+    and the model is an Article, which means creation and updateTime need to 
+    be set accordingly. You can provide your own connection here]##
     var entry: T = entryJsonData.fromJson(T)
 
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
@@ -236,4 +298,12 @@ proc createArticleEntry*[T: Model](entryJsonData: string): T =
     entry.update_datetime = creationTime
 
     result = createEntry(entry)
+
+proc createArticleEntry*[T: Model](entryJsonData: string): T =
+    ##[ Helper proc for createEntry when you receive the entry as a jsonString
+    and the model is an Article, which means creation and updateTime need to 
+    be set accordingly. The connection is being handled for you here]##
+    withDbConn(connection):
+        result = createArticleEntry[T](connection, entryJsonData)
+
 
