@@ -74,7 +74,3 @@ type OrganizationSerializable* = ref object
     organization*: OrganizationRead
     members*: seq[OrganizationCharacter]
     images*: seq[Image]
-
-
-proc `$`*(model: OrganizationRead | Organization | OrganizationOverview): string =
-    result = model.name

@@ -1,5 +1,5 @@
 import norm/[model, pragmas]
-import std/[options, strformat]
+import std/[options]
 import ../campaign/campaignModel
 import ../organization/organizationModel
 import ../location/locationModel
@@ -102,8 +102,3 @@ implDefaults(CharacterOverview)
 generic methods that only read the database in genericArticleRepository ]##
 proc newModel*(T: typedesc[CharacterOverview]): CharacterOverview = result = newCharacterOverview()
  
-
-proc `$`*(character: CharacterRead | Character): string =
-    result.add(fmt "{character.name}")
-    if character.alive:
-        result.add(" (†)")  

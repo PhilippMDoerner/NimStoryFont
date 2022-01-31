@@ -17,6 +17,3 @@ type Rule* {.defaults, tableName: RULES_TABLE.} = ref object of Model
 implDefaults(Rule)
 
 proc newModel*(T: typedesc[Rule]): Rule = newRule()
-
-proc `$`*(model: Rule): string =
-    result = model.name

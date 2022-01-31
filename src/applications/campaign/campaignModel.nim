@@ -72,6 +72,3 @@ type CampaignOverview* {.defaults, tableName: CAMPAIGN_TABLE.} = ref object of M
 implDefaults(CampaignOverview)
 proc newModel*(T: typedesc[CampaignOverview]): CampaignOverview = newCampaignOverview()
 
-
-proc `$`*(model: CampaignOverview | MinimumCampaignOverview | CampaignRead | Campaign): string = 
-    result = model.name

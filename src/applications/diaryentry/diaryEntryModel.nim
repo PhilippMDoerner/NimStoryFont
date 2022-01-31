@@ -4,9 +4,9 @@ import ../authentication/authenticationModels
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants
-import std/[strformat, options]
+import std/[options]
 import ../session/sessionModel
-import ../base_generics/genericArticleRepository
+
 
 type DiaryEntry* {.defaults, tableName: DIARYENTRY_TABLE} = ref object of Model
   title*: Option[string] = some("")
@@ -19,15 +19,3 @@ implDefaults(DiaryEntry)
 
 proc newModel*(T: typedesc[DiaryEntry]): DiaryEntry = newDiaryEntry()
 
-
-proc campaign_id*(model: DiaryEntry): int64 =
-  let session: Session = getEntryById[Session](model.session_id)
-  result = session.campaign_id
-
-
-proc `$`*(model: DiaryEntry): string =
-  let session: Session = getEntryById[Session](model.session_id)
-  
-  result.add(fmt "Diary Entry #{session.session_number}")
-  if model.title.isSome():
-    result.add(fmt " - {model.title}")
