@@ -1,4 +1,5 @@
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
+import ../../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
 import options
@@ -30,7 +31,6 @@ export jsony
     insert/update/delete proc.
 ]##
 
-type MyDbConn = sqlite.DbConn | db_sqlite.DbConn
 
 # SELECT PROCS
 proc getList*[M: Model](connection: MyDbConn): seq[M] =
@@ -195,7 +195,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
 
 #DELETE PROCS
-proc deleteEntry*[T: Model](connection: MyDbConn, entryId: int64) {.gcsafe.}=
+proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
     mixin preDeleteSignal
@@ -203,25 +203,19 @@ proc deleteEntry*[T: Model](connection: MyDbConn, entryId: int64) {.gcsafe.}=
 
     var entryToDelete: T = getEntryById[T](entryId)
 
-    when compiles(preDeleteSignal(entryToDelete)):
-        preDeleteSignal(entryToDelete)
+    withDbTransaction(connection):
+        when compiles(preDeleteSignal(connection, entryToDelete)):
+            preDeleteSignal(connection, entryToDelete)
 
+        {.cast(gcsafe).}:
+            connection.delete(entryToDelete)
 
-    {.cast(gcsafe).}:
-        connection.delete(entryToDelete)
-
-    when compiles(postDeleteSignal(entryToDelete)):
-        postDeleteSignal(entryToDelete)
-
-proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.} =
-    ##[ Helper proc for deleteEntry when you don't want to provide the connection yourself]##
-    withDbConn(connection):
-        deleteEntry[T](connection, entryId)
-
+        when compiles(postDeleteSignal(connection, entryToDelete)):
+            postDeleteSignal(connection, entryToDelete)
 
 
 #UPDATE PROCS
-proc updateEntry*[T: Model](connection: MyDbConn, entryId: int64, entryJsonData: string): T =
+proc updateEntry*[T: Model](entry: var T): T =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
 
@@ -229,65 +223,64 @@ proc updateEntry*[T: Model](connection: MyDbConn, entryId: int64, entryJsonData:
     then the given entryId is used. Otherwise the id in the given entryJsonData is used.
     
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
+
+    withDbTransaction(connection):
+        when compiles(preUpdateSignal(connection, entry)):
+            preUpdateSignal(connection, entry)
+
+        {.cast(gcsafe).}:
+            connection.update(entry)
+        
+        result = entry
+
+        when compiles(postUpdateSignal(connection, result)):
+            postUpdateSignal(connection, result)
+
+proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
     var entry: T = entryJsonData.fromJson(T)
-    entry.update_datetime = djangoDateTimeType.now() #TODO: This is a bad idea, not all models have this field, fix this
+    if entry.id == 0:
+        entry.id = entryId
+
+    result = updateEntry(entry)
+
+proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string): T =
+    var entry: T = entryJsonData.fromJson(T)
+    entry.update_datetime = djangoDateTimeType.now()
 
     if entry.id == 0:
         entry.id = entryId
 
-    when compiles(preUpdateSignal(entry)):
-        preUpdateSignal(entry)
-
-    {.cast(gcsafe).}:
-        connection.update(entry)
-      
-    result = entry
-
-    when compiles(postUpdateSignal(result)):
-        postUpdateSignal(result)
-
-proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
-    ##[ Helper proc for updateEntry when you don't want to provide the connection yourself]##
-    withDbConn(connection):
-        result = updateEntry[T](connection, entryId, entryJsonData)
-
-
+    result = updateEntry(entry)
 
 #CREATE PROCS
-proc createEntry*[T: Model](connection: MyDbConn, entry: var T): T =
+proc createEntry*[T: Model](entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-    when compiles(preCreateSignal(entry)):
-        postUpdateSignal(entry)
+    
+    withDbTransaction(connection):
+        when compiles(preCreateSignal(connection, entry)):
+            postUpdateSignal(connection, entry)
 
-    {.cast(gcsafe).}:
-        connection.insert(entry)
+        {.cast(gcsafe).}:
+            connection.insert(entry)
 
-    result = entry
+        result = entry
 
-    when compiles(postCreateSignal(result)):
-        postUpdateSignal(result)
+        when compiles(postCreateSignal(connection, result)):
+            postUpdateSignal(connection, result)
 
-proc createEntry*[T: Model](entry: var T): T =
-    ##[ Helper proc for createEntry when you don't want to provide the connection yourself]##
-    withDbConn(connection):
-        result = createEntry[T](connection, entry)
 
-proc createEntry*[T: Model](connection: MyDbConn, entryJsonData: string): T =
+
+proc createEntry*[T: Model](entryJsonData: string): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
     and want to provide your own connection ]##
 
     var entry: T = entryJsonData.fromJson(T)
-    result = createEntry(connection, entry)
-
-proc createEntry*[T: Model](entryJsonData: string): T =
-    ##[ Helper proc for createEntry when you receive the entry as a jsonString
-    and don't want to provide the connection yourself ]##
-    var entry: T = entryJsonData.fromJson(T)
     result = createEntry(entry)
 
 
-proc createArticleEntry*[T: Model](connection: MyDbConn, entryJsonData: string): T =
+
+proc createArticleEntry*[T: Model](entryJsonData: string): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
     and the model is an Article, which means creation and updateTime need to 
     be set accordingly. You can provide your own connection here]##
@@ -298,12 +291,3 @@ proc createArticleEntry*[T: Model](connection: MyDbConn, entryJsonData: string):
     entry.update_datetime = creationTime
 
     result = createEntry(entry)
-
-proc createArticleEntry*[T: Model](entryJsonData: string): T =
-    ##[ Helper proc for createEntry when you receive the entry as a jsonString
-    and the model is an Article, which means creation and updateTime need to 
-    be set accordingly. The connection is being handled for you here]##
-    withDbConn(connection):
-        result = createArticleEntry[T](connection, entryJsonData)
-
-
