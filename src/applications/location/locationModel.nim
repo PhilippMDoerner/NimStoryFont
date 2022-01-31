@@ -41,17 +41,3 @@ implDefaults(LocationRead)
 
 proc newModel*(T: typedesc[LocationRead]): LocationRead = newLocationRead()
 
-
-proc `$`*(model: Location): string = 
-    var location = model
-    var parentLocations: seq[Location] = @[]
-    while location.parent_location_id.isSome():
-        let parentLocation: Location = getEntryById[Location](model.parent_location_id.get())
-        parentLocations.add(parentLocation)
-        location = parentLocation
-    
-    parentLocations.reverse()
-    for parentLocation in parentLocations:
-        result.add(fmt "{parentLocation.name} - ")
-    
-    result.add(location.name)
