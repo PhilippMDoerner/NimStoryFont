@@ -16,7 +16,7 @@ import ../rules/ruleRepository
 import jsony
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
-import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../../utils/djangoDateTime/[serialization]
 import ../../utils/myStrutils
 import tinypool
 
@@ -82,10 +82,6 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
 
   result = searchEntries
 
-
-proc toJsonHook*(djangoDateTime: DjangoDateTime): JsonNode = %djangoDateTime.format()
-proc fromJsonHook*(self: var DjangoDateTime, jsonNode: JsonNode) =
-    self = parseDefault(jsonNode.getStr())
 
 #TODO: Refactor this into custom procs that only contain search specific data
 proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
