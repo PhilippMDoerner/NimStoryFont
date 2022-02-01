@@ -41,7 +41,7 @@ type Article = Character | Creature | DiaryEntry | Encounter | Item | Location |
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
-  let searchSQLStatement = """
+  let searchSQLStatement: SqlQuery = sql fmt """
       SELECT 
           title,
           table_name,
@@ -50,7 +50,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
       FROM search_article_content 
       WHERE
-          campaign_id = """ & campaignId & """
+          campaign_id = {campaignId}
           AND (
               title MATCH ?
               OR title_rev MATCH ?
@@ -61,12 +61,10 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
       LIMIT ?;
   """
 
-  let searchSQLQuery: SqlQuery = sql(searchSQLStatement)
-
   var rows: seq[Row]
   withDbConn(connection):
     rows = connection.getAllRows(
-      searchSQLQuery,
+      searchSQLStatement,
       searchText, 
       searchText, 
       searchText, 
