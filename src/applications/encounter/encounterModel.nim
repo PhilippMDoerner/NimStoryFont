@@ -4,13 +4,14 @@ import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[options]
 import ../location/locationModel
+import ../diaryentry/diaryEntryModel
 import constructor/defaults
 
 
 type Encounter* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
     description*: Option[string] = none(string)
     title*: Option[string] = none(string)
-    diaryentry_id*: int64 = MODEL_INIT_ID
+    diaryentry_id* {.fk: DiaryEntry.}: int64 = MODEL_INIT_ID
     location_id* {.fk: Location.} : Option[int64] = none(int64)
     order_index*: Option[int] = none(int)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
