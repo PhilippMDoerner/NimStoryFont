@@ -148,12 +148,16 @@ proc getSearchTitle*(modelInstance: Quest): string =
   return modelInstance.name
 
 
+proc getSearchTitle*(modelInstance: SessionAudio): string =
+  let session: Session = getEntryById[Session](modelInstance.session_id)
+  result.add(fmt "Recording of session #{session.session_number}")
 
 proc getSearchBody*(modelInstance: SessionAudio): string =
-  return ""#TODO: Make this
+  result.add(fmt "{getSearchTitle(modelInstance)} ")
 
-proc getSearchTitle*(modelInstance: SessionAudio): string =
-  return "" #TODO: Make this
+  let timestamps: seq[Timestamp] = getSessionAudioTimestamps(modelInstance.id)
+  for timestamp in timestamps:
+    result.add(fmt "{timestamp.name} ")
 
 
 
