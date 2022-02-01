@@ -1,6 +1,5 @@
 import prologue
 import ../utils/jwtContext
-import ../utils/errorResponses
 import ../applicationSettings
 import std/[strutils, options]
 import ../applications/authentication/myJwt

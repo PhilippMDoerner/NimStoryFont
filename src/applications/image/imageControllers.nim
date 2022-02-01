@@ -2,10 +2,9 @@ import imageRepository
 import imageModel
 import prologue
 import std/[strutils]
-import ../../utils/[jwtContext, customResponses, errorResponses, fileUpload]
+import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
-import ../../applicationConstants
 
 
 proc createImageView*(ctx: Context) {.async, gcsafe.}=
