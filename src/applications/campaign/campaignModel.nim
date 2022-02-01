@@ -4,6 +4,7 @@ import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../authentication/authenticationModels
 import ../../applicationSettings
+import ../../applicationConstants
 
 
 type Campaign* {.defaults, tableName: CAMPAIGN_TABLE} = ref object of Model
@@ -13,27 +14,28 @@ type Campaign* {.defaults, tableName: CAMPAIGN_TABLE} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     is_deactivated*: bool = false
     background_image*: string = ""
-    icon*: Option[string] = none(string)
-    subtitle*: Option[string] = none(string)
-    default_map_id*: Option[int64] = none(int64)
+    icon*: Option[string] = some("")
+    subtitle*: Option[string] = some("")
+    default_map_id*: Option[int64] = some(MODEL_INIT_ID)
     has_audio_recording_permission*: bool = false
-    admin_group_id*: Option[int64] = none(int64)
-    admin_permission_id*: Option[int64] = none(int64)
-    member_group_id*: Option[int64] = none(int64)
-    member_permission_id*: Option[int64] = none(int64)
-    guest_group_id*: Option[int64] = none(int64)
-    guest_permission_id*: Option[int64] = none(int64)
+    admin_group_id* {.fk: Group.}: Option[int64] = some(MODEL_INIT_ID)
+    admin_permission_id* {.fk: Permission.}: Option[int64] = some(MODEL_INIT_ID)
+    member_group_id* {.fk: Group.}: Option[int64] = some(MODEL_INIT_ID)
+    member_permission_id* {.fk: Permission.}: Option[int64] = some(MODEL_INIT_ID)
+    guest_group_id* {.fk: Group.}: Option[int64] = some(MODEL_INIT_ID)
+    guest_permission_id* {.fk: Permission.}: Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(Campaign)
 proc newModel*(T: typedesc[Campaign]): Campaign = newCampaign()
 
 
-type DefaultMap {.defaults, tableName: MAP_TABLE} = ref object of Model
-    icon: Option[string] = none(string)
+type CampaignDefaultMap {.defaults, tableName: MAP_TABLE} = ref object of Model
+    icon: Option[string] = some("")
     image: string = ""
     name: string = ""
 
-implDefaults(DefaultMap)
+implDefaults(CampaignDefaultMap)
+proc newModel*(T: typedesc[CampaignDefaultMap]): CampaignDefaultMap = newCampaignDefaultMap()
 
 type CampaignRead* {.defaults, tableName: CAMPAIGN_TABLE.} = ref object of Model
     ##[A full dataset of a tabletop campaign]##
@@ -42,9 +44,9 @@ type CampaignRead* {.defaults, tableName: CAMPAIGN_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     is_deactivated*: bool = false
     background_image*: string = ""
-    icon*: Option[string] = none(string)
-    subtitle*: Option[string] = none(string)
-    default_map_id*: Option[DefaultMap] = none(DefaultMap)
+    icon*: Option[string] = some("")
+    subtitle*: Option[string] = some("")
+    default_map_id*: Option[CampaignDefaultMap] = some(newModel(CampaignDefaultMap))
     has_audio_recording_permission*: bool = false
     admin_group_id*: Option[Group] = some(newModel(Group))
     member_group_id*: Option[Group] = some(newModel(Group))
