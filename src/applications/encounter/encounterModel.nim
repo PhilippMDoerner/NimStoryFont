@@ -26,12 +26,15 @@ type EncounterParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref obje
     in]##
     name*: string = ""
 implDefaults(EncounterParentLocation)
+proc newModel*(T: typedesc[EncounterParentLocation]): EncounterParentLocation = newEncounterParentLocation()
+
 
 type EncounterLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL*: The location an encounter happened in]##
     name*: string = ""
     parent_location_id*: Option[EncounterParentLocation] = some(newEncounterParentLocation())
 implDefaults(EncounterLocation)
+proc newModel*(T: typedesc[EncounterLocation]): EncounterLocation = newEncounterLocation()
 
 
 type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
