@@ -14,6 +14,6 @@ template respondBadRequestOnDbError*(body: untyped) =
   except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
     resp get404NotFoundResponse()
 
-  except Exception as e:
+  except Exception:
     log(lvlError, fmt "Error of type '{getCurrentException().name}': {getCurrentExceptionMsg()}") 
     raise
