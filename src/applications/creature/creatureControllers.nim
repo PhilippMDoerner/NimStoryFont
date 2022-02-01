@@ -6,7 +6,7 @@ import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
 import norm/model
 import jsony
-import ../base_generics/controllerTemplates
+import ../controllerTemplates
 
 
 proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 

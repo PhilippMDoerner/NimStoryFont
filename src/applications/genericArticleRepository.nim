@@ -1,5 +1,5 @@
-import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
-import ../../utils/databaseUtils
+import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
+import ../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
 import options

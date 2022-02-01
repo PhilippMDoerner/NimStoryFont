@@ -1,5 +1,5 @@
 import spellModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 
 export spellModel
 

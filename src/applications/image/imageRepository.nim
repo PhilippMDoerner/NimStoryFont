@@ -3,7 +3,7 @@ import prologue
 import std/[strutils]
 import ../../utils/[jwtContext, fileUpload]
 import norm/[model, sqlite]
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import tinypool
 
 export imageModel

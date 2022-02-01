@@ -1,4 +1,4 @@
-import ../../utils/errorResponses
+import ../utils/errorResponses
 import std/typetraits
 import norm/sqlite
 

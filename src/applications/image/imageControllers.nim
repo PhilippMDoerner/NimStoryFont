@@ -4,7 +4,7 @@ import prologue
 import std/[strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses, fileUpload]
 import jsony
-import ../base_generics/controllerTemplates
+import ../controllerTemplates
 import ../../applicationConstants
 
 

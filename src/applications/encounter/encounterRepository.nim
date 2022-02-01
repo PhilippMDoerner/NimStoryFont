@@ -3,7 +3,7 @@ import characterEncounterModel
 import tinypool
 import norm/[model, sqlite]
 import sequtils
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 
 export encounterModel
 

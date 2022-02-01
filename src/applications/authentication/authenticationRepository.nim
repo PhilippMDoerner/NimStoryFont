@@ -1,4 +1,4 @@
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignRepository]
 import authenticationModels
 import std/[options, sequtils, tables, strutils]

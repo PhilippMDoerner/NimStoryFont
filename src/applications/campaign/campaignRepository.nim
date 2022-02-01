@@ -1,4 +1,4 @@
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import campaignModel
 import norm/[sqlite, model]
 import std/[options]

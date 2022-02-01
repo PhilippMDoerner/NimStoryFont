@@ -1,5 +1,5 @@
 import ruleModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 
 export ruleModel
 

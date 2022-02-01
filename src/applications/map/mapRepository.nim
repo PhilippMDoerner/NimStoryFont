@@ -1,5 +1,5 @@
 import mapModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import ../location/locationModel
 
 export mapModel

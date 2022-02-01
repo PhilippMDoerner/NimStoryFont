@@ -12,7 +12,7 @@ import ../session/sessionRepository
 import ../sessionaudio/sessionaudioRepository
 import ../spell/spellRepository
 import ../rules/ruleRepository
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import std/[strformat, options]
 
 

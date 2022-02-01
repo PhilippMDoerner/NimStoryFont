@@ -1,4 +1,4 @@
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import std/[strformat, options]
 import encounterRepository
 

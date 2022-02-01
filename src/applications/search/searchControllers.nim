@@ -2,7 +2,7 @@ import searchModel
 import searchRepository
 import prologue
 import jsony
-import ../base_generics/controllerTemplates
+import ../controllerTemplates
 import ../../utils/[jwtContext, customResponses, errorResponses]
 
 

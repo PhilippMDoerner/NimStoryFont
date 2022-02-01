@@ -1,5 +1,5 @@
 import norm/[model, sqlite]
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import itemModel
 import tinypool
 

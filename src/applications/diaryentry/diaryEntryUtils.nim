@@ -1,5 +1,5 @@
 import diaryEntryRepository
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import ../session/sessionModel
 import std/[strformat, options]
 

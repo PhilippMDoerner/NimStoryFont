@@ -1,4 +1,4 @@
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import characterModel
 import characterSerializable
 import ../image/[imageModel]

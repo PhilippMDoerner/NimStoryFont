@@ -1,6 +1,6 @@
 import diaryEntryModel
 import ../encounter/encounterModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import ../../applicationSettings
 import norm/model
 import tinypool

@@ -1,5 +1,5 @@
 import questModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 
 export questModel
 

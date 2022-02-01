@@ -1,5 +1,5 @@
 import locationModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import ../../applicationSettings
 import norm/model
 import std/[options, strformat, algorithm]

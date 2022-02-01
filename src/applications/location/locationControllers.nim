@@ -4,7 +4,7 @@ import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
 import jsony
-import ../base_generics/controllerTemplates
+import ../controllerTemplates
 
 
 proc getLocationByNameView*(ctx: Context) {.async.} = 

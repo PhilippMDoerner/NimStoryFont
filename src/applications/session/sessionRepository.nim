@@ -1,5 +1,5 @@
 import sessionModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import tinypool
 
 export genericArticleRepository

@@ -1,5 +1,5 @@
 import sessionaudioModel
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import tinypool
 import std/db_sqlite
 export sessionaudioModel

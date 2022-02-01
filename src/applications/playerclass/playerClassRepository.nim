@@ -1,7 +1,7 @@
 import playerClassModel
 import norm/[model, sqlite]
 import sequtils
-import ../base_generics/genericArticleRepository
+import ../genericArticleRepository
 import tinypool
 
 proc getCharacterPlayerClasses*(characterId: int64): seq[PlayerClass] =
