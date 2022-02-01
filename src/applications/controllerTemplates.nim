@@ -1,8 +1,10 @@
 import ../utils/errorResponses
-import std/typetraits
+import std/[logging, strformat]
 import norm/sqlite
 
 template respondBadRequestOnDbError*(body: untyped) =
+  ## template to handle some usual error cases. Returns HTTP400
+  ## in case of any DBError, any HTTP404 in case of any NotFoundError
   try:
       body
 
@@ -13,5 +15,5 @@ template respondBadRequestOnDbError*(body: untyped) =
     resp get404NotFoundResponse()
 
   except Exception as e:
-    echo "Error of type '" & $e.name & "'"
-    raise e
+    log(lvlError, fmt "Error of type '{getCurrentException().name}': {getCurrentExceptionMsg()}") 
+    raise
