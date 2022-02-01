@@ -3,15 +3,15 @@ import std/typetraits
 import norm/sqlite
 
 template respondBadRequestOnDbError*(body: untyped) =
-    try:
-        body
+  try:
+      body
 
-    except DbError:
-        resp get400BadRequestResponse(getCurrentExceptionMsg())
-    
-    except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
-        resp get404NotFoundResponse()
+  except DbError:
+    resp get400BadRequestResponse(getCurrentExceptionMsg())
 
-    except Exception as e:
-        echo "Error of type '" & $e.name & "'"
-        raise e
+  except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
+    resp get404NotFoundResponse()
+
+  except Exception as e:
+    echo "Error of type '" & $e.name & "'"
+    raise e
