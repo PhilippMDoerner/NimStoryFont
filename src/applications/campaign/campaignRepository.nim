@@ -8,15 +8,8 @@ export campaignModel
 
 
 proc getCampaignByName*(campaignName: string): Campaign =
-    var entry: Campaign = newModel(Campaign)
-    
-    const modelTableName: string = Campaign.table()
-    var sqlCondition: string = modelTableName & ".name LIKE ?"
+  result = getEntryByField[Campaign, string]("name", campaignName)
 
-    withDbConn(connection):
-      connection.select(entry, sqlCondition, campaignName)
-
-    result = entry
   
 
 proc getAllCampaigns*(): seq[Campaign] =
