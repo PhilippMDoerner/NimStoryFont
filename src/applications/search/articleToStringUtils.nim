@@ -3,7 +3,7 @@ import ../campaign/campaignRepository
 import ../character/characterRepository
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
-import ../encounter/[modelUtils, encounterRepository]
+import ../encounter/[encounterUtils, encounterRepository]
 import ../item/itemRepository
 import ../location/locationRepository
 import ../map/mapRepository

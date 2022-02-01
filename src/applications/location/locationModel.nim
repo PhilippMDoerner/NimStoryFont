@@ -3,9 +3,8 @@ import ../campaign/campaignModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[strformat, options, algorithm]
+import std/[options]
 import constructor/defaults
-import ../base_generics/genericArticleRepository
 
 
 type 
