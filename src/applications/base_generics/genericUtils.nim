@@ -25,7 +25,7 @@ Documentation on generics:
 ]##
 
 import norm/[model, pragmas]
-import std/[options, typetraits, tables, macros, sequtils]
+import std/[options, typetraits, tables, macros, sequtils, strformat]
 
 ##[Necessary in order to allow getting the table name of an Option[Model] type]##
 proc table(model: Option[Model]): string =
@@ -50,7 +50,7 @@ proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType
                 when targetTableName == genericParams(sourceFieldValue.type()).get(0).table():
                     return sourceFieldName
 
-    let errorMsg = "Tried getting foreign key field from model '" & name(sourceType) & "' to model '" & targetTableName & "' but there is no such field!"
+    let errorMsg = fmt "Tried getting foreign key field from model '{name(M)}' to model '{targetTableName}' but there is no such field!"
     raise newException(FieldDefect, errorMsg)
 
 

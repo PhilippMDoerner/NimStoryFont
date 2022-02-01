@@ -5,11 +5,13 @@ import jsony
 import options
 import genericUtils
 import tinypool
+import std/typetraits
 
 export sqlite
 export serialization
 export normConversion
 export jsony
+export typetraits #Needed as otherwise the program complains that genericUtils doesn't have the "name" macro for "getRelatedFieldNameOn"
 
 ##[
     This generic repository allows general access to the database. It should be your ONLY way to
