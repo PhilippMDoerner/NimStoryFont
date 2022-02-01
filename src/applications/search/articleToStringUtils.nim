@@ -1,5 +1,4 @@
 import ../authentication/authenticationRepository
-import ../campaign/campaignRepository
 import ../character/characterRepository
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
@@ -104,7 +103,11 @@ proc getSearchTitle*(modelInstance: Location): string =
 
 
 proc getSearchBody*(modelInstance: Map): string =
-  return ""#TODO: Make this
+  result.add(fmt "{modelInstance.name} ")
+
+  let mapLocations: seq[Location] = getManyToMany(modelInstance, MarkerRead, Location)
+  for location in mapLocations:
+    result.add(fmt "{location.name} ")
 
 proc getSearchTitle*(modelInstance: Map): string =
   return modelInstance.name
