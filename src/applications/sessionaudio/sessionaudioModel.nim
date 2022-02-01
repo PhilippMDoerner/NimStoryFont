@@ -15,6 +15,3 @@ type SessionAudio* {.defaults, tableName: SESSIONAUDIO_TABLE} = ref object of Mo
 implDefaults(SessionAudio)
 
 proc newModel*(T: typedesc[SessionAudio]): SessionAudio = newSessionAudio()
-
-proc campaign_id*(sessionaudio: SessionAudio): int64 =
-  result = getSessionById(sessionaudio.session_id).campaign_id
