@@ -1,5 +1,6 @@
 import searchModel
 import std/[db_sqlite, strutils, json, strformat]
+import norm/model
 import ../campaign/campaignRepository
 import ../character/characterRepository
 import ../creature/creatureRepository
@@ -19,6 +20,7 @@ import ../../utils/nisane/nisane
 import ../../utils/djangoDateTime/[serialization]
 import ../../utils/myStrutils
 import tinypool
+import articleToStringUtils
 
 export searchRepository
 
@@ -156,4 +158,4 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
 proc addSearchEntry*(connection: DbConn, article: Article) =
   let searchTitle: string = article.getSearchTitle()
   let searchBody: string = article.getSearchBody()
-  addSearchEntry(connection, searchTitle, searchBody, article.table(), article.id, article.campaign_id)
+  addSearchEntry(connection, searchTitle, searchBody, article.type.table(), article.id, article.campaign_id)
