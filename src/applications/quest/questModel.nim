@@ -27,3 +27,6 @@ proc newModel*(T: typedesc[Quest]): Quest = newQuest()
 
 type QuestCharacter* {.defaults, tableName: CHARACTER_TABLE} = ref object of Model
   name*: string
+implDefaults(QuestCharacter)
+proc newModel*(T: typedesc[QuestCharacter]): QuestCharacter = newQuestCharacter()
+ 
