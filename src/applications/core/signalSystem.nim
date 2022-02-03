@@ -3,11 +3,9 @@ import norm/model
 import tableModel
 
 type SignalType* = enum
-  stPreCreate
   stPostCreate
   stPreDelete
   stPostDelete
-  stPreUpdate
   stPostUpdate
 
 type SignalEvent* = object
@@ -25,7 +23,7 @@ proc hasSignal(signalType: SignalType, tableKind: TableModelKind): bool =
 
 
 proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: pointer) =
-  echo "Connected a proc to the signal system"
+  ## Associates a proc with a given TableModel 
   const tableKind: TableModelKind = parseEnum[TableModelKind](name(T).toLower())
 
   if not hasTableKind(tableKind):
@@ -54,5 +52,5 @@ proc triggerSignal*(signalType: SignalType, event: SignalEvent) =
   for procPointer in signalProcPointers:
     type TemporaryProcType = proc (connection: DbConn, modelInstance: TableModelVariant) {.nimcall.}
     let signalProc: TemporaryProcType = cast[TemporaryProcType](procPointer)
-    
+
     signalProc(event.connection, event.modelInstance)
