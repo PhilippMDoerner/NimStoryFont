@@ -17,6 +17,8 @@ import ../image/imageModel
 import std/[strutils, typetraits]
 
 type TableModelKind* = enum
+  ## An enum representing the TableModels of every possible table in the database. 
+  ## The enum's values are the names of the table models that represent them
   tmkCharacter = "character"
   tmkCreature = "creature"
   tmkEncounter = "encounter"
@@ -36,6 +38,7 @@ type TableModelKind* = enum
 
 
 type TableModelVariant* = ref object
+  ## An object variant that can represents any object of a TableModel
   case kind*: TableModelKind
   of tmkCharacter: character*: Character
   of tmkCreature: creature*: Creature
@@ -55,6 +58,8 @@ type TableModelVariant* = ref object
   of tmkMap: map: Map
 
 template newTableModelVariant*(modelInstance: typed): TableModelVariant =
+  ## Helper template for instantiating the TableModelVariant from any TableModel object
+  ## Must be of a model type whose lowercase name is in the TableModelKind enum
   const modelName: string = name(modelInstance.type).toLower()
   const tableKind: TableModelKind = parseEnum[TableModelKind](modelName)
   echo "The table model kind: " & $tableKind
