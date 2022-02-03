@@ -16,6 +16,7 @@ import ../rules/ruleModel
 import ../image/imageModel
 import std/[strutils, typetraits]
 
+#TODO Instead of hard-coding the strings, derive them from the particular models. Will need the parseEnum fix though
 type TableModelKind* = enum
   ## An enum representing the TableModels of every possible table in the database. 
   ## The enum's values are the names of the table models that represent them
