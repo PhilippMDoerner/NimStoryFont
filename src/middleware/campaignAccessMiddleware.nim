@@ -72,6 +72,8 @@ proc campaignMemberAccessMiddleware*(): HandlerAsync =
       resp get401UnauthorizedResponse(ctx)
       return
 
+    await switch(ctx)
+
 proc campaignAdminAccessMiddleware*(): HandlerAsync =
   result = proc(ctx: Context) {.async.} =  
     let ctx = JWTContext(ctx)
@@ -82,3 +84,5 @@ proc campaignAdminAccessMiddleware*(): HandlerAsync =
     if not hasCampaignAdminAccessLevel(userCampaignMemberships, campaignUrlParam):
       resp get401UnauthorizedResponse(ctx)
       return
+
+    await switch(ctx)
