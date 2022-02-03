@@ -1,32 +1,21 @@
 import prologue
 import applicationSettings
 import utils/jwtContext
-import applications/character/characterRoutes
-import applications/creature/creatureRoutes
-import applications/image/imageRoutes
-import applications/authentication/authenticationRoutes
-import applications/search/searchRoutes
-import applications/location/locationRoutes
 import logging
 import tinypool
-import applications/search/searchSignals#TODO: Figure out where you have to import this to make sure the individual signals get connected
+import applications/allSignals
+import routes
 
 proc main() =
     initConnectionPool(applicationSettings.database, CONNECTION_POOL_SIZE)
 
     var app: Prologue = newApp(core_settings)
-    addAuthenticationRoutes(app)
-    addCharacterRoutes(app)
-    addCreatureRoutes(app)
-    addImageRoutes(app)
-    addLocationRoutes(app)
-    addSearchRoutes(app)
+    addApplicationRoutes(app)
     app.run(JWTContext)
 
     destroyConnectionPool()
 
-when isMainModule:
-    setLogFilter(lvlNotice)
-    addHandler(newConsoleLogger())
+setLogFilter(lvlNotice)
+addHandler(newConsoleLogger())
 
-    main()
+main()
