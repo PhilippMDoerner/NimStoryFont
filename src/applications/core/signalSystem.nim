@@ -18,13 +18,15 @@ type SignalEvent* = object
   modelInstance*: TableModelVariant
   connection*: DbConn
 
+type SignalProc* = proc(connection: DbConn, modelInstance: TableModelVariant)
+
 type SignalProcStore = object
   ## Stores pointers to all Signal procs. A Signal proc is a proc that is 
   ## executed before or after a create/update/delete action happens. They 
   ## are associated with a specific TableModel and when they should trigger 
   ## (determined by SignalType). SignalProcs always have the signature
   ## proc(connection: DbConn, modelInstance: TableModelVariant).
-  procs: Table[TableModelKind, Table[SignalType, HashSet[pointer]]]
+  procs: Table[TableModelKind, Table[SignalType, HashSet[SignalProc]]]
 
 var STORE {.global.}: SignalProcStore
 proc hasTableKind(tableKind: TableModelKind): bool = STORE.procs.hasKey(tableKind)
@@ -34,7 +36,7 @@ proc hasSignal(signalType: SignalType, tableKind: TableModelKind): bool =
 # TODO: Contemplate not using pointers, because your signal procs now all have the same signature
 # of proc(connection: DbConn, modelInstance: TableModelVariant)
 
-proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: pointer) =
+proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: SignalProc) =
   ## Associates the given proc with the given model and signaltype. The signalProc is triggered
   ## whenever a model of the given type is manipulated either through an update, delete, or create
   ## action. Which of theses actions trigger the signal is determined by the signalType. The
@@ -43,16 +45,16 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
   const tableKind: TableModelKind = parseEnum[TableModelKind](name(T).toLower())
 
   if not hasTableKind(tableKind):
-    STORE.procs[tableKind] = initTable[SignalType, HashSet[pointer]]()
+    STORE.procs[tableKind] = initTable[SignalType, HashSet[SignalProc]]()
   
   if not hasSignal(signalType, tableKind):
-    STORE.procs[tableKind][signalType] = initHashSet[pointer]()
+    STORE.procs[tableKind][signalType] = initHashSet[SignalProc]()
 
   STORE.procs[tableKind][signalType].incl(signalProc)
 
 
 
-proc disconnect*[T: Model]( signalType: SignalType, model: typedesc[T], signalProc: pointer) =
+proc disconnect*[T: Model]( signalType: SignalType, model: typedesc[T], signalProc: SignalProc) =
   ## Removes the given proc from the SignalProcStore. It thus prohibits that proc being 
   ## triggered whenever a model of the given type is manipulated, even if it was previously
   ## connected.
@@ -68,9 +70,6 @@ proc triggerSignal*(signalType: SignalType, event: SignalEvent) =
   let tableKind: TableModelKind = event.modelInstance.kind
   if not hasSignal(signalType, tableKind): return
 
-  let signalProcPointers = STORE.procs[tableKind][signalType]
-  for procPointer in signalProcPointers:
-    type TemporaryProcType = proc (connection: DbConn, modelInstance: TableModelVariant) {.nimcall.}
-    let signalProc: TemporaryProcType = cast[TemporaryProcType](procPointer)
-
+  let signalProcs = STORE.procs[tableKind][signalType]
+  for signalProc in signalProcs:
     signalProc(event.connection, event.modelInstance)
