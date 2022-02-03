@@ -4,7 +4,7 @@ import creatureControllers
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
-        re"/creature/",
+        re"/creature/(?P<campaignName>[^/]+)/",
         handler = creatureControllers.createCreatureView,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
