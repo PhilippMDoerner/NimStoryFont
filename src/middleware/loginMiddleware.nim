@@ -3,6 +3,8 @@ import ../utils/jwtContext
 import ../applicationSettings
 import std/[strutils, options]
 import ../applications/authentication/myJwt
+import ../utils/errorResponses
+
 
 
 proc hasAccessToken(ctx: Context): bool =
