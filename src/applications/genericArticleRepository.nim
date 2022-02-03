@@ -7,6 +7,9 @@ import genericUtils
 import tinypool
 import std/typetraits
 
+#Import all signal files
+import search/searchSignals
+
 export sqlite
 export serialization
 export normConversion

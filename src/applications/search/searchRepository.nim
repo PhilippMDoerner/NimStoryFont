@@ -36,7 +36,7 @@ type ArticleTable = enum #TODO: Replace this with applicationSettings constants 
   SPELL = "wikientries_spell"
   RULE = "wikientries_rules"
 
-type Article = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | Organization | Quest | SessionAudio | Spell | Rule
+type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | Organization | Quest | SessionAudio | Spell | Rule
 
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
@@ -126,13 +126,7 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
       result.add(SearchSerializable(hit: searchHit, articleDataJson: articleDataJsonString))
 
 
-proc addSearchEntry(article: Article) =
-  let searchTitle: string = article.getSearchTitle()
-  let searchBody: string = article.getSearchBody()
-  addSearchEntry(searchTitle, searchBody, article.table(), article.id, article.campaign_id)
-
-
-proc addSearchEntry*(searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
+proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
   let addSearchEntryQuery = sql"""
     INSERT INTO search_article_content (
       title,
@@ -147,15 +141,19 @@ proc addSearchEntry*(searchTitle: string, searchBody: string, tableName: string,
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   """
 
-  withDbConn(connection):
-    connection.exec(
-      addSearchEntryQuery,
-      searchTitle,
-      searchTitle.reverseString(),
-      searchBody,
-      searchBody.reverseString(),
-      tableName,
-      $recordId,
-      $campaignId,
-      fmt "{tableName}_{record_id}"
-    )
+  connection.exec(
+    addSearchEntryQuery,
+    searchTitle,
+    searchTitle.reverseString(),
+    searchBody,
+    searchBody.reverseString(),
+    tableName,
+    $recordId,
+    $campaignId,
+    fmt "{tableName}_{record_id}"
+  )
+
+proc addSearchEntry*(connection: DbConn, article: Article) =
+  let searchTitle: string = article.getSearchTitle()
+  let searchBody: string = article.getSearchBody()
+  addSearchEntry(connection, searchTitle, searchBody, article.table(), article.id, article.campaign_id)
