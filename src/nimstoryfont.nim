@@ -9,6 +9,7 @@ import applications/search/searchRoutes
 import applications/location/locationRoutes
 import logging
 import tinypool
+import applications/search/searchSignals#TODO: Figure out where you have to import this to make sure the individual signals get connected
 
 proc main() =
     initConnectionPool(applicationSettings.database, CONNECTION_POOL_SIZE)

@@ -6,10 +6,7 @@ import options
 import genericUtils
 import tinypool
 import std/typetraits
-
-#Import all signal files
-import search/searchSignals
-
+import core/[signalSystem, tableModel]
 export sqlite
 export serialization
 export normConversion
@@ -209,14 +206,15 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
     var entryToDelete: T = getEntryById[T](entryId)
 
     withDbTransaction(connection):
-        when compiles(preDeleteSignal(connection, entryToDelete)):
-            preDeleteSignal(connection, entryToDelete)
-
         {.cast(gcsafe).}:
+            let instance: TableModelVariant = newTableModelVariant(entryToDelete)
+            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
+            triggerSignal(SignalType.stPreDelete, event)
+    
             connection.delete(entryToDelete)
 
-        when compiles(postDeleteSignal(connection, entryToDelete)):
-            postDeleteSignal(connection, entryToDelete)
+            triggerSignal(SignalType.stPostDelete, event)
+
 
 
 #UPDATE PROCS
@@ -230,16 +228,15 @@ proc updateEntry*[T: Model](entry: var T): T =
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
 
     withDbTransaction(connection):
-        when compiles(preUpdateSignal(connection, entry)):
-            preUpdateSignal(connection, entry)
-
         {.cast(gcsafe).}:
             connection.update(entry)
         
+            let instance: TableModelVariant = newTableModelVariant(entry)
+            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
+            triggerSignal(SignalType.stPostUpdate, event)
+
         result = entry
 
-        when compiles(postUpdateSignal(connection, result)):
-            postUpdateSignal(connection, result)
 
 proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
     var entry: T = entryJsonData.fromJson(T)
@@ -263,17 +260,15 @@ proc createEntry*[T: Model](entry: var T): T =
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     
     withDbTransaction(connection):
-        when compiles(preCreateSignal(connection, entry)):
-            postUpdateSignal(connection, entry)
-
         {.cast(gcsafe).}:
             connection.insert(entry)
 
+            let instance: TableModelVariant = newTableModelVariant(entry)
+            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
+            echo "Create creature: " & event.modelInstance.creature.name
+            triggerSignal(SignalType.stPostCreate, event)
+
         result = entry
-
-        when compiles(postCreateSignal(connection, result)):
-            postUpdateSignal(connection, result)
-
 
 
 proc createEntry*[T: Model](entryJsonData: string): T =
