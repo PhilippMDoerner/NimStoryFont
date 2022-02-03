@@ -1,6 +1,8 @@
-import std/[tables, sets, hashes, db_sqlite, typetraits, strutils]
+import std/[tables, sets, hashes, db_sqlite, typetraits, strutils, logging, strformat]
 import norm/model 
 import tableModel
+
+var LOGGER = newConsoleLogger(lvlInfo)
 
 type SignalType* = enum
   ## Denotes possible trigger points for signals, meaning the system will look
@@ -33,8 +35,6 @@ proc hasTableKind(tableKind: TableModelKind): bool = STORE.procs.hasKey(tableKin
 proc hasSignal(signalType: SignalType, tableKind: TableModelKind): bool =
   result = hasTableKind(tableKind) and STORE.procs[tableKind].hasKey(signalType)
 
-# TODO: Contemplate not using pointers, because your signal procs now all have the same signature
-# of proc(connection: DbConn, modelInstance: TableModelVariant)
 
 proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: SignalProc) =
   ## Associates the given proc with the given model and signaltype. The signalProc is triggered
@@ -52,17 +52,8 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
 
   STORE.procs[tableKind][signalType].incl(signalProc)
 
-
-
-proc disconnect*[T: Model]( signalType: SignalType, model: typedesc[T], signalProc: SignalProc) =
-  ## Removes the given proc from the SignalProcStore. It thus prohibits that proc being 
-  ## triggered whenever a model of the given type is manipulated, even if it was previously
-  ## connected.
-  const tableKind: TableModelKind = parseEnum[TableModelKind](name(T))
-  if not hasSignal(signalType, tableKind): return
-
-  STORE.procs[tableKind][signalType].excl(signalProc)
-
+  let myLen = STORE.procs[tableKind][signalType].len()
+  LOGGER.log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {name(T)} - There is/are now {myLen} {signalType} signal(s)")
 
 
 proc triggerSignal*(signalType: SignalType, event: SignalEvent) =
