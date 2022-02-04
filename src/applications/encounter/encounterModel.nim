@@ -5,6 +5,7 @@ import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[options]
 import ../location/locationModel
 import ../diaryentry/diaryEntryModel
+import ../campaign/campaignModel
 import constructor/defaults
 
 
@@ -40,6 +41,7 @@ proc newModel*(T: typedesc[EncounterLocation]): EncounterLocation = newEncounter
 type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
     session_number*: int = -1
     is_main_session*: bool = true
+    campaign_id* {.fk: Campaign.}: int64 = -1
 implDefaults(EncounterSession)
 proc newModel*(T: typedesc[EncounterSession]): EncounterSession = newEncounterSession()
 

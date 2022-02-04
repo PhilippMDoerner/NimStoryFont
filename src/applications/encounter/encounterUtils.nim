@@ -14,3 +14,7 @@ proc `$`*(encounter: Encounter): string =
     if encounter.title.isSome():
         result.add(fmt " - {encounter.title}")
 
+
+proc campaign_id*(encounter: Encounter): int64 =
+    let diaryentry: EncounterDiaryentry = getEntryById[EncounterDiaryentry](encounter.diaryentry_id)
+    result = diaryentry.session_id.campaign_id
