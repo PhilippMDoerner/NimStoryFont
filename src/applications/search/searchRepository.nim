@@ -22,23 +22,6 @@ import ../../utils/myStrutils
 import tinypool
 import articleToStringUtils
 
-export searchRepository
-
-type ArticleTable = enum #TODO: Replace this with applicationSettings constants once that can compile
-  CHARACTER = "wikientries_character"
-  CREATURE = "wikientries_creature"
-  DIARYENTRY = "wikientries_diaryentry"
-  ENCOUNTER = "wikientries_encounter"
-  ITEM = "wikientries_item"
-  LOCATION = "wikientries_location"
-  MAP = "map_map"
-  ORGANIZATION = "wikientries_organization"
-  QUEST = "wikientries_quest"
-  SESSIONAUDIO = "fileserver_sessionaudio"
-  SPELL = "wikientries_spell"
-  RULE = "wikientries_rules"
-
-type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | Organization | Quest | SessionAudio | Spell | Rule
 
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
