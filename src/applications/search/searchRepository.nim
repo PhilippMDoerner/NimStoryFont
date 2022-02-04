@@ -99,7 +99,6 @@ proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
 
   result = parseJson(jsonString)
 
-
 proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =
   let searchHits: seq[SearchHit] = search(campaignName, searchText, searchLimit)
 
@@ -109,7 +108,6 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
       let articleDataJsonString: JsonNode = getArticleData(articleTable, searchHit.record_id)
 
       result.add(SearchSerializable(hit: searchHit, articleDataJson: articleDataJsonString))
-
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
   let addSearchEntryQuery = sql"""
@@ -168,3 +166,17 @@ proc updateSearchEntryContent*(connection: DbConn, article: Article) =
   let searchBody: string = article.getSearchBody()
   let guid = article.getSearchGuid()
   updateSearchEntryContent(connection, guid, searchTitle, searchBody)
+
+proc deleteSearchEntry*(connection: DbConn, guid: string) =
+    let deleteSearchEntryQuery = sql"""
+      DELETE FROM search_article_content
+      WHERE guid = ?
+    """
+
+    connection.exec(
+      deleteSearchEntryQuery,
+      guid
+    )
+
+proc deleteSearchEntry*(connection: DbConn, article: Article) =
+  deleteSearchEntry(connection, article.getSearchGuid())
