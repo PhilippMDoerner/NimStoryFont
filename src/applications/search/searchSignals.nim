@@ -25,14 +25,13 @@ proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Charact
     let organization = getEntryById[Organization](modelInstance.organization_id.get())
     updateSearchEntryContent(connection, organization)
 
-  #TODO: Add the ability to `getManyFromOne` and `getManyToMany` to deal with models that have multiple fields with foreign keys to the same model  
-  # let questsWhereCharacterIsGiver: seq[Quest] = getManyFromOne(modelInstance, Quest)
-  # for quest in questsWhereCharacterIsGiver:
-  #   updateSearchEntryContent(connection, quest)
+  let questsWhereCharacterIsGiver: seq[Quest] = getManyFromOne(modelInstance, Quest, "giver_id")
+  for quest in questsWhereCharacterIsGiver:
+    updateSearchEntryContent(connection, quest)
 
-  # let questsWhereCharacterIsTaker: seq[Quest] = getManyFromOne(modelInstance, Quest)
-  # for quest in questsWhereCharacterIsTaker:
-  #   updateSearchEntryContent(connection, quest)
+  let questsWhereCharacterIsTaker: seq[Quest] = getManyFromOne(modelInstance, Quest, "taker_id")
+  for quest in questsWhereCharacterIsTaker:
+    updateSearchEntryContent(connection, quest)
 
 proc characterCreateSignal*(connection: DbConn, modelInstance: Character) =
   addSearchEntry(connection, modelInstance)
