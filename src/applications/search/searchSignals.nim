@@ -19,6 +19,17 @@ export encounterUtils #So that "addSearchEntry" can query campaign_id properly
 export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly
 export sessionaudioUtils
 
+## This is a list of all search signal procs
+## These procs are about entering, updating and deleting entries from the FTS5 search table in sqlite
+## in order to keep it in sync with the rest of the content in the database. 
+## The only Model types that should have entries in that table are the ones summarized in the `Article` type
+## (see searchModel.nim).
+## All other Models (e.g. Marker, Timestamp) are only here because the data they contain influences the 
+## search entry content of an Article Model.
+## 
+## After defining these procs, they are then connected to their designated model and an execution 
+## time (SignalType) is assigned to them.
+
 #CHARACTER Signals
 proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Character) =
   if modelInstance.organization_id.isSome():
@@ -180,7 +191,6 @@ connect(SignalType.stPostDelete, Marker, markerSignal)
 
 
 
-
 #ORGANIZATION
 proc organizationCreateSignal*(connection: DbConn, modelInstance: Organization) = 
   addSearchEntry(connection, modelInstance)
@@ -217,10 +227,14 @@ connect(SignalType.stPostCreate, Quest, questCreateSignal)
 proc sessionAudioCreateSignal*(connection: DbConn, modelInstance: SessionAudio) = 
   addSearchEntry(connection, modelInstance)
 
-proc updateSessionAudioSearchEntry*(connection: DbConn, modelInstance: SessionAudio) = 
+proc sessionAudioUpdateSignal*(connection: DbConn, modelInstance: SessionAudio) = 
   updateSearchEntryContent(connection, modelInstance)
 
-connect(SignalType.stPostUpdate, SessionAudio, updateSessionAudioSearchEntry)
+proc sessionAudioDeleteSignal*(connection: DbConn, modelInstance: SessionAudio) =
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, SessionAudio, sessionAudioDeleteSignal)
+connect(SignalType.stPostUpdate, SessionAudio, sessionAudioUpdateSignal)
 connect(SignalType.stPostCreate, SessionAudio, sessionAudioCreateSignal)
 
 
@@ -242,6 +256,10 @@ proc spellCreateSignal*(connection: DbConn, modelInstance: Spell) =
 proc spellUpdateSignal*(connection: DbConn, modelInstance: Spell) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc spellDeleteSignal*(connection: DbConn, modelInstance: Spell) = 
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Spell, spellDeleteSignal)
 connect(SignalType.stPostUpdate, Spell, spellUpdateSignal)
 connect(SignalType.stPostCreate, Spell, spellCreateSignal)
 
@@ -254,6 +272,10 @@ proc ruleCreateSignal*(connection: DbConn, modelInstance: Rule) =
 proc ruleUpdateSignal*(connection: DbConn, modelInstance: Rule) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc ruleDeleteSignal*(connection: DbConn, modelInstance: Rule) = 
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Rule, ruleDeleteSignal)
 connect(SignalType.stPostUpdate, Rule, ruleUpdateSignal)
 connect(SignalType.stPostCreate, Rule, ruleCreateSignal)
 
