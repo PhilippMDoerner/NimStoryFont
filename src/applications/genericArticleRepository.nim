@@ -6,7 +6,7 @@ import options
 import genericUtils
 import tinypool
 import std/typetraits
-import core/[signalSystem, tableModel]
+import core/[signalSystem]
 export sqlite
 export serialization
 export normConversion
@@ -207,13 +207,11 @@ proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
 
     withDbTransaction(connection):
         {.cast(gcsafe).}:
-            let instance: TableModelVariant = newTableModelVariant(entryToDelete)
-            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
-            triggerSignal(SignalType.stPreDelete, event)
+            triggerSignal(SignalType.stPreDelete, connection, entryToDelete)
     
             connection.delete(entryToDelete)
 
-            triggerSignal(SignalType.stPostDelete, event)
+            triggerSignal(SignalType.stPostDelete, connection, entryToDelete)
 
 
 
@@ -231,9 +229,7 @@ proc updateEntry*[T: Model](entry: var T): T =
         {.cast(gcsafe).}:
             connection.update(entry)
         
-            let instance: TableModelVariant = newTableModelVariant(entry)
-            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
-            triggerSignal(SignalType.stPostUpdate, event)
+            triggerSignal(SignalType.stPostUpdate, connection, entry)
 
         result = entry
 
@@ -263,10 +259,7 @@ proc createEntry*[T: Model](entry: var T): T =
         {.cast(gcsafe).}:
             connection.insert(entry)
 
-            let instance: TableModelVariant = newTableModelVariant(entry)
-            let event: SignalEvent = SignalEvent(connection: connection, modelInstance: instance)
-            echo "Create creature: " & event.modelInstance.creature.name
-            triggerSignal(SignalType.stPostCreate, event)
+            triggerSignal(SignalType.stPostCreate, connection, entry)
 
         result = entry
 

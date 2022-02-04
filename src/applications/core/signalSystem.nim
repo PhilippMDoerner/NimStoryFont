@@ -1,6 +1,5 @@
 import std/[tables, sets, hashes, db_sqlite, typetraits, strutils, logging, strformat]
 import norm/model 
-import tableModel
 
 var LOGGER = newConsoleLogger(lvlInfo)
 
@@ -13,42 +12,35 @@ type SignalType* = enum
   stPostDelete
   stPostUpdate
 
-type SignalEvent* = object
-  ## The event created by a create/update/delete action. Provides the instance
-  ## that is being manipulated and the connection used by the transaction that 
-  ## will perform this operation and has the current write lock on the database
-  modelInstance*: TableModelVariant
-  connection*: DbConn
-
-type SignalProc* = proc(connection: DbConn, modelInstance: TableModelVariant)
 
 type SignalProcStore = object
   ## Stores pointers to all Signal procs. A Signal proc is a proc that is 
   ## executed before or after a create/update/delete action happens. They 
-  ## are associated with a specific TableModel and when they should trigger 
-  ## (determined by SignalType). SignalProcs always have the signature
-  ## proc(connection: DbConn, modelInstance: TableModelVariant).
-  procs: Table[TableModelKind, Table[SignalType, HashSet[SignalProc]]]
+  ## are associated with a specific object that inherits from Model and 
+  ## when they should trigger (determined by SignalType). SignalProcs 
+  ## always have the signature: 
+  ## proc(connection: DbConn, modelInstance: <YOUR MODEL TYPE>).
+  procs: Table[string, Table[SignalType, HashSet[pointer]]]
 
 var STORE {.global.}: SignalProcStore
-proc hasTableKind(tableKind: TableModelKind): bool = STORE.procs.hasKey(tableKind)
-proc hasSignal(signalType: SignalType, tableKind: TableModelKind): bool =
+proc hasTableKind(tableKind: string): bool = STORE.procs.hasKey(tableKind)
+proc hasSignal(signalType: SignalType, tableKind: string): bool =
   result = hasTableKind(tableKind) and STORE.procs[tableKind].hasKey(signalType)
 
 
-proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: SignalProc) =
+proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: pointer) =
   ## Associates the given proc with the given model and signaltype. The signalProc is triggered
   ## whenever a model of the given type is manipulated either through an update, delete, or create
-  ## action. Which of theses actions trigger the signal is determined by the signalType. The
-  ## SignalType also denotes whether the given signalProc is executed before or after the data
+  ## action. Which of theses actions trigger the given signalproc is determined by the signalType.
+  ## The SignalType also denotes whether the given signalProc is executed before or after the data
   ## manipulation takes place.
-  const tableKind: TableModelKind = parseEnum[TableModelKind](name(T).toLower())
+  const tableKind: string = name(T)
 
   if not hasTableKind(tableKind):
-    STORE.procs[tableKind] = initTable[SignalType, HashSet[SignalProc]]()
+    STORE.procs[tableKind] = initTable[SignalType, HashSet[pointer]]()
   
   if not hasSignal(signalType, tableKind):
-    STORE.procs[tableKind][signalType] = initHashSet[SignalProc]()
+    STORE.procs[tableKind][signalType] = initHashSet[pointer]()
 
   STORE.procs[tableKind][signalType].incl(signalProc)
 
@@ -56,11 +48,13 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
   LOGGER.log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {name(T)} - There is/are now {myLen} {signalType} signal(s)")
 
 
-proc triggerSignal*(signalType: SignalType, event: SignalEvent) =
+proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelInstance: T) =
   ## Triggers all stored signal procs for the given modelInstance and the given signalType
-  let tableKind: TableModelKind = event.modelInstance.kind
+  let tableKind: string = name(modelInstance.type)
   if not hasSignal(signalType, tableKind): return
 
-  let signalProcs = STORE.procs[tableKind][signalType]
-  for signalProc in signalProcs:
-    signalProc(event.connection, event.modelInstance)
+  let signalProcPointers: HashSet[pointer] = STORE.procs[tableKind][signalType]
+  for procPointer in signalProcPointers.items:
+    type TempProc = proc (connection: DbConn, modelInstance: T) {.nimcall.}
+    let signalProc = cast[TempProc](procPointer)
+    signalProc(connection, modelInstance)
