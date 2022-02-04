@@ -20,18 +20,35 @@ export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly
 export sessionaudioUtils
 
 #CHARACTER Signals
-proc characterCreateSignal*(connection: DbConn, modelInstance: Character) =
-  addSearchEntry(connection, modelInstance)
-
+proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Character) =
   if modelInstance.organization_id.isSome():
     let organization = getEntryById[Organization](modelInstance.organization_id.get())
     updateSearchEntryContent(connection, organization)
 
+  #TODO: Add the ability to `getManyFromOne` and `getManyToMany` to deal with models that have multiple fields with foreign keys to the same model  
+  # let questsWhereCharacterIsGiver: seq[Quest] = getManyFromOne(modelInstance, Quest)
+  # for quest in questsWhereCharacterIsGiver:
+  #   updateSearchEntryContent(connection, quest)
+
+  # let questsWhereCharacterIsTaker: seq[Quest] = getManyFromOne(modelInstance, Quest)
+  # for quest in questsWhereCharacterIsTaker:
+  #   updateSearchEntryContent(connection, quest)
+
+proc characterCreateSignal*(connection: DbConn, modelInstance: Character) =
+  addSearchEntry(connection, modelInstance)
+  updateCharacterAssociatedEntries(connection, modelInstance)
+
 proc characterUpdateSignal*(connection: DbConn, modelInstance: Character) =
   updateSearchEntryContent(connection, modelInstance)
+  updateCharacterAssociatedEntries(connection, modelInstance)
+
+proc characterDeleteSignal*(connection: DbConn, modelInstance: Character) =
+  deleteSearchEntry(connection, modelInstance)
+  updateCharacterAssociatedEntries(connection, modelInstance)
 
 connect(SignalType.stPostCreate, Character, characterCreateSignal)
 connect(SignalType.stPostUpdate, Character, characterUpdateSignal)
+connect(SignalType.stPostDelete, Character, characterDeleteSignal)
 
 
 
@@ -42,8 +59,12 @@ proc creatureCreateSignal*(connection: DbConn, modelInstance: Creature) =
 proc creatureUpdateSignal*(connection: DbConn, modelInstance: Creature) =
   updateSearchEntryContent(connection, modelInstance)
 
+proc creatureDeleteSignal*(connection: DbConn, modelInstance: Creature) =
+  deleteSearchEntry(connection, modelInstance)
+
 connect(SignalType.stPostUpdate, Creature, creatureUpdateSignal)
 connect(SignalType.stPostCreate, Creature, creatureCreateSignal)
+connect(SignalType.stPostDelete, Creature, creatureDeleteSignal)
 
 
 
@@ -54,6 +75,10 @@ proc itemCreateSignal*(connection: DbConn, modelInstance: Item) =
 proc itemUpdateSignal*(connection: DbConn, modelInstance: Item) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc itemDeleteSignal*(connection: DbConn, modelInstance: Item) =
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Item, itemDeleteSignal)
 connect(SignalType.stPostUpdate, Item, itemUpdateSignal)
 connect(SignalType.stPostCreate, Item, itemCreateSignal)
 
@@ -66,33 +91,40 @@ proc diaryEntryCreateSignal*(connection: DbConn, modelInstance: DiaryEntry) =
 proc diaryEntryUpdateSignal*(connection: DbConn, modelInstance: DiaryEntry) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc diaryEntryDeleteSignal*(connection: DbConn, modelInstance: DiaryEntry) =
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, DiaryEntry, diaryEntryDeleteSignal)
 connect(SignalType.stPostUpdate, DiaryEntry, diaryEntryUpdateSignal)
 connect(SignalType.stPostCreate, DiaryEntry, diaryEntryCreateSignal)
 
 
 
 #ENCOUNTER
-proc encounterCreateSignal*(connection: DbConn, modelInstance: Encounter) = 
-  addSearchEntry(connection, modelInstance)
-
+proc updateEncounterAssociatedEntries(connection: DbConn, modelInstance: Encounter) =
   let diaryentry: DiaryEntry = getEntryById[DiaryEntry](modelInstance.diaryentry_id)
   updateSearchEntryContent(connection, diaryentry)
 
+proc encounterCreateSignal*(connection: DbConn, modelInstance: Encounter) = 
+  addSearchEntry(connection, modelInstance)
+  updateEncounterAssociatedEntries(connection, modelInstance)
+
 proc encounterUpdateSignal*(connection: DbConn, modelInstance: Encounter) = 
   updateSearchEntryContent(connection, modelInstance)
+  updateEncounterAssociatedEntries(connection, modelInstance)
 
+proc encounterDeleteSignal*(connection: DbConn, modelInstance: Encounter) =
+  deleteSearchEntry(connection, modelInstance)
+  updateEncounterAssociatedEntries(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Encounter, encounterDeleteSignal)
 connect(SignalType.stPostUpdate, Encounter, encounterUpdateSignal)
 connect(SignalType.stPostCreate, Encounter, encounterCreateSignal)
 
 
 
 #LOCATION
-proc locationCreateSignal*(connection: DbConn, modelInstance: Location) = 
-  addSearchEntry(connection, modelInstance)
-
-proc locationUpdateSignal*(connection: DbConn, modelInstance: Location) = 
-  updateSearchEntryContent(connection, modelInstance)
-
+proc updateLocationAssociatedEntries(connection: DbConn, modelInstance: Location) =
   let mapsWithLocation: seq[Map] = getManyToMany(modelInstance, MarkerRead, Map)
   for map in mapsWithLocation:
     updateSearchEntryContent(connection, map)
@@ -105,6 +137,18 @@ proc locationUpdateSignal*(connection: DbConn, modelInstance: Location) =
   for encounter in encountersInLocation:
     updateSearchEntryContent(connection, encounter)
 
+proc locationCreateSignal*(connection: DbConn, modelInstance: Location) = 
+  addSearchEntry(connection, modelInstance)
+
+proc locationUpdateSignal*(connection: DbConn, modelInstance: Location) = 
+  updateSearchEntryContent(connection, modelInstance)
+  updateLocationAssociatedEntries(connection, modelInstance)
+
+proc locationDeleteSignal*(connection: DbConn, modelInstance: Location) = 
+  deleteSearchEntry(connection, modelInstance)
+  updateLocationAssociatedEntries(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Location, locationDeleteSignal)
 connect(SignalType.stPostUpdate, Location, locationUpdateSignal)
 connect(SignalType.stPostCreate, Location, locationCreateSignal)
 
@@ -117,6 +161,10 @@ proc mapCreateSignal*(connection: DbConn, modelInstance: Map) =
 proc mapUpdateSignal*(connection: DbConn, modelInstance: Map) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc mapDeleteSignal*(connection: DbConn, modelInstance: Map) = 
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Map, mapDeleteSignal)
 connect(SignalType.stPostUpdate, Map, mapUpdateSignal)
 connect(SignalType.stPostCreate, Map, mapCreateSignal)
 
@@ -141,6 +189,10 @@ proc organizationCreateSignal*(connection: DbConn, modelInstance: Organization) 
 proc organizationUpdateSignal*(connection: DbConn, modelInstance: Organization) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc organizationDeleteSignal*(connection: DbConn, modelInstance: Organization) = 
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Organization, organizationDeleteSignal)
 connect(SignalType.stPostUpdate, Organization, organizationUpdateSignal)
 connect(SignalType.stPostCreate, Organization, organizationCreateSignal)
 
@@ -153,6 +205,10 @@ proc questCreateSignal*(connection: DbConn, modelInstance: Quest) =
 proc questUpdateSignal*(connection: DbConn, modelInstance: Quest) = 
   updateSearchEntryContent(connection, modelInstance)
 
+proc questDeleteSignal*(connection: DbConn, modelInstance: Quest) = 
+  deleteSearchEntry(connection, modelInstance)
+
+connect(SignalType.stPostDelete, Quest, questDeleteSignal)
 connect(SignalType.stPostUpdate, Quest, questUpdateSignal)
 connect(SignalType.stPostCreate, Quest, questCreateSignal)
 
