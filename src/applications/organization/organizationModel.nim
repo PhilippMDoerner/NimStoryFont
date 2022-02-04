@@ -4,6 +4,7 @@ import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import ../campaign/campaignModel
+import ../location/locationModel
 import ../image/imageModel
 import constructor/defaults
 
@@ -14,7 +15,7 @@ type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of M
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     description*: Option[string] = none(string)
     leader*: Option[string] = none(string)
-    headquarter_id*: Option[int64] = none(int64)
+    headquarter_id* {.fk: Location.}: Option[int64] = none(int64)
 
 implDefaults(Organization)
 proc newModel*(T: typedesc[Organization]): Organization = newOrganization()
