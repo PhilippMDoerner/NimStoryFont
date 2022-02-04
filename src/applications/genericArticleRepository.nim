@@ -2,11 +2,12 @@ import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serializatio
 import ../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
-import options
+import std/[options, strformat]
 import genericUtils
 import tinypool
 import std/typetraits
 import core/[signalSystem]
+
 export sqlite
 export serialization
 export normConversion
@@ -146,20 +147,32 @@ proc getEntryById*[M: Model](entryId: int64): M =
 
 
 
-proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
+    ## manyTypeforeignKeyFieldName = Name of the foreign key field on the Many Type
     mixin newModel
 
+    const temp = checkFkField(M, manyTypeforeignKeyFieldName, O.table()) # temp is irrelevant, this only stands here for the compile time check of checkFkField
+
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
-    const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
     const manyTableName: string = M.table()
-    let sqlCondition: string = manyTableName & "." & foreignKeyFieldName & " = ?"
+    let sqlCondition: string = manyTableName & "." & manyTypeforeignKeyFieldName & " = ?"
 
     connection.select(targetEntries, sqlCondition, oneEntry.id)
 
     result = targetEntries
 
-proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+    ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
+    const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
+    result = getManyFromOne(connection, oneEntry, relatedManyType, foreignKeyFieldName)
+
+proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to provide the connection yourself]##
+    withDbConn(connection):
+        result = getManyFromOne[O, M](connection, oneEntry, relatedManyType, manyTypeforeignKeyFieldName)
+
+proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+    ##[ Helper proc for getManyFromOne when you don't want to provide neither the connection yourself, nor the FK Field]##
     withDbConn(connection):
         result = getManyFromOne[O, M](connection, oneEntry, relatedManyType)
 
