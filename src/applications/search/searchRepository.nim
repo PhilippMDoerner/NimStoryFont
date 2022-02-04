@@ -1,6 +1,7 @@
 import searchModel
-import std/[db_sqlite, strutils, json, strformat]
+import searchUtils
 import norm/model
+import std/[db_sqlite, strutils, json, strformat]
 import ../campaign/campaignRepository
 import ../character/characterRepository
 import ../creature/creatureRepository
@@ -90,8 +91,7 @@ proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
     of ArticleTable.QUEST:
       jsonString = getQuestById(articleId).toJson()
     of ArticleTable.SESSIONAUDIO:
-      #jsonString = * getSessionAudioByid(articleId).toJson()
-      jsonString = "[]"
+      jsonString = getSessionAudioByid(articleId).toJson()
     of ArticleTable.SPELL:
       jsonString = getSpellById(articleId).toJson()
     of ArticleTable.RULE:
