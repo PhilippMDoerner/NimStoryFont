@@ -1,4 +1,5 @@
 import searchRepository
+import ../genericArticleRepository
 import ../core/[signalSystem]
 import ../character/characterModel
 import ../creature/creatureModel
@@ -12,47 +13,60 @@ import ../quest/questModel
 import ../sessionaudio/[sessionaudioUtils, sessionaudioModel]
 import ../spell/spellModel
 import ../rules/ruleModel
-import std/[typetraits, strformat, db_sqlite]
+import std/[typetraits, strformat, options]
 
 export encounterUtils #So that "addSearchEntry" can query campaign_id properly
 export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly
 export sessionaudioUtils
 
 #Signals that create search entries
-proc createCharacterSearchEntry*(connection: DbConn, modelInstance: Character) =
+proc characterCreateSignal*(connection: DbConn, modelInstance: Character) =
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Character, createCharacterSearchEntry)
+  if modelInstance.organization_id.isSome():
+    let organization = getEntryById[Organization](modelInstance.organization_id.get())
+    updateSearchEntryContent(connection, organization)
 
-proc createCreatureSearchEntry*(connection: DbConn, modelInstance: Creature) =
+connect(SignalType.stPostCreate, Character, characterCreateSignal)
+
+proc createCreatureSignal*(connection: DbConn, modelInstance: Creature) =
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Creature, createCreatureSearchEntry)
+connect(SignalType.stPostCreate, Creature, createCreatureSignal)
 
-proc createItemSearchEntry*(connection: DbConn, modelInstance: Item) = 
+proc itemCreateSignal*(connection: DbConn, modelInstance: Item) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Item, createItemSearchEntry)
+connect(SignalType.stPostCreate, Item, itemCreateSignal)
 
-proc createDiaryEntrySearchEntry*(connection: DbConn, modelInstance: DiaryEntry) = 
+proc diaryEntryCreateSignal*(connection: DbConn, modelInstance: DiaryEntry) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, DiaryEntry, createDiaryEntrySearchEntry)
+connect(SignalType.stPostCreate, DiaryEntry, diaryEntryCreateSignal)
 
-proc createEncounterSearchEntry*(connection: DbConn, modelInstance: Encounter) = 
+proc encounterCreateSignal*(connection: DbConn, modelInstance: Encounter) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Encounter, createEncounterSearchEntry)
+  let diaryentry: DiaryEntry = getEntryById[DiaryEntry](modelInstance.diaryentry_id)
+  updateSearchEntryContent(connection, diaryentry)
 
-proc createLocationSearchEntry*(connection: DbConn, modelInstance: Location) = 
+connect(SignalType.stPostCreate, Encounter, encounterCreateSignal)
+
+proc locationCreateSignal*(connection: DbConn, modelInstance: Location) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Location, createLocationSearchEntry)
+connect(SignalType.stPostCreate, Location, locationCreateSignal)
 
-proc createMapSearchEntry*(connection: DbConn, modelInstance: Map) = 
+proc mapCreateSignal*(connection: DbConn, modelInstance: Map) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, Map, createMapSearchEntry)
+connect(SignalType.stPostCreate, Map, mapCreateSignal)
+
+proc markerCreateSignal*(connection: DbConn, modelInstance: Marker) =
+  let mapWithMarker: Map = getEntryById[Map](modelInstance.map_id)
+  updateSearchEntryContent(connection, mapWithMarker)
+
+connect(SignalType.stPostCreate, Marker, markerCreateSignal)
 
 proc createOrganizationSearchEntry*(connection: DbConn, modelInstance: Organization) = 
   addSearchEntry(connection, modelInstance)
@@ -64,10 +78,16 @@ proc createQuestSearchEntry*(connection: DbConn, modelInstance: Quest) =
 
 connect(SignalType.stPostCreate, Quest, createQuestSearchEntry)
 
-proc createSessionAudioSearchEntry*(connection: DbConn, modelInstance: SessionAudio) = 
+proc sessionAudioCreateSignal*(connection: DbConn, modelInstance: SessionAudio) = 
   addSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostCreate, SessionAudio, createSessionAudioSearchEntry)
+connect(SignalType.stPostCreate, SessionAudio, sessionAudioCreateSignal)
+
+proc timestampCreateSignal*(connection: DbConn, modelInstance: Timestamp) =
+  let sessionAudioEntryWithTimestamp = getEntryById[SessionAudio](modelInstance.session_audio_id)
+  updateSearchEntryContent(connection, sessionAudioEntryWithTimestamp)
+
+connect(SignalType.stPostCreate, Timestamp, timestampCreateSignal)
 
 proc createSpellSearchEntry*(connection: DbConn, modelInstance: Spell) = 
   addSearchEntry(connection, modelInstance)
@@ -106,10 +126,22 @@ proc updateEncounterSearchEntry*(connection: DbConn, modelInstance: Encounter) =
 
 connect(SignalType.stPostUpdate, Encounter, updateEncounterSearchEntry)
 
-proc updateLocationSearchEntry*(connection: DbConn, modelInstance: Location) = 
+proc locationUpdateSignal*(connection: DbConn, modelInstance: Location) = 
   updateSearchEntryContent(connection, modelInstance)
 
-connect(SignalType.stPostUpdate, Location, updateLocationSearchEntry)
+  let mapsWithLocation: seq[Map] = getManyToMany(modelInstance, MarkerRead, Map)
+  for map in mapsWithLocation:
+    updateSearchEntryContent(connection, map)
+  
+  let organizationWithHeadquarterInLocation: seq[Organization] = getManyFromOne(modelInstance, Organization)
+  for organization in organizationWithHeadquarterInLocation:
+    updateSearchEntryContent(connection, organization)
+  
+  let encountersInLocation: seq[Encounter] = getManyFromOne(modelInstance, Encounter)
+  for encounter in encountersInLocation:
+    updateSearchEntryContent(connection, encounter)
+
+connect(SignalType.stPostUpdate, Location, locationUpdateSignal)
 
 proc updateMapSearchEntry*(connection: DbConn, modelInstance: Map) = 
   updateSearchEntryContent(connection, modelInstance)
