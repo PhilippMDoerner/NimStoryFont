@@ -31,27 +31,57 @@ import std/[options, typetraits, tables, macros, sequtils, strformat]
 proc table(model: Option[Model]): string =
   result = model.get().type().table()
 
+proc hasField*[T](t: typedesc[T], fieldName: string): bool {.compileTime.} =
+  for sourceFieldName, sourceFieldValue in t()[].fieldPairs:
+    if sourceFieldName == fieldName:
+      return true
+  return false
+
+#TODO: Figure out how to get rid of the return type here and the forced variable assignment in genericArticleRepository that this causes
+proc checkFkField*[T: Model](fromModelType: typedesc[T], fkFieldName: static string, toTableName: static string): bool {.compileTime.} =
+  for sourceFieldName, sourceFieldValue in fromModelType()[].fieldPairs:
+    when sourceFieldName == fkFieldName:
+      when not sourceFieldValue.hasCustomPragma(fk):
+        raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but it didn't have an fk pragma")
+
+      elif not (toTableName == sourceFieldValue.getCustomPragmaVal(fk).table()):
+        const assumedFieldTable: string = sourceFieldValue.getCustomPragmaVal(fk).table()
+        raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but the pragma pointed to a different table '{assumedFieldTable}'")
+
+      else: 
+        return true
+
+  raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but there was no such field")
+
 #TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
 proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string {.compileTime.} =
+    var fieldNames: seq[string] = @[]
+    
     for sourceFieldName, sourceFieldValue in M()[].fieldPairs:
         #Handles case where field is an int64 with fk pragma
         when sourceFieldValue.hasCustomPragma(fk):
             when targetTableName == sourceFieldValue.getCustomPragmaVal(fk).table():
-                return sourceFieldName
+                fieldNames.add(sourceFieldName)
         
         #Handles case where field is a Model type
         elif sourceFieldValue is Model:
             when targetTableName == sourceFieldValue.type().table():
-                return sourceFieldName
+                fieldNames.add(sourceFieldName)
         
         #Handles case where field is a Option[Model] type
         elif sourceFieldValue is Option:
             when sourceFieldValue.get() is Model:
                 when targetTableName == genericParams(sourceFieldValue.type()).get(0).table():
-                    return sourceFieldName
+                    fieldNames.add(sourceFieldName)
 
-    let errorMsg = fmt "Tried getting foreign key field from model '{name(M)}' to model '{targetTableName}' but there is no such field!"
-    raise newException(FieldDefect, errorMsg)
+    if fieldNames.len() == 1:
+        return fieldNames[0]
+    elif fieldnames.len() < 1:
+        let errorMsg = fmt "Tried getting foreign key field from model '{name(M)}' to model '{targetTableName}' but there is no such field!"
+        raise newException(FieldDefect, errorMsg)
+    elif fieldnames.len() > 1:
+        let errorMsg = fmt "Can't infer foreign key field from model '{name(M)}' to model '{targetTableName}'! There is more than one foreign key field to that table!"
+        raise newException(FieldDefect, errorMsg)
 
 
 proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): string {.compileTime.} =
