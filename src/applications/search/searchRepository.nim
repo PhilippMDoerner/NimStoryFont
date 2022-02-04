@@ -142,3 +142,29 @@ proc addSearchEntry*(connection: DbConn, article: Article) =
   let searchTitle: string = article.getSearchTitle()
   let searchBody: string = article.getSearchBody()
   addSearchEntry(connection, searchTitle, searchBody, article.type.table(), article.id, article.campaign_id)
+
+proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
+  let updateSearchEntryQuery = sql"""
+    UPDATE search_article_content 
+    SET
+      title = ?,
+      title_rev = ?,
+      body = ?,
+      body_rev = ?,
+    WHERE guid = ?
+  """
+
+  connection.exec(
+    updateSearchEntryQuery,
+    searchTitle,
+    searchTitle.reverseString(),
+    searchBody,
+    searchBody.reverseString(),
+    guid
+  )
+
+proc updateSearchEntryContent*(connection: DbConn, article: Article) =
+  let searchTitle: string = article.getSearchTitle()
+  let searchBody: string = article.getSearchBody()
+  let guid = article.getSearchGuid()
+  updateSearchEntryContent(connection, guid, searchTitle, searchBody)
