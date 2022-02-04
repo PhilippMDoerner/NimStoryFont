@@ -32,7 +32,7 @@ proc table(model: Option[Model]): string =
   result = model.get().type().table()
 
 #TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
-proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string =
+proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string {.compileTime.} =
     for sourceFieldName, sourceFieldValue in M()[].fieldPairs:
         #Handles case where field is an int64 with fk pragma
         when sourceFieldValue.hasCustomPragma(fk):
