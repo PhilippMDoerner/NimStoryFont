@@ -54,7 +54,7 @@ proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType
     raise newException(FieldDefect, errorMsg)
 
 
-proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): string =
+proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): string {.compileTime.} =
     result = getRelatedFieldNameOn(O.table(), sourceType)
 
 
