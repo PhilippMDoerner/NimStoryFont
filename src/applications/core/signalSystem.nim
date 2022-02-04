@@ -1,4 +1,4 @@
-import std/[tables, sets, hashes, db_sqlite, typetraits, strutils, logging, strformat]
+import std/[tables, sets, hashes, db_sqlite, typetraits, logging, strformat]
 import norm/model 
 
 var LOGGER = newConsoleLogger(lvlInfo)
