@@ -42,9 +42,9 @@ template hasField*(t: typed, fieldName: string): bool =
 
 
 
-#TODO: Figure out how to get rid of the return type here and the forced variable assignment in genericArticleRepository that this causes
 proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: static string, toModelType: typedesc[M]): bool {.compileTime.} =
-  const table = model.table
+  const table = model.table #Keeps the table proc from norm available in all other instantiations of this proc
+  const name = typetraits.name
 
   static: assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but there was no such field")
 
@@ -62,6 +62,7 @@ proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: s
 #TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
 proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string {.compileTime.} =
     var fieldNames: seq[string] = @[]
+    const name = typetraits.name
     
     for sourceFieldName, sourceFieldValue in M()[].fieldPairs:
         #Handles case where field is an int64 with fk pragma
