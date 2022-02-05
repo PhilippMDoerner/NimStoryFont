@@ -45,7 +45,7 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
   STORE.procs[tableKind][signalType].incl(signalProc)
 
   let myLen = STORE.procs[tableKind][signalType].len()
-  LOGGER.log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {name(T)} - There is/are now {myLen} {signalType} signal(s)")
+  LOGGER.log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {tableKind} - There is/are now {myLen} {signalType} signal(s)")
 
 
 proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelInstance: T) =
