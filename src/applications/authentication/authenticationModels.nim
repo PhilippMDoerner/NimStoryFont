@@ -46,9 +46,16 @@ proc newModel*(T: typedesc[Permission]): Permission = newPermission()
 
 
 
-type GroupPermission* {.defaults, tableName: GROUP_PERMISSION_TABLE.} = ref object of Model
+type GroupPermissionRead* {.defaults, tableName: GROUP_PERMISSION_TABLE.} = ref object of Model
     group_id*: Group = newModel(Group)
     permission_id*: Permission = newModel(Permission)
+
+implDefaults(GroupPermissionRead)
+proc newModel*(T: typedesc[GroupPermissionRead]): GroupPermissionRead = newGroupPermissionRead()
+
+type GroupPermission* {.defaults, tableName: GROUP_PERMISSION_TABLE.} = ref object of Model
+    group_id* {.fk: Group.}: int64 = MODEL_INIT_ID
+    permission_id* {.fk: Permission.}: int64 = MODEL_INIT_ID
 
 implDefaults(GroupPermission)
 proc newModel*(T: typedesc[GroupPermission]): GroupPermission = newGroupPermission()
