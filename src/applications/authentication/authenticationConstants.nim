@@ -148,3 +148,9 @@ const CAMPAIGN_ADMIN_PERMISSIONS*: seq[string] = CAMPAIGN_MEMBER_PERMISSIONS.con
     "delete_markertype",
     "view_markertype",
 ]
+
+
+type CampaignRole* = enum
+  crMEMBER = "member"
+  crADMIN = "admin"
+  crGUEST = "guest"
