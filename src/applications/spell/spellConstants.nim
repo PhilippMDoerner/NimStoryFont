@@ -1,0 +1,75 @@
+type SavingThrow* = enum
+  stATTACK = "ATK",
+  stSTRENGTH = "STR",
+  stCONSTITUTION = "CON",
+  stDEXTERITY = "DEX",
+  stINTELLIGENCE = "INT",
+  stWISDOM = "WIS",
+  stCHARISMA = "CHA"
+
+type SpellLevel* = enum
+  slCANTRIP = 0
+  slLEVEL1 = 1,
+  slLEVEL2 = 2,
+  slLEVEL3 = 3,
+  slLEVEL4 = 4,
+  slLEVEL5 = 5,
+  slLEVEL6 = 6,
+  slLEVEL7 = 7,
+  slLEVEL8 = 8,
+  slLEVEL9 = 9
+
+type CastingTime* = enum
+  ctACTION = "1 Action",
+  ctBONUSACTION = "1 Bonus Action",
+  ctREACTION = "1 Reaction",
+  ctMINUTE = "1 Minute",
+  ctTENMINUTES = "10 Minutes",
+  ctHOUR = "1 Hour",
+  ctEIGHTHOURS = "8 Hours",
+  ctTWELVEHOURS = "12 Hours",
+  ctDAY = "24 Hours"
+
+type SpellDuration* = enum
+  sdINSTANT = "Instantaneous",
+  sdROUND = "1 Round",
+  sdSIXROUNDS = "6 Rounds",
+  sdMINUTE = "1 Minute",
+  sdTENMINUTES = "10 Minutes",
+  sdHOUR = "1 Hour",
+  sdTWOHOURS = "2 Hours",
+  sdEIGHTHOURS = "8 Hours",
+  sdDAY = "1 Day",
+  sdWEEK = "7 Days",
+  sdTENDAYS = "10 Days",
+  sdMONTH = "30 Days",
+  sdSPECIAL = "Special",
+  sdUNTILDISPELLED = "Until Dispelled"
+
+type Range* = enum
+  rSELF = "Self",
+  rFEET5 = "5 Feet",
+  rFEET10 = "10 Feet",
+  rFEET15 = "15 Feet",
+  rFEET30 = "30 Feet",
+  rFEET60 = "60 Feet",
+  rFEET90 = "90 Feet",
+  rFEET100 = "100 Feet",
+  rFEET120 = "120 Feet",
+  rFEET150 = "150 Feet",
+  rMILE = "1 Mile",
+  rMILE3 = "3 Miles",
+  rMILE10 = "10 Miles"
+
+type SpellComponents* = enum
+  scV, scS, scM, scVS, scVM, scSM, scVSM, scVSMS = "VSM*"
+
+type MagicSchool* = enum
+  msABJURATION = "Abjuration",
+  msCONJURATION = "Conjuration",
+  msDIVINATION = "Divination",
+  msENCHANTMENT = "Enchantment",
+  msEVOCATION = "Evocation",
+  msILLUSION = "Illusion",
+  msNECROMANCY = "Necromancy",
+  msTRANSMUTATION = "Transmutation"
