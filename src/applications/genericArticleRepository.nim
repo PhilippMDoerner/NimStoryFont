@@ -5,7 +5,6 @@ import jsony
 import std/[options, strformat]
 import genericUtils
 import tinypool
-import std/typetraits
 import core/[signalSystem]
 
 export sqlite
@@ -275,6 +274,13 @@ proc createEntry*[T: Model](entry: var T): T =
 
         result = entry
 
+proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
+
+    connection.insert(entry)
+    triggerSignal(SignalType.stPostCreate, connection, entry)
+    result = entry
 
 proc createEntry*[T: Model](entryJsonData: string): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
