@@ -151,7 +151,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
     ## manyTypeforeignKeyFieldName = Name of the foreign key field on the Many Type
     mixin newModel
 
-    const temp = checkFkField(M, manyTypeforeignKeyFieldName, O.table()) # temp is irrelevant, this only stands here for the compile time check of checkFkField
+    const _ = checkFkField(M, manyTypeforeignKeyFieldName, O) # temp is irrelevant, this only stands here for the compile time check of checkFkField
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
     const manyTableName: string = M.table()
