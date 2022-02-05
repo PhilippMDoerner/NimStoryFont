@@ -31,27 +31,33 @@ import std/[options, typetraits, tables, macros, sequtils, strformat]
 proc table(model: Option[Model]): string =
   result = model.get().type().table()
 
-proc hasField*[T](t: typedesc[T], fieldName: string): bool {.compileTime.} =
-  for sourceFieldName, sourceFieldValue in t()[].fieldPairs:
-    if sourceFieldName == fieldName:
-      return true
-  return false
+
+macro getField(t: typed, fieldName: static string): untyped =
+  ## Creates an expression "a.s", effectively handing you back the actual field with the given string name
+  newDotExpr(t, ident(fieldName))
+
+template hasField*(t: typed, fieldName: string): bool =
+  ## Checks if a given type has a field with the given name
+  compiles(getField(t, fieldName))
+
+
 
 #TODO: Figure out how to get rid of the return type here and the forced variable assignment in genericArticleRepository that this causes
-proc checkFkField*[T: Model](fromModelType: typedesc[T], fkFieldName: static string, toTableName: static string): bool {.compileTime.} =
+proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: static string, toModelType: typedesc[M]): bool {.compileTime.} =
+  const table = model.table
+
+  static: assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but there was no such field")
+
   for sourceFieldName, sourceFieldValue in fromModelType()[].fieldPairs:
     when sourceFieldName == fkFieldName:
-      when not sourceFieldValue.hasCustomPragma(fk):
-        raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but it didn't have an fk pragma")
+      static: assert(sourceFieldValue.hasCustomPragma(fk), fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but it didn't have an fk pragma")
+      
+      const fkFieldTable: string = sourceFieldValue.getCustomPragmaVal(fk).table()
+      static: assert((M.table() == fkFieldTable),  fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but the pragma pointed to a different table '{fkFieldTable}'")
+      
+      return true
 
-      elif not (toTableName == sourceFieldValue.getCustomPragmaVal(fk).table()):
-        const assumedFieldTable: string = sourceFieldValue.getCustomPragmaVal(fk).table()
-        raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but the pragma pointed to a different table '{assumedFieldTable}'")
-
-      else: 
-        return true
-
-  raise newException(FieldDefect, fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{toTableName}' but there was no such field")
+  return false
 
 #TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
 proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string {.compileTime.} =
