@@ -1,7 +1,8 @@
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignRepository]
 import authenticationModels
-import std/[options, sequtils, tables, strutils]
+import std/[options, sequtils, tables, strutils, strformat]
+import norm/model
 
 export authenticationModels
 
@@ -70,3 +71,13 @@ proc getUserContainer*(user: User): UserContainer =
     let campaignMemberships = getUserCampaignMemberships(user)
     result = UserContainer(user: user, campaignMemberships: campaignMemberships)
 
+
+proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission] =
+  const permissionTable = Permission.table()
+  let partialConditions: seq[string] = codeNames.map(proc(s: string): string = fmt "{permissionTable}.codename = {s}")
+  let sqlCondition = partialConditions.join(", ")
+
+  var permissionEntries: seq[Permission] = @[newModel(Permission)]
+  connection.select(permissionEntries, sqlCondition)
+
+  result = permissionEntries
