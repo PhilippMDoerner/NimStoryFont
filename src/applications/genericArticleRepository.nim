@@ -238,6 +238,8 @@ proc updateEntry*[T: Model](entry: var T): T =
 
     withDbTransaction(connection):
         {.cast(gcsafe).}:
+            triggerSignal(SignalType.stPreUpdate, connection, entry)
+
             connection.update(entry)
         
             triggerSignal(SignalType.stPostUpdate, connection, entry)
@@ -268,6 +270,8 @@ proc createEntry*[T: Model](entry: var T): T =
     
     withDbTransaction(connection):
         {.cast(gcsafe).}:
+            triggerSignal(SignalType.stPreCreate, connection, entry)
+
             connection.insert(entry)
 
             triggerSignal(SignalType.stPostCreate, connection, entry)

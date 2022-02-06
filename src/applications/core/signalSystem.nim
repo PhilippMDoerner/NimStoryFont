@@ -7,9 +7,11 @@ type SignalType* = enum
   ## Denotes possible trigger points for signals, meaning the system will look
   ## for to execute appropriate signal procs after a create/delete/update action 
   ## or before a delete action.
+  stPreCreate
   stPostCreate
   stPreDelete
   stPostDelete
+  stPreUpdate
   stPostUpdate
 
 
