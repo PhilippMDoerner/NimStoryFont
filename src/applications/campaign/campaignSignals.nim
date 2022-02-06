@@ -4,7 +4,7 @@ import ../authentication/[authenticationRepository, authenticationConstants, aut
 import campaignUtils
 import campaignModel
 import ../core/signalSystem
-import std/sequtils
+import std/[options, sequtils]
 
 proc createCampaignPermission*(connection: DbConn, permissionName: string, codeName: string) =
   var campaignContentType = getEntryByField[DjangoContentType, string]("model", "campaign")
@@ -70,3 +70,26 @@ proc createCampaignGroupsAndPermissions(connection: DbConn, modelInstance: Campa
   createAdminGroup(connection, modelInstance)
   
 connect(SignalType.stPostCreate, Campaign, createCampaignGroupsAndPermissions)
+
+
+
+proc deleteCampaignPermissions(connection: DbConn, modelInstance: Campaign) =
+  if modelInstance.guest_group_id.isSome():
+    deleteEntry[Group](modelInstance.guest_group_id.get())
+
+  if modelInstance.member_group_id.isSome():
+    deleteEntry[Group](modelInstance.member_group_id.get())
+
+  if modelInstance.admin_group_id.isSome():
+    deleteEntry[Group](modelInstance.admin_group_id.get())
+
+  if modelInstance.guest_permission_id.isSome():
+    deleteEntry[Permission](modelInstance.guest_permission_id.get())
+
+  if modelInstance.member_permission_id.isSome():
+    deleteEntry[Permission](modelInstance.member_permission_id.get())
+
+  if modelInstance.admin_permission_id.isSome():
+    deleteEntry[Permission](modelInstance.admin_permission_id.get())
+
+connect(SignalType.stPreDelete, Campaign, deleteCampaignPermissions)
