@@ -18,7 +18,7 @@ type ##[Exist solely to inform Image model to which table a given fk-model point
     ImageOrganization {.tableName: ORGANIZATION_TABLE.} = ref object of Model
 
 type Image* {.defaults, tableName: IMAGE_TABLE.} = ref object of Model
-    image*: string = ""
+    image*: string = "" #The actual image path
     name*: Option[string] = some("")
     character_article_id* {.fk: ImageCharacter.}: Option[int64] = none(int64)
     creature_article_id* {.fk: ImageCreature.}: Option[int64] = none(int64)
