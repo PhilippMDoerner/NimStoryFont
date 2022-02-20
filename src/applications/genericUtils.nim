@@ -43,17 +43,16 @@ template hasField*(t: typed, fieldName: string): bool =
 
 
 proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: static string, toModelType: typedesc[M]): bool {.compileTime.} =
-  const table = model.table #Keeps the table proc from norm available in all other instantiations of this proc
-  const name = typetraits.name
-
-  static: assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but there was no such field")
+  const fromModelTypeName = name(T)
+  const targetTableName = table(M)
+  static: assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but there was no such field")
 
   for sourceFieldName, sourceFieldValue in fromModelType()[].fieldPairs:
     when sourceFieldName == fkFieldName:
-      static: assert(sourceFieldValue.hasCustomPragma(fk), fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but it didn't have an fk pragma")
+      static: assert(sourceFieldValue.hasCustomPragma(fk), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but it didn't have an fk pragma")
       
       const fkFieldTable: string = sourceFieldValue.getCustomPragmaVal(fk).table()
-      static: assert((M.table() == fkFieldTable),  fmt "Tried using '{fkFieldName}' as FK field from Model '{name(T)}' to table '{M.table()}' but the pragma pointed to a different table '{fkFieldTable}'")
+      static: assert((targetTableName == fkFieldTable),  fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but the pragma pointed to a different table '{fkFieldTable}'")
       
       return true
 
