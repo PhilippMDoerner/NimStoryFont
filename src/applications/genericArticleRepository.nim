@@ -153,7 +153,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
     const manyTableName: string = M.table()
-    let sqlCondition: string = manyTableName & "." & manyTypeforeignKeyFieldName & " = ?"
+    const sqlCondition: string = manyTableName & "." & manyTypeforeignKeyFieldName & " = ?"
 
     connection.select(targetEntries, sqlCondition, oneEntry.id)
 
