@@ -45,21 +45,21 @@ template hasField*(t: typed, fieldName: string): bool =
 proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: static string, toModelType: typedesc[M]): bool {.compileTime.} =
   const fromModelTypeName = name(T)
   const targetTableName = table(M)
-  static: assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but there was no such field")
+  assert(T.hasField(fkFieldName), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but there was no such field")
 
   for sourceFieldName, sourceFieldValue in fromModelType()[].fieldPairs:
     when sourceFieldName == fkFieldName:
-      static: assert(sourceFieldValue.hasCustomPragma(fk), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but it didn't have an fk pragma")
+      assert(sourceFieldValue.hasCustomPragma(fk), fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but it didn't have an fk pragma")
       
       const fkFieldTable: string = sourceFieldValue.getCustomPragmaVal(fk).table()
-      static: assert((targetTableName == fkFieldTable),  fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but the pragma pointed to a different table '{fkFieldTable}'")
+      assert((targetTableName == fkFieldTable),  fmt "Tried using '{fkFieldName}' as FK field from Model '{fromModelTypeName}' to table '{targetTableName}' but the pragma pointed to a different table '{fkFieldTable}'")
       
       return true
 
   return false
 
-#TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
-func getRelatedFieldNameOn*[S: Model, T:Model](sourceType: typedesc[S], targetType: typedesc[T],): string {.compileTime.} =
+
+func getRelatedFieldNameOn*[S: Model, T:Model](sourceType: typedesc[S], targetType: typedesc[T]): string {.compileTime.} =
     var fieldNames: seq[string] = @[]
     const targetTableName = T.table()
 
@@ -81,15 +81,11 @@ func getRelatedFieldNameOn*[S: Model, T:Model](sourceType: typedesc[S], targetTy
                     fieldNames.add(sourceFieldName)
 
     const sourceModelName = name(S)
+    assert(not (fieldNames.len() < 1), fmt "Tried getting foreign key field from model '{sourceModelName}' to model '{targetTableName}' but there is no such field!")
+    assert(not (fieldNames.len() > 1), fmt "Can't infer foreign key field from model '{sourceModelName}' to model '{targetTableName}'! There is more than one foreign key field to that table! {fieldNames.len}")
 
-    if fieldNames.len() == 1:
-        return fieldNames[0]
-    elif fieldnames.len() < 1:
-        let errorMsg = fmt "Tried getting foreign key field from model '{sourceModelName}' to model '{targetTableName}' but there is no such field!"
-        raise newException(FieldDefect, errorMsg)
-    elif fieldnames.len() > 1:
-        let errorMsg = fmt "Can't infer foreign key field from model '{sourceModelName}' to model '{targetTableName}'! There is more than one foreign key field to that table!"
-        raise newException(FieldDefect, errorMsg)
+    return fieldNames[0]
+
 
 
 macro unpackFromJoinModel*[T: Model](mySeq: seq[T], field: static string): untyped =
