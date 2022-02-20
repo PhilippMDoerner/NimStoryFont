@@ -161,7 +161,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
-    const foreignKeyFieldName: string = O.getRelatedFieldNameOn(M)
+    const foreignKeyFieldName: string = M.getRelatedFieldNameOn(O)
     result = getManyFromOne(connection, oneEntry, relatedManyType, foreignKeyFieldName)
 
 proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
@@ -186,13 +186,13 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
     var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
 
-    const fkColumnFromJoinToManyStart: string = manyStartInstance.type().getRelatedFieldNameOn(J)
+    const fkColumnFromJoinToManyStart: string = J.getRelatedFieldNameOn(M1)
     const joinTableName = J.table()
     let sqlCondition: string = joinTableName & '.' & fkColumnFromJoinToManyStart & " = ?"
 
     connection.select(joinModelEntries, sqlCondition, manyStartInstance.id)
 
-    const fkColumnFromJoinToManyEnd = M2.getRelatedFieldNameOn(J)
+    const fkColumnFromJoinToManyEnd = J.getRelatedFieldNameOn(M2)
     let manyEntries = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd) 
     result = manyEntries
 

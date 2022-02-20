@@ -59,11 +59,11 @@ proc checkFkField*[T: Model, M:Model](fromModelType: typedesc[T], fkFieldName: s
   return false
 
 #TODO: For later, figure this out: To solve your issue with typetraits add bind genericParams into getRelatedFieldNameOn
-proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType: typedesc[M]): string {.compileTime.} =
+func getRelatedFieldNameOn*[S: Model, T:Model](sourceType: typedesc[S], targetType: typedesc[T],): string {.compileTime.} =
     var fieldNames: seq[string] = @[]
-    const name = typetraits.name
-    
-    for sourceFieldName, sourceFieldValue in M()[].fieldPairs:
+    const targetTableName = T.table()
+
+    for sourceFieldName, sourceFieldValue in S()[].fieldPairs:
         #Handles case where field is an int64 with fk pragma
         when sourceFieldValue.hasCustomPragma(fk):
             when targetTableName == sourceFieldValue.getCustomPragmaVal(fk).table():
@@ -80,18 +80,16 @@ proc getRelatedFieldNameOn*[M: Model](targetTableName: static string, sourceType
                 when targetTableName == genericParams(sourceFieldValue.type()).get(0).table():
                     fieldNames.add(sourceFieldName)
 
+    const sourceModelName = name(S)
+
     if fieldNames.len() == 1:
         return fieldNames[0]
     elif fieldnames.len() < 1:
-        let errorMsg = fmt "Tried getting foreign key field from model '{name(M)}' to model '{targetTableName}' but there is no such field!"
+        let errorMsg = fmt "Tried getting foreign key field from model '{sourceModelName}' to model '{targetTableName}' but there is no such field!"
         raise newException(FieldDefect, errorMsg)
     elif fieldnames.len() > 1:
-        let errorMsg = fmt "Can't infer foreign key field from model '{name(M)}' to model '{targetTableName}'! There is more than one foreign key field to that table!"
+        let errorMsg = fmt "Can't infer foreign key field from model '{sourceModelName}' to model '{targetTableName}'! There is more than one foreign key field to that table!"
         raise newException(FieldDefect, errorMsg)
-
-
-proc getRelatedFieldNameOn*[M: Model, O:Model](targetType: typedesc[O], sourceType: typedesc[M]): string {.compileTime.} =
-    result = getRelatedFieldNameOn(O.table(), sourceType)
 
 
 macro unpackFromJoinModel*[T: Model](mySeq: seq[T], field: static string): untyped =
