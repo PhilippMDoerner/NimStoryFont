@@ -33,7 +33,7 @@ proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
     var entries: seq[CharacterEncounterRead] = @[]
     entries.add(newModel(CharacterEncounterRead))
 
-    let condition: string = "character_id = ?"
+    const condition: string = "character_id = ?"
     
     withDbConn(connection):
       connection.select(entries, condition, characterId)
