@@ -1,5 +1,5 @@
 import searchModel
-import searchRepository
+import searchService
 import prologue
 import jsony
 import ../controllerTemplates
@@ -13,5 +13,5 @@ proc findArticles*(ctx: Context) {.async.} =
     let searchText: string = ctx.getPathParams("searchText")
 
     respondBadRequestOnDbError():
-        let articles: seq[SearchSerializable] = searchRepository.findArticles(campaignName, searchText)
+        let articles: seq[SearchSerializable] = searchService.findArticles(campaignName, searchText)
         resp jsonyResponse(ctx, articles)

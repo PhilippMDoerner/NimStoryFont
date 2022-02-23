@@ -1,27 +1,11 @@
 import searchModel
-import searchUtils
 import norm/model
-import std/[db_sqlite, strutils, json, strformat]
+import std/[db_sqlite, strformat]
 import ../campaign/campaignService
-import ../character/characterService
-import ../creature/creatureService
-import ../diaryentry/diaryEntryService
-import ../encounter/encounterService
-import ../item/itemService
-import ../location/locationService
-import ../map/mapService
-import ../organization/organizationService
-import ../quest/questService
-import ../sessionaudio/sessionaudioService
-import ../spell/spellService
-import ../rules/ruleService
-import jsony
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
-import ../../utils/djangoDateTime/[serialization]
 import ../../utils/myStrutils
 import tinypool
-import articleToStringUtils
 
 
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
@@ -67,47 +51,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
   result = searchEntries
 
 
-#TODO: Refactor this into custom procs that only contain search specific data
-proc getArticleData(articleTable: ArticleTable, articleId: int64): JsonNode =
-  var jsonString: string
 
-  case articleTable:
-    of ArticleTable.CHARACTER:
-      jsonString = getCharacterById(articleId).toJson()
-    of ArticleTable.CREATURE:
-      jsonString = getCreatureById(articleId).toJson()
-    of ArticleTable.DIARYENTRY:
-      jsonString = getDiaryentryById(articleId).toJson()
-    of ArticleTable.ENCOUNTER:
-      jsonString = getEncounterById(articleId).toJson()
-    of ArticleTable.ITEM:
-      jsonString = getItemById(articleId).toJson()
-    of ArticleTable.LOCATION:
-      jsonString = getLocationById(articleId).toJson()
-    of ArticleTable.MAP:
-      jsonString = getMapById(articleId).toJson()
-    of ArticleTable.ORGANIZATION:
-      jsonString = getOrganizationById(articleId).toJson()
-    of ArticleTable.QUEST:
-      jsonString = getQuestById(articleId).toJson()
-    of ArticleTable.SESSIONAUDIO:
-      jsonString = getSessionAudioByid(articleId).toJson()
-    of ArticleTable.SPELL:
-      jsonString = getSpellById(articleId).toJson()
-    of ArticleTable.RULE:
-      jsonString = getRuleById(articleId).toJson()
-
-  result = parseJson(jsonString)
-
-proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =
-  let searchHits: seq[SearchHit] = search(campaignName, searchText, searchLimit)
-
-  withDbConn(connection):
-    for searchHit in searchHits:
-      let articleTable: ArticleTable = parseEnum[ArticleTable](searchHit.table_name)      
-      let articleDataJsonString: JsonNode = getArticleData(articleTable, searchHit.record_id)
-
-      result.add(SearchSerializable(hit: searchHit, articleDataJson: articleDataJsonString))
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
   let addSearchEntryQuery = sql"""
@@ -136,11 +80,6 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
     fmt "{tableName}_{record_id}"
   )
 
-proc addSearchEntry*(connection: DbConn, article: Article) =
-  let searchTitle: string = article.getSearchTitle()
-  let searchBody: string = article.getSearchBody()
-  addSearchEntry(connection, searchTitle, searchBody, article.type.table(), article.id, article.campaign_id)
-
 proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
   let updateSearchEntryQuery = sql"""
     UPDATE search_article_content 
@@ -161,11 +100,6 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
     guid
   )
 
-proc updateSearchEntryContent*(connection: DbConn, article: Article) =
-  let searchTitle: string = article.getSearchTitle()
-  let searchBody: string = article.getSearchBody()
-  let guid = article.getSearchGuid()
-  updateSearchEntryContent(connection, guid, searchTitle, searchBody)
 
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
     let deleteSearchEntryQuery = sql"""
@@ -177,6 +111,3 @@ proc deleteSearchEntry*(connection: DbConn, guid: string) =
       deleteSearchEntryQuery,
       guid
     )
-
-proc deleteSearchEntry*(connection: DbConn, article: Article) =
-  deleteSearchEntry(connection, article.getSearchGuid())

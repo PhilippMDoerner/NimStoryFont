@@ -1,4 +1,4 @@
-import searchRepository
+import searchService
 import ../genericArticleRepository
 import ../core/[signalSystem]
 import ../character/characterModel
