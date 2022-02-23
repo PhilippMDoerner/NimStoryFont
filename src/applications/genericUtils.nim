@@ -79,7 +79,6 @@ proc validateFkField*[S, T: Model](fkFieldName: static string, source: typedesc[
 
   return false
 
-
 func getRelatedFieldNameOn*[S: Model, T:Model](sourceType: typedesc[S], targetType: typedesc[T]): string {.compileTime.} =
     var fieldNames: seq[string] = @[]
     const targetTableName = T.table()
