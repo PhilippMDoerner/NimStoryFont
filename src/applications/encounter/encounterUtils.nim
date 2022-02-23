@@ -1,6 +1,6 @@
 import ../genericArticleRepository
 import std/[strformat, options]
-import encounterRepository
+import encounterService
 
 proc `$`*(encounter: EncounterRead): string =
     let sessionType: string = if encounter.diaryentry_id.session_id.is_main_session: "Main " else: "Side "

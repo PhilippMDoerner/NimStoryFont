@@ -6,7 +6,7 @@ import ../campaign/campaignRepository
 import ../character/characterService
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
-import ../encounter/encounterRepository
+import ../encounter/encounterService
 import ../item/itemRepository
 import ../location/locationRepository
 import ../map/mapRepository

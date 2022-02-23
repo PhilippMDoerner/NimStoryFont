@@ -2,7 +2,7 @@ import ../authentication/authenticationRepository
 import ../character/[characterModel, characterService]
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
-import ../encounter/[encounterUtils, encounterRepository]
+import ../encounter/[encounterUtils, encounterService]
 import ../item/itemRepository
 import ../location/locationRepository
 import ../map/mapRepository

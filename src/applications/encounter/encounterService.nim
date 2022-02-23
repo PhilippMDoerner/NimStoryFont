@@ -23,3 +23,20 @@ proc updateEncounter*(encounterId: int64, encounterJsonData: string): EncounterR
     let encounter: Encounter = updateArticleEntry[Encounter](encounterId, encounterJsonData)
     result = getEncounterById(encounter.id)
 
+
+proc createEncounter*(encounterJsonData: string): EncounterRead =
+    let encounter: Encounter =  createArticleEntry(encounterJsonData, Encounter)
+    result = getEncounterById(encounter.id)
+
+
+proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
+    var entries: seq[CharacterEncounterRead] = @[]
+    entries.add(newModel(CharacterEncounterRead))
+
+    let condition: string = "character_id = ?"
+    
+    withDbConn(connection):
+      connection.select(entries, condition, characterId)
+
+    result = entries.map(proc(enc: CharacterEncounterRead): EncounterRead = enc.encounter_id)
+
