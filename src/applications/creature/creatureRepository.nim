@@ -31,5 +31,5 @@ proc updateCreature*(entryId: int, entryJsonData: string): CreatureRead =
 
 
 proc createCreature*(entryJsonData: string): CreatureRead =
-    let creature = createArticleEntry[Creature](entryJsonData)
+    let creature = createArticleEntry(entryJsonData, Creature)
     result = getCreatureById(creature.id)

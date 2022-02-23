@@ -331,7 +331,7 @@ proc createEntry*[T: Model](entryJsonData: string): T =
 
 
 
-proc createArticleEntry*[T: Model](entryJsonData: string): T =
+proc createArticleEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
     and the model is an Article, which means creation and updateTime need to 
     be set accordingly. You can provide your own connection here]##

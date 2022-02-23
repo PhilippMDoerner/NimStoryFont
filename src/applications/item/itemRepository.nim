@@ -23,7 +23,7 @@ proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
 
 
 proc createItem*(itemJsonData: string): ItemRead =
-    let item: Item = createArticleEntry[Item](itemJsonData)
+    let item: Item = createArticleEntry(itemJsonData, Item)
     result = getItemById(item.id)
 
 

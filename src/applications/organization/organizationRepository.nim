@@ -32,5 +32,5 @@ proc updateOrganization*(organizationId: int64, organizationJsonData: string): O
 
 
 proc createOrganization*(organizationJsonData: string): OrganizationSerializable =
-    let organization = createArticleEntry[Organization](organizationJsonData)
+    let organization = createArticleEntry(organizationJsonData, Organization)
     result = getOrganizationById(organization.id)

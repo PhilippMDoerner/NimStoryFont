@@ -55,7 +55,7 @@ proc updateCharacter*(characterId: int, characterJsonData: string): CharacterSer
 
 
 proc createCharacter*(characterJsonData: string): CharacterSerializable =
-    let character: Character = createArticleEntry[Character](characterJsonData)
+    let character: Character = createArticleEntry(characterJsonData, Character)
     result = getFullCharacterData(character.id)
 
 
