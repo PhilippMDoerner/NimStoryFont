@@ -1,6 +1,6 @@
 import ../genericArticleRepository
 import ../django/djangoModels
-import ../authentication/[authenticationRepository, authenticationConstants, authenticationModels]
+import ../authentication/[authenticationService, authenticationConstants, authenticationModels]
 import campaignUtils
 import campaignModel
 import ../core/signalSystem

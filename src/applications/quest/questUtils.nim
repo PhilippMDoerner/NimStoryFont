@@ -1,4 +1,4 @@
-import questRepository
+import questService
 import std/strformat
 
 proc `$`*(model: Quest): string =

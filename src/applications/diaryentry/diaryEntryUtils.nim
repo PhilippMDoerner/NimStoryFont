@@ -1,4 +1,4 @@
-import diaryEntryRepository
+import diaryEntryService
 import ../genericArticleRepository
 import ../session/sessionModel
 import std/[strformat, options]

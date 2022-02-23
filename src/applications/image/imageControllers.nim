@@ -1,4 +1,4 @@
-import imageRepository
+import imageService
 import imageModel
 import prologue
 import std/[strutils]

@@ -1,4 +1,4 @@
-import locationRepository
+import locationService
 import std/[strformat]
 
 

@@ -1,5 +1,5 @@
 import ../genericArticleRepository
-import ../campaign/[campaignModel, campaignRepository]
+import ../campaign/[campaignModel, campaignService]
 import authenticationModels
 import std/[options, sequtils, tables, strutils, strformat]
 import norm/model

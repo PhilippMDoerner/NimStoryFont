@@ -1,5 +1,5 @@
 import prologue
-import locationRepository
+import locationService
 import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization

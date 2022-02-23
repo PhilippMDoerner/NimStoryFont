@@ -10,7 +10,6 @@ export campaignModel
 proc getCampaignByName*(campaignName: string): Campaign =
   result = getEntryByField[Campaign, string]("name", campaignName)
 
-  
 
 proc getAllCampaigns*(): seq[Campaign] =
   result = getList[Campaign]()

@@ -1,17 +1,17 @@
-import ../authentication/authenticationRepository
+import ../authentication/authenticationService
 import ../character/[characterModel, characterService]
-import ../creature/creatureRepository
-import ../diaryentry/diaryEntryRepository
+import ../creature/creatureService
+import ../diaryentry/diaryEntryService
 import ../encounter/[encounterUtils, encounterService]
-import ../item/itemRepository
-import ../location/locationRepository
-import ../map/mapRepository
-import ../organization/organizationRepository
-import ../quest/questRepository
-import ../session/sessionRepository
-import ../sessionaudio/sessionaudioRepository
-import ../spell/spellRepository
-import ../rules/ruleRepository
+import ../item/itemService
+import ../location/locationService
+import ../map/mapService
+import ../organization/organizationService
+import ../quest/questService
+import ../session/sessionService
+import ../sessionaudio/sessionaudioService
+import ../spell/spellService
+import ../rules/ruleService
 import ../genericArticleRepository
 import std/[strformat, options]
 

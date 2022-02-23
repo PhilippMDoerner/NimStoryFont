@@ -1,7 +1,7 @@
 import norm/[model, sqlite]
 import ../genericArticleRepository
 import organizationModel
-import ../image/[imageModel, imageRepository]
+import ../image/[imageModel, imageService]
 import tinypool
 
 export organizationModel

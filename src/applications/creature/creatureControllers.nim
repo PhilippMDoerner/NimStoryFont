@@ -1,5 +1,5 @@
 import prologue
-import creatureRepository
+import creatureService
 import creatureModel
 import std/[strutils, uri, db_sqlite]
 import ../../utils/[jwtContext, customResponses, errorResponses]
@@ -15,7 +15,7 @@ proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} =
     let campaignName: string = ctx.getPathParams("campaignName")
 
     respondBadRequestOnDbError():
-        let creatures: seq[CreatureOverview] = creatureRepository.getCampaignCreatureListOverview(campaignName)
+        let creatures: seq[CreatureOverview] = creatureService.getCampaignCreatureListOverview(campaignName)
         resp jsonyResponse[seq[CreatureOverview]](ctx, creatures)
 
 
@@ -25,7 +25,7 @@ proc getCreatureByIdView*(ctx: Context) {.async.} =
     let creatureId: int = parseInt(ctx.getPathParams("id"))
 
     respondBadRequestOnDbError():
-        let creature = creatureRepository.getCreaturebyId(creatureId)
+        let creature = creatureService.getCreaturebyId(creatureId)
         resp jsonyResponse[CreatureRead](ctx, creature)
 
 
