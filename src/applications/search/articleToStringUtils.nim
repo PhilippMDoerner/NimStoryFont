@@ -1,5 +1,5 @@
 import ../authentication/authenticationRepository
-import ../character/characterRepository
+import ../character/[characterModel, characterService]
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
 import ../encounter/[encounterUtils, encounterRepository]

@@ -1,15 +1,13 @@
 import ../genericArticleRepository
 import characterModel
 import characterSerializable
-import ../image/[imageModel]
+import ../image/imageModel
 import ../item/itemModel
 import ../encounter/[encounterModel, characterEncounterModel]
 import ../playerclass/playerClassModel
 import ../organization/organizationModel
 import tinypool
 import norm/[model, sqlite]
-
-export characterModel
 
 
 proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverview] =
@@ -20,6 +18,7 @@ proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverv
 proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     ## lists all campaign entries using a detailed representation of a character
     result = getCampaignList[CharacterRead](campaignName)
+
 
 proc getFullCharacterData*(characterId: int64): CharacterSerializable =
     let character = getEntryById[CharacterRead](characterId)
@@ -35,6 +34,7 @@ proc getFullCharacterData*(characterId: int64): CharacterSerializable =
         encounters: encounters,
         playerClassConnections: playerClassConnections
     )
+
 
 proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
     let character: CharacterRead = getEntryByName[CharacterRead](campaignName, characterName)
@@ -69,3 +69,4 @@ proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
       connection.select(entries, condition, organizationId)
 
     result = entries
+

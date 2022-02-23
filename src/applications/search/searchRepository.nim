@@ -3,7 +3,7 @@ import searchUtils
 import norm/model
 import std/[db_sqlite, strutils, json, strformat]
 import ../campaign/campaignRepository
-import ../character/characterRepository
+import ../character/characterService
 import ../creature/creatureRepository
 import ../diaryentry/diaryEntryRepository
 import ../encounter/encounterRepository

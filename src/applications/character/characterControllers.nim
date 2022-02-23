@@ -1,7 +1,8 @@
 import prologue
-import characterRepository
+import characterService
 import characterModel
 import characterSerializable
+import characterService
 import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
@@ -15,7 +16,7 @@ proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} =
     let campaignName: string = ctx.getPathParams("campaignName")
 
     respondBadRequestOnDbError():
-        let characters: seq[CharacterOverview] = characterRepository.getCampaignCharacterListOverview(campaignName)
+        let characters: seq[CharacterOverview] = characterService.getCampaignCharacterListOverview(campaignName)
         resp jsonyResponse[seq[CharacterOverview]](ctx, characters)
 
 
@@ -25,7 +26,7 @@ proc getCharacterByIdView*(ctx: Context) {.async.} =
     let characterId: int = parseInt(ctx.getPathParams("id"))
 
     respondBadRequestOnDbError():
-        let character = characterRepository.getCharacterbyId(characterId)
+        let character = characterService.getCharacterbyId(characterId)
         resp jsonyResponse[CharacterSerializable](ctx, character)
 
 
