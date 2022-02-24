@@ -4,7 +4,7 @@ import encounterControllers
 
 proc addEncounterRoutes*(app: Prologue) =
     app.addRoute(
-       re"/encounter/(?P<campaignName>[^/]+)/orderswap",
+       re"/encounter/(?P<campaignName>[^/]+)/orderswap/",
        handler = encounterControllers.swapEncounterOrder,
        httpMethod = HttpPatch,
        middlewares = @[loginMiddleware()]

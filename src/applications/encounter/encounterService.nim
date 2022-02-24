@@ -6,7 +6,7 @@ import norm/[model, sqlite]
 import ../genericArticleRepository
 import ../../applicationConstants
 import ../../applicationSettings
-import std/[sequtils, options, strformat]
+import std/[sequtils, options, strformat, json, jsonutils]
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
 import ../../utils/databaseUtils
 
@@ -29,19 +29,33 @@ proc updateEncounter*(encounterId: int64, encounterJsonData: string): EncounterR
     result = getEncounterById(encounter.id)
 
 
-proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64) =
+proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
     var encounter1: Encounter = getEntryById[Encounter](encounter1Id)
     var encounter2: Encounter = getEntryById[Encounter](encounter2Id)
-
-    let orderIndex1 = encounter1.order_index
-    encounter1.order_index = encounter2.order_index
-    encounter2.order_index = orderIndex1
+    
+    if encounter1.diaryentry_id != encounter2.diaryentry_id:
+        raise newException(DbError, fmt "The encouters with id {encounter1Id} and {encounter2Id} whose order is to be swapped are not from the same diaryentry!")
 
     {.cast(gcsafe).}:
         var connection: MyDbConn = borrowConnection()
         connection.transaction:
+            let orderIndex1 = encounter1.order_index
+            encounter1.order_index = some(encounter2.order_index.get() + 1)
             connection.update(encounter1)
+
+            encounter2.order_index = orderIndex1
             connection.update(encounter2)
+
+            encounter1.order_index = some(encounter1.order_index.get() - 1)
+            connection.update(encounter1)
+
+            let swappedEncounters: seq[EncounterRead] = @[
+                getEntryById[EncounterRead](encounter1Id),
+                getEntryById[EncounterRead](encounter2Id)
+            ]
+
+            result = jsonutils.toJson(swappedEncounters)
+
         connection.recycleConnection()
 
 

@@ -46,5 +46,5 @@ proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
     let encounter2Id = jsonData["encounter2"].getInt().int64
 
     respondBadRequestOnDbError():
-        swapEncounterOrder(encounter1Id, encounter2Id)
-        respDefault(Http204)
+        let swappedEncounters: JsonNode = swapEncounterOrder(encounter1Id, encounter2Id)
+        resp jsonResponse(swappedEncounters)
