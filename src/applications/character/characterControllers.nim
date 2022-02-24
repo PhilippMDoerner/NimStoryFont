@@ -2,7 +2,6 @@ import prologue
 import characterService
 import characterModel
 import characterSerializable
-import characterService
 import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
