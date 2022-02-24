@@ -8,6 +8,7 @@ import ../diaryentry/diaryEntryModel
 import ../campaign/campaignModel
 import constructor/defaults
 
+const ORDER_INDEX_INCREMENT* = 10
 
 type Encounter* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
     description*: Option[string] = none(string)
