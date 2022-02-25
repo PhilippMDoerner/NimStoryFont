@@ -41,7 +41,7 @@ proc getSearchTitle*(modelInstance: Creature): string =
 
 
 proc getSearchTitle*(modelInstance: DiaryEntry): string =
-  let session: Session = getSessionById(modelInstance.session_id)
+  let session: Session = getEntryById[Session](modelInstance.session_id)
   
   let sessionType: string = if session.is_main_session: "Main " else: "Side "
   result.add(fmt """{sessionType} Diaryentry {session.session_number} """)

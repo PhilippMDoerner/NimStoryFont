@@ -3,7 +3,7 @@ import times
 
 #Custom Settings
 const database* = "db.sqlite3"
-const CONNECTION_POOL_SIZE*: int = 4
+const CONNECTION_POOL_SIZE*: int = 8
 
 const BASE_DIR* = "/home/isofruit/dev/nimstoryfont"
 const MEDIA_ROOT* = BASE_DIR & "/media"
@@ -23,7 +23,7 @@ const AUTHORIZATION_HEADER*: string = "Authorization"
 const PRIMARY_DB_TIME_FORMAT* = "yyyy-MM-dd HH:mm:ss'.'ffffff" #Datetime format as Django stores it in DB
 const SECONDARY_DB_TIME_FORMAT* = "yyyy-MM-dd HH:mm:ss" # Datetime format as Django sometimes stores it in DB
 const OUTPUT_TIME_FORMAT* = "yyyy-MM-dd'T'HH:mm:ss'.'ffffff'Z'"
-
+const SESSION_DATE_FORMAT* = "yyyy-MM-dd"
 ###TABLE NAMES
 #Auth
 const GROUP_TABLE* = "auth_group"

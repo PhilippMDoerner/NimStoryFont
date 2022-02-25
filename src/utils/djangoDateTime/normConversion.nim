@@ -19,7 +19,10 @@ proc to*(dbVal: DbValue, T: typedesc[DjangoDateTime]): T =
     try:
         result = djangoDateTimeType.parse(dateTimeStr, PRIMARY_DB_TIME_FORMAT, utc())
     except TimeParseError:
-        result = djangoDateTimeType.parse(dateTimeStr, SECONDARY_DB_TIME_FORMAT, utc())
-    
+        try:
+            result = djangoDateTimeType.parse(dateTimeStr, SECONDARY_DB_TIME_FORMAT, utc())
+        except TimeParseError:
+            result = djangoDateTimeType.parse(dateTimeStr, SESSION_DATE_FORMAT, utc())
+        
     
 

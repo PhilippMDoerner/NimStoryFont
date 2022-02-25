@@ -24,5 +24,7 @@ proc parseDefault*(input: string): DjangoDateTime =
     try:
         result = djangoDateTimeType.parse(input, PRIMARY_DB_TIME_FORMAT, utc())
     except TimeParseError:
-        result = djangoDateTimeType.parse(input, SECONDARY_DB_TIME_FORMAT, utc())
-    
+        try:
+            result = djangoDateTimeType.parse(input, SECONDARY_DB_TIME_FORMAT, utc())
+        except TimeParseError:
+            result = djangoDateTimeType.parse(input, OUTPUT_TIME_FORMAT, utc())
