@@ -87,10 +87,11 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
       title = ?,
       title_rev = ?,
       body = ?,
-      body_rev = ?,
+      body_rev = ?
     WHERE guid = ?
   """
 
+  echo guid
   connection.exec(
     updateSearchEntryQuery,
     searchTitle,
