@@ -31,7 +31,7 @@ proc hasCampaignAdminAccessLevel(userMemberships: Table[string, CampaignAccessLe
   result = accessLevel == CampaignAccessLevel.ADMIN
 
 proc getUserCampaignMemberships(ctx: JWTContext): Table[string, CampaignAccessLevel] =
-  assert(isInitTokenData(ctx.tokenData), """Tried using a campaignAccessMiddleware 
+  assert(not isInitTokenData(ctx.tokenData), """Tried using a campaignAccessMiddleware 
       on a route without using a loginMiddleware beforehand. LoginMiddleware provides the 
       necessary data from the parsed JWT Token for authentication""")
 
@@ -41,7 +41,7 @@ proc getUserCampaignMemberships(ctx: JWTContext): Table[string, CampaignAccessLe
 proc getCampaignUrlParameter(ctx: JWTContext): string =
   let campaignUrlParam = ctx.getPathParams("campaignName")
   
-  assert(campaignUrlParam == "", """Tried using campaignGuestAccessMiddleware 
+  assert(campaignUrlParam != "", """Tried using campaignGuestAccessMiddleware 
       on a route that has no campaignName url parameter. That parameter is necessary to see which
       campaign's data is being accessed""")
 
