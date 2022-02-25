@@ -50,7 +50,7 @@ proc getCampaignUrlParameter(ctx: JWTContext): string =
 
 proc campaignGuestAccessMiddleware*(): HandlerAsync =
   result = proc(ctx: Context) {.async.} =  
-    when not DEBUG:
+    if not ctx.gScope.settings.debug:
       let ctx = JWTContext(ctx)
 
       let userCampaignMemberships = getUserCampaignMemberships(ctx)
@@ -64,7 +64,8 @@ proc campaignGuestAccessMiddleware*(): HandlerAsync =
 
 proc campaignMemberAccessMiddleware*(): HandlerAsync =
   result = proc(ctx: Context) {.async.} =  
-    when not DEBUG:
+
+    if not ctx.gScope.settings.debug:
       let ctx = JWTContext(ctx)
 
       let userCampaignMemberships = getUserCampaignMemberships(ctx)
@@ -78,7 +79,7 @@ proc campaignMemberAccessMiddleware*(): HandlerAsync =
 
 proc campaignAdminAccessMiddleware*(): HandlerAsync =
   result = proc(ctx: Context) {.async.} =  
-    when not DEBUG:
+    if not ctx.gScope.settings.debug:
       let ctx = JWTContext(ctx)
 
       let userCampaignMemberships = getUserCampaignMemberships(ctx)

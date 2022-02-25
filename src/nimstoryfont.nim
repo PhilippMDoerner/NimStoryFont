@@ -8,15 +8,17 @@ import routes
 
 # TODO: Check out if there is a performance difference on using --gc:orc
 proc main() =
-    initConnectionPool(applicationSettings.database, CONNECTION_POOL_SIZE)
+    let connectionPoolSize: int = settings.getOrDefault("databaseConnectionLimit").getInt()
+    let databasePath: string = settings.getOrDefault("databasePath").getStr()
+    initConnectionPool(databasePath, connectionPoolSize)
 
-    var app: Prologue = newApp(core_settings)
+    var app: Prologue = newApp(settings)
     addApplicationRoutes(app)
     app.run(JWTContext)
 
     destroyConnectionPool()
 
-setLogFilter(lvlNotice)
+setLogFilter(lvlAll)
 addHandler(newConsoleLogger())
 
 main()

@@ -20,7 +20,7 @@ proc loginMiddleware*(): HandlerAsync =
     result = proc(ctx: Context) {.async.} =  
         var ctx = JWTContext(ctx)
 
-        when not DEBUG:
+        if not ctx.gScope.settings.debug:
             if not hasAccessToken(ctx):
                 resp get401UnauthorizedResponse(ctx)
                 return
@@ -32,9 +32,10 @@ proc loginMiddleware*(): HandlerAsync =
                 return
             
             let token: JWT = tokenOption.get()
-            if not isValidAccessToken(token):
+            if not ctx.isValidAccessToken(token):
                 resp get401UnauthorizedResponse(ctx)
                 return
 
             ctx.tokenData = extractTokenData(token)
+        
         await switch(ctx)

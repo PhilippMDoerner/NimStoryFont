@@ -52,17 +52,17 @@ proc isRefreshToken(token: JWT): bool =
     result = tokenType == "refresh"
 
 
-proc hasVerifiedTokenSecret(token: JWT): bool =
-    token.verify(applicationSettings.SECRET_KEY, SignatureAlgorithm.HS256)
+proc hasVerifiedTokenSecret(ctx: Context, token: JWT): bool =
+    token.verify(ctx.getSettings("secretKey").getStr(), SignatureAlgorithm.HS256)
 
 
 #[ Checks whether the given access token is valid ]#
-proc isValidAccessToken*(token: JWT): bool =
+proc isValidAccessToken*(ctx: Context, token: JWT): bool =
     if not isAccessToken(token):
         logging.debug "JWT is not access token!"
         return false
 
-    if not hasVerifiedTokenSecret(token):
+    if not ctx.hasVerifiedTokenSecret(token):
         logging.debug "JWT is access token but not valid!"
         return false
 
@@ -74,12 +74,12 @@ proc isValidAccessToken*(token: JWT): bool =
 
 
 #[ Checks whether the given refresh token is valid ]#
-proc isValidRefreshToken*(token: JWT): bool =
+proc isValidRefreshToken*(ctx: Context, token: JWT): bool =
     if not isRefreshToken(token):
         logging.debug "JWT is not refresh token!"
         return false
 
-    if not hasVerifiedTokenSecret(token):
+    if not hasVerifiedTokenSecret(ctx, token):
         logging.debug "JWT is refresh token but not valid!"
         return false
 
@@ -124,13 +124,8 @@ type JWTType* = enum
     ACCESS = "access"
 
 
-proc getExpirationTimestamp(tokenType: JWTTYPE): int64 =
-    var expirationTime: Time
-    if tokenType == JWTType.REFRESH:
-        expirationTime = getTime() + REFRESH_TOKEN_LIFETIME
-    else:
-        expirationTime = getTime() + ACCESS_TOKEN_LIFETIME
-
+proc getExpirationTimestamp(tokenType: JWTTYPE, tokenLifetime: TimeInterval): int64 =
+    let expirationTime: Time = getTime() + tokenLifetime
     result = expirationTime.toUnix()
 
 
@@ -138,8 +133,8 @@ proc getExpirationTimestamp(tokenType: JWTTYPE): int64 =
 #     var groupTable = initTable[string, string]
     
 
-proc createToken*(userContainer: UserContainer, tokenType: JWTType): JWT =
-    let expirationTimestamp: int64 = getExpirationTimestamp(tokenType)
+proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetime: TimeInterval): JWT =
+    let expirationTimestamp: int64 = getExpirationTimestamp(tokenType, tokenLifetime)
 
     result = toJWT(%*{
         "header": {
