@@ -88,7 +88,7 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
     var entry: M = newModel(M)
     
     const modelTableName: string = M.table()
-    var sqlCondition: string = modelTableName & ".name = ? AND campaign_id.name = ?"
+    var sqlCondition: string = fmt "{modelTableName}.name = ? AND campaign_id.name = ?"
 
     connection.select(entry, sqlCondition, entryName, campaignName)
 
@@ -113,7 +113,7 @@ proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fiel
     
     var entry: M = newModel(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = modelTableName & '.' & fieldName & "= ?"
+    var sqlCondition: string = fmt "{modelTableName}.{fieldName} = ?"
 
     connection.select(entry, sqlCondition, fieldValue)
 
@@ -132,7 +132,7 @@ proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64): M =
 
     var targetEntry: M = newModel(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = modelTableName & ".id = ?"
+    var sqlCondition: string = fmt "{modelTableName}.id = ?"
 
     connection.select(targetEntry, sqlCondition, entryId)
 
@@ -153,7 +153,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
     const manyTableName: string = M.table()
-    const sqlCondition: string = manyTableName & "." & manyTypeforeignKeyFieldName & " = ?"
+    const sqlCondition: string = fmt "{manyTableName}.{manyTypeforeignKeyFieldName} = ?"
 
     connection.select(targetEntries, sqlCondition, oneEntry.id)
 
