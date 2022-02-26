@@ -3,10 +3,11 @@ import encounterRepository
 import characterEncounterModel
 import tinypool
 import norm/[model, sqlite]
+import ../diaryentry/diaryEntryModel
 import ../genericArticleRepository
 import ../../applicationConstants
 import ../../applicationSettings
-import std/[sequtils, options, strformat, json, jsonutils]
+import std/[sequtils, options, strformat, json, jsonutils, algorithm]
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
 import ../../utils/databaseUtils
 
@@ -62,7 +63,19 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
 proc getNextOrderIndex(connection: DbConn, encounter: Encounter): int =
     let nextEncounter: Option[Encounter] = connection.getNextEncounter(encounter)
     let isLastEncounter = nextEncounter.isNone()
-    return if isLastEncounter: encounter.order_index.get() + ORDER_INDEX_INCREMENT else: nextEncounter.get().order_index.get()
+    if isLastEncounter:
+        result = encounter.order_index.get() + ORDER_INDEX_INCREMENT
+    else:
+        result = nextEncounter.get().order_index.get()
+
+
+proc getPriorOrderIndex(connection: DbConn, encounter: Encounter): int =
+    let priorEncounter: Option[Encounter] = connection.getPriorEncounter(encounter)
+    let isFistEncounter = priorEncounter.isNone()
+    if isFistEncounter:
+        result = 0
+    else:
+        result = priorEncounter.get().order_index.get()
 
 
 proc incrementOrderIndicesOfFollowingEncounters*(connection: DbConn, diaryentryId: int64, orderIndex: int) =
@@ -104,6 +117,7 @@ proc createEncounter*(encounterJsonData: string): EncounterRead =
         
     connection.recycleConnection()
 
+
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
     var entries: seq[CharacterEncounterRead] = @[]
     entries.add(newModel(CharacterEncounterRead))
@@ -115,3 +129,58 @@ proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
 
     result = entries.map(proc(enc: CharacterEncounterRead): EncounterRead = enc.encounter_id)
 
+
+proc updateEncounterOrderAfterForwardsInsert(connection: DbConn, affectedEncounters: var seq[Encounter], cutEncounter: var Encounter) =
+    affectedEncounters.reverse() # So that you move the last one "backwards" first 
+    for encounter in affectedEncounters.mitems:
+        let isCutEncounter = encounter.id == cutEncounter.id
+        if not isCutEncounter:
+            encounter.order_index = some(connection.getPriorOrderIndex(encounter))
+
+    cutEncounter.order_index = some(-1)
+    connection.update(cutEncounter)
+
+    for encounter in affectedEncounters.mitems:
+        let isCutEncounter = encounter.id == cutEncounter.id
+        if not isCutEncounter:
+            connection.update(encounter)
+
+
+proc updateEncounterOrderAfterBackwardsInsert(connection: DbConn, affectedEncounters: var seq[Encounter], cutEncounter: var Encounter) =
+    for encounter in affectedEncounters.mitems:
+        let isCutEncounter = encounter.id == cutEncounter.id
+        if not isCutEncounter:
+            encounter.order_index = some(connection.getNextOrderIndex(encounter))
+
+    cutEncounter.order_index = some(-1)
+    connection.update(cutEncounter)
+
+    for encounter in affectedEncounters.mitems:
+        let isCutEncounter = encounter.id == cutEncounter.id
+        if not isCutEncounter:
+            connection.update(encounter)
+    
+
+proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: int): seq[EncounterRead] =
+    withDbTransaction(connection):
+        var cutEncounter = getEntryById[Encounter](connection, encounterId)
+        
+        var affectedEncounters = connection.getEncountersBetweenOrderIndices(
+            cutEncounter.diaryentry_id, 
+            oldOrderIndex, 
+            newOrderIndex
+        )
+
+        let isInsertAfterCut = oldOrderIndex < newOrderIndex
+        let isForwardsInsert = isInsertAfterCut
+        if isForwardsInsert:
+            connection.updateEncounterOrderAfterForwardsInsert(affectedEncounters, cutEncounter)
+        else:
+            connection.updateEncounterOrderAfterBackwardsInsert(affectedEncounters, cutEncounter)
+
+        cutEncounter.order_index = some(newOrderIndex)
+        connection.update(cutEncounter)
+        
+        var diaryentry = newModel(DiaryEntry)
+        diaryentry.id = cutEncounter.diaryentry_id
+        result = getManyFromOne(connection, diaryentry, EncounterRead)

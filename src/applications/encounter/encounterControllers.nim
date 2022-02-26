@@ -48,3 +48,14 @@ proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
     respondBadRequestOnDbError():
         let swappedEncounters: JsonNode = swapEncounterOrder(encounter1Id, encounter2Id)
         resp jsonResponse(swappedEncounters)
+
+proc cutInsertEncounter*(ctx: Context) {.async, gcsafe.} =
+    let ctx = JWTContext(ctx)
+
+    let jsonData: JsonNode = ctx.request.body().parseJson()
+    let cutEncounterId = jsonData["encounter"].getInt().int64
+    let newOrderIndex = jsonData["new_order_index"].getInt()
+    let oldOrderIndex = jsonData["old_order_index"].getInt()
+
+    respondBadRequestOnDbError():
+        let diaryentryEncounters: seq[EncounterRead] = cutInsertEncounter(cutEncounterId, oldOrderIndex, newOrderIndex)
