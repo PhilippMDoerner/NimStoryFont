@@ -1,6 +1,5 @@
 import prologue
-import ../applicationSettings
-import std/[os, random]
+import std/[os, random, strformat]
 
 type FileNotFoundError* = object of IOError
 type FileAlreadyExists* = object of IOError
@@ -10,19 +9,28 @@ proc randomString(length: int): string =
     for _ in 0..length:
         add(result, char(rand(int('A') .. int('z'))))
 
+proc renameFile(file: var UpLoadFile) =
+  let (directory, name, extension) = file.filename.splitFile()
+  let newFileName = fmt "{name}_{randomString(10)}{extension}"
+  file.filename = newFileName
 
-proc uploadArticleImage*(file: var UpLoadFile): string =
-  let articleImageDirectory = MEDIA_ROOT & "/article_images"
-  if not dirExists(articleImageDirectory):
-    raise newException(FileNotFoundError, "The article image directory '" & articleImageDirectory & "' does not exist")
+proc uploadFile(file: var UpLoadFile, uploadDirectory: string): string =
+  if not dirExists(uploadDirectory):
+    raise newException(FileNotFoundError, fmt "The article image directory '{uploadDirectory}' does not exist")
   
-  var filePath = articleImageDirectory & '/' & file.filename
+  var filePath = fmt "{uploadDirectory}/{file.filename}"
   if fileExists(filePath):
-    let (directory, name, extension) = file.filename.splitFile()
-    let newFileName = name & '_' & randomString(10) & extension
-    file.filename = newFileName
-    filePath = articleImageDirectory & '/' & newFileName
+    file.renameFile()
+    filePath = fmt "{uploadDirectory}/{file.filename}" # TODO: Contemplate turning this into a while loop
 
-  file.save(articleImageDirectory)
+  file.save(uploadDirectory)
   
   result = filePath
+
+proc uploadArticleImage*(file: var UpLoadFile, mediaDirectory: string): string =
+  let articleImageDirectory = fmt "{mediaDirectory}/article_images"
+  uploadFile(file, articleImageDirectory)
+
+proc uploadSessionAudio*(file: var UpLoadFile, mediaDirectory: string): string =
+  let sessionaudioDirectory = fmt "{mediaDirectory}/session_audio" #TODO: Contemplate having this in a directory that can be configured separately
+  uploadFile(file, sessionaudioDirectory)

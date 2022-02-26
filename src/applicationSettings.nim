@@ -1,8 +1,6 @@
 import prologue
 
 #Custom Settings
-const BASE_DIR* = "/home/isofruit/dev/nimstoryfont"
-const MEDIA_ROOT* = BASE_DIR & "/media"
 const MEDIA_URL* = "/media/"
 
 #Prologue Settings

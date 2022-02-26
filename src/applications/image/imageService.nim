@@ -32,7 +32,8 @@ proc getFormImageId(ctx: Context, imageIdFieldName: string): Option[int64] =
 
 proc createImage*(ctx: JWTContext): Image =
   var file: UpLoadFile = ctx.getUploadFile("image")
-  let filePath: string = uploadArticleImage(file)
+  let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
+  let filePath: string = uploadArticleImage(file, mediaDirectory)
   
   var img: Image = newModel(Image)
   img.image = filePath
