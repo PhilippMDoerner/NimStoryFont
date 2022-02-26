@@ -10,7 +10,8 @@ template withDbTransaction*(connection: untyped, body: untyped) =
 
     db_sqlite.exec(connection, sql"BEGIN")
     try:
-      body
+      {.cast(gcsafe).}:
+        body
       db_sqlite.exec(connection, sql"COMMIT")
     
     except:
