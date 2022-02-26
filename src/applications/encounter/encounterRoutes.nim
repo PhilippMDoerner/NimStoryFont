@@ -7,7 +7,7 @@ proc addEncounterRoutes*(app: Prologue) =
        re"/encounter/(?P<campaignName>[^/]+)/orderswap/",
        handler = encounterControllers.swapEncounterOrder,
        httpMethod = HttpPatch,
-       middlewares = @[loginMiddleware()]
+       middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
