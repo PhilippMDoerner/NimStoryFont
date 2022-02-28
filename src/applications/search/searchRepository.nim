@@ -91,7 +91,6 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
     WHERE guid = ?
   """
 
-  echo guid
   connection.exec(
     updateSearchEntryQuery,
     searchTitle,
