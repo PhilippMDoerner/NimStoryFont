@@ -22,7 +22,7 @@ proc getSearchBody*(modelInstance: Character): string =
   result.add(fmt """{modelInstance.race} {modelInstance.gender}""")
   
   if modelInstance.organization_id.isSome():
-    let organization: Organization = getEntryById[Organization](modelInstance.organization_id.get())
+    let organization: Organization = getEntryById(modelInstance.organization_id.get(), Organization)
     result.add(fmt """{organization.name} """)
   
   result.add(fmt """{modelInstance.description.get(otherwise = "")}""")
@@ -41,7 +41,7 @@ proc getSearchTitle*(modelInstance: Creature): string =
 
 
 proc getSearchTitle*(modelInstance: DiaryEntry): string =
-  let session: Session = getEntryById[Session](modelInstance.session_id)
+  let session: Session = getEntryById(modelInstance.session_id, Session)
   
   let sessionType: string = if session.is_main_session: "Main " else: "Side "
   result.add(fmt """{sessionType} Diaryentry {session.session_number} """)
@@ -60,7 +60,7 @@ proc getSearchBody*(modelInstance: DiaryEntry): string =
 
 
 proc getSearchBody*(modelInstance: Encounter): string =
-  let diaryentry: EncounterDiaryentry = getEntryById[EncounterDiaryentry](modelInstance.diaryentry_id)
+  let diaryentry: EncounterDiaryentry = getEntryById(modelInstance.diaryentry_id, EncounterDiaryentry)
   let sessionNumber: int64 = diaryentry.session_id.session_number
 
   result.add(fmt """Session {sessionNumber} """)
@@ -68,7 +68,7 @@ proc getSearchBody*(modelInstance: Encounter): string =
   result.add(fmt """{modelInstance.description.get(otherwise = "")}""")
 
   if modelInstance.location_id.isSome():
-    let location: EncounterLocation = getEntryById[EncounterLocation](modelInstance.location_id.get())
+    let location: EncounterLocation = getEntryById(modelInstance.location_id.get(), EncounterLocation)
     result.add(fmt """{location.name} """)
 
 proc getSearchTitle*(modelInstance: Encounter): string =
@@ -81,7 +81,7 @@ proc getSearchBody*(modelInstance: Item): string =
   result.add(fmt """{modelInstance.description.get(otherwise = "")} """)
 
   if modelInstance.owner_id.isSome():
-    let owner: ItemOwner = getEntryById[ItemOwner](modelInstance.owner_id.get())
+    let owner: ItemOwner = getEntryById(modelInstance.owner_id.get(), ItemOwner)
     result.add(fmt """{owner.name} """)
 
 proc getSearchTitle*(modelInstance: Item): string =
@@ -120,7 +120,7 @@ proc getSearchBody*(modelInstance: Organization): string =
   result.add(fmt """{modelInstance.leader.get(otherwise = "")}  """)
 
   if modelInstance.headquarter_id.isSome():
-    let headquarterLocation = getEntryById[OrganizationLocation](modelInstance.headquarter_id.get())
+    let headquarterLocation = getEntryById(modelInstance.headquarter_id.get(), OrganizationLocation)
     result.add(fmt """{headquarterLocation.name} """)
   
   let members: seq[OrganizationCharacter] = getManyFromOne(modelInstance, OrganizationCharacter)
@@ -140,11 +140,11 @@ proc getSearchBody*(modelInstance: Quest): string =
   result.add(fmt """{modelInstance.status} """)
 
   if modelInstance.giver_id.isSome():
-    let questGiver: QuestCharacter = getEntryById[QuestCharacter](modelInstance.giver_id.get())
+    let questGiver: QuestCharacter = getEntryById(modelInstance.giver_id.get(), QuestCharacter)
     result.add(fmt """{questGiver.name} """)
   
   if modelInstance.taker_id.isSome():
-    let questTaker: QuestCharacter = getEntryById[QuestCharacter](modelInstance.taker_id.get())
+    let questTaker: QuestCharacter = getEntryById(modelInstance.taker_id.get(), QuestCharacter)
     result.add(fmt """{questTaker.name}""")
   
 proc getSearchTitle*(modelInstance: Quest): string =
@@ -152,7 +152,7 @@ proc getSearchTitle*(modelInstance: Quest): string =
 
 
 proc getSearchTitle*(modelInstance: SessionAudio): string =
-  let session: Session = getEntryById[Session](modelInstance.session_id)
+  let session: Session = getEntryById(modelInstance.session_id, Session)
   result.add(fmt """Recording of session #{session.session_number}""")
 
 proc getSearchBody*(modelInstance: SessionAudio): string =

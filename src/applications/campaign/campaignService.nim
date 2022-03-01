@@ -8,12 +8,12 @@ export campaignModel
 
 
 proc getCampaignByName*(campaignName: string): Campaign =
-  result = getEntryByField[Campaign, string]("name", campaignName)
+  result = getEntryByField("name", campaignName, Campaign)
 
 
 proc getAllCampaigns*(): seq[Campaign] =
-  result = getList[Campaign]()
+  result = getList(Campaign)
 
 
 proc getAllCampaignReads*(): seq[CampaignRead] = 
-  result = getList[CampaignRead]()
+  result = getList(CampaignRead)

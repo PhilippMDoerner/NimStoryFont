@@ -5,28 +5,28 @@ export creatureModel
 
 proc getCampaignCreatureListOverview*(campaignName: string): seq[CreatureOverview] =
     ## lists all campaign entries using a limited but performant representation of a Creature
-    result = getCampaignList[CreatureOverview](campaignName)
+    result = getCampaignList(campaignName, CreatureOverview)
 
 
 proc getCampaignCreatureList*(campaignName: string): seq[CreatureRead] =
     ## lists all campaign entries using a detailed representation of a Creature
-    result = getCampaignList[CreatureRead](campaignName)
+    result = getCampaignList(campaignName, CreatureRead)
 
 
 proc getCreatureByName*(campaignName: string, entryName: string): CreatureRead = 
-    result = getEntryByName[CreatureRead](campaignName, entryName)
+    result = getEntryByName(campaignName, entryName, CreatureRead)
 
 
 proc getCreatureById*(entryId: int64): CreatureRead =
-    result = getEntryById[CreatureRead](entryId)
+    result = getEntryById(entryId, CreatureRead)
 
 
 proc deleteCreature*(entryId: int) =
-    deleteEntry[Creature](entryId)
+    deleteEntry(entryId, Creature)
 
 
 proc updateCreature*(entryId: int, entryJsonData: string): CreatureRead =
-    let creature: Creature = updateArticleEntry[Creature](entryId, entryJsonData)
+    let creature: Creature = updateArticleEntry(entryId, entryJsonData, Creature)
     result = getCreatureById(creature.id)
 
 

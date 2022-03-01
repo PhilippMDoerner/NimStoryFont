@@ -12,16 +12,16 @@ import norm/[model, sqlite]
 
 proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverview] =
     ## lists all campaign entries using a limited but performant representation of a character
-    result = getCampaignList[CharacterOverview](campaignName)
+    result = getCampaignList(campaignName, CharacterOverview)
 
 
 proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     ## lists all campaign entries using a detailed representation of a character
-    result = getCampaignList[CharacterRead](campaignName)
+    result = getCampaignList(campaignName, CharacterRead)
 
 
 proc getFullCharacterData*(characterId: int64): CharacterSerializable =
-    let character = getEntryById[CharacterRead](characterId)
+    let character = getEntryById(characterId, CharacterRead)
     let images = getManyFromOne(character, Image)
     let encounters = getManyToMany(character, CharacterEncounterRead, EncounterRead)
     let playerClassConnections = getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
@@ -37,7 +37,7 @@ proc getFullCharacterData*(characterId: int64): CharacterSerializable =
 
 
 proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
-    let character: CharacterRead = getEntryByName[CharacterRead](campaignName, characterName)
+    let character: CharacterRead = getEntryByName(campaignName, characterName, CharacterRead)
     result = getFullCharacterData(character.id)
 
 
@@ -45,12 +45,12 @@ proc getCharacterById*(characterId: int64): CharacterSerializable =
     result = getFullCharacterData(characterId)
 
 
-proc deleteCharacter*(characterId: int) =
-    deleteEntry[Character](characterId)
+proc deleteCharacter*(characterId: int64) =
+    deleteEntry(characterId, Character)
 
 
 proc updateCharacter*(characterId: int, characterJsonData: string): CharacterSerializable =
-    let character: Character = updateArticleEntry[Character](characterId, characterJsonData)
+    let character: Character = updateArticleEntry(characterId, characterJsonData, Character)
     result = getFullCharacterData(character.id)
 
 

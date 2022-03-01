@@ -33,7 +33,7 @@ export sessionaudioUtils
 #CHARACTER Signals
 proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Character) =
   if modelInstance.organization_id.isSome():
-    let organization = getEntryById[Organization](modelInstance.organization_id.get())
+    let organization = getEntryById(modelInstance.organization_id.get(), Organization)
     updateSearchEntryContent(connection, organization)
 
   let questsWhereCharacterIsGiver: seq[Quest] = getManyFromOne(modelInstance, Quest, "giver_id")
@@ -112,7 +112,7 @@ connect(SignalType.stPostCreate, DiaryEntry, diaryEntryCreateSignal)
 
 #ENCOUNTER
 proc updateEncounterAssociatedEntries(connection: DbConn, modelInstance: Encounter) =
-  let diaryentry: DiaryEntry = getEntryById[DiaryEntry](modelInstance.diaryentry_id)
+  let diaryentry: DiaryEntry = getEntryById(modelInstance.diaryentry_id, DiaryEntry)
   updateSearchEntryContent(connection, diaryentry)
 
 proc encounterCreateSignal*(connection: DbConn, modelInstance: Encounter) = 
@@ -182,7 +182,7 @@ connect(SignalType.stPostCreate, Map, mapCreateSignal)
 
 #MARKER
 proc markerSignal*(connection: DbConn, modelInstance: Marker) =
-  let mapWithMarker: Map = getEntryById[Map](modelInstance.map_id)
+  let mapWithMarker: Map = getEntryById(modelInstance.map_id, Map)
   updateSearchEntryContent(connection, mapWithMarker)
 
 connect(SignalType.stPostCreate, Marker, markerSignal)
@@ -241,7 +241,7 @@ connect(SignalType.stPostCreate, SessionAudio, sessionAudioCreateSignal)
 
 #TIMESTAMP
 proc timestampSignal*(connection: DbConn, modelInstance: Timestamp) =
-  let sessionAudioEntryWithTimestamp = getEntryById[SessionAudio](modelInstance.session_audio_id)
+  let sessionAudioEntryWithTimestamp = getEntryById(modelInstance.session_audio_id, SessionAudio)
   updateSearchEntryContent(connection, sessionAudioEntryWithTimestamp)
 
 connect(SignalType.stPostCreate, Timestamp, timestampSignal)

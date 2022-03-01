@@ -7,11 +7,11 @@ import norm/model
 export authenticationModels
 
 proc getUserById*(userId: int64): User =
-    result = getEntryById[User](userId)
+    result = getEntryById(userId, User)
 
 
 proc getUserByName*(userName: string): User =
-    result = getEntryByField[User, string]("username", userName)
+    result = getEntryByField("username", userName, User)
 
 
 proc addCampaignGroup(

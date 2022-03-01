@@ -14,25 +14,25 @@ import ../../utils/databaseUtils
 export encounterModel
 
 proc getEncounterList*(): seq[EncounterRead] =
-    result = getList[EncounterRead]()
+    result = getList(EncounterRead)
 
 
 proc getEncounterById*(encounterId: int64): EncounterRead =
-    result = getEntryById[EncounterRead](encounterId)
+    result = getEntryById(encounterId, EncounterRead)
 
 
 proc deleteEncounter*(encounterId: int64) =
-    deleteEntry[Encounter](encounterId)
+    deleteEntry(encounterId, Encounter)
 
 
 proc updateEncounter*(encounterId: int64, encounterJsonData: string): EncounterRead =
-    let encounter: Encounter = updateArticleEntry[Encounter](encounterId, encounterJsonData)
+    let encounter: Encounter = updateArticleEntry(encounterId, encounterJsonData, Encounter)
     result = getEncounterById(encounter.id)
 
 
 proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
-    var encounter1: Encounter = getEntryById[Encounter](encounter1Id)
-    var encounter2: Encounter = getEntryById[Encounter](encounter2Id)
+    var encounter1: Encounter = getEntryById(encounter1Id, Encounter)
+    var encounter2: Encounter = getEntryById(encounter2Id, Encounter)
     
     if encounter1.diaryentry_id != encounter2.diaryentry_id:
         raise newException(DbError, fmt "The encouters with id {encounter1Id} and {encounter2Id} whose order is to be swapped are not from the same diaryentry!")
@@ -51,8 +51,8 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
             connection.update(encounter1)
 
             let swappedEncounters: seq[EncounterRead] = @[
-                getEntryById[EncounterRead](encounter1Id),
-                getEntryById[EncounterRead](encounter2Id)
+                getEntryById(encounter1Id, EncounterRead),
+                getEntryById(encounter2Id, EncounterRead)
             ]
 
             result = jsonutils.toJson(swappedEncounters)
@@ -81,7 +81,7 @@ proc createEncounter*(encounterJsonData: string): EncounterRead =
             )
             entry = connection.createEntryInTransaction(entry)
 
-        result = getEntryById[EncounterRead](connection, entry.id)
+        result = getEntryById(connection, entry.id, EncounterRead)
         
     connection.recycleConnection()
 
@@ -100,7 +100,7 @@ proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
 
 proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: int): seq[EncounterRead] =
     withDbTransaction(connection):
-        var cutEncounter = getEntryById[Encounter](connection, encounterId)
+        var cutEncounter = getEntryById(connection, encounterId, Encounter)
         
         var affectedEncounters = connection.getEncountersBetweenOrderIndices(
             cutEncounter.diaryentry_id, 

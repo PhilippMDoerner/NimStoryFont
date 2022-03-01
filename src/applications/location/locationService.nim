@@ -27,7 +27,7 @@ proc getLocationByName*(campaignName: string, parentLocationName: Option[string]
 
 
 proc getLocationById*(locationId: int64): Location =
-    result = getEntryById[Location](locationId)
+    result = getEntryById(locationId, Location)
 
 
 proc getParentLocations*(location: Location): seq[Location] =
@@ -35,7 +35,7 @@ proc getParentLocations*(location: Location): seq[Location] =
 
     withDbConn(connection):
         while currentLocation.parent_location_id.isSome():
-            let parentLocation: Location = getEntryById[Location](currentLocation.parent_location_id.get())
+            let parentLocation: Location = getEntryById(currentLocation.parent_location_id.get(), Location)
             result.add(parentLocation)
             currentLocation = parentLocation
         

@@ -6,19 +6,19 @@ import tinypool
 export itemModel
 
 proc getItemList*(): seq[ItemRead] =
-    result = getList[ItemRead]()
+    result = getList(ItemRead)
 
 
 proc getItemById*(itemId: int64): ItemRead =
-    result = getEntryById[ItemRead](itemId)
+    result = getEntryById(itemId, ItemRead)
 
 
 proc deleteItem*(itemId: int64) =
-    deleteEntry[Item](itemId)
+    deleteEntry(itemId, Item)
 
 
 proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
-    let item: Item = updateArticleEntry[Item](itemId, itemJsonData)
+    let item: Item = updateArticleEntry(itemId, itemJsonData, Item)
     result = getItemById(item.id)
 
 

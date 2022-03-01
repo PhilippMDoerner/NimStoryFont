@@ -8,7 +8,7 @@ proc `$`*(encounter: EncounterRead): string =
 
 
 proc `$`*(encounter: Encounter): string =
-    let diaryentry: EncounterDiaryentry = getEntryById[EncounterDiaryentry](encounter.diaryentry_id)
+    let diaryentry: EncounterDiaryentry = getEntryById(encounter.diaryentry_id, EncounterDiaryentry)
     let sessionType: string = if diaryentry.session_id.is_main_session: "Main " else: "Side "
     result.add(fmt "{sessionType} Session {diaryentry.session_id.session_number}")
     if encounter.title.isSome():
@@ -16,5 +16,5 @@ proc `$`*(encounter: Encounter): string =
 
 
 proc campaign_id*(encounter: Encounter): int64 =
-    let diaryentry: EncounterDiaryentry = getEntryById[EncounterDiaryentry](encounter.diaryentry_id)
+    let diaryentry: EncounterDiaryentry = getEntryById(encounter.diaryentry_id, EncounterDiaryentry)
     result = diaryentry.session_id.campaign_id

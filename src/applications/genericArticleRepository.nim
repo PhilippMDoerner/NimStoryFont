@@ -34,7 +34,7 @@ export jsony
 
 
 # SELECT PROCS
-proc getList*[M: Model](connection: MyDbConn): seq[M] =
+proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M]): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
     mixin newModel
 
@@ -45,15 +45,15 @@ proc getList*[M: Model](connection: MyDbConn): seq[M] =
 
     result = entryList
 
-proc getList*[M: Model](): seq[M] =
+proc getList*[M: Model]( modelType: typedesc[M]): seq[M] =
     ##[ Helper proc for getList when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getList[M](connection)
+        result = getList[M](connection, modelType)
 
 
 
 #TODO: Figure out how to infer the campaign_id field somehow
-proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string): seq[M] =
+proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
     ##[ Retrieves all rows/entries of a campaign with the given name and 
     returns them as Model M. 
     
@@ -68,14 +68,14 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string): seq
 
     result = entries
 
-proc getCampaignList*[M: Model](campaignName: string): seq[M] =
+proc getCampaignList*[M: Model](campaignName: string, modelType: typedesc[M]): seq[M] =
     ##[ Helper proc for getCampaignList when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getCampaignList[M](connection, campaignName)
+        result = getCampaignList[M](connection, campaignName, modelType)
 
 
 
-proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entryName: string): M = 
+proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entryName: string, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -94,14 +94,14 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
 
     result = entry
 
-proc getEntryByName*[M: Model](campaignName: string, entryName: string): M = 
+proc getEntryByName*[M: Model](campaignName: string, entryName: string, modelType: typedesc[M]): M = 
     ##[ Helper proc for getEntryByName when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getEntryByName[M](connection, campaignName, entryName)
+        result = getEntryByName[M](connection, campaignName, entryName, modelType)
 
 
 
-proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fieldValue: T): M = 
+proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -119,14 +119,14 @@ proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fiel
 
     result = entry 
 
-proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T): M = 
+proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Helper proc for getEntryByField when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getEntryByField[M](connection, fieldName, fieldValue)
+        result = getEntryByField[M](connection, fieldName, fieldValue, modelType)
 
 
 
-proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64): M =
+proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     mixin newModel
 
@@ -138,10 +138,10 @@ proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64): M =
 
     result = targetEntry
 
-proc getEntryById*[M: Model](entryId: int64): M =
+proc getEntryById*[M: Model](entryId: int64, modelType: typedesc[M]): M =
     ##[ Helper proc for getEntryById when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getEntryById[M](connection, entryId)
+        result = getEntryById[M](connection, entryId, modelType)
 
 
 
@@ -244,13 +244,13 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
 
 #DELETE PROCS
-proc deleteEntry*[T: Model](entryId: int64) {.gcsafe.}=
+proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
     mixin preDeleteSignal
     mixin postDeleteSignal
 
-    var entryToDelete: T = getEntryById[T](entryId)
+    var entryToDelete: T = getEntryById(entryId, T)
 
     withDbTransaction(connection):
         {.cast(gcsafe).}:
@@ -283,14 +283,14 @@ proc updateEntry*[T: Model](entry: var T): T =
         result = entry
 
 
-proc updateEntry*[T: Model](entryId: int64, entryJsonData: string): T =
+proc updateEntry*[T: Model](entryId: int64, entryJsonData: string, modelType: typedesc[T]): T =
     var entry: T = entryJsonData.fromJson(T)
     if entry.id == 0:
         entry.id = entryId
 
     result = updateEntry(entry)
 
-proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string): T =
+proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string, modelType: typedesc[T]): T =
     var entry: T = entryJsonData.fromJson(T)
     entry.update_datetime = djangoDateTimeType.now()
 
@@ -322,7 +322,7 @@ proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     triggerSignal(SignalType.stPostCreate, connection, entry)
     result = entry
 
-proc createEntry*[T: Model](entryJsonData: string): T =
+proc createEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
     and want to provide your own connection ]##
 

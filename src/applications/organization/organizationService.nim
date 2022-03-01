@@ -7,11 +7,11 @@ import tinypool
 export organizationModel
 
 proc getOrganizationList*(): seq[OrganizationRead] =
-    result = getList[OrganizationRead]()
+    result = getList(OrganizationRead)
 
 
 proc getOrganizationById*(organizationId: int64): OrganizationSerializable =
-    let organization = getEntryById[OrganizationRead](organizationId)
+    let organization = getEntryById(organizationId, OrganizationRead)
     let images = getArticleImage(ImageType.ORGANIZATIONTYPE, organizationId)
     let members = getManyFromOne(organization, OrganizationCharacter)
 
@@ -23,11 +23,11 @@ proc getOrganizationById*(organizationId: int64): OrganizationSerializable =
 
 
 proc deleteOrganization*(organizationId: int64) =
-    deleteEntry[Organization](organizationId)
+    deleteEntry(organizationId, Organization)
 
 
 proc updateOrganization*(organizationId: int64, organizationJsonData: string): OrganizationSerializable =
-    let organization = updateArticleEntry[Organization](organizationId, organizationJsonData)
+    let organization = updateArticleEntry(organizationId, organizationJsonData, Organization)
     result = getOrganizationById(organization.id)
 
 

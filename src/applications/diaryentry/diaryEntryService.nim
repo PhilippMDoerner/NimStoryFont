@@ -9,7 +9,7 @@ import std/strformat
 export diaryEntryModel
 
 proc getDiaryEntryById*(diaryentryId: int64): DiaryEntry =
-  result = getEntryById[DiaryEntry](diaryentryId)
+  result = getEntryById(diaryentryId, DiaryEntry)
 
 
 proc getDiaryEntryEncounters*(diaryentryId: int64): seq[Encounter] =

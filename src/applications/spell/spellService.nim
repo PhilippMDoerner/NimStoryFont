@@ -4,4 +4,4 @@ import ../genericArticleRepository
 export spellModel
 
 proc getSpellById*(spellId: int64): Spell =
-    result = getEntryById[Spell](spellId)
+    result = getEntryById(spellId, Spell)
