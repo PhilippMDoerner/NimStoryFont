@@ -59,3 +59,4 @@ proc cutInsertEncounter*(ctx: Context) {.async, gcsafe.} =
 
     respondBadRequestOnDbError():
         let diaryentryEncounters: seq[EncounterRead] = cutInsertEncounter(cutEncounterId, oldOrderIndex, newOrderIndex)
+        resp jsonyResponse(ctx, diaryentryEncounters)
