@@ -4,7 +4,6 @@ import norm/sqlite
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
-import ../../utils/databaseUtils
 
 
 proc getEncountersAtAndAfterOrderIndex*(connection: DbConn, diaryentryId: int64, orderIndex: int): seq[Encounter] =

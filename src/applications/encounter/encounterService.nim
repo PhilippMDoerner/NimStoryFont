@@ -7,7 +7,7 @@ import ../diaryentry/diaryEntryModel
 import ../genericArticleRepository
 import ../../applicationConstants
 import ../../applicationSettings
-import std/[sequtils, options, strformat, json, jsonutils, algorithm]
+import std/[sequtils, options, strformat, json, jsonutils]
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
 import ../../utils/databaseUtils
 
