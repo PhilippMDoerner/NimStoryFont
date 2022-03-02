@@ -1,6 +1,7 @@
 import ../utils/errorResponses
-import std/[logging, strformat]
 import norm/sqlite
+import chronicles
+export chronicles
 
 template respondBadRequestOnDbError*(body: untyped) =
   ## template to handle some usual error cases. Returns HTTP400
@@ -9,11 +10,15 @@ template respondBadRequestOnDbError*(body: untyped) =
       body
 
   except DbError:
+    debug("Error during db request", errorType = getCurrentException().name, msg = getCurrentExceptionMsg(), stacktrace = getStackTraceEntries()) 
     resp get400BadRequestResponse(getCurrentExceptionMsg())
+    raise
 
   except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
-    resp get404NotFoundResponse()
+    debug("Error during db request", errorType = getCurrentException().name, msg = getCurrentExceptionMsg(), stacktrace = getStackTraceEntries()) 
+    resp get404NotFoundResponse() 
+    raise
 
   except Exception:
-    log(lvlError, fmt "Error of type '{getCurrentException().name}': {getCurrentExceptionMsg()}") 
+    debug("Error during db request", errorType = getCurrentException().name, msg = getCurrentExceptionMsg(), stacktrace = getStackTraceEntries()) 
     raise

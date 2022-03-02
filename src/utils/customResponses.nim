@@ -15,4 +15,4 @@ proc jsonyResponse*[T](
   headers = initResponseHeaders(),
   version = HttpVer11
 ): Response {.inline.} =
-  jsonyResponse(text = content.toJson(), code = code, headers = headers)
+  jsonyResponse(text = jsony.toJson(content), code = code, headers = headers)
