@@ -31,4 +31,9 @@ proc addEncounterRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
    
-
+    app.addRoute(
+        re"/encounter/(?P<campaignName>[^/]+)/cutinsert/",
+        handler = encounterControllers.cutInsertEncounter,
+        httpMethod = HttpPatch,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+    )
