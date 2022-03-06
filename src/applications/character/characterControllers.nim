@@ -33,7 +33,7 @@ proc getCharacterByNameView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
     let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
-    let characterName: string = ctx.getPathParams("characterName").decodeUrl()
+    let characterName: string = ctx.getPathParams("articleName").decodeUrl()
 
     respondBadRequestOnDbError():
         let character = getCharacterByName(campaignName, characterName)

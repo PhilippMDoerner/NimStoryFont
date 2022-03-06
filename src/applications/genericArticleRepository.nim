@@ -100,7 +100,6 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string, modelTyp
         result = getEntryByName[M](connection, campaignName, entryName, modelType)
 
 
-
 proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
@@ -118,6 +117,7 @@ proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fiel
     connection.select(entry, sqlCondition, fieldValue)
 
     result = entry 
+
 
 proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Helper proc for getEntryByField when you don't want to provide the connection yourself]##

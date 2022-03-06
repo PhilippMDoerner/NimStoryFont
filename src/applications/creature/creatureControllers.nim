@@ -33,7 +33,7 @@ proc getCreatureByNameView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
     let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
-    let creatureName: string = ctx.getPathParams("creatureName").decodeUrl()
+    let creatureName: string = ctx.getPathParams("articleName").decodeUrl()
 
     respondBadRequestOnDbError():
         let creature = getCreatureByName(campaignName, creatureName)

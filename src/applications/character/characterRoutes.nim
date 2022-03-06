@@ -1,6 +1,8 @@
 import prologue
 import ../../middleware/loginMiddleware
+import ../urlParamRegexPatterns
 import characterControllers
+import std/strformat
 
 proc addCharacterRoutes*(app: Prologue) =
     app.addRoute(
@@ -11,35 +13,35 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re"/character/(?P<id>[\d]+)/", 
+        re fmt"/character/{ID}/", 
         handler = characterControllers.deleteCharacterView,
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re"/character/(?P<id>[\d]+)/", 
+        re fmt"/character/{ID}/", 
         handler = characterControllers.updateCharacterView,
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re"/character/(?P<id>[\d]+)/", 
+        re fmt"/character/{ID}/", 
         characterControllers.getCharacterByIdView, 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re"/character/(?P<campaignName>[^/]+)/overview/", 
+        re fmt"/character/{CAMPAIGN_NAME}/overview/", 
         characterControllers.getCampaignCharactersOverviewView,  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
-        re"/character/(?P<campaignName>[^/]+)/(?P<characterName>[^/]+)/", 
+        re fmt"/character/{CAMPAIGN_NAME}/{ARTICLE_NAME}/", 
         characterControllers.getCharacterByNameView,  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

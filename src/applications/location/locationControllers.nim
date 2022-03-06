@@ -10,7 +10,7 @@ import ../controllerTemplates
 proc getLocationByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
-    let locationName: string = ctx.getPathParams("locationName").decodeUrl()
+    let locationName: string = ctx.getPathParams("articleName").decodeUrl()
     let parentLocationNameParam: string = ctx.getPathParams("parentLocationName").decodeUrl().toLowerAscii()
     let parentLocationName: Option[string] = if parentLocationNameParam == "none": none(string) else: some(parentLocationNameParam)
 
