@@ -314,7 +314,7 @@ proc createEntry*[T: Model](entry: var T): T =
 
         result = entry
 
-proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
+proc createEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
 

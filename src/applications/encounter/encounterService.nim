@@ -38,8 +38,7 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
         raise newException(DbError, fmt "The encouters with id {encounter1Id} and {encounter2Id} whose order is to be swapped are not from the same diaryentry!")
 
     {.cast(gcsafe).}:
-        var connection: MyDbConn = borrowConnection()
-        connection.transaction:
+        withDbTransaction(connection):
             let orderIndex1 = encounter1.order_index
             encounter1.order_index = some(encounter2.order_index.get() + 1)
             connection.update(encounter1)
@@ -57,8 +56,6 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
 
             result = jsonutils.toJson(swappedEncounters)
 
-        connection.recycleConnection()
-
 
 proc createEncounter*(encounterJsonData: string): EncounterRead =
     var entry: Encounter = encounterJsonData.fromJson(Encounter)
@@ -74,7 +71,7 @@ proc createEncounter*(encounterJsonData: string): EncounterRead =
     var connection: MyDbConn = borrowConnection()
     
     {.cast(gcsafe).}:
-        connection.transaction:
+        withDbTransaction(connection):
             connection.incrementOrderIndicesOfFollowingEncounters(
                 entry.diaryentry_id, 
                 entry.order_index.get()
@@ -83,8 +80,6 @@ proc createEncounter*(encounterJsonData: string): EncounterRead =
 
         result = getEntryById(connection, entry.id, EncounterRead)
         
-    connection.recycleConnection()
-
 
 proc getCharacterEncounters*(characterId: int64): seq[EncounterRead] =
     var entries: seq[CharacterEncounterRead] = @[]
