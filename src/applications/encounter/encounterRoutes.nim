@@ -2,7 +2,7 @@ import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import encounterControllers
 import std/strformat
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 proc addEncounterRoutes*(app: Prologue) =
     app.addRoute(

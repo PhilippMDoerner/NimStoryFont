@@ -7,7 +7,7 @@ import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
 import jsony
 import ../controllerTemplates
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 
 proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} = 

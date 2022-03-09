@@ -4,7 +4,7 @@ import ../utils/errorResponses
 import std/[strutils]
 import ../applications/authentication/[authenticationModels, myJwt]
 import ../applicationSettings
-import ../applications/urlParamRegexPatterns
+import ../applications/allUrlParams
 
 
 type InvalidMiddlewareUseDefect* = object of Defect

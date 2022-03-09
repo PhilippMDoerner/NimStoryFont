@@ -7,7 +7,7 @@ import ../../utils/djangoDateTime/serialization
 import norm/model
 import jsony
 import ../controllerTemplates
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 
 proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 

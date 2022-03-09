@@ -4,7 +4,7 @@ import prologue
 import jsony
 import ../controllerTemplates
 import ../../utils/[jwtContext, customResponses, errorResponses]
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 
 proc findArticles*(ctx: Context) {.async.} = 

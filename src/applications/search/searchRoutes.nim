@@ -2,7 +2,7 @@ import prologue
 import ../../middleware/loginMiddleware
 import searchControllers
 import std/strformat
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 proc addSearchRoutes*(app: Prologue) =
     app.addRoute(

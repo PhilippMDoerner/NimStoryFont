@@ -1,6 +1,6 @@
 import prologue
 import ../../middleware/loginMiddleware
-import ../urlParamRegexPatterns
+import ../allUrlParams
 import characterControllers
 import std/strformat
 

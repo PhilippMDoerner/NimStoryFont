@@ -5,7 +5,7 @@ import std/[json, strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 
 proc createEncounterView*(ctx: Context) {.async, gcsafe.}=

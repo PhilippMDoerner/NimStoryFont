@@ -2,7 +2,7 @@ import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import creatureControllers
 import std/strformat
-import ../urlParamRegexPatterns
+import ../allUrlParams
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
