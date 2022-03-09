@@ -5,13 +5,14 @@ import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
 import jsony
 import ../controllerTemplates
+import ../urlParamRegexPatterns
 
 
 proc getLocationByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
-    let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
-    let locationName: string = ctx.getPathParams("articleName").decodeUrl()
-    let parentLocationNameParam: string = ctx.getPathParams("parentLocationName").decodeUrl().toLowerAscii()
+    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM).decodeUrl()
+    let locationName: string = ctx.getPathParams(ARTICLE_NAME_PARAM).decodeUrl()
+    let parentLocationNameParam: string = ctx.getPathParams(PARENT_LOCATION_NAME_PARAM).decodeUrl().toLowerAscii()
     let parentLocationName: Option[string] = if parentLocationNameParam == "none": none(string) else: some(parentLocationNameParam)
 
     respondBadRequestOnDbError():

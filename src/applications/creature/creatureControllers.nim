@@ -7,12 +7,13 @@ import ../../utils/djangoDateTime/serialization
 import norm/model
 import jsony
 import ../controllerTemplates
+import ../urlParamRegexPatterns
 
 
 proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     
-    let campaignName: string = ctx.getPathParams("campaignName")
+    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
 
     respondBadRequestOnDbError():
         let creatures: seq[CreatureOverview] = creatureService.getCampaignCreatureListOverview(campaignName)
@@ -22,7 +23,7 @@ proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} =
 proc getCreatureByIdView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
-    let creatureId: int = parseInt(ctx.getPathParams("id"))
+    let creatureId: int = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         let creature = creatureService.getCreaturebyId(creatureId)
@@ -32,8 +33,8 @@ proc getCreatureByIdView*(ctx: Context) {.async.} =
 proc getCreatureByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     
-    let campaignName: string = ctx.getPathParams("campaignName").decodeUrl()
-    let creatureName: string = ctx.getPathParams("articleName").decodeUrl()
+    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM).decodeUrl()
+    let creatureName: string = ctx.getPathParams(ARTICLE_NAME_PARAM).decodeUrl()
 
     respondBadRequestOnDbError():
         let creature = getCreatureByName(campaignName, creatureName)
@@ -53,7 +54,7 @@ proc createCreatureView*(ctx: Context) {.async, gcsafe.}=
 proc deleteCreatureView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let creatureId: int = parseInt(ctx.getPathParams("id"))
+    let creatureId: int = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         deleteCreature(creatureId)
@@ -63,7 +64,7 @@ proc deleteCreatureView*(ctx: Context) {.async.} =
 proc updateCreatureView*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
 
-    let creatureId: int = parseInt(ctx.getPathParams("id"))
+    let creatureId: int = parseInt(ctx.getPathParams(ID_PARAM))
     let jsonData: string = ctx.request.body()
 
     respondBadRequestOnDbError():

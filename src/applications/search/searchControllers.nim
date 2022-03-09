@@ -4,12 +4,13 @@ import prologue
 import jsony
 import ../controllerTemplates
 import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../urlParamRegexPatterns
 
 
 proc findArticles*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     
-    let campaignName: string = ctx.getPathParams("campaignName")
+    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
     let searchText: string = ctx.getPathParams("searchText")
 
     respondBadRequestOnDbError():

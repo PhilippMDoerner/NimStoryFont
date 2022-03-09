@@ -4,6 +4,8 @@ import ../utils/errorResponses
 import std/[strutils]
 import ../applications/authentication/[authenticationModels, myJwt]
 import ../applicationSettings
+import ../applications/urlParamRegexPatterns
+
 
 type InvalidMiddlewareUseDefect* = object of Defect
 
@@ -39,7 +41,7 @@ proc getUserCampaignMemberships(ctx: JWTContext): Table[string, CampaignAccessLe
 
 
 proc getCampaignUrlParameter(ctx: JWTContext): string =
-  let campaignUrlParam = ctx.getPathParams("campaignName")
+  let campaignUrlParam = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
   
   assert(campaignUrlParam != "", """Tried using campaignGuestAccessMiddleware 
       on a route that has no campaignName url parameter. That parameter is necessary to see which

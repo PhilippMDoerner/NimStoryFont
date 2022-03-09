@@ -5,6 +5,7 @@ import std/[json, strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
+import ../urlParamRegexPatterns
 
 
 proc createEncounterView*(ctx: Context) {.async, gcsafe.}=
@@ -20,7 +21,7 @@ proc createEncounterView*(ctx: Context) {.async, gcsafe.}=
 proc updateEncounterView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams("id"))
+    let entryId: int = parseInt(ctx.getPathParams(ID_PARAM))
     let jsonData: string = ctx.request.body()
     
     respondBadRequestOnDbError():
@@ -31,7 +32,7 @@ proc updateEncounterView*(ctx: Context) {.async, gcsafe.}=
 proc deleteEncounterView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams("id"))
+    let entryId: int = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         deleteEncounter(entryId)

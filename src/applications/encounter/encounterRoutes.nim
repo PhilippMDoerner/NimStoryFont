@@ -6,35 +6,35 @@ import ../urlParamRegexPatterns
 
 proc addEncounterRoutes*(app: Prologue) =
     app.addRoute(
-       re"/encounter/{CAMPAIGN_NAME}/orderswap/",
+       re"/encounter/{CAMPAIGN_NAME_PATTERN}/orderswap/",
        handler = encounterControllers.swapEncounterOrder,
        httpMethod = HttpPatch,
        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME}/",
+        re"/encounter/{CAMPAIGN_NAME_PATTERN}/",
         handler = encounterControllers.createEncounterView,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME}/{ID}/", 
+        re"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = encounterControllers.deleteEncounterView,
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME}/{ID}/", 
+        re"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = encounterControllers.updateEncounterView,
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
    
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME}/cutinsert/",
+        re"/encounter/{CAMPAIGN_NAME_PATTERN}/cutinsert/",
         handler = encounterControllers.cutInsertEncounter,
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]

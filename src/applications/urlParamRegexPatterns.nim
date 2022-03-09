@@ -1,5 +1,16 @@
-const CAMPAIGN_NAME* = r"(?P<campaignName>[^/]+)"
-const ID* = r"(?P<id>[\d]+)"
-const ARTICLE_NAME* = r"(?P<articleName>[^/]+)"
-const SEARCH_TEXT* = r"(?P<searchText>[^/]+)"
-const PARENT_LOCATION_NAME* = r"(?P<parentLocationName>[^/]+)"
+import std/strformat
+
+const CAMPAIGN_NAME_PARAM* = "campaignName"
+const CAMPAIGN_NAME_PATTERN* = fmt r"(?P<{CAMPAIGN_NAME_PARAM}>[^/]+)"
+
+const ID_PARAM* = "id"
+const ID_PATTERN* = fmt r"(?P<{ID_PARAM}>[\d]+)"
+
+const ARTICLE_NAME_PARAM* = "articleName"
+const ARTICLE_NAME_PATTERN* = fmt r"(?P<{ARTICLE_NAME_PARAM}>[^/]+)"
+
+const SEARCH_TEXT_PARAM* = "searchText"
+const SEARCH_TEXT_PATTERN* = fmt r"(?P<{SEARCH_TEXT_PARAM}>[^/]+)"
+
+const PARENT_LOCATION_NAME_PARAM* = "parentLocationName"
+const PARENT_LOCATION_NAME_PATTERN* = fmt r"(?P<{PARENT_LOCATION_NAME_PARAM}>[^/]+)"
