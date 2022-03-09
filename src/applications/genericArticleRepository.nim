@@ -148,21 +148,19 @@ proc getEntryById*[M: Model](entryId: int64, modelType: typedesc[M]): M =
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
     ## manyTypeforeignKeyFieldName = Name of the foreign key field on the Many Type
     mixin newModel
-
-    const _ = validateFkField(manyTypeforeignKeyFieldName, M, O) # temp is irrelevant, this only stands here for the compile time check of checkFkField
-
     var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
-    const manyTableName: string = M.table()
-    const sqlCondition: string = fmt "{manyTableName}.{manyTypeforeignKeyFieldName} = ?"
 
-    connection.select(targetEntries, sqlCondition, oneEntry.id)
+    connection.selectOneToMany(oneEntry, targetEntries, manyTypeforeignKeyFieldName)
 
     result = targetEntries
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
-    const foreignKeyFieldName: string = M.getRelatedFieldNameOn(O)
-    result = getManyFromOne(connection, oneEntry, relatedManyType, foreignKeyFieldName)
+    mixin newModel
+    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
+
+    connection.selectOneToMany(oneEntry,  targetEntries)
+    result = targetEntries
 
 proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to provide the connection yourself]##
@@ -196,18 +194,12 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   ## to the tables of `queryStartEntry` and `queryEndEntries`.
   mixin newModel
 
-  const tmp1 = validateFkField(fkColumnFromJoinToManyStart, J, M1) # 'tmp1' is irrelevant, but the assignment is required for 'validateFkField' to run properly
-  const tmp2 = validateFkField(fkColumnFromJoinToManyEnd, J, M2) # 'tmp2' is irrelevant, but the assignment is required for 'validateFkField' to run properly 
-  
   var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
+  var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
 
-  const joinTableName = J.table()
-  const sqlCondition = fmt "{joinTableName}.{fkColumnFromJoinToManyStart} = ?"
-  connection.select(joinModelEntries, sqlCondition, queryStartEntry.id)
+  connection.selectManyToMany(queryStartEntry, joinModelEntries, queryEndEntries)
 
-  let unpackedEntries: seq[M2] = unpackFromJoinModel(joinModelEntries, fkColumnFromJoinToManyEnd)
-
-  result = unpackedEntries
+  result = queryEndEntries
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
     connection: MyDbConn, 
@@ -225,11 +217,13 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   ## the table of `queryEndEntries`. Specify the parameters `fkColumnFromJoinToManyStart`
   ## and `fkColumnFromJoinToManyEnd` if that is not the case.
   mixin newModel
+  
+  var joinModelEntries: seq[J] = @[newModel(joinModel)]
+  var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
 
-  const fkColumnFromJoinToManyStart: string = J.getRelatedFieldNameOn(M1)
-  const fkColumnFromJoinToManyEnd: string = J.getRelatedFieldNameOn(M2)
-  getManyToMany(connection, queryStartEntry, joinModel, otherManyModel, fkColumnFromJoinToManyStart, fkColumnFromJoinToManyEnd)
-
+  connection.selectManyToMany(queryStartEntry, joinModelEntries, queryEndEntries)
+  
+  result = queryEndEntries
 
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
