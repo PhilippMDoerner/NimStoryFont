@@ -1,5 +1,5 @@
 const CAMPAIGN_NAME* = r"(?P<campaignName>[^/]+)"
-const ID* = r"{ID}"
+const ID* = r"(?P<id>[\d]+)"
 const ARTICLE_NAME* = r"(?P<articleName>[^/]+)"
 const SEARCH_TEXT* = r"(?P<searchText>[^/]+)"
 const PARENT_LOCATION_NAME* = r"(?P<parentLocationName>[^/]+)"
