@@ -3,7 +3,6 @@ import ../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
 import std/[options, strformat]
-import genericUtils
 import tinypool
 import core/[signalSystem]
 
