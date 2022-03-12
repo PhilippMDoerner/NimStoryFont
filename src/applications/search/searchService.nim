@@ -20,7 +20,7 @@ import jsony
 import ../../utils/djangoDateTime/[serialization]
 import tinypool
 import articleToStringUtils
-
+import ../articleModel
 
 proc deleteSearchEntry*(connection: DbConn, article: Article) =
   deleteSearchEntry(connection, article.getSearchGuid())
