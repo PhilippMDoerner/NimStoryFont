@@ -5,6 +5,7 @@ import applications/authentication/authenticationRoutes
 import applications/search/searchRoutes
 import applications/location/locationRoutes
 import applications/encounter/encounterRoutes
+import applications/contentUpdates/contentUpdateRoutes
 
 import prologue
 
@@ -16,3 +17,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addLocationRoutes(app)
   addSearchRoutes(app)
   addEncounterRoutes(app)
+  addArticleUpdateRoutes(app)
