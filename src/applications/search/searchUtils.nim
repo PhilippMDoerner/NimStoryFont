@@ -1,4 +1,4 @@
-import searchModel
+import ../articleModel
 import std/strformat
 import norm/model
 
