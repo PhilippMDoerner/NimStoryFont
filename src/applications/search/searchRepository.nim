@@ -7,7 +7,7 @@ import ../../utils/nisane/nisane
 import ../../utils/myStrutils
 import tinypool
 
-
+#TODO Replace the hard coded table here with an insert
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
