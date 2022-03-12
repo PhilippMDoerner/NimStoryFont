@@ -4,9 +4,8 @@ import norm/model
 var LOGGER = newConsoleLogger(lvlInfo)
 
 type SignalType* = enum
-  ## Denotes possible trigger points for signals, meaning the system will look
-  ## for to execute appropriate signal procs after a create/delete/update action 
-  ## or before a delete action.
+  ## Denotes when a SignalProc is triggered. A signal can be triggered
+  ## before or after a create/delete/update action.
   stPreCreate
   stPostCreate
   stPreDelete
@@ -18,9 +17,8 @@ type SignalType* = enum
 type SignalProcStore = object
   ## Stores pointers to all Signal procs. A Signal proc is a proc that is 
   ## executed before or after a create/update/delete action happens. They 
-  ## are associated with a specific object that inherits from Model and 
-  ## when they should trigger (determined by SignalType). SignalProcs 
-  ## always have the signature: 
+  ## are mapped to a specific Model type and a specific trigger time
+  ## (determined by SignalType). SignalProcs always have the signature: 
   ## proc(connection: DbConn, modelInstance: <YOUR MODEL TYPE>).
   procs: Table[string, Table[SignalType, HashSet[pointer]]]
 
