@@ -11,7 +11,7 @@ proc getRecentlyUpdatedArticles*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
     let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
-    let pageNumber: int = ctx.getPathParams(PAGE_NUMBER_PARAM).parseInt()
+    let pageNumber: int = ctx.getPathParams(PAGE_NUMBER_PARAM, "0").parseInt()
     let pageSize: int = ctx.gScope.settings.getOrDefault("pageSize").getInt()
 
     respondBadRequestOnDbError():
