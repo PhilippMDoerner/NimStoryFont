@@ -11,6 +11,6 @@ proc getRecentlyUpdatedArticles*(campaignName: string, pageNumber: int, pageSize
   withDbConn(connection):
     for articleHit in recentlyUpdatedArticlesHits:
       let articleTable: ArticleTable = parseEnum[ArticleTable](articleHit.table_name)
-      let articleDataJsonString: JsonNode = getArticleData(articleTable, articleHit.record_id)
+      let articleData: JsonNode = getArticleData(articleTable, articleHit.record_id)
 
-      result.add(ContentUpdateSerializable(hit: articleHit, articleDataJson: articleDataJsonString))
+      result.add(articleData)
