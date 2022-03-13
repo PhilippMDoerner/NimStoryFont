@@ -7,19 +7,19 @@ import tinypool
 import contentUpdateModel
 
 
-proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageSize: int, pageNumber: int): seq[UpdatedArticle] =
+proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageNumber: int, pageSize: int): seq[UpdatedArticle] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
   let recentArticleQuery: SqlQuery = sql fmt """
-    SELECT *
+    SELECT table_name, record_id, campaign_id, guid 
     FROM {V_ALL_ARTICLES_TABLE}
     WHERE campaign_id = {campaignId}
-    ORDER_BY update_datetime
+    ORDER BY update_datetime DESC
     LIMIT ?
     OFFSET ?
   """
-
-  var pageStartIndex = pageSize * (pageNumber-1)
+  
+  let pageStartIndex = pageSize * (pageNumber-1)
   var rows: seq[Row]
   withDbConn(connection):
     rows = connection.getAllRows(

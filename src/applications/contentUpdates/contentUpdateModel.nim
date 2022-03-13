@@ -13,6 +13,4 @@ proc newViewModel*(t: typedesc[UpdatedArticle]): UpdatedArticle = initUpdatedArt
 
 
 
-type ContentUpdateSerializable* {.defaults.} = object
-  hit*: UpdatedArticle
-  articleDataJson*: JsonNode
+type ContentUpdateSerializable* = JsonNode
