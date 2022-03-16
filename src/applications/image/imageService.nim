@@ -1,10 +1,12 @@
 import imageModel
+import imageDataTransferObjects
 import prologue
-import std/[strutils]
-import ../../utils/[jwtContext, fileUpload]
-import norm/[model, sqlite]
+import std/[strutils, options]
 import ../genericArticleRepository
+import ../../utils/[jwtContext, fileUpload, databaseUtils]
+import norm/[model, sqlite]
 import tinypool
+import ../../applicationConstants
 
 export imageModel
 
@@ -19,6 +21,9 @@ proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
       connection.select(entries, condition, articleId)
 
     result = entries
+
+
+proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
 
 
 proc getFormImageId(ctx: Context, imageIdFieldName: string): Option[int64] =
@@ -44,3 +49,36 @@ proc createImage*(ctx: JWTContext): Image =
   img.item_article_id = ctx.getFormImageId("item_article")
 
   result = createEntry(img)
+
+proc updateImage*(imageId: int64, imageDTO: var ImageDTO): Image =
+
+  var imageToUpdate: Image
+  
+  withDbTransaction(connection):
+    imageToUpdate = connection.getEntryById(imageId, Image)
+
+    if imageDTO.imageFile.isSome():
+      let newImageFilePath: string = uploadArticleImage(imageDTO.imageFile.get(), imageDTO.imageDirectory)
+      imageToUpdate.image = newImageFilePath
+
+    if imageDTO.imageName.isSome():
+      imageToUpdate.name = imageDTO.imageName
+
+    if imageDTO.image_character_fk.isSome():
+      imageToUpdate.character_article_id = imageDTO.image_character_fk
+    
+    if imageDTO.image_creature_fk.isSome():
+      imageToUpdate.creature_article_id = imageDTO.image_creature_fk
+    
+    if imageDTO.image_item_fk.isSome():
+      imageToUpdate.item_article_id = imageDTO.image_item_fk
+    
+    if imageDTO.image_location_fk.isSome():
+      imageToUpdate.location_article_id = imageDTO.image_location_fk
+    
+    if imageDTO.image_organization_fk.isSome():
+      imageToUpdate.organization_article_id = imageDTO.image_organization_fk
+    
+    connection.update(imageToUpdate)
+  
+  result = imageToUpdate
