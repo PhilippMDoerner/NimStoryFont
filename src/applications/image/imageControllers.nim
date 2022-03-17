@@ -27,15 +27,6 @@ proc extractFKIdFieldFromContext(ctx: JWTContext, fileFieldName: string): Option
 
 proc createImageView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
-    
-    respondBadRequestOnDbError():
-        let newImageEntry: Image = createImage(ctx)
-        resp jsonyResponse[Image](ctx, newImageEntry)
-
-
-proc updateImageView*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
-    let imageToUpdateId: int = parseInt(ctx.getPathParams(ID_PARAM))
     let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
 
     var imageFormData = ImageDTO(
@@ -48,7 +39,26 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.}=
         image_location_fk: ctx.extractFKIdFieldFromContext("location_article"),
         image_organization_fk: ctx.extractFKIdFieldFromContext("organization_article")
     )
+    
+    respondBadRequestOnDbError():
+        let newImageEntry: Option[Image] = createImage(imageFormData)
+        if newImageEntry.isSome():
+            resp jsonyResponse[Image](ctx, newImageEntry.get())
+        else:
+            resp get400BadRequestResponse("The sent image could not be saved, because there was no image file in the sent form under the 'image' key.")
+
+
+proc updateImageView*(ctx: Context) {.async, gcsafe.}=
+    let ctx = JWTContext(ctx)
+    let imageToUpdateId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
+
+    var imageFormData = ImageDTO(
+        imageFile: ctx.extractFileFromContext("image"),
+        imageDirectory: mediaDirectory,
+        imageName: ctx.getFormParamsOption("name"),
+    )
         
     respondBadRequestOnDbError():
-        let updatedImageEntry: Image = updateImage(imageToUpdateId, imageFormData)
+        let updatedImageEntry: Image = updateImageFileOrName(imageToUpdateId, imageFormData)
         resp jsonyResponse[Image](ctx , updatedImageEntry)
