@@ -31,8 +31,11 @@ proc saveArticleImage*(file: var UpLoadFile, mediaDirectory: string): string =
   let articleImageDirectory = fmt "{mediaDirectory}/article_images"
   uploadFile(file, articleImageDirectory)
 
-proc deleteArticleImage*(filePath: string) =
-  removeFile(filePath)
+proc deleteArticleImage*(absoluteFilePath: string) =
+  removeFile(absoluteFilePath)
+
+proc deleteArticleImage*(relativeFilePath: string, mediaDirectory: string) =
+  deleteArticleImage(fmt"{mediaDirectory}/{relativeFilePath}")
 
 proc uploadSessionAudio*(file: var UpLoadFile, mediaDirectory: string): string =
   let sessionaudioDirectory = fmt "{mediaDirectory}/session_audio" #TODO: Contemplate having this in a directory that can be configured separately
