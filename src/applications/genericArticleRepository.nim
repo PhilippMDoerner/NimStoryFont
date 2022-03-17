@@ -223,25 +223,44 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
 
 #DELETE PROCS
+proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T) =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
+    triggerSignal(SignalType.stPreDelete, connection, entry)
+    
+    connection.delete(entry)
+    
+    triggerSignal(SignalType.stPostDelete, connection, entry)
+    
+
+proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[T]) =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
+    var entryToDelete: T = getEntryById(entryId, T)
+    connection.deleteEntryInTransaction(entryToDelete)
+    
+
 proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) {.gcsafe.}=
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
-    mixin preDeleteSignal
-    mixin postDeleteSignal
-
-    var entryToDelete: T = getEntryById(entryId, T)
-
     withDbTransaction(connection):
         {.cast(gcsafe).}:
-            triggerSignal(SignalType.stPreDelete, connection, entryToDelete)
-    
-            connection.delete(entryToDelete)
-
-            triggerSignal(SignalType.stPostDelete, connection, entryToDelete)
-
+            connection.deleteEntryInTransaction(entryId, modelType)
 
 
 #UPDATE PROCS
+proc updateEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
+    triggerSignal(SignalType.stPreUpdate, connection, entry)
+    
+    connection.update(entry)
+    
+    triggerSignal(SignalType.stPostUpdate, connection, entry)
+    
+    result = entry
+
+
 proc updateEntry*[T: Model](entry: var T): T =
     ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
@@ -253,13 +272,7 @@ proc updateEntry*[T: Model](entry: var T): T =
 
     withDbTransaction(connection):
         {.cast(gcsafe).}:
-            triggerSignal(SignalType.stPreUpdate, connection, entry)
-
-            connection.update(entry)
-        
-            triggerSignal(SignalType.stPostUpdate, connection, entry)
-
-        result = entry
+            result = connection.updateEntryInTransaction(entry)
 
 
 proc updateEntry*[T: Model](entryId: int64, entryJsonData: string, modelType: typedesc[T]): T =
@@ -279,27 +292,26 @@ proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string, modelT
     result = updateEntry(entry)
 
 #CREATE PROCS
+proc createEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
+    ##[ Core proc to insert an entry of Model `T` into its associated table.
+    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
+    triggerSignal(SignalType.stPreCreate, connection, entry)
+    
+    connection.insert(entry)
+    
+    triggerSignal(SignalType.stPostCreate, connection, entry)
+    
+    result = entry
+
+
 proc createEntry*[T: Model](entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     
     withDbTransaction(connection):
         {.cast(gcsafe).}:
-            triggerSignal(SignalType.stPreCreate, connection, entry)
+            result = connection.createEntryInTransaction(entry)
 
-            connection.insert(entry)
-
-            triggerSignal(SignalType.stPostCreate, connection, entry)
-
-        result = entry
-
-proc createEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
-    ##[ Core proc to insert an entry of Model `T` into its associated table.
-    Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-
-    connection.insert(entry)
-    triggerSignal(SignalType.stPostCreate, connection, entry)
-    result = entry
 
 proc createEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =
     ##[ Helper proc for createEntry when you receive the entry as a jsonString
