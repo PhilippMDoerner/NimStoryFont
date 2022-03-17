@@ -11,6 +11,8 @@ import imageRepository
 
 export imageModel
 
+proc getRelativeFilepathTo(absoluteFilepath: string, mediaDirectory: string): string =
+  result = absoluteFilepath.substr(mediaDirectory.len + 1)
 
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
     var entries: seq[Image] = @[]
@@ -23,7 +25,6 @@ proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
 
     result = entries
 
-
 proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
 
 
@@ -32,7 +33,7 @@ proc createImage*(imageDTO: var ImageDTO): Option[Image] =
     return none(Image)
 
   let absoluteImagePath: string = saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
-  let imagePathInDatabase = absoluteImagePath.substr(imageDTO.mediaDirectory.len + 1)
+  let imagePathInDatabase = absoluteImagePath.getRelativeFilepathTo(imageDTO.mediaDirectory)
   var image: Image = Image(
     image: imagePathInDatabase,
     character_article_id: imageDTO.image_character_fk,
@@ -54,28 +55,29 @@ proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
   ## This is a special form of updating, as it is for updating individual fields
   ## which may or may not be specified. If they are specified, edit the values
   ## in the entry and persist them to the database. If they aren't, ignore them.  
-  var newImageFilePath: Option[string]
+  var newImageRelativeFilePath: Option[string]
   let isImageBeingReplaced = imageDTO.imageFile.isSome()
   if isImageBeingReplaced: 
-    newImageFilePath = some(saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory))
-  else: 
-    newImageFilePath = none(string)
-
-  var oldImageFilePath: string
+    let newImageAbsoluteFilePath = saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
+    newImageRelativeFilePath = some(newImageAbsoluteFilePath.getRelativeFilepathTo(imageDTO.mediaDirectory))
+  else:
+    newImageRelativeFilePath = none(string)
+  
+  var oldImageRelativeFilePath: string
   try: 
     {.cast(gcsafe).}:
       withDbTransaction(connection):
         var imageToUpdate: Image = connection.getEntryById(imageId, Image)
-        oldImageFilePath = imageToUpdate.image
+        oldImageRelativeFilePath = imageToUpdate.image
 
-        result = connection.updateImage(imageToUpdate, newImageFilePath, imageDTO.imageName)
+        result = connection.updateImage(imageToUpdate, newImageRelativeFilePath, imageDTO.imageName)
   
   except DbError:
     if isImageBeingReplaced:
-      deleteArticleImage(newImageFilePath.get())
+      deleteArticleImage(newImageRelativeFilePath.get(), imageDTO.mediaDirectory)
       raise
 
   if isImageBeingReplaced:
-    deleteArticleImage(oldImageFilePath) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
+    deleteArticleImage(oldImageRelativeFilePath, imageDTO.mediaDirectory) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
 
   
