@@ -23,5 +23,5 @@ proc convertReceivedImageToWebP(connection: DbConn, modelInstance: Image) =
   let convertedImageFilepath = convertToWebP(imageFilepath)
   modelInstance.image = convertedImageFilepath
 
-connect(SignalType.stPreCreate, Image, convertReceivedImageToWebP)
-connect(SignalType.stPreUpdate, Image, convertReceivedImageToWebP)
+#connect(SignalType.stPreCreate, Image, convertReceivedImageToWebP)
+#connect(SignalType.stPreUpdate, Image, convertReceivedImageToWebP)
