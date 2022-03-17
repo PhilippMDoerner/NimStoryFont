@@ -1,7 +1,7 @@
 import imageService
 import imageModel
 import prologue
-import std/[strutils, options]
+import std/[strutils, options, json, strformat]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
@@ -17,8 +17,8 @@ proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLo
       result = none(UpLoadFile)
 
 
-proc extractFKIdFieldFromContext(ctx: JWTContext, fileFieldName: string): Option[int64] =
-    let imageIdStr: Option[string] = ctx.getFormParamsOption("character_article")
+proc extractFKIdFieldFromContext(ctx: JWTContext, fieldName: string): Option[int64] =
+    let imageIdStr: Option[string] = ctx.getFormParamsOption(fieldName)
     if imageIdStr.isSome():
         result = some(int64(parseInt(imageIdStr.get())))
     else: 
@@ -31,7 +31,7 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
 
     var imageFormData = ImageDTO(
         imageFile: ctx.extractFileFromContext("image"),
-        imageDirectory: mediaDirectory,
+        mediaDirectory: mediaDirectory,
         imageName: ctx.getFormParamsOption("name"),
         image_character_fk: ctx.extractFKIdFieldFromContext("character_article"),
         image_creature_fk: ctx.extractFKIdFieldFromContext("creature_article"),
@@ -39,7 +39,7 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
         image_location_fk: ctx.extractFKIdFieldFromContext("location_article"),
         image_organization_fk: ctx.extractFKIdFieldFromContext("organization_article")
     )
-    
+
     respondBadRequestOnDbError():
         let newImageEntry: Option[Image] = createImage(imageFormData)
         if newImageEntry.isSome():
@@ -55,8 +55,8 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.}=
 
     var imageFormData = ImageDTO(
         imageFile: ctx.extractFileFromContext("image"),
-        imageDirectory: mediaDirectory,
-        imageName: ctx.getFormParamsOption("name"),
+        mediaDirectory: mediaDirectory,
+        imageName: ctx.getFormParamsOption("name")
     )
         
     respondBadRequestOnDbError():

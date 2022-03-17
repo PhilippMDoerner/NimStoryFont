@@ -1,12 +1,13 @@
 import imageModel
 import imageDataTransferObjects
 import prologue
-import std/[strutils, options]
+import std/[strutils, options, json, strformat]
 import ../genericArticleRepository
 import ../../utils/[jwtContext, fileUpload, databaseUtils]
 import norm/[model, sqlite]
 import tinypool
 import ../../applicationConstants
+import imageRepository
 
 export imageModel
 
@@ -26,23 +27,14 @@ proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
 proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
 
 
-proc getFormImageId(ctx: Context, imageIdFieldName: string): Option[int64] =
-    let imageIdField: string = ctx.getFormParams(imageIdFieldName, "")
-    if imageIdField == "":
-        return none(int64)
-
-    let imageId = int64(parseInt(imageIdField))
-    return some(imageId)
-
-
 proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
     return none(Image)
 
-  let filePath: string = uploadArticleImage(imageDTO.imageFile.get(), imageDTO.imageDirectory)
-  
-  var img: Image = Image(
-    image: filePath,
+  let absoluteImagePath: string = saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
+  let imagePathInDatabase = absoluteImagePath.substr(imageDTO.mediaDirectory.len + 1)
+  var image: Image = Image(
+    image: imagePathInDatabase,
     character_article_id: imageDTO.image_character_fk,
     creature_article_id: imageDTO.image_creature_fk,
     location_article_id: imageDTO.image_location_fk,
@@ -51,24 +43,39 @@ proc createImage*(imageDTO: var ImageDTO): Option[Image] =
     name: imageDTO.imageName
   )
 
-  result = some(createEntry(img))
+  try:
+    result = some(createEntry(image))
+  except DbError:
+    deleteArticleImage(absoluteImagePath)
+    raise
 
+#TODO: Refactor this to more cleanly handle when to delete an old image if the image was swapped out
 proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
   ## This is a special form of updating, as it is for updating individual fields
   ## which may or may not be specified. If they are specified, edit the values
-  ## in the entry and persist them to the database. If they aren't, ignore them.
-  var imageToUpdate: Image
+  ## in the entry and persist them to the database. If they aren't, ignore them.  
+  var newImageFilePath: Option[string]
+  let isImageBeingReplaced = imageDTO.imageFile.isSome()
+  if isImageBeingReplaced: 
+    newImageFilePath = some(saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory))
+  else: 
+    newImageFilePath = none(string)
 
-  {.cast(gcsafe).}:
-    withDbTransaction(connection):
-      imageToUpdate = connection.getEntryById(imageId, Image)
+  var oldImageFilePath: string
+  try: 
+    {.cast(gcsafe).}:
+      withDbTransaction(connection):
+        var imageToUpdate: Image = connection.getEntryById(imageId, Image)
+        oldImageFilePath = imageToUpdate.image
 
-      if imageDTO.imageFile.isSome():
-        let newImageFilePath: string = uploadArticleImage(imageDTO.imageFile.get(), imageDTO.imageDirectory)
-        imageToUpdate.image = newImageFilePath
+        result = connection.updateImage(imageToUpdate, newImageFilePath, imageDTO.imageName)
+  
+  except DbError:
+    if isImageBeingReplaced:
+      deleteArticleImage(newImageFilePath.get())
+      raise
 
-      if imageDTO.imageName.isSome():
-        imageToUpdate.name = imageDTO.imageName
-      
-      result = connection.updateEntryInTransaction(imageToUpdate)
+  if isImageBeingReplaced:
+    deleteArticleImage(oldImageFilePath) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
+
   
