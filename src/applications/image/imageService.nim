@@ -1,9 +1,9 @@
 import imageModel
 import imageDataTransferObjects
 import prologue
-import std/[strutils, options, json, strformat]
+import std/[strutils, options, strformat]
 import ../genericArticleRepository
-import ../../utils/[jwtContext, fileUpload, databaseUtils]
+import ../../utils/[fileUpload, databaseUtils]
 import norm/[model, sqlite]
 import tinypool
 import ../../applicationConstants
@@ -14,19 +14,11 @@ export imageModel
 proc getRelativeFilepathTo(absoluteFilepath: string, mediaDirectory: string): string =
   result = absoluteFilepath.substr(mediaDirectory.len + 1)
 
-proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] =
-    var entries: seq[Image] = @[]
-    entries.add(newModel(Image))
+proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] = 
+  result = getImagesForArticle(articleType, articleId)#
 
-    let condition: string = $articleType & "_article_id = ?"
-
-    withDbConn(connection):
-      connection.select(entries, condition, articleId)
-
-    result = entries
-
-proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
-
+proc getImageById*(imageId: int64): Image = 
+  result = getEntryById(imageId, Image)
 
 proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
