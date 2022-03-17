@@ -15,13 +15,6 @@ proc addImageRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/image/{ID_PATTERN}",
         handler = imageControllers.updateImageView,
-        httpMethod = HttpPut,
-        middlewares = @[loginMiddleware()]
-    )
-
-    app.addRoute(
-        re fmt"/image/{ID_PATTERN}",
-        handler = imageControllers.updateImageView,
-        httpMethod = HttpPatch,
+        httpMethod = [HttpPut, HttpPatch],
         middlewares = @[loginMiddleware()]
     )
