@@ -32,7 +32,8 @@ proc saveArticleImage*(file: var UpLoadFile, mediaDirectory: string): string =
   uploadFile(file, articleImageDirectory)
 
 proc deleteArticleImage*(absoluteFilePath: string) =
-  removeFile(absoluteFilePath)
+  if fileExists(absoluteFilePath):
+    removeFile(absoluteFilePath)
 
 proc deleteArticleImage*(relativeFilePath: string, mediaDirectory: string) =
   deleteArticleImage(fmt"{mediaDirectory}/{relativeFilePath}")

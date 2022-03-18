@@ -17,8 +17,9 @@ proc getRelativeFilepathTo(absoluteFilepath: string, mediaDirectory: string): st
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] = 
   result = getImagesForArticle(articleType, articleId)#
 
-proc getImageById*(imageId: int64): Image = 
-  result = getEntryById(imageId, Image)
+proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
+
+proc deleteImage*(imageId: int64) = deleteEntry(imageId, Image)
 
 proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
@@ -71,5 +72,3 @@ proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
 
   if isImageBeingReplaced:
     deleteArticleImage(oldImageRelativeFilePath, imageDTO.mediaDirectory) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
-
-  
