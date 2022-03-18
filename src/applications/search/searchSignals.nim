@@ -58,7 +58,7 @@ proc characterDeleteSignal*(connection: DbConn, modelInstance: Character) =
 
 connect(SignalType.stPostCreate, Character, characterCreateSignal)
 connect(SignalType.stPostUpdate, Character, characterUpdateSignal)
-connect(SignalType.stPostDelete, Character, characterDeleteSignal)
+connect(SignalType.stPreDelete, Character, characterDeleteSignal)
 
 
 
@@ -74,7 +74,7 @@ proc creatureDeleteSignal*(connection: DbConn, modelInstance: Creature) =
 
 connect(SignalType.stPostUpdate, Creature, creatureUpdateSignal)
 connect(SignalType.stPostCreate, Creature, creatureCreateSignal)
-connect(SignalType.stPostDelete, Creature, creatureDeleteSignal)
+connect(SignalType.stPreDelete, Creature, creatureDeleteSignal)
 
 
 
@@ -88,7 +88,7 @@ proc itemUpdateSignal*(connection: DbConn, modelInstance: Item) =
 proc itemDeleteSignal*(connection: DbConn, modelInstance: Item) =
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Item, itemDeleteSignal)
+connect(SignalType.stPreDelete, Item, itemDeleteSignal)
 connect(SignalType.stPostUpdate, Item, itemUpdateSignal)
 connect(SignalType.stPostCreate, Item, itemCreateSignal)
 
@@ -104,7 +104,7 @@ proc diaryEntryUpdateSignal*(connection: DbConn, modelInstance: DiaryEntry) =
 proc diaryEntryDeleteSignal*(connection: DbConn, modelInstance: DiaryEntry) =
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, DiaryEntry, diaryEntryDeleteSignal)
+connect(SignalType.stPreDelete, DiaryEntry, diaryEntryDeleteSignal)
 connect(SignalType.stPostUpdate, DiaryEntry, diaryEntryUpdateSignal)
 connect(SignalType.stPostCreate, DiaryEntry, diaryEntryCreateSignal)
 
@@ -127,7 +127,7 @@ proc encounterDeleteSignal*(connection: DbConn, modelInstance: Encounter) =
   deleteSearchEntry(connection, modelInstance)
   updateEncounterAssociatedEntries(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Encounter, encounterDeleteSignal)
+connect(SignalType.stPreDelete, Encounter, encounterDeleteSignal)
 connect(SignalType.stPostUpdate, Encounter, encounterUpdateSignal)
 connect(SignalType.stPostCreate, Encounter, encounterCreateSignal)
 
@@ -158,7 +158,7 @@ proc locationDeleteSignal*(connection: DbConn, modelInstance: Location) =
   deleteSearchEntry(connection, modelInstance)
   updateLocationAssociatedEntries(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Location, locationDeleteSignal)
+connect(SignalType.stPreDelete, Location, locationDeleteSignal)
 connect(SignalType.stPostUpdate, Location, locationUpdateSignal)
 connect(SignalType.stPostCreate, Location, locationCreateSignal)
 
@@ -174,7 +174,7 @@ proc mapUpdateSignal*(connection: DbConn, modelInstance: Map) =
 proc mapDeleteSignal*(connection: DbConn, modelInstance: Map) = 
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Map, mapDeleteSignal)
+connect(SignalType.stPreDelete, Map, mapDeleteSignal)
 connect(SignalType.stPostUpdate, Map, mapUpdateSignal)
 connect(SignalType.stPostCreate, Map, mapCreateSignal)
 
@@ -187,7 +187,7 @@ proc markerSignal*(connection: DbConn, modelInstance: Marker) =
 
 connect(SignalType.stPostCreate, Marker, markerSignal)
 connect(SignalType.stPostUpdate, Marker, markerSignal)
-connect(SignalType.stPostDelete, Marker, markerSignal)
+connect(SignalType.stPreDelete, Marker, markerSignal)
 
 
 
@@ -201,7 +201,7 @@ proc organizationUpdateSignal*(connection: DbConn, modelInstance: Organization) 
 proc organizationDeleteSignal*(connection: DbConn, modelInstance: Organization) = 
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Organization, organizationDeleteSignal)
+connect(SignalType.stPreDelete, Organization, organizationDeleteSignal)
 connect(SignalType.stPostUpdate, Organization, organizationUpdateSignal)
 connect(SignalType.stPostCreate, Organization, organizationCreateSignal)
 
@@ -217,7 +217,7 @@ proc questUpdateSignal*(connection: DbConn, modelInstance: Quest) =
 proc questDeleteSignal*(connection: DbConn, modelInstance: Quest) = 
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Quest, questDeleteSignal)
+connect(SignalType.stPreDelete, Quest, questDeleteSignal)
 connect(SignalType.stPostUpdate, Quest, questUpdateSignal)
 connect(SignalType.stPostCreate, Quest, questCreateSignal)
 
@@ -233,7 +233,7 @@ proc sessionAudioUpdateSignal*(connection: DbConn, modelInstance: SessionAudio) 
 proc sessionAudioDeleteSignal*(connection: DbConn, modelInstance: SessionAudio) =
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, SessionAudio, sessionAudioDeleteSignal)
+connect(SignalType.stPreDelete, SessionAudio, sessionAudioDeleteSignal)
 connect(SignalType.stPostUpdate, SessionAudio, sessionAudioUpdateSignal)
 connect(SignalType.stPostCreate, SessionAudio, sessionAudioCreateSignal)
 
@@ -245,7 +245,7 @@ proc timestampSignal*(connection: DbConn, modelInstance: Timestamp) =
   updateSearchEntryContent(connection, sessionAudioEntryWithTimestamp)
 
 connect(SignalType.stPostCreate, Timestamp, timestampSignal)
-connect(SignalType.stPostDelete, Timestamp, timestampSignal)
+connect(SignalType.stPreDelete, Timestamp, timestampSignal)
 
 
 
@@ -259,7 +259,7 @@ proc spellUpdateSignal*(connection: DbConn, modelInstance: Spell) =
 proc spellDeleteSignal*(connection: DbConn, modelInstance: Spell) = 
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Spell, spellDeleteSignal)
+connect(SignalType.stPreDelete, Spell, spellDeleteSignal)
 connect(SignalType.stPostUpdate, Spell, spellUpdateSignal)
 connect(SignalType.stPostCreate, Spell, spellCreateSignal)
 
@@ -275,7 +275,7 @@ proc ruleUpdateSignal*(connection: DbConn, modelInstance: Rule) =
 proc ruleDeleteSignal*(connection: DbConn, modelInstance: Rule) = 
   deleteSearchEntry(connection, modelInstance)
 
-connect(SignalType.stPostDelete, Rule, ruleDeleteSignal)
+connect(SignalType.stPreDelete, Rule, ruleDeleteSignal)
 connect(SignalType.stPostUpdate, Rule, ruleUpdateSignal)
 connect(SignalType.stPostCreate, Rule, ruleCreateSignal)
 

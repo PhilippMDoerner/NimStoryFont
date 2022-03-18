@@ -2,7 +2,7 @@ import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serializatio
 import ../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
-import std/[options, strformat]
+import std/[options, strformat, typetraits]
 import tinypool
 import core/[signalSystem]
 
@@ -229,8 +229,6 @@ proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T) =
     triggerSignal(SignalType.stPreDelete, connection, entry)
     
     connection.delete(entry)
-    
-    triggerSignal(SignalType.stPostDelete, connection, entry)
     
 
 proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[T]) =
