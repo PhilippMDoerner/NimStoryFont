@@ -48,9 +48,9 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
             resp get400BadRequestResponse("The sent image could not be saved, because there was no image file in the sent form under the 'image' key.")
 
 
-proc updateImageView*(ctx: Context) {.async, gcsafe.}=
+proc updateImageView*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
-    let imageToUpdateId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let imageToUpdateId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
     let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
 
     var imageFormData = ImageDTO(
@@ -62,3 +62,12 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.}=
     respondBadRequestOnDbError():
         let updatedImageEntry: Image = updateImageFileOrName(imageToUpdateId, imageFormData)
         resp jsonyResponse[Image](ctx , updatedImageEntry)
+
+
+proc deleteImageView*(ctx: Context) {.async, gcsafe.} =
+    let ctx = JWTContext(ctx)
+    let imageToDeleteId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
+
+    respondBadRequestOnDbError():
+        deleteImage(imageToDeleteId)
+        respDefault(Http204)

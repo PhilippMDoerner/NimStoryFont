@@ -1,16 +1,19 @@
 import ../core/signalSystem
-import std/[os, db_sqlite, strutils]
+import ../../applicationSettings
+import ../../utils/fileUpload
+import std/[os, db_sqlite, strutils, json]
 import imageModel
 import imageUtils
+import prologue
 
 proc deleteImageFile(connection: DbConn, modelInstance: Image) =
   ## Deletes an image file off the harddrive if the corresponding image entry
   ## in the database is deleted
   let imageFilepath: string = modelInstance.image
-  if fileExists(imageFilepath):
-    removeFile(imageFilepath)
+  let mediaDirectory: string = settings["mediaDir"].getStr()
+  deleteArticleImage(imageFilepath, mediaDirectory)
 
-connect(SignalType.stPostDelete, Image, deleteImageFile)
+connect(SignalType.stPreDelete, Image, deleteImageFile)
 
 
 #TODO: Finish webp conversion

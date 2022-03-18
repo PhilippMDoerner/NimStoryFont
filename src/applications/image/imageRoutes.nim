@@ -13,8 +13,15 @@ proc addImageRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/image/{ID_PATTERN}",
+        re fmt"/image/{ID_PATTERN}/",
         handler = imageControllers.updateImageView,
         httpMethod = [HttpPut, HttpPatch],
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/image/{ID_PATTERN}/",
+        handler = imageControllers.deleteImageView,
+        httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
