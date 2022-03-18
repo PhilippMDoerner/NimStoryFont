@@ -9,7 +9,7 @@ type SignalType* = enum
   stPreCreate
   stPostCreate
   stPreDelete
-  stPostDelete
+  #stPostDelete #There can be no PostDelete Signal, the deleted entry gets nil'd by norm so you can't do anything with it
   stPreUpdate
   stPostUpdate
 
