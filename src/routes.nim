@@ -6,6 +6,7 @@ import applications/search/searchRoutes
 import applications/location/locationRoutes
 import applications/encounter/encounterRoutes
 import applications/contentUpdates/contentUpdateRoutes
+import applications/diaryentry/diaryEntryRoutes
 
 import prologue
 
@@ -18,3 +19,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addSearchRoutes(app)
   addEncounterRoutes(app)
   addArticleUpdateRoutes(app)
+  addDiaryEntryRoutes(app)
