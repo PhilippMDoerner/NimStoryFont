@@ -16,8 +16,8 @@ proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} =
     let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
 
     respondBadRequestOnDbError():
-        let characters: seq[CharacterOverview] = characterService.getCampaignCharacterListOverview(campaignName)
-        resp jsonyResponse[seq[CharacterOverview]](ctx, characters)
+        let characters: seq[CharacterOverviewSerializable] = characterService.getCampaignCharacterListOverview(campaignName)
+        resp jsonyResponse[seq[CharacterOverviewSerializable]](ctx, characters)
 
 
 proc getCharacterByIdView*(ctx: Context) {.async.} =
