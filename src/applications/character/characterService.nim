@@ -7,12 +7,18 @@ import ../encounter/[encounterModel, characterEncounterModel]
 import ../playerclass/playerClassModel
 import ../organization/organizationModel
 import tinypool
+import std/[sequtils, sugar]
 import norm/[model, sqlite]
 
 
-proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverview] =
+proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverviewSerializable] =
     ## lists all campaign entries using a limited but performant representation of a character
-    result = getCampaignList(campaignName, CharacterOverview)
+    let campaignCharacters: seq[CharacterOverview] = getCampaignList(campaignName, CharacterOverview)
+    result = campaignCharacters.map(
+        proc(character: CharacterOverview): CharacterOverviewSerializable =
+            let images = if character.player_character: getManyFromOne(character, Image) else: @[]
+            result = overviewSerializeCharacter(character, images)
+    )
 
 
 proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
