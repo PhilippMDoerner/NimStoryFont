@@ -19,7 +19,7 @@
                 <mxCell id="11" style="edgeStyle=none;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="4" target="6" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="4" value="Controller&lt;br&gt;&lt;br&gt;Takes request, extract necessary url params/request body + settings and passes it on to service.&lt;br&gt;Receives data as object from service and passes it to jsonyResponse, which parses the json" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="4" value="&amp;lt;X&amp;gt;Controller.nim&lt;br&gt;&lt;br&gt;Takes request, extract necessary url params/request body + settings and passes it on to service.&lt;br&gt;Receives data as object from service and passes it to jsonyResponse, which parses the json" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="510" y="160" width="320" height="110" as="geometry"/>
                 </mxCell>
                 <mxCell id="13" style="edgeStyle=none;html=1;exitX=0.185;exitY=1.027;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" source="6" target="8" edge="1">
@@ -41,7 +41,7 @@
                 <mxCell id="36" value="Model" style="edgeStyle=none;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="6" target="35">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="6" value="Service&lt;br&gt;&lt;br&gt;Receives the parameter it requires and queries data from/performs actions on the DB, using procs from the application-specific repository or the generic repository." style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="6" value="&amp;lt;X&amp;gt;Service.nim&lt;br&gt;&lt;br&gt;Receives the parameter it requires and queries data from/performs actions on the DB, using procs from the application-specific repository or the generic repository." style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="510" y="350" width="320" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="16" value="Model" style="edgeStyle=none;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" parent="1" source="7" target="6" edge="1">
@@ -50,7 +50,7 @@
                 <mxCell id="20" style="edgeStyle=none;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.145;entryY=0;entryDx=0;entryDy=4.35;entryPerimeter=0;" parent="1" source="7" target="17" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="7" value="GenericRepository&lt;br&gt;(uses norm to query the database and triggers signals)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="7" value="genericArticleRepository.nim&lt;br&gt;(uses norm to query the database and triggers signals)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="510" y="580" width="320" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="14" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="8" target="7" edge="1">
@@ -61,7 +61,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="8" value="Repository&lt;br&gt;&lt;br&gt;(For more compplicated queries using the generic repository as base)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="8" value="&amp;lt;X&amp;gt;Repository.nim&lt;br&gt;&lt;br&gt;(For more compplicated queries using the generic repository as base)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="290" y="470" width="210" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="21" style="edgeStyle=none;html=1;exitX=0.855;exitY=0;exitDx=0;exitDy=4.35;exitPerimeter=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" parent="1" source="17" target="7" edge="1">
@@ -73,10 +73,10 @@
                 <mxCell id="30" style="edgeStyle=none;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="27" target="6" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="27" value="Utils (optional)&lt;br&gt;&lt;br&gt;Helper functions for dealing with models" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="27" value="&amp;lt;X&amp;gt;Utils.nim (optional)&lt;br&gt;&lt;br&gt;Helper functions for dealing with models" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="330" y="342" width="128" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="28" value="Model&lt;br&gt;&lt;br&gt;Define the data structures that the data of a given table can be converted into.&lt;br&gt;Is used or has its instances passed to all levels in the Controller-Service-Repository stack" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="28" value="&amp;lt;X&amp;gt;Model.nim&lt;br&gt;&lt;br&gt;Define the data structures that the data of a given table can be converted into.&lt;br&gt;Is used or has its instances passed to all levels in the Controller-Service-Repository stack" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-10" y="335" width="240" height="135" as="geometry"/>
                 </mxCell>
                 <mxCell id="34" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;strokeWidth=3;" parent="1" vertex="1">
