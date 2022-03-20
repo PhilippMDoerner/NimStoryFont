@@ -22,3 +22,6 @@ proc getCampaignDiaryEntryListOverview*(campaignName: string): seq[DiaryEntryOve
 proc createDiaryEntry*(jsonData: string): DiaryEntry =
   let newEntry = createArticleEntry(jsonData, DiaryEntry)
   result = getDiaryEntryById(newEntry.id)
+
+proc deleteDiaryEntry*(entryId: int64) =
+  deleteEntry(entryId, DiaryEntry)
