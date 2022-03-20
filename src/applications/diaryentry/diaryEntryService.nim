@@ -4,22 +4,21 @@ import ../genericArticleRepository
 import ../../applicationSettings
 import norm/model
 import tinypool
-import std/strformat
+import std/[sequtils, sugar, strformat]
 import diaryEntryRepository
+import diaryEntrySerialization
+import ../serializationUtils
 
 export diaryEntryModel
 
 proc getDiaryEntryById*(diaryentryId: int64): DiaryEntry =
-  result = getEntryById(diaryentryId, DiaryEntry)
+  let entry = getEntryById(diaryentryId, DiaryEntry)
+  result = serializeDiaryEntry(entry)
 
 proc getCampaignDiaryEntryListOverview*(campaignName: string): seq[DiaryEntryOverview] =
-  result = getDiaryEntriesForCampaign(campaignName)
+  let overviewEntries = getDiaryEntriesForCampaign(campaignName)
+  result = overviewEntries.map(entry => overviewSerializeDairyEntry(entry))
 
-proc getDiaryEntryEncounters*(diaryentryId: int64): seq[Encounter] =
-    var encounters: seq[Encounter] = @[newModel(Encounter)]
-    let sqlCondition: string = fmt "{ENCOUNTER_TABLE}.diaryentry_id = ?"
-
-    withDbConn(connection):
-        connection.select(encounters, sqlCondition, diaryentryId)
-
-    result = encounters
+proc createDiaryEntry*(jsonData: string): DiaryEntry =
+  let newEntry = createArticleEntry(jsonData, DiaryEntry)
+  result = getDiaryEntryById(newEntry.id)
