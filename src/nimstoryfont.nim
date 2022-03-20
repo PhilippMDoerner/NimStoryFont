@@ -1,5 +1,6 @@
 import prologue
 import applicationSettings
+import applicationEvents
 import utils/jwtContext
 import logging
 import tinypool
@@ -12,13 +13,14 @@ proc main() =
     let databasePath: string = settings.getOrDefault("databasePath").getStr()
     initConnectionPool(databasePath, connectionPoolSize)
 
-    var app: Prologue = newApp(settings)
+    var app: Prologue = newApp(
+        settings, 
+        startup = getStartUpEvents(), 
+        shutdown = getShutDownEvents()
+    )
     addApplicationRoutes(app)
     app.run(JWTContext)
 
     destroyConnectionPool()
-
-setLogFilter(lvlAll)
-addHandler(newConsoleLogger())
 
 main()
