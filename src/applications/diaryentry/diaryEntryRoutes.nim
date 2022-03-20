@@ -2,6 +2,8 @@ import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
 import diaryEntryControllers
+import diaryEntryModel
+import ../genericArticleControllers
 import std/strformat
 
 proc addDiaryEntryRoutes*(app: Prologue) =
@@ -14,7 +16,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/", 
-        handler = diaryEntryControllers.deleteDiaryEntryView,
+        handler = genericArticleControllers.deleteEntryControllerFactory(DiaryEntry),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
