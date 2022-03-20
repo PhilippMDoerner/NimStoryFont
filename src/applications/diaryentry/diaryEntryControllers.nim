@@ -27,3 +27,12 @@ proc createDiaryEntryView*(ctx: Context) {.async.} =
         let newEntry = createDiaryEntry(jsonData)
         resp jsonyResponse(ctx, newEntry)
 
+proc deleteDiaryEntryView*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let diaryEntryId: int = parseInt(ctx.getPathParams(ID_PARAM))
+
+    respondBadRequestOnDbError():
+        deleteDiaryEntry(diaryEntryId)
+        respDefault(Http204)
+

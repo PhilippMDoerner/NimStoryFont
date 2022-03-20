@@ -13,6 +13,13 @@ proc addDiaryEntryRoutes*(app: Prologue) =
     )
 
     app.addRoute(
+        re fmt"/diaryentry/{ID_PATTERN}/", 
+        handler = diaryEntryControllers.deleteDiaryEntryView,
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/overview/", 
         diaryEntryControllers.getCampaignDiaryEntryOverviewView,  
         httpMethod = HttpGet,
