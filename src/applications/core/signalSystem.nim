@@ -1,7 +1,6 @@
 import std/[tables, sets, hashes, db_sqlite, typetraits, logging, strformat]
 import norm/model 
 
-var LOGGER = newConsoleLogger(lvlInfo)
 
 type SignalType* = enum
   ## Denotes when a SignalProc is triggered. A signal can be triggered
@@ -45,7 +44,7 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
   STORE.procs[tableKind][signalType].incl(signalProc)
 
   let myLen = STORE.procs[tableKind][signalType].len()
-  LOGGER.log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {tableKind} - There is/are now {myLen} {signalType} signal(s)")
+  log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {tableKind} - There is/are now {myLen} {signalType} signal(s)")
 
 
 proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelInstance: T) =
