@@ -1,7 +1,6 @@
 import ../utils/errorResponses
 import norm/sqlite
-import chronicles
-export chronicles
+import std/logging
 
 template respondBadRequestOnDbError*(body: untyped) =
   ## template to handle some usual error cases. Returns HTTP400
