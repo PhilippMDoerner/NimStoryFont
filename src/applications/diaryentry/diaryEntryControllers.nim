@@ -17,3 +17,13 @@ proc getCampaignDiaryEntryOverviewView*(ctx: Context) {.async.} =
     respondBadRequestOnDbError():
         let diaryEntries: seq[DiaryEntryOverview] = diaryEntryService.getCampaignDiaryEntryListOverview(campaignName)
         resp jsonyResponse[seq[DiaryEntryOverview]](ctx, diaryEntries)
+
+proc createDiaryEntryView*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let jsonData: string = ctx.request.body()
+    
+    respondBadRequestOnDbError():
+        let newEntry = createDiaryEntry(jsonData)
+        resp jsonyResponse(ctx, newEntry)
+
