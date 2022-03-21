@@ -3,6 +3,8 @@ import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import creatureControllers
 import std/strformat
 import ../allUrlParams
+import ../genericArticleControllers
+import creatureModel
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
@@ -14,7 +16,7 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = creatureControllers.deleteCreatureView,
+        handler = createEntryDeletionHandler(Creature),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )

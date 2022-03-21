@@ -2,7 +2,9 @@ import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
 import characterControllers
+import characterModel
 import std/strformat
+import ../genericArticleControllers
 
 proc addCharacterRoutes*(app: Prologue) =
     app.addRoute(
@@ -14,7 +16,7 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/{ID_PATTERN}/", 
-        handler = characterControllers.deleteCharacterView,
+        handler = createEntryDeletionHandler(Character),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
