@@ -1,6 +1,7 @@
 import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import creatureControllers
+import creatureService
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -9,7 +10,7 @@ import creatureModel
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-        handler = creatureControllers.createCreatureView,
+        handler = createEntryCreationHandler(Creature, getCreatureById),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )

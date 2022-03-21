@@ -3,13 +3,14 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import diaryEntryControllers
 import diaryEntryModel
+import diaryEntryService
 import ../genericArticleControllers
 import std/strformat
 
 proc addDiaryEntryRoutes*(app: Prologue) =
     app.addRoute(
         re"/diaryentry/",
-        handler = diaryEntryControllers.createDiaryEntryView,
+        handler = createEntryCreationHandler(DiaryEntry, getDiaryEntryById),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
@@ -23,7 +24,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        diaryEntryControllers.getCampaignDiaryEntryOverviewView,  
+        handler = getCampaignDiaryEntryOverviewView,  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

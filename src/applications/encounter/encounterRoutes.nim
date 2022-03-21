@@ -2,6 +2,7 @@ import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import encounterControllers
 import std/strformat
+import encounterService
 import ../allUrlParams
 import encounterModel
 import ../genericArticleControllers
@@ -16,7 +17,7 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
-        handler = encounterControllers.createEncounterView,
+        handler = createEntryCreationHandler(Encounter, getEncounterById),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
