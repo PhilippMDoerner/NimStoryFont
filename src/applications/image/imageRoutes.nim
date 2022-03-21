@@ -1,8 +1,10 @@
 import imageControllers
+import imageModel
 import prologue
 import ../allUrlParams
 import ../../middleware/loginMiddleware
 import std/strformat
+import ../genericArticleControllers
 
 proc addImageRoutes*(app: Prologue) =
     app.addRoute(
@@ -21,7 +23,7 @@ proc addImageRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/image/{ID_PATTERN}/",
-        handler = imageControllers.deleteImageView,
+        handler = createEntryDeletionHandler(Image),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )

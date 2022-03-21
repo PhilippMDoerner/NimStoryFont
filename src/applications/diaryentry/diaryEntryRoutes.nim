@@ -16,7 +16,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/", 
-        handler = genericArticleControllers.deleteEntryControllerFactory(DiaryEntry),
+        handler = createEntryDeletionHandler(DiaryEntry),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )

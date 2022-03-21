@@ -3,38 +3,40 @@ import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import encounterControllers
 import std/strformat
 import ../allUrlParams
+import encounterModel
+import ../genericArticleControllers
 
 proc addEncounterRoutes*(app: Prologue) =
     app.addRoute(
-       re"/encounter/{CAMPAIGN_NAME_PATTERN}/orderswap/",
+       re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/orderswap/",
        handler = encounterControllers.swapEncounterOrder,
        httpMethod = HttpPatch,
        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
         handler = encounterControllers.createEncounterView,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = encounterControllers.deleteEncounterView,
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
+        handler = createEntryDeletionHandler(Encounter),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = encounterControllers.updateEncounterView,
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
    
     app.addRoute(
-        re"/encounter/{CAMPAIGN_NAME_PATTERN}/cutinsert/",
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/cutinsert/",
         handler = encounterControllers.cutInsertEncounter,
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
