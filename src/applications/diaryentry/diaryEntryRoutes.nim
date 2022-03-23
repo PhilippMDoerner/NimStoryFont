@@ -1,5 +1,5 @@
 import prologue
-import ../../middleware/loginMiddleware
+import ../../middleware/[campaignAccessMiddleware, loginMiddleware]
 import ../allUrlParams
 import diaryEntryControllers
 import diaryEntryModel
@@ -20,6 +20,13 @@ proc addDiaryEntryRoutes*(app: Prologue) =
         handler = createEntryDeletionHandler(DiaryEntry, ID_PARAM),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/diaryentry/{ID_PATTERN}/",
+        handler = createEntryUpdateHandler(DiaryEntry, ID_PARAM, getDiaryEntryById),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
