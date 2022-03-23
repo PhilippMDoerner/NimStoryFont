@@ -17,7 +17,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(DiaryEntry),
+        handler = createEntryDeletionHandler(DiaryEntry, ID_PARAM),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )

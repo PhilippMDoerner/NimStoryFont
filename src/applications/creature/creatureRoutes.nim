@@ -17,7 +17,7 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Creature),
+        handler = createEntryDeletionHandler(Creature, ID_PARAM),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
