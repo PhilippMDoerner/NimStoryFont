@@ -17,7 +17,7 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Character),
+        handler = createEntryDeletionHandler(Character, ID_PARAM),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )

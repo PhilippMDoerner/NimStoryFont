@@ -24,7 +24,7 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Encounter),
+        handler = createEntryDeletionHandler(Encounter, ID_PARAM),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
