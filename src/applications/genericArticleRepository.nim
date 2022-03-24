@@ -110,7 +110,7 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T, modelType: 
         result = getEntryByField[M](connection, fieldName, fieldValue, modelType)
 
 
-
+#TODO: Make it so entryId does not have to be inserted via formatting
 proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     mixin newModel
