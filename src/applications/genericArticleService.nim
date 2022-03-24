@@ -28,5 +28,5 @@ proc createArticle*[T: Model](jsonData: string, modelType: typedesc[T]): T =
 
     result = createEntry(entry)
 
-proc deleteArticle*[T: Model](entryId: int64, modelType: typedesc[T]): T =
+proc deleteArticle*[T: Model](entryId: int64, modelType: typedesc[T]) =
   deleteEntry(entryId, modelType)
