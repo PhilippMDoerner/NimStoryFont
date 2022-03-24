@@ -23,7 +23,7 @@ proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} =
 proc getCreatureByIdView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
-    let creatureId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let creatureId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         let creature = creatureService.getCreaturebyId(creatureId)

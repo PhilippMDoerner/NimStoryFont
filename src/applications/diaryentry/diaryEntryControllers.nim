@@ -30,7 +30,7 @@ proc createDiaryEntryView*(ctx: Context) {.async.} =
 proc deleteDiaryEntryView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let diaryEntryId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let diaryEntryId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         deleteDiaryEntry(diaryEntryId)

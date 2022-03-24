@@ -23,7 +23,7 @@ proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} =
 proc getCharacterByIdView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     
-    let characterId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         let character = characterService.getCharacterbyId(characterId)
@@ -54,7 +54,7 @@ proc createCharacterView*(ctx: Context) {.async, gcsafe.}=
 proc deleteCharacterView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let characterId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         deleteCharacter(characterId)
@@ -64,7 +64,7 @@ proc deleteCharacterView*(ctx: Context) {.async.} =
 proc updateCharacterView*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
 
-    let characterId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
     let jsonData: string = ctx.request.body()
 
     respondBadRequestOnDbError():
