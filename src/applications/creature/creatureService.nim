@@ -21,13 +21,11 @@ proc getCreatureById*(connection: sqlite.DbConn, entryId: int64): CreatureRead {
     result = connection.getEntryById(entryId, CreatureRead)
 
 
-proc deleteCreature*(entryId: int) =
+proc deleteCreature*(entryId: int64) =
     deleteEntry(entryId, Creature)
 
-
-proc updateCreature*(entryId: int, entryJsonData: string): CreatureRead =
-    let creature: Creature = updateArticleEntry(entryId, entryJsonData, Creature)
-    result = getCreatureById(creature.id)
+proc getCreatureById*(entryId: int64): CreatureRead {.gcsafe.}=
+    result = getEntryById(entryId, CreatureRead)
 
 
 proc createCreature*(entryJsonData: string): CreatureRead =
