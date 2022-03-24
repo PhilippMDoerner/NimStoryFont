@@ -117,9 +117,9 @@ proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: ty
 
     var targetEntry: M = newModel(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt "{modelTableName}.id = ?"
+    var sqlCondition: string = fmt"{modelTableName}.id = {entryId}"
 
-    connection.select(targetEntry, sqlCondition, entryId)
+    connection.select(targetEntry, sqlCondition)
 
     result = targetEntry
 
@@ -234,7 +234,7 @@ proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T) =
 proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[T]) =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-    var entryToDelete: T = getEntryById(entryId, T)
+    var entryToDelete = connection.getEntryById(entryId, modelType)
     connection.deleteEntryInTransaction(entryToDelete)
     
 

@@ -21,8 +21,7 @@ proc getCreatureById*(connection: sqlite.DbConn, entryId: int64): CreatureRead {
     result = connection.getEntryById(entryId, CreatureRead)
 
 #TODO: It is impossible to delete this without things stopping to compile, try to figure out why
-proc deleteCreature*(entryId: int64) =
-    deleteEntry(entryId, Creature)
+
 
 proc getCreatureById*(entryId: int64): CreatureRead {.gcsafe.}=
     result = getEntryById(entryId, CreatureRead)
