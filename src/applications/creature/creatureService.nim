@@ -1,6 +1,6 @@
 import ../genericArticleRepository
 import creatureModel
-
+import norm/sqlite
 export creatureModel
 
 proc getCampaignCreatureListOverview*(campaignName: string): seq[CreatureOverview] =
@@ -17,8 +17,8 @@ proc getCreatureByName*(campaignName: string, entryName: string): CreatureRead =
     result = getEntryByName(campaignName, entryName, CreatureRead)
 
 
-proc getCreatureById*(entryId: int64): CreatureRead =
-    result = getEntryById(entryId, CreatureRead)
+proc getCreatureById*(connection: sqlite.DbConn, entryId: int64): CreatureRead {.gcsafe.}=
+    result = connection.getEntryById(entryId, CreatureRead)
 
 
 proc deleteCreature*(entryId: int) =

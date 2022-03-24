@@ -21,7 +21,7 @@ proc createEncounterView*(ctx: Context) {.async, gcsafe.}=
 proc updateEncounterView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let entryId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
     let jsonData: string = ctx.request.body()
     
     respondBadRequestOnDbError():
@@ -32,7 +32,7 @@ proc updateEncounterView*(ctx: Context) {.async, gcsafe.}=
 proc deleteEncounterView*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams(ID_PARAM))
+    let entryId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
 
     respondBadRequestOnDbError():
         deleteEncounter(entryId)
