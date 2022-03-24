@@ -5,7 +5,8 @@ import controllerTemplates
 import genericArticleRepository
 import norm/model
 
-type SerializationProc*[T] = proc(entryId: int64): T {.gcsafe.}
+type SerializationByIdProc*[T] = proc(entryId: int64): T {.gcsafe.}
+type SerializationByNameProc*[T] = proc(campaignName: string, entryName: string): T {.gcsafe.}
 
 proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamName: string): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
@@ -17,7 +18,10 @@ proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamNa
       deleteEntry(entryId, modelType)
       respDefault(Http204)
 
-proc createEntryCreationHandler*[T: Model, M: object | ref object](modelType: typedesc[T], getSerializedArticleData: SerializationProc[M]): HandlerAsync =
+proc createEntryCreationHandler*[T: Model, M: object | ref object](
+  modelType: typedesc[T], 
+  getSerializedArticleData: SerializationByIdProc[M]
+): HandlerAsync =
   result = proc (ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
 
@@ -29,7 +33,11 @@ proc createEntryCreationHandler*[T: Model, M: object | ref object](modelType: ty
         resp jsonyResponse(ctx, serializedNewEntry)
 
 #TODO: Make it so that the creation datetime of an entry can not be changed through this controller, it also shouldn't be necessary
-proc createEntryUpdateHandler*[T: Model, M: object | ref object](modelType: typedesc[T], idPathParamName: string, getSerializedArticleData: SerializationProc[M]): HandlerAsync =
+proc createEntryUpdateHandler*[T: Model, M: object | ref object](
+  modelType: typedesc[T], 
+  idPathParamName: string, 
+  getSerializedArticleData: SerializationByIdProc[M]
+): HandlerAsync =
   result = proc(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
 
@@ -40,3 +48,19 @@ proc createEntryUpdateHandler*[T: Model, M: object | ref object](modelType: type
       let updatedEntry = updateArticleEntry(entryId, jsonData, modelType)
       let serializedUpdatedEntry = getSerializedArticleData(updatedEntry.id)
       resp jsonyResponse(ctx, serializedUpdatedEntry)
+
+proc createEntryReadByNameHandler*[T: Model, M: object | ref object](
+  modelType: typedesc[T], 
+  campaignNameParamName: string,
+  entryNameParamName: string, 
+  getSerializedArticleData: SerializationByNameProc[M]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let entryName: string = ctx.getPathParams(entryNameParamName)
+    let campaignName: string = ctx.getPathParams(campaignNameParamName)
+
+    respondBadRequestOnDbError():
+      let serializedEntry = getSerializedArticleData(campaignName, entryName)
+      resp jsonyResponse(ctx, serializedEntry)
