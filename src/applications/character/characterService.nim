@@ -44,29 +44,33 @@ proc getFullCharacterData*(connection: sqlite.DbConn, characterId: int64): Chara
 
 
 proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
-    let character: CharacterRead = getEntryByName(campaignName, characterName, CharacterRead)
-    result = getFullCharacterData(character.id)
+    withDbTransaction(connection):
+        let character: CharacterRead = connection.getEntryByName(campaignName, characterName, CharacterRead)
+        result = connection.getFullCharacterData(character.id)
 
 
 proc getCharacterById*(characterId: int64): CharacterSerializable =
-    result = getFullCharacterData(characterId)
+    withDbConn(connection):
+        result = connection.getFullCharacterData(characterId)
 
 
 proc deleteCharacter*(characterId: int64) =
     deleteEntry(characterId, Character)
 
 
-proc updateCharacter*(characterId: int, characterJsonData: string): CharacterSerializable =
-    let character: Character = updateArticleEntry(characterId, characterJsonData, Character)
-    result = getFullCharacterData(character.id)
+proc updateCharacter*(characterId: int64, characterJsonData: string): CharacterSerializable =
+    withDbTransaction(connection):
+        let character: Character = updateArticleEntry(characterId, characterJsonData, Character)
+        result = connection.getFullCharacterData(character.id)
 
 
 proc createCharacter*(characterJsonData: string): CharacterSerializable =
-    let character: Character = createArticleEntry(characterJsonData, Character)
-    result = getFullCharacterData(character.id)
+    withDbTransaction(connection):
+        let character: Character = createArticleEntry(characterJsonData, Character)
+        result = connection.getFullCharacterData(character.id)
 
 
-proc getOrganizationMembers*(organizationId: int): seq[OrganizationCharacter] =
+proc getOrganizationMembers*(organizationId: int64): seq[OrganizationCharacter] =
     var entries: seq[OrganizationCharacter] = @[]
     entries.add(newModel(OrganizationCharacter))
     
