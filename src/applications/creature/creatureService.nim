@@ -26,8 +26,3 @@ proc deleteCreature*(entryId: int64) =
 
 proc getCreatureById*(entryId: int64): CreatureRead {.gcsafe.}=
     result = getEntryById(entryId, CreatureRead)
-
-
-proc createCreature*(entryJsonData: string): CreatureRead =
-    let creature = createArticleEntry(entryJsonData, Creature)
-    result = getCreatureById(creature.id)
