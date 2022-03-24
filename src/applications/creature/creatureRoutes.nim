@@ -24,7 +24,7 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = creatureControllers.updateCreatureView,
+        handler = createEntryUpdateHandler(Creature, ID_PARAM, getCreatureById),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
@@ -45,7 +45,7 @@ proc addCreatureRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        creatureControllers.getCreatureByNameView,  
+        createEntryReadByNameHandler(Creature, CAMPAIGN_NAME_PARAM, ARTICLE_NAME_PARAM, getCreatureByName),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
