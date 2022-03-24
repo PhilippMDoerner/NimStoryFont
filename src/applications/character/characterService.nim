@@ -9,6 +9,7 @@ import ../organization/organizationModel
 import tinypool
 import std/[sequtils, sugar]
 import norm/[model, sqlite]
+import ../../utils/databaseUtils
 
 
 proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverviewSerializable] =
@@ -26,12 +27,12 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     result = getCampaignList(campaignName, CharacterRead)
 
 
-proc getFullCharacterData*(characterId: int64): CharacterSerializable =
-    let character = getEntryById(characterId, CharacterRead)
-    let images = getManyFromOne(character, Image)
-    let encounters = getManyToMany(character, CharacterEncounterRead, EncounterRead)
-    let playerClassConnections = getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
-    let items = getManyFromOne(character, ItemOverview)
+proc getFullCharacterData*(connection: sqlite.DbConn, characterId: int64): CharacterSerializable =
+    let character = connection.getEntryById(characterId, CharacterRead)
+    let images = connection.getManyFromOne(character, Image)
+    let encounters = connection.getManyToMany(character, CharacterEncounterRead, EncounterRead)
+    let playerClassConnections = connection.getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
+    let items = connection.getManyFromOne(character, ItemOverview)
 
     result = CharacterSerializable(
         character: character,
