@@ -3,6 +3,7 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import characterControllers
 import characterModel
+import characterSerializable
 import characterService
 import std/strformat
 import ../genericArticleControllers
@@ -10,7 +11,7 @@ import ../genericArticleControllers
 proc addCharacterRoutes*(app: Prologue) =
     app.addRoute(
         re"/character/",
-        handler = createEntryCreationHandler(Character, getCharacterById),
+        handler = createEntryCreationHandler(Character, getFullCharacterData),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )

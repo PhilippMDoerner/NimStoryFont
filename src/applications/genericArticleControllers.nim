@@ -1,18 +1,19 @@
 import prologue
 import std/[strutils]
-import ../utils/[jwtContext, customResponses, errorResponses]
+import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import controllerTemplates
 import genericArticleService
-import norm/model
+import ../utils/djangoDateTime/[normConversion, serialization]
+import norm/[sqlite, model]
 
-type SerializationByIdProc*[T] = proc(entryId: int64): T {.gcsafe.}
-type SerializationByNameProc*[T] = proc(campaignName: string, entryName: string): T {.gcsafe.}
+export serialization
+export normConversion
 
 proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamName: string): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams(idPathParamName))
+    let entryId: int64 = parseInt(ctx.getPathParams(idPathParamName)).int64
 
     respondBadRequestOnDbError():
       deleteArticle(entryId, modelType)
@@ -28,9 +29,8 @@ proc createEntryCreationHandler*[T: Model, M: object | ref object](
     let jsonData: string = ctx.request.body()
     
     respondBadRequestOnDbError():
-        let newEntry = createArticle(jsonData, modelType)
-        let serializedNewEntry = getSerializedArticleData(newEntry.id)
-        resp jsonyResponse(ctx, serializedNewEntry)
+        let newEntry = createArticle(jsonData, modelType, getSerializedArticleData)
+        resp jsonyResponse(ctx, newEntry)
 
 #TODO: Make it so that the creation datetime of an entry can not be changed through this controller, it also shouldn't be necessary
 proc createEntryUpdateHandler*[T: Model, M: object | ref object](
@@ -41,13 +41,12 @@ proc createEntryUpdateHandler*[T: Model, M: object | ref object](
   result = proc(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
 
-    let entryId: int = parseInt(ctx.getPathParams(idPathParamName))
+    let entryId: int64 = parseInt(ctx.getPathParams(idPathParamName))
     let jsonData: string = ctx.request.body()
 
     respondBadRequestOnDbError():
-      let updatedEntry = updateArticle(entryId, jsonData, modelType)
-      let serializedUpdatedEntry = getSerializedArticleData(updatedEntry.id)
-      resp jsonyResponse(ctx, serializedUpdatedEntry)
+      let updatedEntry = updateArticle(entryId, jsonData, modelType, getSerializedArticleData)
+      resp jsonyResponse(ctx, updatedEntry)
 
 proc createEntryReadByNameHandler*[T: Model, M: object | ref object](
   modelType: typedesc[T], 
