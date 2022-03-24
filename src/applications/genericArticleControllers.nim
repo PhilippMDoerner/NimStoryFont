@@ -2,7 +2,7 @@ import prologue
 import std/[strutils]
 import ../utils/[jwtContext, customResponses, errorResponses]
 import controllerTemplates
-import genericArticleRepository
+import genericArticleService
 import norm/model
 
 type SerializationByIdProc*[T] = proc(entryId: int64): T {.gcsafe.}
@@ -15,7 +15,7 @@ proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamNa
     let entryId: int = parseInt(ctx.getPathParams(idPathParamName))
 
     respondBadRequestOnDbError():
-      deleteEntry(entryId, modelType)
+      deleteArticle(entryId, modelType)
       respDefault(Http204)
 
 proc createEntryCreationHandler*[T: Model, M: object | ref object](
@@ -28,7 +28,7 @@ proc createEntryCreationHandler*[T: Model, M: object | ref object](
     let jsonData: string = ctx.request.body()
     
     respondBadRequestOnDbError():
-        let newEntry = createArticleEntry(jsonData, modelType)
+        let newEntry = createArticle(jsonData, modelType)
         let serializedNewEntry = getSerializedArticleData(newEntry.id)
         resp jsonyResponse(ctx, serializedNewEntry)
 
@@ -45,7 +45,7 @@ proc createEntryUpdateHandler*[T: Model, M: object | ref object](
     let jsonData: string = ctx.request.body()
 
     respondBadRequestOnDbError():
-      let updatedEntry = updateArticleEntry(entryId, jsonData, modelType)
+      let updatedEntry = updateArticle(entryId, jsonData, modelType)
       let serializedUpdatedEntry = getSerializedArticleData(updatedEntry.id)
       resp jsonyResponse(ctx, serializedUpdatedEntry)
 
