@@ -6,7 +6,7 @@ import ../applicationConstants
 import ../utils/databaseUtils
 import tinypool
 
-type SerializationByIdProc*[M: object | ref object] = proc(connection: DbConn, entryId: int64): M {.gcsafe.}
+type SerializationByIdProc*[M: object | ref object] = proc(entryId: int64): M {.gcsafe.}
 type SerializationProc*[T: Model, M: object | ref object] = proc(connection: DbConn, entry: T): M {.gcsafe.}
 type OverviewSerializationProc*[M: object | ref object] = proc(campaignName: string): seq[M] {.gcsafe.}
 
@@ -41,8 +41,7 @@ proc deleteArticle*[T: Model](entryId: int64, modelType: typedesc[T]) =
   deleteEntry(entryId, modelType)
 
 proc readArticle*[M: object | ref object](entryId: int64, getSerializedData: SerializationByIdProc[M]): M =
-  withDbConn(connection):
-    result = connection.getSerializedData(entryId)
+  result = getSerializedData(entryId)
 
 proc readArticleOverviews*[M: object | ref object](campaignName: string, getSerializedData: OverviewSerializationProc[M]): seq[M] =
   result = getSerializedData(campaignName)
