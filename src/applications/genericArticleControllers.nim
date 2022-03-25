@@ -1,10 +1,10 @@
 import prologue
 import std/[strutils]
-import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
+import ../utils/[jwtContext, customResponses, errorResponses]
 import controllerTemplates
 import genericArticleService
 import ../utils/djangoDateTime/[normConversion, serialization]
-import norm/[sqlite, model]
+import norm/[model]
 
 export serialization
 export normConversion
