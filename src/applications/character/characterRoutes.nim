@@ -25,21 +25,21 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/{ID_PATTERN}/", 
-        handler = characterControllers.updateCharacterView,
+        handler = createEntryUpdateHandler(Character, ID_PARAM, getFullCharacterData),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/character/{ID_PATTERN}/", 
-        characterControllers.getCharacterByIdView, 
+        handler = createEntryReadByIdHandler(ID_PARAM, getCharacterById), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/character/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        characterControllers.getCampaignCharactersOverviewView,  
+        handler = createCampaignOverviewReadHandler(CAMPAIGN_NAME_PARAM, getCampaignCharacterList),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

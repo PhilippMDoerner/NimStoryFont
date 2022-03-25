@@ -10,26 +10,6 @@ import ../controllerTemplates
 import ../allUrlParams
 
 
-proc getCampaignCharactersOverviewView*(ctx: Context) {.async.} = 
-    let ctx = JWTContext(ctx)
-    
-    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
-
-    respondBadRequestOnDbError():
-        let characters: seq[CharacterOverviewSerializable] = characterService.getCampaignCharacterListOverview(campaignName)
-        resp jsonyResponse[seq[CharacterOverviewSerializable]](ctx, characters)
-
-
-proc getCharacterByIdView*(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-    
-    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-
-    respondBadRequestOnDbError():
-        let character = characterService.getCharacterbyId(characterId)
-        resp jsonyResponse[CharacterSerializable](ctx, character)
-
-
 proc getCharacterByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
     
@@ -39,34 +19,3 @@ proc getCharacterByNameView*(ctx: Context) {.async.} =
     respondBadRequestOnDbError():
         let character = getCharacterByName(campaignName, characterName)
         resp jsonyResponse[CharacterSerializable](ctx, character)
-
-
-proc createCharacterView*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
-
-    let jsonData: string = ctx.request.body()
-    
-    respondBadRequestOnDbError():
-        let newCharacterEntry: CharacterSerializable = createCharacter(jsonData)
-        resp jsonyResponse[CharacterSerializable](ctx, newCharacterEntry)
-
-
-proc deleteCharacterView*(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-
-    respondBadRequestOnDbError():
-        deleteCharacter(characterId)
-        respDefault(Http204)
-
-
-proc updateCharacterView*(ctx: Context) {.async, gcsafe.} =
-    let ctx = JWTContext(ctx)
-
-    let characterId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-    let jsonData: string = ctx.request.body()
-
-    respondBadRequestOnDbError():
-        let updatedCharacterEntry = updateCharacter(characterId, jsonData)
-        resp jsonyResponse[CharacterSerializable](ctx, updatedCharacterEntry)
