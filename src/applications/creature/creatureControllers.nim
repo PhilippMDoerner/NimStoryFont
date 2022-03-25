@@ -20,15 +20,6 @@ proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} =
         resp jsonyResponse[seq[CreatureOverview]](ctx, creatures)
 
 
-proc getCreatureByIdView*(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-    
-    let creatureId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-
-    respondBadRequestOnDbError():
-        let creature = creatureService.getCreaturebyId(creatureId)
-        resp jsonyResponse[CreatureRead](ctx, creature)
-
 
 proc getCreatureByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
