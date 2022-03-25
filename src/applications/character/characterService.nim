@@ -42,6 +42,9 @@ proc getFullCharacterData*(connection: sqlite.DbConn, characterId: int64): Chara
         playerClassConnections: playerClassConnections
     )
 
+proc getFullCharacterData*(connection: sqlite.DbConn, character: Character): CharacterSerializable =
+    result = getFullCharacterData(connection, character.id)
+
 
 proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
     withDbTransaction(connection):

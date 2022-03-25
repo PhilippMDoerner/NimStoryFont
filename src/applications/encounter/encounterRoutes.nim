@@ -17,7 +17,7 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Encounter, getEncounterById),
+        handler = createEntryCreationHandler(Encounter, getSerializedEncounter),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )

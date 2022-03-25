@@ -20,9 +20,11 @@ proc getEncounterList*(): seq[EncounterRead] =
 proc getEncounterById*(encounterId: int64): EncounterRead =
     result = getEntryById(encounterId, EncounterRead)
 
-proc getEncounterById*(connection: sqlite.DbConn, encounterId: int64): EncounterRead =
+proc getEncounterById*(connection: DbConn, encounterId: int64): EncounterRead =
     result = connection.getEntryById(encounterId, EncounterRead)
 
+proc getSerializedEncounter*(connection: DbConn, entry: Encounter): EncounterRead =
+    result = connection.getEntryById(entry.id, EncounterRead)
 
 proc deleteEncounter*(encounterId: int64) =
     deleteEntry(encounterId, Encounter)

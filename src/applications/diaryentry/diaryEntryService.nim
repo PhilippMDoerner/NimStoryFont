@@ -15,6 +15,9 @@ proc getDiaryEntryById*(diaryentryId: int64): DiaryEntry =
   let entry = getEntryById(diaryentryId, DiaryEntry)
   result = serializeDiaryEntry(entry)
 
+proc getSerializedDiaryEntry*(connection: DbConn, entry: DiaryEntry): DiaryEntry =
+  result = serializeDiaryEntry(entry)
+
 proc getDiaryEntryById*(connection: sqlite.DbConn, diaryentryId: int64): DiaryEntry =
   let entry = connection.getEntryById(diaryentryId, DiaryEntry)
   result = serializeDiaryEntry(entry)
