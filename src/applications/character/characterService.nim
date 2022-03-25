@@ -27,7 +27,7 @@ proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
     result = getCampaignList(campaignName, CharacterRead)
 
 
-proc getFullCharacterData*(connection: sqlite.DbConn, characterId: int64): CharacterSerializable =
+proc getFullCharacterData(connection: DbConn, characterId: int64): CharacterSerializable =
     let character = connection.getEntryById(characterId, CharacterRead)
     let images = connection.getManyFromOne(character, Image)
     let encounters = connection.getManyToMany(character, CharacterEncounterRead, EncounterRead)
@@ -42,35 +42,19 @@ proc getFullCharacterData*(connection: sqlite.DbConn, characterId: int64): Chara
         playerClassConnections: playerClassConnections
     )
 
-proc getFullCharacterData*(connection: sqlite.DbConn, character: Character): CharacterSerializable =
+proc getFullCharacterData*(connection: DbConn, character: Character): CharacterSerializable =
     result = getFullCharacterData(connection, character.id)
-
-
-proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
-    withDbTransaction(connection):
-        let character: CharacterRead = connection.getEntryByName(campaignName, characterName, CharacterRead)
-        result = connection.getFullCharacterData(character.id)
 
 
 proc getCharacterById*(characterId: int64): CharacterSerializable =
     withDbConn(connection):
         result = connection.getFullCharacterData(characterId)
 
-
-proc deleteCharacter*(characterId: int64) =
-    deleteEntry(characterId, Character)
-
-
-proc updateCharacter*(characterId: int64, characterJsonData: string): CharacterSerializable =
+proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
     withDbTransaction(connection):
-        let character: Character = updateArticleEntry(characterId, characterJsonData, Character)
+        let character: CharacterRead = connection.getEntryByName(campaignName, characterName, CharacterRead)
         result = connection.getFullCharacterData(character.id)
 
-
-proc createCharacter*(characterJsonData: string): CharacterSerializable =
-    withDbTransaction(connection):
-        let character: Character = createArticleEntry(characterJsonData, Character)
-        result = connection.getFullCharacterData(character.id)
 
 
 proc getOrganizationMembers*(organizationId: int64): seq[OrganizationCharacter] =
