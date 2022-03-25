@@ -5,7 +5,9 @@ import controllerTemplates
 import genericArticleService
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
+import jsony
 
+export jsony
 export serialization
 export normConversion
 
@@ -55,8 +57,7 @@ proc createEntryUpdateHandler*[T: Model, M: object | ref object](
 
 
 
-proc createEntryReadByIdHandler*[T: Model, M: object | ref object](
-  modelType: typedesc[T], 
+proc createEntryReadByIdHandler*[M: object | ref object](
   idPathParamName: string,
   getSerializedArticleData: SerializationByIdProc[M]
 ): HandlerAsync = 
@@ -68,3 +69,17 @@ proc createEntryReadByIdHandler*[T: Model, M: object | ref object](
     respondBadRequestOnDbError():
       let serializedEntry = readArticle(entryId, getSerializedArticleData)
       resp jsonyResponse(ctx, serializedEntry)
+
+
+proc createCampaignOverviewReadHandler*[M: object | ref object](
+  campaignNameParamName: string,
+  getOverviewSerializedArticlesData: OverviewSerializationProc[M]
+): HandlerAsync = 
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let campaignName: string = ctx.getPathParams(campaignNameParamName)
+
+    respondBadRequestOnDbError():
+      let overviewSerializedEntries = readArticleOverviews(campaignName, getOverviewSerializedArticlesData)
+      resp jsonyResponse(ctx, overviewSerializedEntries)

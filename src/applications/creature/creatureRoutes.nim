@@ -7,6 +7,7 @@ import ../allUrlParams
 import ../genericArticleControllers
 import creatureModel
 
+
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
@@ -31,14 +32,14 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(Creature, ID_PARAM, getCreatureById),  
+        createEntryReadByIdHandler(ID_PARAM, getCreatureById),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        creatureControllers.getCampaignCreaturesOverviewView,  
+        createCampaignOverviewReadHandler(CAMPAIGN_NAME_PARAM, getCampaignCreatureListOverview),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )

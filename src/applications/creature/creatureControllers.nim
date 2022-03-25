@@ -10,16 +10,6 @@ import ../controllerTemplates
 import ../allUrlParams
 
 
-proc getCampaignCreaturesOverviewView*(ctx: Context) {.async.} = 
-    let ctx = JWTContext(ctx)
-    
-    let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
-
-    respondBadRequestOnDbError():
-        let creatures: seq[CreatureOverview] = creatureService.getCampaignCreatureListOverview(campaignName)
-        resp jsonyResponse[seq[CreatureOverview]](ctx, creatures)
-
-
 
 proc getCreatureByNameView*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
