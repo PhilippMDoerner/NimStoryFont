@@ -10,7 +10,7 @@ import creatureModel
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Creature, getCreatureById),
+        handler = createEntryCreationHandler(Creature, getCreatureSerialization),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
@@ -24,14 +24,14 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Creature, ID_PARAM, getCreatureById),
+        handler = createEntryUpdateHandler(Creature, ID_PARAM, getCreatureSerialization),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        creatureControllers.getCreatureByIdView, 
+        createEntryReadByIdHandler(Creature, ID_PARAM, getCreatureById),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
@@ -45,7 +45,7 @@ proc addCreatureRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        createEntryReadByNameHandler(Creature, CAMPAIGN_NAME_PARAM, ARTICLE_NAME_PARAM, getCreatureByName),  
+        creatureControllers.getCreatureByNameView,  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )

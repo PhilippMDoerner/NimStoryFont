@@ -10,7 +10,7 @@ import std/strformat
 proc addDiaryEntryRoutes*(app: Prologue) =
     app.addRoute(
         re"/diaryentry/",
-        handler = createEntryCreationHandler(DiaryEntry, getDiaryEntryById),
+        handler = createEntryCreationHandler(DiaryEntry, getSerializedDiaryEntry),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
@@ -24,7 +24,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/",
-        handler = createEntryUpdateHandler(DiaryEntry, ID_PARAM, getDiaryEntryById),
+        handler = createEntryUpdateHandler(DiaryEntry, ID_PARAM, getSerializedDiaryEntry),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
