@@ -6,9 +6,6 @@ import tinypool
 
 export organizationModel
 
-proc getOrganizationList*(): seq[OrganizationRead] =
-    result = getList(OrganizationRead)
-
 
 proc getOrganizationById*(organizationId: int64): OrganizationSerializable =
     let organization = getEntryById(organizationId, OrganizationRead)
@@ -22,15 +19,14 @@ proc getOrganizationById*(organizationId: int64): OrganizationSerializable =
     )
 
 
-proc deleteOrganization*(organizationId: int64) =
-    deleteEntry(organizationId, Organization)
+proc getOrganizationSerialization*(connection: DbConn, entry: Organization): OrganizationSerializable =
+    result = getOrganizationById(entry.id)
 
 
-proc updateOrganization*(organizationId: int64, organizationJsonData: string): OrganizationSerializable =
-    let organization = updateArticleEntry(organizationId, organizationJsonData, Organization)
-    result = getOrganizationById(organization.id)
+proc getCampaignOrganizationList*(campaignName: string): seq[OrganizationOverview] =
+    result = getCampaignList(campaignName, OrganizationOverview)
 
 
-proc createOrganization*(organizationJsonData: string): OrganizationSerializable =
-    let organization = createArticleEntry(organizationJsonData, Organization)
-    result = getOrganizationById(organization.id)
+proc getOrganizationByName*(campaignName: string, entryName: string): OrganizationSerializable = 
+    let entry = getEntryByName(campaignName, entryName, OrganizationOverview)
+    result = getOrganizationById(entry.id)

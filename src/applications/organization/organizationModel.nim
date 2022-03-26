@@ -24,7 +24,7 @@ proc newTableModel*(T: typedesc[Organization]): Organization = newOrganization()
 
 type OrganizationOverview* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
-    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
 
 implDefaults(OrganizationOverview)
 proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = newOrganizationOverview()
