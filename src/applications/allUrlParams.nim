@@ -17,3 +17,13 @@ const PARENT_LOCATION_NAME_PATTERN* = fmt r"(?P<{PARENT_LOCATION_NAME_PARAM}>[^/
 
 const PAGE_NUMBER_PARAM* = "pageNumber"
 const PAGE_NUMBER_PATTERN* = fmt r"(?P<{PAGE_NUMBER_PARAM}>[\d]+)"
+
+const SESSION_NUMBER_PARAM* = "sessionNumber"
+const SESSION_NUMBER_PATTERN* = fmt r"(?P<{SESSION_NUMBER_PARAM}>[\d]+)"
+
+const SESSION_IS_MAIN_SESSION_PARAM* = "isMainSession"
+const SESSION_IS_MAIN_SESSION_PATTERN* = fmt r"(?P<{SESSION_IS_MAIN_SESSION_PARAM}>[\d]+)"
+
+
+const USERNAME_PARAM* = "userName"
+const USERNAME_PATTERN* = fmt r"(?P<{USERNAME_PARAM}>[^/]+)"
