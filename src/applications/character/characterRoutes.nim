@@ -39,7 +39,7 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewReadHandler(CAMPAIGN_NAME_PARAM, getCampaignCharacterList),
+        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignCharacterList),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

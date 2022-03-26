@@ -71,7 +71,7 @@ proc createEntryReadByIdHandler*[M: object | ref object](
       resp jsonyResponse(ctx, serializedEntry)
 
 
-proc createCampaignOverviewReadHandler*[M: object | ref object](
+proc createCampaignOverviewHandler*[M: object | ref object](
   campaignNameParamName: string,
   getOverviewSerializedArticlesData: OverviewSerializationProc[M]
 ): HandlerAsync = 
