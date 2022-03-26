@@ -38,15 +38,15 @@ proc addItemRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/item/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewReadHandler(CAMPAIGN_NAME_PARAM, getCampaignItemListOverview),
+        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignItemListOverview),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
     
-    # app.addRoute(
-    #     re fmt"/item/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-    #     characterControllers.getCharacterByNameView,  
-    #     httpMethod = HttpGet,
-    #     middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/item/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
+        getItemByNameView,  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+    )
    

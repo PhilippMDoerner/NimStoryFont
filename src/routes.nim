@@ -21,3 +21,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addEncounterRoutes(app)
   addArticleUpdateRoutes(app)
   addDiaryEntryRoutes(app)
+  addItemRoutes(app)
