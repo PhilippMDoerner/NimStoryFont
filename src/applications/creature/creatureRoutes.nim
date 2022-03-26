@@ -39,7 +39,7 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        createCampaignOverviewReadHandler(CAMPAIGN_NAME_PARAM, getCampaignCreatureListOverview),  
+        createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignCreatureListOverview),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
