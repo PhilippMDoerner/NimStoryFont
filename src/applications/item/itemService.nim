@@ -8,6 +8,9 @@ export itemModel
 proc getItemList*(): seq[ItemRead] =
     result = getList(ItemRead)
 
+proc getCampaignItemListOverview*(campaignName: string): seq[Item] =
+    result = getCampaignList(campaignName, Item)
+
 
 proc getItemById*(itemId: int64): ItemRead =
     result = getEntryById(itemId, ItemRead)
@@ -35,3 +38,7 @@ proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
     
     withDbConn(connection):
       connection.select(entries, condition, characterId)
+
+
+proc getSerializedItem*(connection: DbConn, entry: Item): ItemRead =
+    result = connection.getEntryById(entry.id, ItemRead)

@@ -7,6 +7,7 @@ import applications/location/locationRoutes
 import applications/encounter/encounterRoutes
 import applications/contentUpdates/contentUpdateRoutes
 import applications/diaryentry/diaryEntryRoutes
+import applications/item/itemRoutes
 
 import prologue
 
