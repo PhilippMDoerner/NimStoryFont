@@ -30,6 +30,13 @@ proc addEncounterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
+        re fmt"/encounter/{ID_PATTERN}/",
+        handler = createEntryReadByIdHandler(ID_PARAM, getEncounterById),
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+    )
+
+    app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = createEntryUpdateHandler(Encounter, ID_PARAM, getSerializedEncounter),
         httpMethod = HttpPut,
