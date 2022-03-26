@@ -11,6 +11,7 @@ import applications/item/itemRoutes
 import applications/organization/organizationRoutes
 import applications/spell/spellRoutes
 import applications/rules/ruleRoutes
+import applications/quest/questRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -27,3 +28,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addOrganizationRoutes(app)
   addSpellRoutes(app)
   addRuleRoutes(app)
+  addQuestRoutes(app)
