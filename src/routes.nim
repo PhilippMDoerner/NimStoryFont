@@ -9,6 +9,7 @@ import applications/contentUpdates/contentUpdateRoutes
 import applications/diaryentry/diaryEntryRoutes
 import applications/item/itemRoutes
 import applications/organization/organizationRoutes
+import applications/spell/spellRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -23,3 +24,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addDiaryEntryRoutes(app)
   addItemRoutes(app)
   addOrganizationRoutes(app)
+  addSpellRoutes(app)
