@@ -35,3 +35,10 @@ proc addDiaryEntryRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/{SESSION_NUMBER_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{USERNAME_PATTERN}/", 
+        handler = getDairyEntryController,  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
+    )

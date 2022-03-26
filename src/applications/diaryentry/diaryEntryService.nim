@@ -18,7 +18,7 @@ proc getDiaryEntryById*(diaryentryId: int64): DiaryEntry =
 proc getSerializedDiaryEntry*(connection: DbConn, entry: DiaryEntry): DiaryEntry =
   result = serializeDiaryEntry(entry)
 
-proc getDiaryEntryById*(connection: sqlite.DbConn, diaryentryId: int64): DiaryEntry =
+proc getDiaryEntryById*(connection: DbConn, diaryentryId: int64): DiaryEntry =
   let entry = connection.getEntryById(diaryentryId, DiaryEntry)
   result = serializeDiaryEntry(entry)
 
@@ -32,3 +32,6 @@ proc createDiaryEntry*(jsonData: string): DiaryEntry =
 
 proc deleteDiaryEntry*(entryId: int64) =
   deleteEntry(entryId, DiaryEntry)
+
+proc getDiaryEntry*(campaignName: string, sessionNumber: int, isMainSession: 0..1, authorName: string): DiaryEntryOverview =
+  result = diaryEntryRepository.getDairyEntry(campaignName, sessionNumber, isMainSession, authorName)
