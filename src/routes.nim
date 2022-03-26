@@ -8,7 +8,7 @@ import applications/encounter/encounterRoutes
 import applications/contentUpdates/contentUpdateRoutes
 import applications/diaryentry/diaryEntryRoutes
 import applications/item/itemRoutes
-
+import applications/organization/organizationRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -22,3 +22,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addArticleUpdateRoutes(app)
   addDiaryEntryRoutes(app)
   addItemRoutes(app)
+  addOrganizationRoutes(app)
