@@ -5,8 +5,6 @@ import tinypool
 
 export itemModel
 
-proc getItemList*(): seq[ItemRead] =
-    result = getList(ItemRead)
 
 proc getCampaignItemListOverview*(campaignName: string): seq[Item] =
     result = getCampaignList(campaignName, Item)
@@ -14,20 +12,6 @@ proc getCampaignItemListOverview*(campaignName: string): seq[Item] =
 
 proc getItemById*(itemId: int64): ItemRead =
     result = getEntryById(itemId, ItemRead)
-
-
-proc deleteItem*(itemId: int64) =
-    deleteEntry(itemId, Item)
-
-
-proc updateItem*(itemId: int64, itemJsonData: string): ItemRead =
-    let item: Item = updateArticleEntry(itemId, itemJsonData, Item)
-    result = getItemById(item.id)
-
-
-proc createItem*(itemJsonData: string): ItemRead =
-    let item: Item = createArticleEntry(itemJsonData, Item)
-    result = getItemById(item.id)
 
 
 proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
@@ -42,3 +26,7 @@ proc getCharacterItems*(characterId: int64): seq[ItemOverview] =
 
 proc getSerializedItem*(connection: DbConn, entry: Item): ItemRead =
     result = connection.getEntryById(entry.id, ItemRead)
+
+
+proc getItemByName*(campaignName: string, entryName: string): ItemRead =
+    result = getEntryByName(campaignName, entryName, ItemRead)
