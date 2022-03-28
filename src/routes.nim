@@ -13,6 +13,7 @@ import applications/spell/spellRoutes
 import applications/rules/ruleRoutes
 import applications/quest/questRoutes
 import applications/session/sessionRoutes
+import applications/map/mapRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -31,3 +32,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addRuleRoutes(app)
   addQuestRoutes(app)
   addSessionRoutes(app)
+  addMapRoutes(app)

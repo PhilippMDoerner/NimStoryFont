@@ -10,8 +10,8 @@ import ../location/locationModel
 
   
 type Map* {.defaults, tableName: MAP_TABLE.} = ref object of Model
-  icon: Option[string] = some("")
-  image: string = ""
+  icon*: Option[string] = some("")
+  image*: string = ""
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
@@ -34,6 +34,18 @@ func to*(dbVal: DbValue, T: typedesc[FontAwesomeType]): FontAwesomeType =
   
   let dbValueString = dbVal.s
   result = parseEnum[FontAwesomeType](dbValueString)
+
+type MapRead* {.defaults, tableName: MAP_TABLE.} = ref object of Model
+  icon*: Option[string] = some("")
+  image*: string = ""
+  creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  name*: string = ""
+
+implDefaults(MapRead)
+
+proc newModel*(T: typedesc[MapRead]): MapRead = newMapRead()
 
 type MarkerType*  {.defaults, tableName: MARKERTYPE_TABLE.} = ref object of Model
   name: string = ""
