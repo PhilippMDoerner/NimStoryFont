@@ -14,6 +14,8 @@ import applications/rules/ruleRoutes
 import applications/quest/questRoutes
 import applications/session/sessionRoutes
 import applications/map/mapRoutes
+import applications/mapMarker/markerRoutes
+import applications/mapMarkerType/markerTypeRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -33,3 +35,5 @@ proc addApplicationRoutes*(app: Prologue) =
   addQuestRoutes(app)
   addSessionRoutes(app)
   addMapRoutes(app)
+  addMarkerRoutes(app)
+  addMarkerTypeRoutes(app)
