@@ -13,6 +13,7 @@ import ../quest/questModel
 import ../sessionaudio/[sessionaudioUtils, sessionaudioModel]
 import ../spell/spellModel
 import ../rules/ruleModel
+import ../mapMarker/markerModel
 import std/[typetraits, strformat, options]
 
 export encounterUtils #So that "addSearchEntry" can query campaign_id properly
