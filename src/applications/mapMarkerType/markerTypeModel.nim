@@ -5,11 +5,13 @@ import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 
-type FontAwesomeType = enum 
+type FontAwesomeType* = enum 
   ##Determines whehter an icon is supposed to come from 4.7 or 5
   VERSION5 = "fas"
   VERSION4 = "fa"
 
+func dbType*(T: typedesc[FontAwesomeType]): string = "TEXT"
+func dbValue*(val: FontAwesomeType): DbValue = dbValue(val)
 func to*(dbVal: DbValue, T: typedesc[FontAwesomeType]): FontAwesomeType =
   ## Allows converting the string value of a FontAwesomeType into the enum 
   let isStringValue = dbVal.kind == dvkString
@@ -21,13 +23,13 @@ func to*(dbVal: DbValue, T: typedesc[FontAwesomeType]): FontAwesomeType =
 
 
 type MarkerType*  {.defaults, tableName: MARKERTYPE_TABLE.} = ref object of Model
-  name: string = ""
+  name*: string = ""
   icon*: string = ""
   is_text_marker*: bool = false
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   fontawesome_type*: FontAwesomeType = FontAwesomeType.VERSION5 
-  color: string = ""
+  color*: string = ""
 
 implDefaults(MarkerType)
 proc newModel*(T: typedesc[MarkerType]): MarkerType = newMarkerType()

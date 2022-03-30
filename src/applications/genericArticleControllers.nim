@@ -1,8 +1,10 @@
 import prologue
-import std/[strutils]
+import std/[strutils, sequtils, sugar]
 import ../utils/[jwtContext, customResponses, errorResponses]
+import tinypool
 import controllerTemplates
 import genericArticleService
+import genericArticleRepository
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
 import jsony
@@ -83,3 +85,16 @@ proc createCampaignOverviewHandler*[M: object | ref object](
     respondBadRequestOnDbError():
       let overviewSerializedEntries = readArticleOverviews(campaignName, getOverviewSerializedArticlesData)
       resp jsonyResponse(ctx, overviewSerializedEntries)
+
+
+proc createReadListHandler*[T: Model, M: object | ref object](
+  getSerializedArticlesData: SerializationProc[T, M]
+): HandlerAsync = 
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    respondBadRequestOnDbError():
+      withDbConn(connection):
+        let entryList: seq[T] = connection.getList(T)
+        let serializedEntries: seq[M] = entryList.map(entry => connection.getSerializedArticlesData(entry))
+        resp jsonyResponse(ctx, serializedEntries)
