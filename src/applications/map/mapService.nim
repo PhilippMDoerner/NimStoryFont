@@ -1,6 +1,8 @@
 import mapModel
 import ../genericArticleRepository
 import ../location/locationModel
+import ../mapMarker/markerModel
+import ../mapMarkerType/markerTypeModel
 
 export mapModel
 

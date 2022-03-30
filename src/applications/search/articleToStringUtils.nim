@@ -13,6 +13,7 @@ import ../sessionaudio/sessionaudioService
 import ../spell/spellService
 import ../rules/ruleService
 import ../genericArticleRepository
+import ../mapMarker/markerModel
 import std/[strformat, options]
 
 
