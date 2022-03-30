@@ -1,6 +1,5 @@
 import norm/[model, pragmas]
-import ndb/sqlite
-import std/[strutils, options]
+import std/[options]
 import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings

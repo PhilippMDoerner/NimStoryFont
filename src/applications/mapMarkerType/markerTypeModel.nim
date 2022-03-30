@@ -4,7 +4,6 @@ import std/[strutils, options]
 import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
-import ../../applicationConstants
 
 type FontAwesomeType = enum 
   ##Determines whehter an icon is supposed to come from 4.7 or 5
