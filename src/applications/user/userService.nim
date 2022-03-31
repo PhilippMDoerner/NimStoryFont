@@ -12,3 +12,12 @@ proc getUserById*(userId: int64): User =
 
 proc getUserByName*(userName: string): User =
     result = getEntryByField("username", userName, User)
+
+
+proc getCampaignUserListOverview*(campaignName: string): seq[User] =
+    ## lists all campaign entries using a limited but performant representation of a User
+    result = getCampaignList(campaignName, User)
+
+proc getUserSerialization*(connection: sqlite.DbConn, entry: User): User {.gcsafe.}=
+    result = connection.getEntryById(entry.id, User)
+
