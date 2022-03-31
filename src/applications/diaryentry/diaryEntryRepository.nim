@@ -1,7 +1,7 @@
 import norm/sqlite
 import diaryEntryModel
 import tinypool
-import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
+import ../../utils/djangoDateTime/[normConversion]
 
 
 proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryOverview] =
