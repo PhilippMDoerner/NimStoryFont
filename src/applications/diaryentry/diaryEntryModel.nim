@@ -1,6 +1,6 @@
 import norm/[model, pragmas]
 import constructor/defaults
-import ../authentication/authenticationModels
+import ../user/userModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants

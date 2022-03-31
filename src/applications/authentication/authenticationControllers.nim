@@ -3,6 +3,7 @@ import std/[json, times]
 import ../../utils/errorResponses
 import myJwt
 import authenticationService
+import ../user/userService
 import authenticationModels
 import djangoEncryption
 import ../../applicationSettings

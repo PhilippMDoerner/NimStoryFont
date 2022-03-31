@@ -3,15 +3,9 @@ import ../campaign/[campaignModel, campaignService]
 import authenticationModels
 import std/[options, sequtils, tables, strutils, strformat]
 import norm/model
+import ../user/userService
 
 export authenticationModels
-
-proc getUserById*(userId: int64): User =
-    result = getEntryById(userId, User)
-
-
-proc getUserByName*(userName: string): User =
-    result = getEntryByField("username", userName, User)
 
 
 proc addCampaignGroup(
