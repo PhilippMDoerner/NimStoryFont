@@ -3,7 +3,7 @@ import std/[options, strformat, algorithm]
 import norm/sqlite
 import ../../applicationSettings
 import ../../applicationConstants
-import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
+import ../../utils/djangoDateTime/[normConversion]
 
 
 proc getEncountersAtAndAfterOrderIndex*(connection: DbConn, diaryentryId: int64, orderIndex: int): seq[Encounter] =

@@ -6,7 +6,7 @@ import ../playerclass/playerClassModel
 import ../campaign/campaignModel
 import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, json]
+import std/[sugar, sequtils, options]
 import ../genericArticleRepository
 import ../../utils/databaseUtils
 import norm/sqlite
