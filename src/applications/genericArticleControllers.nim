@@ -116,8 +116,8 @@ proc extractQueryParam[T](ctx: Context, fieldName: static string, fieldValue: va
     fieldValue = ctx.request.body()
   elif fieldValue is Option:
     fieldValue = extractQueryParam(ctx, fieldName, fieldValue)
-  elif fieldValue is int:
-    fieldValue = parseInt(ctx.getPathParms(fieldName))
+  elif fieldValue is int or fieldValue is int64:
+    fieldValue = parseInt(ctx.getPathParams(fieldName))
   elif fieldValue is string:
     fieldValue = ctx.getPathParams(fieldName)
   elif fieldValue is bool:
