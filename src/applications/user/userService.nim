@@ -16,7 +16,7 @@ export userModel
 proc getUserById*(userId: int64): User =
   result = getEntryById(userId, User)
 
-proc getUserById*(requestParams: UserRequestParams): User =
+proc getUserById*(requestParams: ReadByIdParams): User =
   result = getUserById(requestParams.id)
 
 proc getUserByName*(userName: string): User =
@@ -25,14 +25,14 @@ proc getUserByName*(userName: string): User =
 proc getUserSerialization(connection: sqlite.DbConn, entry: User): User {.gcsafe.}=
   result = connection.getEntryById(entry.id, User)
 
-proc getCampaignUserListOverview*(requestParams: UserListRequestParams): seq[User] =
+proc getCampaignUserListOverview*(requestParams: ReadListParams): seq[User] =
   ## lists all campaign entries using a limited but performant representation of a User
   let users = getCampaignList(requestParams.campaignName, User)
   withDbConn(connection):
       result = users.map(user => connection.getUserSerialization(user))
 
 
-proc createUser*(requestData: UserCreateRequestParams): User =
+proc createUser*(requestData: CreateParams): User =
   var entryToCreate: User = requestData.body.fromJson(User)
   entryToCreate.date_joined = djangoDateTimeType.now()
 
@@ -41,7 +41,7 @@ proc createUser*(requestData: UserCreateRequestParams): User =
     result = connection.getUserSerialization(createdEntry)
 
 
-proc updateUser*(requestData: UserUpdateRequestParams): User =
+proc updateUser*(requestData: UpdateParams): User =
   var entryToUpdate: User = requestData.body.fromJson(User)
   if entryToUpdate.id == MODEL_INIT_ID:
     entryToUpdate.id = requestData.id
@@ -51,3 +51,6 @@ proc updateUser*(requestData: UserUpdateRequestParams): User =
   withDbTransaction(connection):
     let updatedEntry: User = connection.updateEntryInTransaction(entryToUpdate)
     result = connection.getUserSerialization(updatedEntry)
+
+proc deleteUser*(requestData: DeleteParams) =
+  deleteEntry(requestData.id, User)

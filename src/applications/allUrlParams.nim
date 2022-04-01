@@ -1,4 +1,6 @@
 import std/strformat
+import constructor/defaults
+import ../applicationConstants
 
 const CAMPAIGN_NAME_PARAM* = "campaignName"
 const CAMPAIGN_NAME_PATTERN* = fmt r"(?P<{CAMPAIGN_NAME_PARAM}>[^/]+)"
@@ -30,3 +32,29 @@ const SESSION_IS_MAIN_SESSION_PATTERN* = fmt r"(?P<{SESSION_IS_MAIN_SESSION_PARA
 
 const USERNAME_PARAM* = "userName"
 const USERNAME_PATTERN* = fmt r"(?P<{USERNAME_PARAM}>[^/]+)"
+
+
+
+type ReadByIdParams* {.defaults.} = object
+  id*: int64 = MODEL_INIT_ID
+implDefaults(ReadByIdParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type DeleteParams* = ReadByIdParams
+
+type ReadByNameParams* {.defaults.} = object
+  campaignName*: string = ""
+  articleName*: string = ""
+implDefaults(ReadByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type CreateParams* {.defaults.} = object
+  body*: string = ""
+implDefaults(CreateParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type UpdateParams* {.defaults.} = object
+  id*: int64 = MODEL_INIT_ID
+  body*: string = ""
+implDefaults(UpdateParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type ReadListParams* {.defaults.} = object
+  campaignName*: string = ""
+implDefaults(ReadListParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
