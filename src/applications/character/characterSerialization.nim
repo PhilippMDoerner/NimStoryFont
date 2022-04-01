@@ -1,6 +1,6 @@
 import characterModel
 import ../item/itemModel
-import ../encounter/encounterModel
+import ../encounter/[characterEncounterModel, encounterModel]
 import ../image/imageModel
 import ../playerclass/playerClassModel
 import ../campaign/campaignModel
@@ -8,6 +8,8 @@ import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[sugar, sequtils, options, json]
 import ../genericArticleRepository
+import ../../utils/databaseUtils
+import norm/sqlite
 
 #TODO: Do this once you've got general data fetching etc. set up properly across your stuff. That's basically step 2, step 1 being getting a first draft for it all going
 #TODO: You'll need to define essentially the same serializers as you had in python. You may want to move the sub-serialization procs into their own module if you get conflicts
@@ -77,10 +79,6 @@ type CharacterSerializable* = object
 #         items: items
 #     )
 
-
-
-
-
 type CharacterOverviewSerializable* = object
     pk*: int64
     name*: string
@@ -91,8 +89,33 @@ type CharacterOverviewSerializable* = object
     alive*: bool
     images: seq[string]
 
-proc overviewSerializeCharacter*(entry: CharacterOverview, characterImages: seq[Image]): CharacterOverviewSerializable =
-    let imagePaths = characterImages.map(imageEntry => imageEntry.image)
+
+
+proc serialize*(connection: DbConn, character: CharacterRead): CharacterSerializable =
+    let images = connection.getManyFromOne(character, Image)
+    let encounters = connection.getManyToMany(character, CharacterEncounterRead, EncounterRead)
+    let playerClassConnections = connection.getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
+    let items = connection.getManyFromOne(character, ItemOverview)
+
+    result = CharacterSerializable(
+        character: character,
+        images: images,
+        items: items,
+        encounters: encounters,
+        playerClassConnections: playerClassConnections
+    )
+
+proc serialize*(connection: DbConn, entryId: int64): CharacterSerializable =
+    let entry = connection.getEntryById(entryId, CharacterRead)
+    result = connection.serialize(entry)
+
+proc serialize*(connection: DbConn, campaignName: string, entryName: string): CharacterSerializable =
+    let entry = connection.getEntryByName(campaignName, entryName, CharacterRead)
+    result = connection.serialize(entry)
+
+proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
+    let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
+    let imagePaths = images.map(entry => entry.image)
 
     result = CharacterOverviewSerializable(
         pk: entry.id,
@@ -104,3 +127,6 @@ proc overviewSerializeCharacter*(entry: CharacterOverview, characterImages: seq[
         alive: entry.alive,
         images: imagePaths
     )
+
+
+

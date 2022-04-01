@@ -1,70 +1,43 @@
 import ../genericArticleRepository
 import characterModel
-import characterSerializable
-import ../image/imageModel
-import ../item/itemModel
-import ../encounter/[encounterModel, characterEncounterModel]
-import ../playerclass/playerClassModel
-import ../organization/organizationModel
-import tinypool
+import characterSerialization
 import std/[sequtils, sugar]
 import norm/[model, sqlite]
 import ../../utils/databaseUtils
+import ../allUrlParams
+import ../genericArticleService
 
+export characterModel
 
-proc getCampaignCharacterListOverview*(campaignName: string): seq[CharacterOverviewSerializable] =
+proc getCampaignCharacterList*(requestParams: ReadListParams): seq[CharacterOverviewSerializable] =
     ## lists all campaign entries using a limited but performant representation of a character
-    let campaignCharacters: seq[CharacterOverview] = getCampaignList(campaignName, CharacterOverview)
-    result = campaignCharacters.map(
-        proc(character: CharacterOverview): CharacterOverviewSerializable =
-            let images = if character.player_character: getManyFromOne(character, Image) else: @[]
-            result = overviewSerializeCharacter(character, images)
-    )
-
-
-proc getCampaignCharacterList*(campaignName: string): seq[CharacterRead] =
-    ## lists all campaign entries using a detailed representation of a character
-    result = getCampaignList(campaignName, CharacterRead)
-
-
-proc getFullCharacterData(connection: DbConn, characterId: int64): CharacterSerializable =
-    let character = connection.getEntryById(characterId, CharacterRead)
-    let images = connection.getManyFromOne(character, Image)
-    let encounters = connection.getManyToMany(character, CharacterEncounterRead, EncounterRead)
-    let playerClassConnections = connection.getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
-    let items = connection.getManyFromOne(character, ItemOverview)
-
-    result = CharacterSerializable(
-        character: character,
-        images: images,
-        items: items,
-        encounters: encounters,
-        playerClassConnections: playerClassConnections
-    )
-
-proc getFullCharacterData*(connection: DbConn, character: Character): CharacterSerializable =
-    result = getFullCharacterData(connection, character.id)
-
-
-proc getCharacterById*(characterId: int64): CharacterSerializable =
     withDbConn(connection):
-        result = connection.getFullCharacterData(characterId)
+        let entries = connection.getCampaignList(requestParams.campaignName, CharacterOverview)
+        result = entries.map(entry => connection.overviewSerialize(entry))
 
-proc getCharacterByName*(campaignName: string, characterName: string): CharacterSerializable = 
+proc getCharacterById*(requestParams: ReadByIdParams): CharacterSerializable =
+    withDbConn(connection):
+        result = connection.serialize(requestParams.id)
+
+proc getCharacterByName*(requestParams: ReadByNameParams): CharacterSerializable =
+    withDbConn(connection):
+        result = connection.serialize(requestParams.campaignName, requestParams.articleName)
+
+proc updateCharacter*(requestParams: UpdateParams): CharacterSerializable =
     withDbTransaction(connection):
-        let character: CharacterRead = connection.getEntryByName(campaignName, characterName, CharacterRead)
-        result = connection.getFullCharacterData(character.id)
+        let updatedEntry = connection.updateArticle(requestParams.id, requestParams.body, Character)
+        result = connection.serialize(updatedEntry.id)
+        
+proc deleteCharacter*(requestParams: DeleteParams) =
+    deleteEntry(requestParams.id, Character)
 
-
-
-proc getOrganizationMembers*(organizationId: int64): seq[OrganizationCharacter] =
-    var entries: seq[OrganizationCharacter] = @[]
-    entries.add(newModel(OrganizationCharacter))
-    
-    let condition: string = "organization_id = ?"
-    
+proc getCharacterList*(requestParams: ReadListParams): seq[CharacterOverviewSerializable] =
     withDbConn(connection):
-      connection.select(entries, condition, organizationId)
+        let entries = connection.getCampaignList(requestParams.campaignName, CharacterOverview)
+        result = entries.map(entry => connection.overviewSerialize(entry))
 
-    result = entries
+proc createCharacter*(requestParams: CreateParams): CharacterSerializable =
+    withDbTransaction(connection):
+        let createdEntry = connection.createArticle(requestParams.body, Character)
+        result = connection.serialize(createdEntry.id)
 

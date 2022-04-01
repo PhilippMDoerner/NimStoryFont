@@ -14,6 +14,7 @@ import spell/spellService
 import rules/ruleService
 import std/json
 import ../utils/djangoDateTime/[serialization]
+import genericArticleRepository
 
 
 #TODO: Refactor this into custom procs that only contain search specific data
@@ -22,7 +23,7 @@ proc getArticleData*(articleTable: ArticleTable, articleId: int64): JsonNode =
 
   case articleTable:
     of ArticleTable.CHARACTER:
-      jsonString = getCharacterById(articleId).toJson()
+      jsonString = getEntryById(articleId, characterService.Character).toJson()
     of ArticleTable.CREATURE:
       jsonString = getCreatureById(articleId).toJson()
     of ArticleTable.DIARYENTRY:
