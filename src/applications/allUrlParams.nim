@@ -58,3 +58,10 @@ implDefaults(UpdateParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 type ReadListParams* {.defaults.} = object
   campaignName*: string = ""
 implDefaults(ReadListParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type ReadDiaryEntryParams* {.defaults.} = object
+  campaignName*: string = ""
+  sessionNumber*: int = -1
+  isMainSession*: bool = true
+  userName*: string = ""
+implDefaults(ReadDiaryEntryParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

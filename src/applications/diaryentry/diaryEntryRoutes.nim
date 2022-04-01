@@ -1,7 +1,6 @@
 import prologue
 import ../../middleware/[campaignAccessMiddleware, loginMiddleware]
 import ../allUrlParams
-import diaryEntryControllers
 import diaryEntryModel
 import diaryEntryService
 import ../genericArticleControllers
@@ -10,35 +9,35 @@ import std/strformat
 proc addDiaryEntryRoutes*(app: Prologue) =
     app.addRoute(
         re"/diaryentry/",
-        handler = createEntryCreationHandler(DiaryEntry, getSerializedDiaryEntry),
+        handler = createSimpleHandler(CreateParams, createDiaryEntry),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(DiaryEntry, ID_PARAM),
+        handler = createSimpleDeletionHandler(DeleteParams, deleteDiaryEntry),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/",
-        handler = createEntryUpdateHandler(DiaryEntry, ID_PARAM, getSerializedDiaryEntry),
+        handler = createSimpleHandler(UpdateParams, updateDiaryEntry),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignDiaryEntryListOverview),  
+        handler = createSimpleHandler(ReadListParams, getDiaryEntryList),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/{SESSION_NUMBER_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{USERNAME_PATTERN}/", 
-        handler = getDairyEntryController,  
+        handler = createSimpleHandler(ReadDiaryEntryParams, getDiaryEntry),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
