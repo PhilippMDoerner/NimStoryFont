@@ -2,6 +2,8 @@ import tinypool
 import std/db_sqlite
 import norm/sqlite
 
+export tinypool
+
 type MyDbConn* = sqlite.DbConn | db_sqlite.DbConn
 
 template withDbTransaction*(connection: untyped, body: untyped) =
