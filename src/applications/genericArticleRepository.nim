@@ -2,7 +2,7 @@ import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serializatio
 import ../utils/databaseUtils
 import norm/[model, sqlite]
 import jsony
-import std/[options, strformat, typetraits]
+import std/[options, strformat]
 import tinypool
 import core/[signalSystem]
 
@@ -296,9 +296,9 @@ proc createEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T 
     triggerSignal(SignalType.stPreCreate, connection, entry)
     
     connection.insert(entry)
-    
+
     triggerSignal(SignalType.stPostCreate, connection, entry)
-    
+
     result = entry
 
 
