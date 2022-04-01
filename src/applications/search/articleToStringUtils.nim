@@ -52,7 +52,7 @@ proc getSearchTitle*(modelInstance: DiaryEntry): string =
 proc getSearchBody*(modelInstance: DiaryEntry): string =
   result.add(fmt """{getSearchTitle(modelInstance)} {modelInstance.title}""")
 
-  let author: User = getUserById(modelInstance.author_id)
+  let author: User = getEntryById(modelInstance.author_id, User)
   result.add(fmt """{author.username} """)
 
   let encounters: seq[Encounter] = getManyFromOne(modelInstance, Encounter)

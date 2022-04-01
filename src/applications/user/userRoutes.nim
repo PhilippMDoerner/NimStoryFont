@@ -5,15 +5,15 @@ import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
 import userModel
-
+import userRequestParams
 
 proc addUserRoutes*(app: Prologue) =
-    # app.addRoute(
-    #     re fmt"/user/{CAMPAIGN_NAME_PATTERN}/",
-    #     handler = createEntryCreationHandler(User, getUserSerialization),
-    #     httpMethod = HttpPost,
-    #     middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/user/",
+        handler = createSimpleHandler(createUser),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+    )
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
@@ -22,23 +22,23 @@ proc addUserRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
-    # app.addRoute(
-    #     re fmt"/user/{ID_PATTERN}/", 
-    #     handler = createEntryUpdateHandler(User, ID_PARAM, getUserSerialization),
-    #     httpMethod = HttpPut,
-    #     middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/user/{ID_PATTERN}/", 
+        handler = createSimpleHandler(updateUser),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+    )
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(ID_PARAM, getUserById),  
+        handler = createSimpleHandler(getUserById),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignUserListOverview),  
+        handler = createSimpleHandler(getCampaignUserListOverview),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
