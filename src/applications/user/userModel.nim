@@ -8,7 +8,7 @@ import constructor/defaults
 type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
     ##[TableModel of the table of creatures ]##
     password*: string = ""
-    last_login*: Option[DjangoDateTime] = none(DjangoDateTime)
+    last_login*: Option[DjangoDateTime] = some(djangoDateTimeType.now())
     is_superuser*: bool = false 
     username*: string = ""
     last_name*: string = ""

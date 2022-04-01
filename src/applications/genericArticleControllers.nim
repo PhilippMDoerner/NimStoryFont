@@ -13,7 +13,8 @@ export jsony
 export serialization
 export normConversion
 
-
+type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q): M {.gcsafe.}
+type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}
 
 proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamName: string): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
@@ -73,6 +74,7 @@ proc createEntryReadByIdHandler*[M: object | ref object](
       resp jsonyResponse(ctx, serializedEntry)
 
 
+
 proc createCampaignOverviewHandler*[M: object | ref object](
   campaignNameParamName: string,
   getOverviewSerializedArticlesData: OverviewSerializationProc[M]
@@ -87,6 +89,7 @@ proc createCampaignOverviewHandler*[M: object | ref object](
       resp jsonyResponse(ctx, overviewSerializedEntries)
 
 
+
 proc createReadListHandler*[T: Model, M: object | ref object](
   getSerializedArticlesData: SerializationProc[T, M]
 ): HandlerAsync = 
@@ -98,3 +101,55 @@ proc createReadListHandler*[T: Model, M: object | ref object](
         let entryList: seq[T] = connection.getList(T)
         let serializedEntries: seq[M] = entryList.map(entry => connection.getSerializedArticlesData(entry))
         resp jsonyResponse(ctx, serializedEntries)
+
+
+
+
+### NEW PARADIGM BELOW THIS POINT ###
+
+
+proc extractQueryParam[T](ctx: Context, fieldName: static string, fieldValue: var T) =
+  ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object
+  ## TODO: Figure out how to check if a url param exists at compiletime
+  when fieldName == "body":
+    fieldValue = ctx.request.body()
+  elif fieldValue is Option:
+    fieldValue = extractQueryParam(ctx, fieldName, fieldValue)
+  elif fieldValue is int:
+    fieldValue = parseInt(ctx.getPathParms(fieldName))
+  elif fieldValue is string:
+    fieldValue = ctx.getPathParams(fieldName)
+  elif fieldValue is bool:
+    fieldValue = parseBool(ctx.getPathParams(fieldName))
+  else:
+    assert(false, fmt"Tried extracting query parameter {fieldName} which was neither an int, string or bool or an Option of those types") 
+
+proc extractQueryParams[Q: object](ctx: Context, dataContainerType: typedesc[Q]): Q =
+  mixin init
+
+  result = init(Q)
+
+  for fieldName, fieldValue in result.fieldPairs:
+    extractQueryParam(ctx, fieldName, fieldValue)
+
+proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: DatabaseActionProc[M, Q]): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let queryParams: Q = ctx.extractQueryParams(Q)
+
+    respondBadRequestOnDbError():
+      let data = serviceProc(queryParams)
+      resp jsonyResponse(ctx, data)
+
+
+proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: DatabaseActionSeqProc[M, Q]): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let queryParams: Q = ctx.extractQueryParams(Q)
+
+    respondBadRequestOnDbError():
+      let data = serviceProc(queryParams)
+      resp jsonyResponse(ctx, data)
+
