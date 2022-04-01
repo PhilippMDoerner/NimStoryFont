@@ -12,3 +12,6 @@ proc get403ForbiddenResponse*(ctx: Context): Response {.inline.} =
 
 proc get404NotFoundResponse*(): Response {.inline.} =
     result = jsonResponse(%*"We couldn't find the requested resource", Http404)
+
+proc get500ServerErrorResponse*(): Response {.inline.} =
+    result = jsonResponse(%*"There was an issue with the request you made", Http500)
