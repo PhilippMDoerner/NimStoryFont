@@ -4,8 +4,8 @@ import tinypool
 import ../../utils/djangoDateTime/[normConversion]
 
 
-proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryOverview] =
-  var entries: seq[DiaryEntryOverview] = @[newModel(DiaryEntryOverview)]
+proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryRead] =
+  var entries: seq[DiaryEntryRead] = @[newModel(DiaryEntryRead)]
   const condition: string = " session_id_campaign_id.name LIKE ?"
 
   withDbConn(connection):
@@ -13,8 +13,8 @@ proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryOverview] 
 
   result = entries
 
-proc getDairyEntry*(campaignName: string, sessionNumber: int, isMainSession: 0..1, authorName: string): DiaryEntryOverview =
-  var entry = newModel(DiaryEntryOverview)
+proc getDairyEntry*(campaignName: string, sessionNumber: int, isMainSession: bool, authorName: string): DiaryEntryRead =
+  var entry = newModel(DiaryEntryRead)
 
   const condition = """
     session_id_campaign_id.name LIKE ? 

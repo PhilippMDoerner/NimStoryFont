@@ -36,13 +36,13 @@ type DiaryEntryUser {.defaults, tableName: USER_TABLE.} = ref object of Model
 
 implDefaults(DiaryEntryUser)
 
-type DiaryEntryOverview* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
+type DiaryEntryRead* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
   title*: Option[string] = some("")
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   session_id*: DiaryEntrySession = newDiaryEntrySession()
   author_id*: DiaryEntryUser = newDiaryEntryUser()
 
-implDefaults(DiaryEntryOverview)
+implDefaults(DiaryEntryRead)
 
-proc newModel*(T: typedesc[DiaryEntryOverview]): DiaryEntryOverview = newDiaryEntryOverview()
+proc newModel*(T: typedesc[DiaryEntryRead]): DiaryEntryRead = newDiaryEntryRead()

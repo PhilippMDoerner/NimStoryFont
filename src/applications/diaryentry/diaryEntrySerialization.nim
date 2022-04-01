@@ -1,8 +1,16 @@
 import norm/model
 import diaryEntryModel
+import ../genericArticleRepository
 
-proc serializeDiaryEntry*(diaryEntry: DiaryEntry): DiaryEntry =
-  result = diaryEntry
+type DiaryEntrySerializable* = DiaryEntryRead
+type DiaryEntryOverviewSerializable* = DiaryEntryRead
 
-proc overviewSerializeDairyEntry*(diaryEntry: DiaryEntryOverview): DiaryEntryOverview =
-  result = diaryEntry
+proc serialize*(connection: DbConn, entry: DiaryEntry): DiaryEntrySerializable =
+    result = connection.getEntryById(entry.id, DiaryEntrySerializable)
+
+proc serialize*(connection: DbConn, entryId: int64): DiaryEntrySerializable =
+    let entry = connection.getEntryById(entryId, DiaryEntry)
+    result = connection.serialize(entry)
+
+proc overviewSerialize*(connection: DbConn, entry: DiaryEntrySerializable): DiaryEntryOverviewSerializable =
+    result = entry
