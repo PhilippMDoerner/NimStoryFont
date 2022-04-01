@@ -15,6 +15,7 @@ export normConversion
 
 type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q): M {.gcsafe.}
 type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}
+type DatabaseActionNoReturnProc[Q: object] = proc(queryParams: Q) {.gcsafe.}
 
 proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamName: string): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
@@ -132,7 +133,7 @@ proc extractQueryParams[Q: object](ctx: Context, dataContainerType: typedesc[Q])
   for fieldName, fieldValue in result.fieldPairs:
     extractQueryParam(ctx, fieldName, fieldValue)
 
-proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: DatabaseActionProc[M, Q]): HandlerAsync =
+proc createSimpleHandler*[M: object | ref object, Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionProc[M, Q]): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
@@ -143,7 +144,7 @@ proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: Databa
       resp jsonyResponse(ctx, data)
 
 
-proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: DatabaseActionSeqProc[M, Q]): HandlerAsync =
+proc createSimpleHandler*[M: object | ref object, Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionSeqProc[M, Q]): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
 
@@ -153,3 +154,12 @@ proc createSimpleHandler*[M: object | ref object, Q: object](serviceProc: Databa
       let data = serviceProc(queryParams)
       resp jsonyResponse(ctx, data)
 
+proc createSimpleDeletionHandler*[Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionNoReturnProc[Q]): HandlerAsync =
+  result = proc (ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let queryParams: Q = ctx.extractQueryParams(Q)
+
+    respondBadRequestOnDbError():
+      serviceProc(queryParams)
+      respDefault(Http204)

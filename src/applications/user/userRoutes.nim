@@ -2,7 +2,6 @@ import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
 import userService
 import std/strformat
-import ../allUrlParams
 import ../genericArticleControllers
 import userModel
 import userRequestParams
@@ -10,35 +9,35 @@ import userRequestParams
 proc addUserRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/user/",
-        handler = createSimpleHandler(createUser),
+        handler = createSimpleHandler(CreateParams, createUser),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(User, ID_PARAM),
+        handler = createSimpleDeletionHandler(DeleteParams, deleteUser),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
-        handler = createSimpleHandler(updateUser),
+        handler = createSimpleHandler(UpdateParams, updateUser),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
-        handler = createSimpleHandler(getUserById),  
+        handler = createSimpleHandler(ReadByIdParams, getUserById),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createSimpleHandler(getCampaignUserListOverview),  
+        handler = createSimpleHandler(ReadListParams, getCampaignUserListOverview),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
