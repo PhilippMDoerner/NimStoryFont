@@ -1,52 +1,49 @@
 import prologue
 import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
-import creatureControllers
 import creatureService
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
-import creatureModel
-
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Creature, getCreatureSerialization),
+        handler = createSimpleHandler(CreateParams, createCreature),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Creature, ID_PARAM),
+        handler = createSimpleDeletionHandler(DeleteParams, deleteCreature),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Creature, ID_PARAM, getCreatureSerialization),
+        handler = createSimpleHandler(UpdateParams, updateCreature),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(ID_PARAM, getCreatureById),  
+        handler = createSimpleHandler(ReadByIdParams, getCreatureById),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignCreatureListOverview),  
+        handler = createSimpleHandler(ReadListParams, getCreatureList),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
     
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        creatureControllers.getCreatureByNameView,  
+        handler = createSimpleHandler(ReadByNameParams, getCreatureByName),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignGuestAccessMiddleware()]
     )
