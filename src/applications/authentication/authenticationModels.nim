@@ -1,8 +1,7 @@
 import norm/[model, pragmas]
-import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
 import ../../applicationConstants
-import std/[tables, options]
+import std/[tables]
 import constructor/defaults
 import ../user/userModel
 

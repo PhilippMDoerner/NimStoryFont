@@ -1,5 +1,4 @@
 import diaryEntryModel
-import ../encounter/encounterModel
 import ../genericArticleRepository
 import ../../applicationSettings
 import norm/model
