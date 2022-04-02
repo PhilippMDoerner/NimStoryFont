@@ -1,8 +1,7 @@
 import norm/[model, pragmas]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
-import ../../applicationConstants
-import std/[tables, options]
+import std/[options]
 import constructor/defaults
 
 type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
