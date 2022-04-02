@@ -109,11 +109,13 @@ proc createReadListHandler*[T: Model, M: object | ref object](
 ### NEW PARADIGM BELOW THIS POINT ###
 
 
-proc extractQueryParam[T](ctx: Context, fieldName: static string, fieldValue: var T) =
+proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue: var T) =
   ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object
   ## TODO: Figure out how to check if a url param exists at compiletime
   when fieldName == "body":
     fieldValue = ctx.request.body()
+  elif fieldValue is TokenData:
+    fieldValue = ctx.tokenData
   elif fieldValue is Option:
     fieldValue = extractQueryParam(ctx, fieldName, fieldValue)
   elif fieldValue is int or fieldValue is int64:
@@ -125,7 +127,7 @@ proc extractQueryParam[T](ctx: Context, fieldName: static string, fieldValue: va
   else:
     assert(false, fmt"Tried extracting query parameter {fieldName} which was neither an int, string or bool or an Option of those types") 
 
-proc extractQueryParams[Q: object](ctx: Context, dataContainerType: typedesc[Q]): Q =
+proc extractQueryParams[Q: object](ctx: JWTContext, dataContainerType: typedesc[Q]): Q =
   mixin init
 
   result = init(Q)
