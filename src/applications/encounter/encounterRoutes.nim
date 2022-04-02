@@ -4,7 +4,6 @@ import encounterControllers
 import std/strformat
 import encounterService
 import ../allUrlParams
-import encounterModel
 import ../genericArticleControllers
 
 proc addEncounterRoutes*(app: Prologue) =
@@ -17,28 +16,28 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Encounter, getSerializedEncounter),
+        handler = createSimpleHandler(CreateParams, createEncounter),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Encounter, ID_PARAM),
+        handler = createSimpleDeletionHandler(DeleteParams, deleteEncounter),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{ID_PATTERN}/",
-        handler = createEntryReadByIdHandler(ID_PARAM, getEncounterById),
+        handler = createSimpleHandler(ReadByIdParams, getEncounterById),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Encounter, ID_PARAM, getSerializedEncounter),
+        handler = createSimpleHandler(UpdateParams, updateEncounter),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
     )
