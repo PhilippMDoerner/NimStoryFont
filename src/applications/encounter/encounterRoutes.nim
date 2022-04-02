@@ -1,5 +1,5 @@
 import prologue
-import ../../middleware/[loginMiddleware, campaignAccessMiddleware]
+import ../../middleware/[loginMiddleware]
 import encounterControllers
 import std/strformat
 import encounterService
@@ -11,40 +11,40 @@ proc addEncounterRoutes*(app: Prologue) =
        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/orderswap/",
        handler = encounterControllers.swapEncounterOrder,
        httpMethod = HttpPatch,
-       middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+       middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
         handler = createSimpleHandler(CreateParams, createEncounter),
         httpMethod = HttpPost,
-        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+        middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = createSimpleDeletionHandler(DeleteParams, deleteEncounter),
         httpMethod = HttpDelete,
-        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+        middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{ID_PATTERN}/",
         handler = createSimpleHandler(ReadByIdParams, getEncounterById),
         httpMethod = HttpGet,
-        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+        middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
         handler = createSimpleHandler(UpdateParams, updateEncounter),
         httpMethod = HttpPut,
-        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+        middlewares = @[loginMiddleware()]
     )
    
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/cutinsert/",
         handler = encounterControllers.cutInsertEncounter,
         httpMethod = HttpPatch,
-        middlewares = @[loginMiddleware(), campaignMemberAccessMiddleware()]
+        middlewares = @[loginMiddleware()]
     )
