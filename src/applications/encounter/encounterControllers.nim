@@ -5,38 +5,6 @@ import std/[json, strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
-import ../allUrlParams
-
-
-proc createEncounterView*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
-
-    let jsonData: string = ctx.request.body()
-    
-    respondBadRequestOnDbError():
-        let newEntry = createEncounter(jsonData)
-        resp jsonyResponse(ctx, newEntry)
-
-
-proc updateEncounterView*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
-
-    let entryId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-    let jsonData: string = ctx.request.body()
-    
-    respondBadRequestOnDbError():
-        let updatedEntry = updateEncounter(entryId, jsonData)
-        resp jsonyResponse(ctx, updatedEntry)
-
-
-proc deleteEncounterView*(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let entryId: int64 = parseInt(ctx.getPathParams(ID_PARAM))
-
-    respondBadRequestOnDbError():
-        deleteEncounter(entryId)
-        respDefault(Http204)
 
 
 proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
