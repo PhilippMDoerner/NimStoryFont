@@ -1,7 +1,7 @@
 import genericArticleRepository
 import norm/[model]
 import jsony
-import ../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../applicationConstants
 import ../utils/databaseUtils
 import tinypool
