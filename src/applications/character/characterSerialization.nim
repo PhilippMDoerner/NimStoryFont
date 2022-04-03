@@ -91,7 +91,7 @@ type CharacterOverviewSerializable* = object
 
 
 
-proc serialize*(connection: DbConn, character: CharacterRead): CharacterSerializable =
+proc serializeCharacterRead*(connection: DbConn, character: CharacterRead): CharacterSerializable =
     let images = connection.getManyFromOne(character, Image)
     let encounters = connection.getManyToMany(character, CharacterEncounterRead, EncounterRead)
     let playerClassConnections = connection.getManyToMany(character, PlayerClassConnectionRead, PlayerClass)
@@ -105,15 +105,14 @@ proc serialize*(connection: DbConn, character: CharacterRead): CharacterSerializ
         playerClassConnections: playerClassConnections
     )
 
-proc serialize*(connection: DbConn, entryId: int64): CharacterSerializable =
-    let entry = connection.getEntryById(entryId, CharacterRead)
-    result = connection.serialize(entry)
+proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSerializable =
+    let entry = connection.getEntryById(entry.id, CharacterRead)
+    result = connection.serializeCharacterRead(entry)
 
-proc serialize*(connection: DbConn, campaignName: string, entryName: string): CharacterSerializable =
-    let entry = connection.getEntryByName(campaignName, entryName, CharacterRead)
-    result = connection.serialize(entry)
 
-proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
+
+
+proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
     let imagePaths = images.map(entry => entry.image)
 
@@ -129,4 +128,7 @@ proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): Character
     )
 
 
-
+#TODO: This appears to solely be needed for its ability to instantiate getEntryByName for characterRead
+proc serialize(connection: DbConn, campaignName: string, entryName: string): CharacterSerializable =
+    let entry = connection.getEntryByName(campaignName, entryName, CharacterRead)
+    result = connection.serializeCharacterRead(entry)
