@@ -1,17 +1,11 @@
 import ../genericArticleRepository
 import markerModel
+import markerRepository
 import norm/sqlite
+import ../allUrlParams
+
 export markerModel
 
-
-proc getMarkerByName*(campaignName: string, entryName: string): MarkerRead = 
-    result = getEntryByName(campaignName, entryName, MarkerRead)
-
-
-proc getMarkerById*(entryId: int64): MarkerRead {.gcsafe.}=
-    result = getEntryById(entryId, MarkerRead)
-
-
-proc getMarkerSerialization*(connection: sqlite.DbConn, entry: Marker): MarkerRead {.gcsafe.}=
-    result = connection.getEntryById(entry.id, MarkerRead)
+proc getMarkerByParam*(connection: DbConn, params: ReadMarkerByNameParams): MarkerRead =
+    result = connection.getMarker(params.campaignName, params.parentLocationName, params.locationName, params.articleName)
 

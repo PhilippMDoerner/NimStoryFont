@@ -13,6 +13,7 @@ import allUrlParams
 export jsony
 export serialization
 export normConversion
+export genericArticleService
 
 type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q): M {.gcsafe.}
 type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}

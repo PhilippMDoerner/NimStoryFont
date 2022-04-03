@@ -1,45 +1,45 @@
 import prologue
 import ../../middleware/[loginMiddleware]
-import markerControllers
 import markerService
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
-import markerModel
+import markerSerialization
+import markerUtils
 
 
 proc addMarkerRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/marker/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Marker, getMarkerSerialization),
+        handler = createCreateArticleHandler[CreateParams, Marker, MarkerSerializable](serializeMarker),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/marker/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Marker, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Marker](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/marker/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Marker, ID_PARAM, getMarkerSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Marker, MarkerSerializable](serializeMarker),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/marker/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(ID_PARAM, getMarkerById),  
+        handler = createReadByIdHandler[ReadByIdParams, MarkerRead, MarkerSerializable](serializeMarkerRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/marker/{CAMPAIGN_NAME_PATTERN}/{PARENT_LOCATION_NAME_PATTERN}/{LOCATION_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}", 
-        markerControllers.getMarkerByNameView,  
+        handler = createReadHandler[ReadMarkerByNameParams, MarkerRead, MarkerSerializable](getMarkerByParam, serializeMarkerRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
