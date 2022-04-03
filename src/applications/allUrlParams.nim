@@ -21,7 +21,7 @@ const SEARCH_TEXT_PATTERN* = fmt r"(?P<{SEARCH_TEXT_PARAM}>[^/]+)"
 const PARENT_LOCATION_NAME_PARAM* = "parentLocationName"
 const PARENT_LOCATION_NAME_PATTERN* = fmt r"(?P<{PARENT_LOCATION_NAME_PARAM}>[^/]+)"
 
-const LOCATION_NAME_PARAM* = "parentLocationName"
+const LOCATION_NAME_PARAM* = "locationName"
 const LOCATION_NAME_PATTERN* = fmt r"(?P<{LOCATION_NAME_PARAM}>[^/]+)"
 
 const PAGE_NUMBER_PARAM* = "pageNumber"
@@ -82,3 +82,11 @@ type ReadLocationByNameParams* {.defaults.} = object
   articleName*: string = ""
   parentLocationName*: string = ""
 implDefaults(ReadLocationByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
+type ReadMarkerByNameParams* {.defaults.} = object
+  campaignName*: string = ""
+  articleName*: string = ""
+  locationName*: string = ""
+  parentLocationName*: string = ""
+implDefaults(ReadMarkerByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
