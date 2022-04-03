@@ -1,6 +1,6 @@
 import prologue
 import std/[strutils, sequtils, sugar]
-import ../utils/[jwtContext, customResponses, errorResponses]
+import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import tinypool
 import controllerTemplates
 import genericArticleService
@@ -8,6 +8,7 @@ import genericArticleRepository
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
 import jsony
+import allUrlParams
 
 export jsony
 export serialization
@@ -165,3 +166,119 @@ proc createSimpleDeletionHandler*[Q: object](paramsContainerType: typedesc[Q], s
     respondBadRequestOnDbError():
       serviceProc(queryParams)
       respDefault(Http204)
+
+
+### NEW PARADIGM 2.0 BELOW THIS POINT ###
+
+type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
+type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
+
+type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
+type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
+type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, newEntry: var ENTRY): ENTRY
+type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
+
+proc createReadHandler*[P: object, E: Model, S: object | ref object](
+  readEntry: ReadProc[P, E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+
+    respondBadRequestOnDbError():
+      withDbConn(connection):
+        let entry: E = connection.readEntry(params)
+        checkReadPermission(ctx.tokenData, entry)
+        let data: S = connection.serialize(entry)
+        resp jsonyResponse(ctx, data)
+
+proc createReadByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  result = createReadHandler[P, E, S](readArticleById, serialize)
+
+proc createReadByNameHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  result = createReadHandler[P, E, S](readArticleByName, serialize)
+
+proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
+  readProc: ReadProc[P, E],
+  updateProc: UpdateProc[P, E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+    var newEntry: E = ctx.request.body().fromJson(E)
+    checkUpdatePermission(ctx.tokenData, newEntry)
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        let oldEntry: E = connection.readProc(params)
+        checkUpdatePermission(ctx.tokenData, oldEntry)
+        let newUpdatedEntry: E = connection.updateProc(params, newEntry)
+        let data: S = connection.serialize(newUpdatedEntry)
+
+        resp jsonyResponse(ctx, data)
+
+proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  result = createUpdateHandler[P, E, S](readArticleById, updateArticle, serialize)
+
+proc createCreateHandler*[P: object, E: Model, S: object | ref object](
+  createProc: CreateProc[P, E], 
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+
+    var newEntry: E = params.body.fromJson(E)
+    checkCreatePermission(ctx.tokenData, newEntry)
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        let newCreatedEntry: E = connection.createProc(params, newEntry)
+        let data: S = connection.serialize(newCreatedEntry)
+
+        resp jsonyResponse(ctx, data)
+
+proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  result = createCreateHandler[P, E, S](createArticle, serialize)
+
+
+proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref object](
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+    checkReadListPermission(ctx.tokenData, params.campaignName)
+
+    respondBadRequestOnDbError():
+      withDbConn(connection):
+        let entries: seq[E] = readCampaignArticleList[P, E](connection, params)
+        let data: seq[S] = entries.map(entry => connection.serialize(entry))
+
+        resp jsonyResponse(ctx, data)
+
+proc createDeleteHandler*[P: object, E: Model](
+  readProc: ReadProc[P, E],
+  delete: DeleteProc[E]
+): HandlerAsync =
+  result = proc (ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+    
+    let params: DeleteParams = ctx.extractQueryParams(DeleteParams)
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        var entryToDelete: E = connection.readProc(params)
+        checkDeletePermission(ctx.tokenData, entryToDelete)
+        connection.delete(entryToDelete)
+      
+        respDefault(Http204)
+
+proc createDeleteByIdHandler*[P: object, E: Model](): HandlerAsync =
+  result = createDeleteHandler[P, E](readArticleById, deleteArticle)

@@ -1,6 +1,10 @@
 import std/strformat
 import constructor/defaults
 import ../applicationConstants
+import authentication/[myJwt, authenticationModels, authenticationUtils]
+
+export authenticationModels
+export authenticationUtils
 
 const CAMPAIGN_NAME_PARAM* = "campaignName"
 const CAMPAIGN_NAME_PATTERN* = fmt r"(?P<{CAMPAIGN_NAME_PARAM}>[^/]+)"
@@ -37,6 +41,7 @@ const USERNAME_PATTERN* = fmt r"(?P<{USERNAME_PARAM}>[^/]+)"
 
 type ReadByIdParams* {.defaults.} = object
   id*: int64 = MODEL_INIT_ID
+  userToken*: TokenData = newTokenData()
 implDefaults(ReadByIdParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type DeleteParams* = ReadByIdParams
@@ -44,19 +49,23 @@ type DeleteParams* = ReadByIdParams
 type ReadByNameParams* {.defaults.} = object
   campaignName*: string = ""
   articleName*: string = ""
+  userToken*: TokenData = newTokenData()
 implDefaults(ReadByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type CreateParams* {.defaults.} = object
   body*: string = ""
+  userToken*: TokenData = newTokenData()
 implDefaults(CreateParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type UpdateParams* {.defaults.} = object
   id*: int64 = MODEL_INIT_ID
   body*: string = ""
+  userToken*: TokenData = newTokenData()
 implDefaults(UpdateParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type ReadListParams* {.defaults.} = object
   campaignName*: string = ""
+  userToken*: TokenData = newTokenData()
 implDefaults(ReadListParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type ReadDiaryEntryParams* {.defaults.} = object
@@ -64,4 +73,5 @@ type ReadDiaryEntryParams* {.defaults.} = object
   sessionNumber*: int = -1
   isMainSession*: bool = true
   userName*: string = ""
+  userToken*: TokenData = newTokenData()
 implDefaults(ReadDiaryEntryParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

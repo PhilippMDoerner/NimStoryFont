@@ -16,30 +16,19 @@ proc getCampaignCreatureList*(requestParams: ReadListParams): seq[CreatureOvervi
         let entries = connection.getCampaignList(requestParams.campaignName, CreatureOverview)
         result = entries.map(entry => connection.overviewSerialize(entry))
 
-proc getCreatureById*(requestParams: ReadByIdParams): CreatureSerializable =
-    withDbConn(connection):
-        result = connection.serialize(requestParams.id)
+proc getCreatureById*(connection: DbConn, requestParams: ReadByIdParams): Creature =
+    result = connection.getEntryById(requestParams.id, Creature)
 
-proc getCreatureByName*(requestParams: ReadByNameParams): CreatureSerializable =
-    withDbConn(connection):
-        result = connection.serialize(requestParams.campaignName, requestParams.articleName)
+proc getCreatureById*(connection: DbConn, requestParams: UpdateParams): Creature =
+    result = connection.getEntryById(requestParams.id, Creature)
 
-proc updateCreature*(requestParams: UpdateParams): CreatureSerializable =
-    withDbTransaction(connection):
-        let updatedEntry = connection.updateArticle(requestParams.id, requestParams.body, Creature)
-        result = connection.serialize(updatedEntry.id)
-        
-proc deleteCreature*(requestParams: DeleteParams) =
-    deleteEntry(requestParams.id, Creature)
+proc getCreatureByName*(connection: DbConn, requestParams: ReadByNameParams): CreatureRead =
+    result = connection.getEntryByName(requestParams.campaignName, requestParams.articleName, CreatureRead)
 
-proc getCreatureList*(requestParams: ReadListParams): seq[CreatureOverviewSerializable] =
-    withDbConn(connection):
-        let entries = connection.getCampaignList(requestParams.campaignName, CreatureOverview)
-        result = entries.map(entry => connection.overviewSerialize(entry))
+proc deleteCreature*(connection: DbConn, entry: var Creature)=
+    connection.deleteEntryInTransaction(entry)
 
-proc createCreature*(requestParams: CreateParams): CreatureSerializable =
-    withDbTransaction(connection):
-        let createdEntry = connection.createArticle(requestParams.body, Creature)
-        result = connection.serialize(createdEntry.id)
+proc getCreatureList*(connection: DbConn, requestParams: ReadListParams): seq[CreatureOverviewSerializable] =
+    result = connection.getCampaignList(requestParams.campaignName, CreatureOverview)
 
 

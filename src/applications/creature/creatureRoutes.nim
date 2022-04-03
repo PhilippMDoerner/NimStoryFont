@@ -1,6 +1,7 @@
 import prologue
 import ../../middleware/[loginMiddleware]
 import creatureService
+import creatureSerialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -8,42 +9,42 @@ import ../genericArticleControllers
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createSimpleHandler(CreateParams, createCreature),
+        handler = createCreateArticleHandler[CreateParams, Creature, CreatureSerializable](serialize),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createSimpleDeletionHandler(DeleteParams, deleteCreature),
+        handler = createDeleteByIdHandler[DeleteParams, Creature](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createSimpleHandler(UpdateParams, updateCreature),
+        handler = createUpdateByIdHandler[UpdateParams, Creature, CreatureSerializable](serialize),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createSimpleHandler(ReadByIdParams, getCreatureById),  
+        handler = createReadByIdHandler[ReadByIdParams, Creature, CreatureSerializable](serialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createSimpleHandler(ReadListParams, getCreatureList),  
+        handler = createReadCampaignListHandler[ReadListParams, CreatureOverview, CreatureOverviewSerializable](overviewSerialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        handler = createSimpleHandler(ReadByNameParams, getCreatureByName),  
+        handler = createReadByNameHandler[ReadByNameParams, CreatureRead, CreatureSerializable](serialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
