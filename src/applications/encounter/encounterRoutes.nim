@@ -3,6 +3,8 @@ import ../../middleware/[loginMiddleware]
 import encounterControllers
 import std/strformat
 import encounterService
+import encounterSerialization
+import encounterUtils
 import ../allUrlParams
 import ../genericArticleControllers
 
@@ -16,28 +18,28 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createSimpleHandler(CreateParams, createEncounter),
+        handler = createCreateHandler[CreateParams, Encounter, EncounterSerializable](createEncounter, serializeEncounter),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = createSimpleDeletionHandler(DeleteParams, deleteEncounter),
+        handler = createDeleteByIdHandler[DeleteParams, Encounter](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{ID_PATTERN}/",
-        handler = createSimpleHandler(ReadByIdParams, getEncounterById),
+        handler = createReadByIdHandler[ReadByIdParams, EncounterRead, EncounterSerializable](serializeEncounterRead),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
-        handler = createSimpleHandler(UpdateParams, updateEncounter),
+        handler = createUpdateByIdHandler[UpdateParams, Encounter, EncounterSerializable](serializeEncounter),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
