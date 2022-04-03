@@ -7,6 +7,7 @@ import ../../applicationConstants
 import ../mapMarkerType/markerTypeModel
 import ../map/mapModel
 import ../location/locationModel
+import ../campaign/campaignModel
 
 type Marker* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
@@ -36,3 +37,27 @@ type MarkerRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
 
 implDefaults(MarkerRead)
 proc newModel*(T: typedesc[MarkerRead]): MarkerRead = newMarkerRead()
+
+
+
+type MarkerMap* {.defaults, tableName: MAP_TABLE.} = ref object of Model
+  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  name*: string = ""
+
+implDefaults(MarkerMap)
+proc newModel*(T: typedesc[MarkerMap]): MarkerMap = newMarkerMap()
+
+type MarkerWithMapRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
+  icon*: Option[string] = some("")
+  longitude*: int = 0
+  latitude*: int = 0
+  map_id*: MapRead = newModel(MapRead)
+  location_id*: LocationRead = newModel(LocationRead)
+  type_id*: Option[MarkerType] = some(newModel(MarkerType))
+  creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+  color*: Option[string] = some("")
+
+
+implDefaults(MarkerWithMapRead)
+proc newModel*(T: typedesc[MarkerWithMapRead]): MarkerWithMapRead = newMarkerWithMapRead()
