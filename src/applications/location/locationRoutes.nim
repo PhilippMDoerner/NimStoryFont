@@ -1,7 +1,7 @@
 import prologue
 import ../../middleware/loginMiddleware
-import locationControllers
 import locationService
+import locationSerialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -9,42 +9,42 @@ import ../genericArticleControllers
 proc addLocationRoutes*(app: Prologue) =
     app.addRoute(
         re"/location/",
-        handler = createEntryCreationHandler(Location, getLocationSerialization),
+        handler = createCreateArticleHandler[CreateParams, Location, LocationSerializable](serializeLocation),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/location/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Location, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Location](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/location/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Location, ID_PARAM, getLocationSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Location, LocationSerializable](serializeLocation),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/location/{ID_PATTERN}/", 
-        handler = createEntryReadByIdHandler(ID_PARAM, getLocationById), 
+        handler = createReadByIdHandler[ReadByIdParams, LocationRead, LocationSerializable](serializeLocationRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/location/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignLocationList),
+        handler = createReadCampaignListHandler[ReadListParams, LocationRead, LocationOverviewSerializable](overviewSerialize),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/location/{CAMPAIGN_NAME_PATTERN}/{PARENT_LOCATION_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/",
-        handler = locationControllers.getLocationByNameView,
+        handler = createReadHandler[ReadLocationByNameParams, LocationRead, LocationSerializable](getLocationByName, serializeLocationRead),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
