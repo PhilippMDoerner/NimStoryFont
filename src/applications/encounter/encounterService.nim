@@ -10,24 +10,8 @@ import std/[options, strformat, json, jsonutils]
 import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../utils/databaseUtils
 import ../allUrlParams
-import encounterSerialization
 
 export encounterModel
-
-
-proc getEncounterById*(requestParams: ReadByIdParams): EncounterRead =
-    withDbConn(connection):
-        let entry = connection.getEntryById(requestParams.id, EncounterRead)
-        result = connection.serialize(entry.id)
-
-proc deleteEncounter*(requestParams: DeleteParams) =
-    deleteEntry(requestParams.id, Encounter)
-
-
-proc updateEncounter*(requestParams: UpdateParams): EncounterRead =
-    withDbTransaction(connection):
-        let entry: Encounter = connection.updateArticle(requestParams.id, requestParams.body, Encounter)
-        result = connection.serialize(entry)
 
 
 proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
@@ -57,8 +41,7 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
             result = jsonutils.toJson(swappedEncounters)
 
 
-proc createEncounter*(requestParams: CreateParams): EncounterRead =
-    var entry: Encounter = requestParams.body.fromJson(Encounter)
+proc createEncounter*(connection: DbConn, requestParams: CreateParams, entry: var Encounter): Encounter =
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
@@ -69,14 +52,12 @@ proc createEncounter*(requestParams: CreateParams): EncounterRead =
     )
     
     {.cast(gcsafe).}:
-        withDbTransaction(connection):
-            connection.incrementOrderIndicesOfFollowingEncounters(
-                entry.diaryentry_id, 
-                entry.order_index.get()
-            )
-            entry = connection.createArticle(requestParams.body, Encounter)
+        connection.incrementOrderIndicesOfFollowingEncounters(
+            entry.diaryentry_id, 
+            entry.order_index.get()
+        )
+        result = connection.createArticle(requestParams.body, Encounter)
 
-            result = connection.serialize(entry)
         
 
 proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: int): seq[EncounterRead] =
