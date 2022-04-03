@@ -48,7 +48,8 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, mode
     var entries: seq[M] = @[]
     entries.add(newModel(M))
     
-    connection.select(entries, "campaign_id.name = ?", campaignName)
+    let queryParams: array[1, DbValue] = [campaignName.dbValue()]
+    connection.select(entries, "campaign_id.name = ?", queryParams)
 
     result = entries
 
@@ -73,8 +74,9 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
     
     const modelTableName: string = M.table()
     var sqlCondition: string = fmt "{modelTableName}.name = ? AND campaign_id.name = ?"
-
-    connection.select(entry, sqlCondition, entryName, campaignName)
+    
+    let queryParams: array[2, DbValue] = [entryName.dbValue(), campaignName.dbValue()]
+    connection.select(entry, sqlCondition, queryParams)
 
     result = entry
 
@@ -116,9 +118,10 @@ proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: ty
 
     var targetEntry: M = newModel(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt"{modelTableName}.id = {entryId}"
+    var sqlCondition: string = fmt"{modelTableName}.id = ?"
 
-    connection.select(targetEntry, sqlCondition)
+    let queryParams: array[1, DbValue] = [dbValue(entryId)]
+    connection.select(targetEntry, sqlCondition, queryParams)
 
     result = targetEntry
 
