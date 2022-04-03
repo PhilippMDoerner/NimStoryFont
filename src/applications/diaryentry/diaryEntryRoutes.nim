@@ -10,7 +10,7 @@ import std/strformat
 proc addDiaryEntryRoutes*(app: Prologue) =
     app.addRoute(
         re"/diaryentry/",
-        handler = createCreateArticleHandler[CreateParams, DiaryEntry, DiaryEntrySerializable](serialize),
+        handler = createCreateArticleHandler[CreateParams, DiaryEntry, DiaryEntrySerializable](serializeDiaryEntry),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
@@ -24,7 +24,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{ID_PATTERN}/",
-        handler = createUpdateByIdHandler[UpdateParams, DiaryEntry, DiaryEntrySerializable](serialize),
+        handler = createUpdateByIdHandler[UpdateParams, DiaryEntry, DiaryEntrySerializable](serializeDiaryEntry),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
@@ -38,7 +38,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/{SESSION_NUMBER_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{USERNAME_PATTERN}/", 
-        handler = createReadHandler[ReadDiaryEntryParams, DiaryEntryRead, DiaryEntrySerializable](getDiaryEntry, serialize),  
+        handler = createReadHandler[ReadDiaryEntryParams, DiaryEntryRead, DiaryEntrySerializable](getDiaryEntry, serializeDiaryEntryRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
