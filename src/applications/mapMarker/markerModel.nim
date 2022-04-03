@@ -35,23 +35,6 @@ type MarkerRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
   longitude*: int = 0
   latitude*: int = 0
-  map_id*: Map = newModel(Map)
-  location_id*: Location = newModel(Location)
-  type_id*: Option[MarkerType] = some(newModel(MarkerType))
-  creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  color*: Option[string] = some("")
-
-implDefaults(MarkerRead)
-proc newModel*(T: typedesc[MarkerRead]): MarkerRead = newMarkerRead()
-
-
-
-
-type MarkerWithMapRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
-  icon*: Option[string] = some("")
-  longitude*: int = 0
-  latitude*: int = 0
   map_id*: MarkerMap = newModel(MarkerMap)
   location_id*: LocationRead = newModel(LocationRead)
   type_id*: Option[MarkerType] = some(newModel(MarkerType))
@@ -59,6 +42,5 @@ type MarkerWithMapRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Mo
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   color*: Option[string] = some("")
 
-
-implDefaults(MarkerWithMapRead)
-proc newModel*(T: typedesc[MarkerWithMapRead]): MarkerWithMapRead = newMarkerWithMapRead()
+implDefaults(MarkerRead)
+proc newModel*(T: typedesc[MarkerRead]): MarkerRead = newMarkerRead()

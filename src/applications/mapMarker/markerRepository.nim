@@ -13,8 +13,8 @@ proc getMarkerForMap*(connection: DbConn, campaignName: string, mapName: string)
 
   result = entries
 
-proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerWithMapRead =
-  var entry = newModel(MarkerWithMapRead)
+proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerRead =
+  var entry = newModel(MarkerRead)
 
   if parentLocationName.toLowerAscii() == NONE_STRING_LOWER:
       var sqlCondition: string = fmt """ 
