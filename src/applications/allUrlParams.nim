@@ -1,4 +1,4 @@
-import std/strformat
+import std/[strformat, options]
 import constructor/defaults
 import ../applicationConstants
 import authentication/[myJwt, authenticationModels, authenticationUtils]
@@ -75,3 +75,10 @@ type ReadDiaryEntryParams* {.defaults.} = object
   userName*: string = ""
   userToken*: TokenData = newTokenData()
 implDefaults(ReadDiaryEntryParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
+type ReadLocationByNameParams* {.defaults.} = object
+  campaignName*: string = ""
+  articleName*: string = ""
+  parentLocationName*: string = ""
+implDefaults(ReadLocationByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
