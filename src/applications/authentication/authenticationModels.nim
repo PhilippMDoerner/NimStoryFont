@@ -8,6 +8,7 @@ import ../user/userModel
 type CampaignAccessLevel* = enum
   GUEST = "guest", MEMBER = "member", ADMIN = "admin"
 
+type CampaignMemberships* = Table[int64, CampaignAccessLevel]
 
 
 type Group* {.defaults, tableName: GROUP_TABLE.} = ref object of Model
@@ -63,4 +64,4 @@ proc newModel*(T: typedesc[UserPermission]): UserPermission = newUserPermission(
 
 type UserContainer* = object
     user*: User
-    campaignMemberships*: Table[string, CampaignAccessLevel]
+    campaignMemberships*: CampaignMemberships

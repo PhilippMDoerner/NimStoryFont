@@ -22,4 +22,8 @@ proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOv
     result = entry
 
 
+proc serialize*(connection: DbConn, entry: Creature): CreatureSerializable =
+    let fullEntry = connection.getEntryById(entry.id, CreatureRead)
+    result = connection.serialize(fullEntry)
+
 

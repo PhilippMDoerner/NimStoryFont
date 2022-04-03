@@ -1,15 +1,14 @@
 import prologue
 import jwt
-import ../../applicationSettings
 import ../../applicationConstants
-import std/[options, logging, json, tables, random, times, strutils]
+import std/[options, logging, json, tables, random, times, strutils, strformat]
 import authenticationModels
 import constructor/defaults
 
 export jwt
 
 type TokenData* {.defaults.} = object
-    campaignMemberships*: Table[string, CampaignAccessLevel] = initTable[string, CampaignAccessLevel]()
+    campaignMemberships*: Table[int64, CampaignAccessLevel] = initTable[int64, CampaignAccessLevel]()
     isAdmin*: bool = false
     isSuperUser*: bool = false
     userId*: int64 = MODEL_INIT_ID
@@ -101,9 +100,10 @@ proc extractTokenData*(token: JWT): TokenData =
         isSuperUser: bool = token.claims["isSuperUser"].node.bval
 
     let unparsedCampaignMemberships: OrderedTable[string, JsonNode] = token.claims["campaign_memberships"].node.fields
-    var campaignMemberships: Table[string, CampaignAccessLevel] = initTable[string, CampaignAccessLevel]()
-    for campaign, membership in unparsedCampaignMemberships.pairs:
-        campaignMemberships[campaign] = parseEnum[CampaignAccessLevel](membership.getStr())
+    var campaignMemberships: CampaignMemberships = initTable[int64, CampaignAccessLevel]()
+
+    for campaignIdStr, membership in unparsedCampaignMemberships.pairs:
+        campaignMemberships[parseInt(campaignIdStr)] = parseEnum[CampaignAccessLevel](membership.getStr())
 
     result = TokenData(
         campaignMemberships: campaignMemberships, 
@@ -133,9 +133,16 @@ proc getExpirationTimestamp(tokenType: JWTTYPE, tokenLifetime: TimeInterval): in
 #     var groupTable = initTable[string, string]
     
 
+proc `%`*(table: CampaignMemberships): JsonNode =
+    ## Necessary to be able to parse CampaignMemberships to json for the JWT
+    result = newJObject()
+    for key, value in table.pairs:
+        result.add(fmt"{key}", %value)
+        
+
 proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetime: TimeInterval): JWT =
     let expirationTimestamp: int64 = getExpirationTimestamp(tokenType, tokenLifetime)
-
+    #TODO: Find a way to parse the campaignMemberships to json with std/json
     result = toJWT(%*{
         "header": {
             "alg": "HS256",
