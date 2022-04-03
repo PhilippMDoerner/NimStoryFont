@@ -35,13 +35,13 @@ proc updateDiaryEntry*(requestParams: UpdateParams): DiaryEntrySerializable =
 proc deleteDiaryEntry*(requestParams: DeleteParams) =
   deleteEntry(requestParams.id, DiaryEntry)
 
-proc getDiaryEntry*(requestParams: ReadDiaryEntryParams): DiaryEntrySerializable =
+proc getDiaryEntry*(connection: DbConn, requestParams: ReadDiaryEntryParams): DiaryEntrySerializable =
   let entry = diaryEntryRepository.getDairyEntry(
+    connection,
     requestParams.campaignName, 
     requestParams.sessionNumber, 
     requestParams.isMainSession, 
     requestParams.userName
   )
-  withDbConn(connection):
-    result = connection.serialize(entry.id)
+
     

@@ -13,7 +13,7 @@ proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryRead] =
 
   result = entries
 
-proc getDairyEntry*(campaignName: string, sessionNumber: int, isMainSession: bool, authorName: string): DiaryEntryRead =
+proc getDairyEntry*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool, authorName: string): DiaryEntryRead =
   var entry = newModel(DiaryEntryRead)
 
   const condition = """
@@ -23,7 +23,7 @@ proc getDairyEntry*(campaignName: string, sessionNumber: int, isMainSession: boo
     AND author_id.username LIKE ?
   """
 
-  withDbConn(connection):
-    connection.select(entry, condition, campaignName, sessionNumber, isMainSession, authorName)
+  let queryParams: array[4, DbValue] = [campaignName.dbValue, sessionNumber.dbValue, isMainSession.dbValue, authorName.dbValue]
+  connection.select(entry, condition, queryParams)
   
   result = entry
