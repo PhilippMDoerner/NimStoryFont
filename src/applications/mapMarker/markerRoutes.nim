@@ -39,7 +39,7 @@ proc addMarkerRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/marker/{CAMPAIGN_NAME_PATTERN}/{PARENT_LOCATION_NAME_PATTERN}/{LOCATION_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}", 
-        handler = createReadHandler[ReadMarkerByNameParams, MarkerRead, MarkerSerializable](getMarkerByParam, serializeMarkerRead), 
+        handler = createReadHandler[ReadMarkerByNameParams, MarkerWithMapRead, MarkerSerializable](getMarkerByParam, serializeMarkerWithMapRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

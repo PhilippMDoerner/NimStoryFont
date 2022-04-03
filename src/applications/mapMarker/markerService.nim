@@ -6,6 +6,6 @@ import ../allUrlParams
 
 export markerModel
 
-proc getMarkerByParam*(connection: DbConn, params: ReadMarkerByNameParams): MarkerRead =
+proc getMarkerByParam*(connection: DbConn, params: ReadMarkerByNameParams): MarkerWithMapRead =
     result = connection.getMarker(params.campaignName, params.parentLocationName, params.locationName, params.articleName)
 
