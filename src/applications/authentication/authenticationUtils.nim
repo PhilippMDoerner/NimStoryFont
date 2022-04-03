@@ -7,11 +7,17 @@ import ../campaign/campaignService
 type CampaignPermissionError* = object of CatchableError
 
 proc getCampaignId[T: Model](entry: T): int64 =
-  when entry.campaign_id is int64:
-    result = entry.campaign_id
-  elif entry.campaign_id is Model:
-    result = entry.campaign_id.id
+  ## Fetches the id of the campaign a given article belongs to
+  ## Depending on the input type, this has differing behaviours
+  ## If the input has a direct campaign field directly, that field is taken
+  ## If the input has no direct campaign field, a campaign_id() proc must be provided by the caller
+  when compiles(entry.campaign_id):
+    when entry.campaign_id is int64:
+      result = entry.campaign_id
+    elif entry.campaign_id is Model:
+      result = entry.campaign_id.id
   else:
+    mixin campaign_id
     result = entry.campaign_id()
 
 
