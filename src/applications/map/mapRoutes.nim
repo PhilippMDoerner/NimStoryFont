@@ -1,7 +1,7 @@
 import prologue
 import ../../middleware/[loginMiddleware]
-import mapControllers
 import mapService
+import mapSerialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -11,42 +11,42 @@ import mapModel
 proc addMapRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/map/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(Map, getMapSerialization),
+        handler = createCreateArticleHandler[CreateParams, Map, MapSerializable](serializeMap),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/map/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Map, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Map](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/map/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Map, ID_PARAM, getMapSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Map, MapSerializable](serializeMap),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/map/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(ID_PARAM, getMapById),  
+        handler = createReadByIdHandler[ReadByIdParams, MapRead, MapSerializable](serializeMapRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/map/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignMapListOverview),  
+        handler = createReadCampaignListHandler[ReadListParams, MapRead, MapSerializable](overviewSerialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/map/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        mapControllers.getMapByNameView,  
+        handler = createReadByNameHandler[ReadByNameParams, MapRead, MapSerializable](serializeMapRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
