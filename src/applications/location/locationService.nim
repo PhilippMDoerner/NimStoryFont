@@ -27,10 +27,6 @@ proc getLocationByName*(connection: DbConn, params: ReadLocationByNameParams): L
     result = entry 
 
 
-proc getLocationById*(locationId: int64): Location =
-    result = getEntryById(locationId, Location)
-
-
 proc getParentLocations*(location: Location): seq[Location] =
     var currentLocation = location
 
@@ -41,9 +37,3 @@ proc getParentLocations*(location: Location): seq[Location] =
             currentLocation = parentLocation
         
     result.reverse()
-
-proc getLocationSerialization*(connection: DbConn, entry: Location): LocationRead =
-    result = connection.getEntryById(entry.id, LocationRead)
-
-proc getCampaignLocationList*(campaignName: string): seq[Location] =
-    result = getCampaignList(campaignName, Location)
