@@ -16,10 +16,10 @@ proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: st
   var entry = newModel(MarkerRead)
 
   const condition = """
-    session_id_campaign_id.name LIKE ? 
-    AND session_id.session_number = ? 
-    AND session_id.is_main_session = ?
-    AND author_id.username LIKE ?
+    map_id_campaign_id.name LIKE ? 
+    AND location_id.name = ? 
+    AND location_id_parent_location_id.name = ?
+    AND map_id.name LIKE ?
   """
 
   let queryParams: array[4, DbValue] = [campaignName.dbValue, parentLocationName.dbValue, locationName.dbValue, mapName.dbValue]
