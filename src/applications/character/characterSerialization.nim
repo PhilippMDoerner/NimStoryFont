@@ -126,9 +126,3 @@ proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): 
         alive: entry.alive,
         images: imagePaths
     )
-
-
-#TODO: This appears to solely be needed for its ability to instantiate getEntryByName for characterRead
-proc serialize(connection: DbConn, campaignName: string, entryName: string): CharacterSerializable =
-    let entry = connection.getEntryByName(campaignName, entryName, CharacterRead)
-    result = connection.serializeCharacterRead(entry)
