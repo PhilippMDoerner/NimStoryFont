@@ -10,6 +10,7 @@ import quest/questModel
 import sessionaudio/sessionaudioModel
 import spell/spellModel
 import rules/ruleModel
+import mapMarker/markerModel
 
 type ArticleTable* = enum #TODO: Replace this with applicationSettings constants once that can compile
   CHARACTER = "wikientries_character"
@@ -25,4 +26,4 @@ type ArticleTable* = enum #TODO: Replace this with applicationSettings constants
   SPELL = "wikientries_spell"
   RULE = "wikientries_rules"
 
-type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | Organization | Quest | SessionAudio | Spell | Rule
+type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap | Organization | Quest | SessionAudio | Spell | Rule

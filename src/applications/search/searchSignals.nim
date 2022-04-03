@@ -136,7 +136,7 @@ connect(SignalType.stPostCreate, Encounter, encounterCreateSignal)
 
 #LOCATION
 proc updateLocationAssociatedEntries(connection: DbConn, modelInstance: Location) =
-  let mapsWithLocation: seq[Map] = getManyToMany(modelInstance, MarkerRead, Map)
+  let mapsWithLocation: seq[MarkerMap] = getManyToMany(modelInstance, MarkerRead, MarkerMap)
   for map in mapsWithLocation:
     updateSearchEntryContent(connection, map)
   

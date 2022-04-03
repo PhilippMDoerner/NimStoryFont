@@ -104,14 +104,14 @@ proc getSearchTitle*(modelInstance: Location): string =
 
 
 
-proc getSearchBody*(modelInstance: Map): string =
+proc getSearchBody*(modelInstance: Map | MarkerMap): string =
   result.add(fmt """{modelInstance.name} """)
 
-  let mapLocations: seq[Location] = getManyToMany(modelInstance, MarkerRead, Location)
+  let mapLocations: seq[LocationRead] = getManyToMany(modelInstance, MarkerRead, LocationRead)
   for location in mapLocations:
     result.add(fmt """{location.name} """)
 
-proc getSearchTitle*(modelInstance: Map): string =
+proc getSearchTitle*(modelInstance: Map | MarkerMap): string =
   return modelInstance.name
 
 

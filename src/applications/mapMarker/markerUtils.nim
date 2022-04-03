@@ -8,7 +8,4 @@ proc campaign_id*(entry: Marker): int64 =
     result = map.campaign_id
 
 proc campaign_id*(entry: MarkerRead): int64 =
-    result = entry.map_id.campaign_id
-
-proc campaign_id*(entry: MarkerWithMapRead): int64 =
     result = entry.map_id.campaign_id.id
