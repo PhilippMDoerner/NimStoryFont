@@ -1,51 +1,50 @@
 import prologue
 import ../../middleware/[loginMiddleware]
 import ../allUrlParams
-import itemControllers
-import itemModel
 import itemService
+import itemSerialization
 import std/strformat
 import ../genericArticleControllers
 
 proc addItemRoutes*(app: Prologue) =
     app.addRoute(
         re"/item/",
-        handler = createEntryCreationHandler(Item, getSerializedItem),
+        handler = createCreateArticleHandler[CreateParams, Item, ItemSerializable](serializeItem),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/item/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Item, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Item](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/item/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Item, ID_PARAM, getSerializedItem),
+        handler = createUpdateByIdHandler[UpdateParams, Item, ItemSerializable](serializeItem),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/item/{ID_PATTERN}/", 
-        handler = createEntryReadByIdHandler(ID_PARAM, getItemById), 
+        handler = createReadByIdHandler[ReadByIdParams, ItemRead, ItemSerializable](serializeItemRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/item/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignItemListOverview),
+        handler = createReadCampaignListHandler[ReadListParams, ItemRead, ItemOverviewSerializable](overviewSerialize),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/item/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        getItemByNameView,  
+        handler = createReadByNameHandler[ReadByNameParams, ItemRead, ItemSerializable](serializeItemRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
