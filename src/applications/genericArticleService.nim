@@ -1,10 +1,9 @@
 import genericArticleRepository
-import norm/[model]
+import norm/[model, sqlite]
 import jsony
 import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../applicationConstants
 import ../utils/databaseUtils
-import tinypool
 
 type SerializationByIdProc*[M: object | ref object] = proc(entryId: int64): M {.gcsafe.}
 type SerializationProc*[T: Model, M: object | ref object] = proc(connection: DbConn, entry: T): M {.gcsafe.}
