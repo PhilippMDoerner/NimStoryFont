@@ -5,6 +5,7 @@ import ../../utils/jwtContext
 import ../campaign/campaignService
 
 type CampaignPermissionError* = object of CatchableError
+type AdminPermissionError* = object of CatchableError
 
 proc getCampaignId[T: Model](entry: T): int64 =
   ## Fetches the id of the campaign a given article belongs to
@@ -21,13 +22,17 @@ proc getCampaignId[T: Model](entry: T): int64 =
     result = entry.campaign_id()
 
 
-proc checkWritePermission[T: Model](ctx: JWTContext, entry: T) =
+proc checkCampaignWritePermission[T: Model](ctx: JWTContext, entry: T) =
   let entryCampaignId: int64 = entry.getCampaignId()
   let userAccessLevel: CampaignAccessLevel = ctx.tokenData.campaignMemberships[entryCampaignId]
   let hasWriteAccess = userAccessLevel == CampaignAccessLevel.MEMBER or userAccessLevel == CampaignAccessLevel.ADMIN
   if not hasWriteAccess:
     raise newException(CampaignPermissionError, "Only members and admins of this campaign can create/update/delete entries")
 
+proc checkAdminPermission*[T: Model](ctx: JWTContext, entry: T) = 
+  let hasAdminPermission = ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser
+  if not hasAdminPermission:
+    raise newException(AdminPermissionError, "Only admins of the webpage can perform this action")
 
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
   let campaign = getCampaignByName(campaignName)
@@ -44,10 +49,10 @@ proc checkReadPermission*[T: Model](ctx: JWTContext, entry: T) =
 
 
 proc checkUpdatePermission*[T: Model](ctx: JWTContext, entry: T) =
-  checkWritePermission(ctx, entry)
+  checkCampaignWritePermission(ctx, entry)
 
 proc checkCreatePermission*[T: Model](ctx: JWTContext, entry: T) =
-  checkWritePermission(ctx, entry)
+  checkCampaignWritePermission(ctx, entry)
 
 proc checkDeletePermission*[T: Model](ctx: JWTContext, entry: T) =
-  checkWritePermission(ctx, entry)
+  checkCampaignWritePermission(ctx, entry)
