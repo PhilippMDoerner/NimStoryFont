@@ -171,17 +171,19 @@ proc createSimpleDeletionHandler*[Q: object](paramsContainerType: typedesc[Q], s
 
 ### NEW PARADIGM 2.0 BELOW THIS POINT ###
 
+type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, newEntry: var ENTRY): ENTRY
 type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
 type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
+type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
+type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
-type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
-type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, newEntry: var ENTRY): ENTRY
-type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
+type CheckPermissionProc*[ENTRY: Model] = proc(ctx: JWTContext, entry: ENTRY)
 
 proc createReadHandler*[P: object, E: Model, S: object | ref object](
   readEntry: ReadProc[P, E],
-  serialize: SerializeProc[E, S]
+  checkPermission: CheckPermissionProc[E],
+  serialize: SerializeProc[E, S],
 ): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -191,18 +193,21 @@ proc createReadHandler*[P: object, E: Model, S: object | ref object](
     respondBadRequestOnDbError():
       withDbConn(connection):
         let entry: E = connection.readEntry(params)
-        checkReadPermission(ctx.tokenData, entry)
+        
+        checkPermission(ctx, entry)
+
         let data: S = connection.serialize(entry)
         resp jsonyResponse(ctx, data)
 
 proc createReadByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createReadHandler[P, E, S](readArticleById, serialize)
+  result = createReadHandler[P, E, S](readArticleById, checkReadPermission, serialize)
 
 proc createReadByNameHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createReadHandler[P, E, S](readArticleByName, serialize)
+  result = createReadHandler[P, E, S](readArticleByName, checkReadPermission, serialize)
 
 proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
   readProc: ReadProc[P, E],
+  checkPermission: CheckPermissionProc[E],
   updateProc: UpdateProc[P, E],
   serialize: SerializeProc[E, S]
 ): HandlerAsync =
@@ -211,21 +216,22 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
 
     let params: P = ctx.extractQueryParams(P)
     var newEntry: E = ctx.request.body().fromJson(E)
-    checkUpdatePermission(ctx.tokenData, newEntry)
+    checkPermission(ctx, newEntry)
 
     respondBadRequestOnDbError():
       withDbTransaction(connection):
         let oldEntry: E = connection.readProc(params)
-        checkUpdatePermission(ctx.tokenData, oldEntry)
+        checkPermission(ctx, oldEntry)
         let newUpdatedEntry: E = connection.updateProc(params, newEntry)
         let data: S = connection.serialize(newUpdatedEntry)
 
         resp jsonyResponse(ctx, data)
 
 proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createUpdateHandler[P, E, S](readArticleById, updateArticle, serialize)
+  result = createUpdateHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
 
 proc createCreateHandler*[P: object, E: Model, S: object | ref object](
+  checkPermission: CheckPermissionProc[E],
   createProc: CreateProc[P, E], 
   serialize: SerializeProc[E, S]
 ): HandlerAsync =
@@ -235,7 +241,7 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
     let params: P = ctx.extractQueryParams(P)
 
     var newEntry: E = params.body.fromJson(E)
-    checkCreatePermission(ctx.tokenData, newEntry)
+    checkPermission(ctx, newEntry)
 
     respondBadRequestOnDbError():
       withDbTransaction(connection):
@@ -245,7 +251,7 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
         resp jsonyResponse(ctx, data)
 
 proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createCreateHandler[P, E, S](createArticle, serialize)
+  result = createCreateHandler[P, E, S](checkCreatePermission, createArticle, serialize)
 
 
 proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref object](
@@ -255,7 +261,7 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
     let ctx = JWTContext(ctx)
 
     let params: P = ctx.extractQueryParams(P)
-    checkReadListPermission(ctx.tokenData, params.campaignName)
+    checkReadListPermission(ctx, params.campaignName)
 
     respondBadRequestOnDbError():
       withDbConn(connection):
@@ -266,6 +272,7 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
 
 proc createDeleteHandler*[P: object, E: Model](
   readProc: ReadProc[P, E],
+  checkPermission: CheckPermissionProc[E],
   delete: DeleteProc[E]
 ): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
@@ -276,10 +283,10 @@ proc createDeleteHandler*[P: object, E: Model](
     respondBadRequestOnDbError():
       withDbTransaction(connection):
         var entryToDelete: E = connection.readProc(params)
-        checkDeletePermission(ctx.tokenData, entryToDelete)
+        checkPermission(ctx, entryToDelete)
         connection.delete(entryToDelete)
       
         respDefault(Http204)
 
 proc createDeleteByIdHandler*[P: object, E: Model](): HandlerAsync =
-  result = createDeleteHandler[P, E](readArticleById, deleteArticle)
+  result = createDeleteHandler[P, E](readArticleById, checkDeletePermission, deleteArticle)
