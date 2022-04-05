@@ -5,6 +5,7 @@ import locationSerialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
+import ../authentication/authenticationUtils
 
 proc addLocationRoutes*(app: Prologue) =
     app.addRoute(
@@ -44,7 +45,7 @@ proc addLocationRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/location/{CAMPAIGN_NAME_PATTERN}/{PARENT_LOCATION_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/",
-        handler = createReadHandler[ReadLocationByNameParams, LocationRead, LocationSerializable](getLocationByName, serializeLocationRead),
+        handler = createReadHandler[ReadLocationByNameParams, LocationRead, LocationSerializable](getLocationByName, checkReadPermission, serializeLocationRead),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

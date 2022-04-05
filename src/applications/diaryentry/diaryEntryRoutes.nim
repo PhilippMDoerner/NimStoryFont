@@ -6,6 +6,7 @@ import diaryEntryService
 import diaryEntryUtils
 import ../genericArticleControllers
 import std/strformat
+import ../authentication/authenticationUtils
 
 proc addDiaryEntryRoutes*(app: Prologue) =
     app.addRoute(
@@ -38,7 +39,7 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/{SESSION_NUMBER_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{USERNAME_PATTERN}/", 
-        handler = createReadHandler[ReadDiaryEntryParams, DiaryEntryRead, DiaryEntrySerializable](getDiaryEntry, serializeDiaryEntryRead),  
+        handler = createReadHandler[ReadDiaryEntryParams, DiaryEntryRead, DiaryEntrySerializable](getDiaryEntry, checkReadPermission, serializeDiaryEntryRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
