@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import markerTypeControllers
 import markerTypeService
 import std/strformat
+import markerTypeSerialization
 import ../allUrlParams
 import ../genericArticleControllers
 
@@ -10,28 +11,28 @@ import ../genericArticleControllers
 proc addMarkerTypeRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/markerType/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(MarkerType, getMarkerTypeSerialization),
+        handler = createCreateHandler[CreateParams, MarkerType, MarkerTypeSerializable](checkAdminPermission, createArticle, serializeMarkerType),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/markerType/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(MarkerType, ID_PARAM),
+        handler = createDeleteHandler[DeleteParams, MarkerType](readArticleById, checkAdminPermission, deleteArticle),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/markerType/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(MarkerType, ID_PARAM, getMarkerTypeSerialization),
+        handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/markerType/", 
-        createReadListHandler(getMarkerTypeSerialization),  
+        handler = createReadListHandler(serializeMarkerType),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
