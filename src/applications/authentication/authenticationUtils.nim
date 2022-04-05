@@ -1,7 +1,7 @@
-import myJwt
 import authenticationModels
 import norm/model
 import std/tables
+import ../../utils/jwtContext
 import ../campaign/campaignService
 
 type CampaignPermissionError* = object of CatchableError
@@ -21,33 +21,33 @@ proc getCampaignId[T: Model](entry: T): int64 =
     result = entry.campaign_id()
 
 
-proc checkWritePermission[T: Model](jwt: TokenData, entry: T) =
+proc checkWritePermission[T: Model](ctx: JWTContext, entry: T) =
   let entryCampaignId: int64 = entry.getCampaignId()
-  let userAccessLevel: CampaignAccessLevel = jwt.campaignMemberships[entryCampaignId]
+  let userAccessLevel: CampaignAccessLevel = ctx.tokenData.campaignMemberships[entryCampaignId]
   let hasWriteAccess = userAccessLevel == CampaignAccessLevel.MEMBER or userAccessLevel == CampaignAccessLevel.ADMIN
   if not hasWriteAccess:
     raise newException(CampaignPermissionError, "Only members and admins of this campaign can create/update/delete entries")
 
 
-proc checkReadListPermission*(jwt: TokenData, campaignName: string) =
+proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
   let campaign = getCampaignByName(campaignName)
-  let hasCampaignMembership = jwt.campaignMemberships.hasKey(campaign.id)
+  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
   if not hasCampaignMembership:
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 
-proc checkReadPermission*[T: Model](jwt: TokenData, entry: T) =  
+proc checkReadPermission*[T: Model](ctx: JWTContext, entry: T) =  
   let entryCampaignId: int64 = entry.getCampaignId()
-  let hasCampaignMembership = jwt.campaignMemberships.hasKey(entryCampaignId)
+  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
   if not hasCampaignMembership:
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 
-proc checkUpdatePermission*[T: Model](jwt: TokenData, entry: T) =
-  checkWritePermission(jwt, entry)
+proc checkUpdatePermission*[T: Model](ctx: JWTContext, entry: T) =
+  checkWritePermission(ctx, entry)
 
-proc checkCreatePermission*[T: Model](jwt: TokenData, entry: T) =
-  checkWritePermission(jwt, entry)
+proc checkCreatePermission*[T: Model](ctx: JWTContext, entry: T) =
+  checkWritePermission(ctx, entry)
 
-proc checkDeletePermission*[T: Model](jwt: TokenData, entry: T) =
-  checkWritePermission(jwt, entry)
+proc checkDeletePermission*[T: Model](ctx: JWTContext, entry: T) =
+  checkWritePermission(ctx, entry)

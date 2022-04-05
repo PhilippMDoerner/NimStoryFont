@@ -6,6 +6,7 @@ import ../allUrlParams
 import ../genericArticleControllers
 import markerSerialization
 import markerUtils
+import ../authentication/authenticationUtils
 
 
 proc addMarkerRoutes*(app: Prologue) =
@@ -39,7 +40,7 @@ proc addMarkerRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/marker/{CAMPAIGN_NAME_PATTERN}/{PARENT_LOCATION_NAME_PATTERN}/{LOCATION_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}", 
-        handler = createReadHandler[ReadMarkerByNameParams, MarkerRead, MarkerSerializable](getMarkerByParam, serializeMarkerRead), 
+        handler = createReadHandler[ReadMarkerByNameParams, MarkerRead, MarkerSerializable](getMarkerByParam, checkReadPermission, serializeMarkerRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
