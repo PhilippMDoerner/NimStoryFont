@@ -1,51 +1,51 @@
 import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
-import questControllers
 import questModel
 import questService
+import questSerialization
 import std/strformat
 import ../genericArticleControllers
 
 proc addQuestRoutes*(app: Prologue) =
     app.addRoute(
         re"/quest/",
-        handler = createEntryCreationHandler(Quest, getQuestSerialization),
+        handler = createCreateArticleHandler[CreateParams, Quest, QuestSerializable](serializeQuest),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/quest/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Quest, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Quest](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/quest/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Quest, ID_PARAM, getQuestSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Quest, QuestSerializable](serializeQuest),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/quest/{ID_PATTERN}/", 
-        handler = createEntryReadByIdHandler(ID_PARAM, getQuestById), 
+        handler = createReadByIdHandler[ReadByIdParams, QuestRead, QuestSerializable](serializeQuestRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/quest/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignQuestList),
+        handler = createReadCampaignListHandler[ReadListParams, QuestOverview, QuestOverviewSerializable](overviewSerialize),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/quest/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        getQuestByNameController,  
+        handler = createReadByNameHandler[ReadByNameParams, QuestRead, QuestSerializable](serializeQuestRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
