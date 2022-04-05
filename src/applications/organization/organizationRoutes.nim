@@ -1,8 +1,8 @@
 import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
-import organizationControllers
 import organizationModel
+import organizationSerialization
 import organizationService
 import std/strformat
 import ../genericArticleControllers
@@ -10,42 +10,42 @@ import ../genericArticleControllers
 proc addOrganizationRoutes*(app: Prologue) =
     app.addRoute(
         re"/organization/",
-        handler = createEntryCreationHandler(Organization, getOrganizationSerialization),
+        handler = createCreateArticleHandler[CreateParams, Organization, OrganizationSerializable](serializeOrganization),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/organization/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Organization, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Organization](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/organization/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Organization, ID_PARAM, getOrganizationSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Organization, OrganizationSerializable](serializeOrganization),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/organization/{ID_PATTERN}/", 
-        handler = createEntryReadByIdHandler(ID_PARAM, getOrganizationById), 
+        handler = createReadByIdHandler[ReadByIdParams, OrganizationRead, OrganizationSerializable](serializeOrganizationRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/organization/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignOrganizationList),
+        handler = createReadCampaignListHandler[ReadListParams, OrganizationOverview, OrganizationOverviewSerializable](overviewSerialize),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/organization/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        getOrganizationByNameController,  
+        handler = createReadByNameHandler[ReadByNameParams, OrganizationRead, OrganizationSerializable](serializeOrganizationRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
