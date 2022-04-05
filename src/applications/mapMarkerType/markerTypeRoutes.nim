@@ -1,6 +1,5 @@
 import prologue
 import ../../middleware/[loginMiddleware]
-import markerTypeControllers
 import markerTypeService
 import std/strformat
 import markerTypeSerialization
