@@ -1,8 +1,8 @@
 import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
-import ruleControllers
 import ruleModel
+import ruleSerialization
 import ruleService
 import std/strformat
 import ../genericArticleControllers
@@ -10,42 +10,42 @@ import ../genericArticleControllers
 proc addRuleRoutes*(app: Prologue) =
     app.addRoute(
         re"/rule/",
-        handler = createEntryCreationHandler(Rule, getRuleSerialization),
+        handler = createCreateArticleHandler[CreateParams, Rule, RuleSerializable](serializeRule),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/rule/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(Rule, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, Rule](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/rule/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(Rule, ID_PARAM, getRuleSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, Rule, RuleSerializable](serializeRule),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/rule/{ID_PATTERN}/", 
-        handler = createEntryReadByIdHandler(ID_PARAM, getRuleById), 
+        handler = createReadByIdHandler[ReadByIdParams, RuleRead, RuleSerializable](serializeRuleRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/rule/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignRulesList),
+        handler = createReadCampaignListHandler[ReadListParams, RuleRead, RuleSerializable](serializeRuleRead),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/rule/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        getRuleByNameController,  
+        handler = createReadByNameHandler[ReadByNameParams, RuleRead, RuleSerializable](serializeRuleRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
