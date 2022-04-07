@@ -7,6 +7,7 @@ import ../../utils/[fileUpload, databaseUtils]
 import norm/[model, sqlite]
 import tinypool
 import ../../applicationConstants
+import ../allUrlParams
 import imageRepository
 
 export imageModel
@@ -17,9 +18,13 @@ proc getRelativeFilepathTo(absoluteFilepath: string, mediaDirectory: string): st
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] = 
   result = getImagesForArticle(articleType, articleId)#
 
-proc getImageById*(imageId: int64): Image = getEntryById(imageId, Image)
+proc getImageById*(connection: DbConn, requestParams: DeleteParams): Image =
+  result = connection.getEntryById(requestParams.id, Image)
 
 proc deleteImage*(imageId: int64) = deleteEntry(imageId, Image)
+
+proc deleteImageEntry*(connection: DbConn, entry: var Image) =
+  connection.deleteEntryInTransaction(entry)
 
 proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
