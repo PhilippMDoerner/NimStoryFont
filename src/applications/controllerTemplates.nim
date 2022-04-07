@@ -1,5 +1,6 @@
 import ../utils/errorResponses
 import norm/sqlite
+import authentication/authenticationUtils
 import std/logging
 
 template respondBadRequestOnDbError*(body: untyped) =
@@ -15,6 +16,10 @@ template respondBadRequestOnDbError*(body: untyped) =
   except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
     debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries()) 
     resp get404NotFoundResponse() 
+
+  except CampaignPermissionError:
+    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries())
+    resp get403ForbiddenResponse()
 
   except Exception:
     debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries()) 
