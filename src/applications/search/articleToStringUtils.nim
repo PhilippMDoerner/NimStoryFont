@@ -11,6 +11,7 @@ import ../quest/questService
 import ../session/sessionService
 import ../sessionaudio/sessionaudioService
 import ../spell/spellService
+import ../sessionAudioTimestamp/timestampModel
 import ../rules/ruleService
 import ../user/userService
 import ../genericArticleRepository
@@ -160,7 +161,7 @@ proc getSearchTitle*(modelInstance: SessionAudio): string =
 proc getSearchBody*(modelInstance: SessionAudio): string =
   result.add(fmt """{getSearchTitle(modelInstance)} """)
 
-  let timestamps: seq[Timestamp] = getSessionAudioTimestamps(modelInstance.id)
+  let timestamps: seq[Timestamp] = getManyFromOne(modelInstance, Timestamp)
   for timestamp in timestamps:
     result.add(fmt """{timestamp.name} """)
 

@@ -93,17 +93,17 @@ proc createCampaignOverviewHandler*[M: object | ref object](
 
 
 
-proc createReadListHandler*[T: Model, M: object | ref object](
-  getSerializedArticlesData: SerializationProc[T, M]
-): HandlerAsync = 
-  result = proc(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
+# proc createReadListHandler*[T: Model, M: object | ref object](
+#   getSerializedArticlesData: SerializationProc[T, M]
+# ): HandlerAsync = 
+#   result = proc(ctx: Context) {.async.} =
+#     let ctx = JWTContext(ctx)
 
-    respondBadRequestOnDbError():
-      withDbConn(connection):
-        let entryList: seq[T] = connection.getList(T)
-        let serializedEntries: seq[M] = entryList.map(entry => connection.getSerializedArticlesData(entry))
-        resp jsonyResponse(ctx, serializedEntries)
+#     respondBadRequestOnDbError():
+#       withDbConn(connection):
+#         let entryList: seq[T] = connection.getList(T)
+#         let serializedEntries: seq[M] = entryList.map(entry => connection.getSerializedArticlesData(entry))
+#         resp jsonyResponse(ctx, serializedEntries)
 
 
 
@@ -179,6 +179,7 @@ type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
 type CheckPermissionProc*[ENTRY: Model] = proc(ctx: JWTContext, entry: ENTRY)
+type CheckListPermissionProc*[ENTRY: Model] = proc(ctx: JWTContext, entries: seq[ENTRY])
 
 proc createReadHandler*[P: object, E: Model, S: object | ref object](
   readEntry: ReadProc[P, E],
@@ -253,6 +254,24 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
 proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createCreateHandler[P, E, S](checkCreatePermission, createArticle, serialize)
 
+
+proc createReadListHandler*[P: ReadListParams, E: Model, S: object | ref object](
+  readListProc: ReadListProc[P, E],
+  checkPermission: CheckListPermissionProc[E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+
+    respondBadRequestOnDbError():
+      withDbConn(connection):
+        let entries: seq[E] = readListProc(connection, params)
+        checkPermission(ctx, entries)
+        let data: seq[S] = entries.map(entry => connection.serialize(entry))
+
+        resp jsonyResponse(ctx, data)
 
 proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref object](
   serialize: SerializeProc[E, S]
