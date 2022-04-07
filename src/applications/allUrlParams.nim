@@ -96,3 +96,9 @@ type ReadSessionByParams* {.defaults.} = object
   sessionNumber*: int = -1
   isMainSession*: bool = true
 implDefaults(ReadSessionByParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type ReadSessionAudioByParams* {.defaults.} = object
+  campaignName*: string = ""
+  sessionNumber*: int = -1
+  isMainSession*: bool = true
+implDefaults(ReadSessionAudioByParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
