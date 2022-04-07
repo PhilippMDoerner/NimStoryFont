@@ -1,52 +1,53 @@
 import prologue
 import ../../middleware/[loginMiddleware]
-import sessionaudioControllers
 import sessionaudioService
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
+import sessionAudioSerialization
 import sessionaudioModel
+import sessionaudioUtils
 
 
 proc addSessionAudioRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createEntryCreationHandler(SessionAudio, getSessionaudioSerialization),
+        handler = createCreateArticleHandler[CreateParams, SessionAudio, SessionAudioSerializable](serializeSessionAudio),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/sessionaudio/{ID_PATTERN}/", 
-        handler = createEntryDeletionHandler(SessionAudio, ID_PARAM),
+        handler = createDeleteByIdHandler[DeleteParams, SessionAudio](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/sessionaudio/{ID_PATTERN}/", 
-        handler = createEntryUpdateHandler(SessionAudio, ID_PARAM, getSessionaudioSerialization),
+        handler = createUpdateByIdHandler[UpdateParams, SessionAudio, SessionAudioSerializable](serializeSessionAudio),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/sessionaudio/{ID_PATTERN}/", 
-        createEntryReadByIdHandler(ID_PARAM, getSessionaudioById),  
+        handler = createReadByIdHandler[ReadByIdParams, SessionAudioRead, SessionAudioSerializable](serializeSessionAudioRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        createCampaignOverviewHandler(CAMPAIGN_NAME_PARAM, getCampaignSessionaudioListOverview),  
+        handler = createReadCampaignListHandler[ReadListParams, SessionAudioRead, SessionAudioOverviewSerializable](overview_serialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{SESSION_NUMBER_PATTERN}/", 
-        sessionaudioControllers.getSessionAudioByParamController,  
+        handler = createReadHandler[ReadSessionAudioByParams, SessionAudioRead, SessionAudioSerializable](getSessionAudioByParams, checkReadPermission, serializeSessionAudioRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

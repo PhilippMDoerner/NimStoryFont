@@ -3,6 +3,7 @@ import sessionaudioRepository
 import ../genericArticleRepository
 import tinypool
 import norm/sqlite
+import ../allUrlParams
 
 export sessionaudioModel
 
@@ -23,11 +24,8 @@ proc getCampaignSessionAudioListOverview*(campaignName: string): seq[SessionAudi
     ## lists all campaign entries using a limited but performant representation of a SessionAudio
     result = getCampaignList(campaignName, SessionAudio)
 
-
-proc getSessionAudio*(campaignName: string, sessionNumber: int, isMainSession: 0..1): SessionAudioRead = 
-    result = sessionaudioRepository.getSessionAudio(campaignName, sessionNumber, isMainSession)
-
-
 proc getSessionAudioSerialization*(connection: DbConn, entry: SessionAudio): SessionAudioRead {.gcsafe.}=
     result = connection.getEntryById(entry.id, SessionAudioRead)
 
+proc getSessionAudioByParams*(connection: DbConn, requestParams: ReadSessionAudioByParams): SessionAudioRead =
+    result = connection.getSessionAudio(requestParams.campaignName, requestParams.sessionNumber, requestParams.isMainSession)
