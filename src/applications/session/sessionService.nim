@@ -2,6 +2,7 @@ import sessionModel
 import ../genericArticleRepository
 import tinypool
 import sessionRepository
+import ../allUrlParams
 
 export genericArticleRepository
 export sessionModel
@@ -15,5 +16,5 @@ proc getCampaignSessionListOverview*(campaignName: string): seq[Session] =
 proc getSerializedSession*(connection: DbConn, entry: Session): SessionRead =
     result = connection.getEntryById(entry.id, SessionRead)
 
-proc getSessionByParams*(campaignName: string, sessionNumber: int, isMainSession: 0..1): SessionRead =
-    result = getSession(campaignName, sessionNumber, isMainSession)
+proc getSessionByParams*(connection: DbConn, requestParams: ReadSessionByParams): SessionRead =
+    result = connection.getSession(requestParams.campaignName, requestParams.sessionNumber, requestParams.isMainSession.bool)

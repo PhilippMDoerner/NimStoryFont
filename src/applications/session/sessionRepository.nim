@@ -4,7 +4,7 @@ import tinypool
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
 
 
-proc getSession*(campaignName: string, sessionNumber: int, isMainSession: 0..1): SessionRead =
+proc getSession*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionRead =
   var entry = newModel(SessionRead)
 
   const condition = """
@@ -13,7 +13,6 @@ proc getSession*(campaignName: string, sessionNumber: int, isMainSession: 0..1):
     AND is_main_session = ?
   """
 
-  withDbConn(connection):
-    connection.select(entry, condition, campaignName, sessionNumber, isMainSession)
+  connection.select(entry, condition, campaignName, sessionNumber, isMainSession)
   
   result = entry

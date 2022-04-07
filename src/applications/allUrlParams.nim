@@ -90,3 +90,9 @@ type ReadMarkerByNameParams* {.defaults.} = object
   locationName*: string = ""
   parentLocationName*: string = ""
 implDefaults(ReadMarkerByNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type ReadSessionByParams* {.defaults.} = object
+  campaignName*: string = ""
+  sessionNumber*: int = -1
+  isMainSession*: bool = true
+implDefaults(ReadSessionByParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
