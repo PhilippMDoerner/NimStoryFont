@@ -19,18 +19,6 @@ type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q
 type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}
 type DatabaseActionNoReturnProc[Q: object] = proc(queryParams: Q) {.gcsafe.}
 
-proc createEntryDeletionHandler*[T: Model](modelType: typedesc[T], idPathParamName: string): HandlerAsync =
-  result = proc (ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let entryId: int64 = parseInt(ctx.getPathParams(idPathParamName)).int64
-
-    respondBadRequestOnDbError():
-      deleteArticle(entryId, modelType)
-      respDefault(Http204)
-
-
-
 
 ### NEW PARADIGM BELOW THIS POINT ###
 

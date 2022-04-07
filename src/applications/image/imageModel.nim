@@ -2,6 +2,8 @@ import norm/[model, pragmas]
 import ../../applicationSettings
 import std/options
 import constructor/defaults
+import ../campaign/campaignModel
+import ../../applicationConstants
 
 type ImageType* = enum
     CHARACTERTYPE = "character", 
@@ -11,11 +13,36 @@ type ImageType* = enum
     ORGANIZATIONTYPE = "organization"
 
 type ##[Exist solely to inform Image model to which table a given fk-model points]##
-    ImageCharacter {.tableName: CHARACTER_TABLE.} = ref object of Model
-    ImageLocation {.tableName: LOCATION_TABLE.} = ref object of Model
-    ImageItem {.tableName: ITEM_TABLE.} = ref object of Model
-    ImageCreature {.tableName: CREATURE_TABLE.} = ref object of Model
-    ImageOrganization {.tableName: ORGANIZATION_TABLE.} = ref object of Model
+    ImageCharacter* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+        campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+    ImageLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+        campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+    ImageItem* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
+        campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+    ImageCreature* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
+        campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+    ImageOrganization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+        campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+implDefaults(ImageCharacter)
+proc newModel*(T: typedesc[ImageCharacter]): ImageCharacter = newImageCharacter()
+
+implDefaults(ImageLocation)
+proc newModel*(T: typedesc[ImageLocation]): ImageLocation = newImageLocation()
+
+implDefaults(ImageItem)
+proc newModel*(T: typedesc[ImageItem]): ImageItem = newImageItem()
+
+implDefaults(ImageCreature)
+proc newModel*(T: typedesc[ImageCreature]): ImageCreature = newImageCreature()
+
+implDefaults(ImageOrganization)
+proc newModel*(T: typedesc[ImageOrganization]): ImageOrganization = newImageOrganization()
+
 
 type Image* {.defaults, tableName: IMAGE_TABLE.} = ref object of Model
     image*: string = "" #The actual image path
