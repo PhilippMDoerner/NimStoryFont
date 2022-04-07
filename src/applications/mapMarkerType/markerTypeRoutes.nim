@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import markerTypeService
 import std/strformat
 import markerTypeSerialization
+import markerTypeUtils
 import ../allUrlParams
 import ../genericArticleControllers
 
@@ -31,7 +32,11 @@ proc addMarkerTypeRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/markerType/", 
-        handler = createReadListHandler(serializeMarkerType),  
+        handler = createReadListHandler(
+            readListProc = getMarkerTypes, 
+            checkPermission = checkReadMarkerTypeListPermission, 
+            serialize = serializeMarkerType
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
