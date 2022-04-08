@@ -1,10 +1,9 @@
 import std/[strformat, options]
 import constructor/defaults
 import ../applicationConstants
-import authentication/[myJwt, authenticationModels, authenticationUtils]
+import authentication/[myJwt, authenticationModels]
 
 export authenticationModels
-export authenticationUtils
 
 const CAMPAIGN_NAME_PARAM* = "campaignName"
 const CAMPAIGN_NAME_PATTERN* = fmt r"(?P<{CAMPAIGN_NAME_PARAM}>[^/]+)"

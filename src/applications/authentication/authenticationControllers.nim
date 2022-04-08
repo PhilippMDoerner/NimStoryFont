@@ -7,6 +7,7 @@ import ../user/userService
 import authenticationModels
 import djangoEncryption
 import ../../applicationSettings
+import ../genericArticleRepository
 import jwt
 
 
@@ -51,7 +52,7 @@ proc refreshTokens*(ctx: Context) {.async.} =
         return
 
     let tokenData: TokenData = extractTokenData(refreshToken)
-    let user: User = getUserById(tokenData.userId)
+    let user: User = getEntryById(tokenData.userId, User)
     
     let newAccessToken: JWT = createNextToken(user, JWTType.ACCESS, ctx)
     let newRefreshToken: JWT = createNextToken(user, JWTType.REFRESH, ctx)

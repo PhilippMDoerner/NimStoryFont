@@ -1,7 +1,10 @@
 import authenticationModels
 import norm/model
-import std/tables
+import prologue
+import ../genericArticleRepository
+import std/[options, tables, strformat]
 import ../../utils/jwtContext
+import ../allUrlParams
 import ../campaign/campaignService
 
 type CampaignPermissionError* = object of CatchableError
@@ -34,6 +37,15 @@ proc checkAdminPermission*[T: Model](ctx: JWTContext, entry: T) =
   if not hasAdminPermission:
     raise newException(AdminPermissionError, "Only admins of the webpage can perform this action")
 
+
+proc checkSuperUserPermission*[T: Model](ctx: JWTContext, entry: T) = 
+  let hasSuperUserPermission = ctx.tokenData.isSuperUser
+  if not hasSuperUserPermission:
+    raise newException(AdminPermissionError, "Only superusers of the webpage can perform this action")
+
+proc noPermissionCheck*[T: Model](ctx: JWTContext, entry: T) =
+  return
+
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
   let campaign = getCampaignByName(campaignName)
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
@@ -56,3 +68,14 @@ proc checkCreatePermission*[T: Model](ctx: JWTContext, entry: T) =
 
 proc checkDeletePermission*[T: Model](ctx: JWTContext, entry: T) =
   checkCampaignWritePermission(ctx, entry)
+
+
+proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
+  let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)
+  if campaignName.isNone():
+    raise newException(RouteError, fmt"Tried to check read list permission on route {ctx.request.url} for a campaign, but the path contained no parameter '{CAMPAIGN_NAME_PARAM}'!")
+  
+  let campaign = getEntryByField("name", campaignName.get(), Campaign)
+  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
+  if not hasCampaignMembership:
+    raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")

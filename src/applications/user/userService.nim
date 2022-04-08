@@ -1,10 +1,9 @@
 import ../genericArticleRepository
 #import ../genericArticleService
-import ../campaign/[campaignModel, campaignService]
 import ../../utils/databaseUtils
 import userModel
 import userRequestParams
-import std/[options, sequtils, tables, strutils, strformat, sugar]
+import std/[options, tables, strutils, strformat, sugar]
 import norm/model
 import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../applicationConstants
@@ -16,41 +15,29 @@ export userModel
 proc getUserById*(userId: int64): User =
   result = getEntryById(userId, User)
 
-proc getUserById*(requestParams: ReadByIdParams): User =
-  result = getUserById(requestParams.id)
+proc readUserById*(connection: DbConn, requestParams: ReadByIdParams | UpdateParams): User =
+  result = connection.getEntryById(requestParams.id, User)
 
 proc getUserByName*(userName: string): User =
   result = getEntryByField("username", userName, User)
 
-proc getUserSerialization(connection: sqlite.DbConn, entry: User): User {.gcsafe.}=
-  result = connection.getEntryById(entry.id, User)
-
-proc getCampaignUserListOverview*(requestParams: ReadListParams): seq[User] =
+proc getCampaignUserListOverview*(connection: DbConn, requestParams: ReadListParams): seq[User] =
   ## lists all campaign entries using a limited but performant representation of a User
-  let users = getCampaignList(requestParams.campaignName, User)
-  withDbConn(connection):
-      result = users.map(user => connection.getUserSerialization(user))
+  result = connection.getCampaignList(requestParams.campaignName, User)
 
 
-proc createUser*(requestData: CreateParams): User =
-  var entryToCreate: User = requestData.body.fromJson(User)
-  entryToCreate.date_joined = djangoDateTimeType.now()
-
-  withDbTransaction(connection):
-    let createdEntry: User = connection.createEntryInTransaction(entryToCreate)
-    result = connection.getUserSerialization(createdEntry)
+proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var User): User =
+  newEntry.date_joined = djangoDateTimeType.now()
+  result = connection.createEntryInTransaction(newEntry)
 
 
-proc updateUser*(requestData: UpdateParams): User =
-  var entryToUpdate: User = requestData.body.fromJson(User)
-  if entryToUpdate.id == MODEL_INIT_ID:
-    entryToUpdate.id = requestData.id
+proc updateUser*(connection: Dbconn, requestData: UpdateParams, entry: var User): User =
+  if entry.id == MODEL_INIT_ID:
+    entry.id = requestData.id
   
-  assert(entryToUpdate.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
+  assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
 
-  withDbTransaction(connection):
-    let updatedEntry: User = connection.updateEntryInTransaction(entryToUpdate)
-    result = connection.getUserSerialization(updatedEntry)
+  result = connection.updateEntryInTransaction(entry)
 
-proc deleteUser*(requestData: DeleteParams) =
-  deleteEntry(requestData.id, User)
+proc deleteUser*(connection: DbConn, userToDelete: var User) =
+  connection.deleteEntryInTransaction(userToDelete)
