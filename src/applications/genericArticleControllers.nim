@@ -5,6 +5,7 @@ import tinypool
 import controllerTemplates
 import genericArticleService
 import genericArticleRepository
+import authentication/authenticationUtils
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
 import jsony
@@ -14,6 +15,7 @@ export jsony
 export serialization
 export normConversion
 export genericArticleService
+export authenticationUtils
 
 type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q): M {.gcsafe.}
 type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}

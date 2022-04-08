@@ -4,6 +4,7 @@ import ../campaign/campaignService
 import prologue
 import ../../utils/jwtContext
 import ../allUrlParams
+import ../authentication/authenticationUtils
 
 proc campaign_id*(entry: Timestamp): int64 =
   result = getEntryById(entry.session_audio_id, TimestampSessionAudio).session_id.campaign_id.id
