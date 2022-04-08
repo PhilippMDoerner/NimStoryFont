@@ -17,13 +17,6 @@ export normConversion
 export genericArticleService
 export authenticationUtils
 
-type DatabaseActionProc[M: object | ref object, Q: object] = proc(queryParams: Q): M {.gcsafe.}
-type DatabaseActionSeqProc[M: object | ref object, Q: object] = proc(queryParams: Q): seq[M] {.gcsafe.}
-type DatabaseActionNoReturnProc[Q: object] = proc(queryParams: Q) {.gcsafe.}
-
-
-### NEW PARADIGM BELOW THIS POINT ###
-
 
 proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue: var T) =
   ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object
@@ -50,40 +43,6 @@ proc extractQueryParams[Q: object](ctx: JWTContext, dataContainerType: typedesc[
 
   for fieldName, fieldValue in result.fieldPairs:
     extractQueryParam(ctx, fieldName, fieldValue)
-
-proc createSimpleHandler*[M: object | ref object, Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionProc[M, Q]): HandlerAsync =
-  result = proc(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let queryParams: Q = ctx.extractQueryParams(Q)
-
-    respondBadRequestOnDbError():
-      let data = serviceProc(queryParams)
-      resp jsonyResponse(ctx, data)
-
-
-proc createSimpleHandler*[M: object | ref object, Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionSeqProc[M, Q]): HandlerAsync =
-  result = proc(ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let queryParams: Q = ctx.extractQueryParams(Q)
-
-    respondBadRequestOnDbError():
-      let data = serviceProc(queryParams)
-      resp jsonyResponse(ctx, data)
-
-proc createSimpleDeletionHandler*[Q: object](paramsContainerType: typedesc[Q], serviceProc: DatabaseActionNoReturnProc[Q]): HandlerAsync =
-  result = proc (ctx: Context) {.async.} =
-    let ctx = JWTContext(ctx)
-
-    let queryParams: Q = ctx.extractQueryParams(Q)
-
-    respondBadRequestOnDbError():
-      serviceProc(queryParams)
-      respDefault(Http204)
-
-
-### NEW PARADIGM 2.0 BELOW THIS POINT ###
 
 type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, newEntry: var ENTRY): ENTRY
 type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
@@ -120,6 +79,8 @@ proc createReadByIdHandler*[P: object, E: Model, S: object | ref object](seriali
 proc createReadByNameHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createReadHandler[P, E, S](readArticleByName, checkReadPermission, serialize)
 
+
+
 proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
   readProc: ReadProc[P, E],
   checkPermission: CheckPermissionProc[E],
@@ -145,6 +106,8 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
 proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createUpdateHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
 
+
+
 proc createCreateHandler*[P: object, E: Model, S: object | ref object](
   checkPermission: CheckPermissionProc[E],
   createProc: CreateProc[P, E], 
@@ -167,6 +130,7 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
 
 proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createCreateHandler[P, E, S](checkCreatePermission, createArticle, serialize)
+
 
 
 proc createReadListHandler*[P: ReadListParams, E: Model, S: object | ref object](
@@ -202,6 +166,8 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
         let data: seq[S] = entries.map(entry => connection.serialize(entry))
 
         resp jsonyResponse(ctx, data)
+
+
 
 proc createDeleteHandler*[P: object, E: Model](
   readProc: ReadProc[P, E],

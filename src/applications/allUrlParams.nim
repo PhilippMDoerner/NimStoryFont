@@ -96,17 +96,8 @@ type ReadSessionByParams* {.defaults.} = object
   isMainSession*: bool = true
 implDefaults(ReadSessionByParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type ReadSessionAudioByParams* {.defaults.} = object
-  campaignName*: string = ""
-  sessionNumber*: int = -1
-  isMainSession*: bool = true
-implDefaults(ReadSessionAudioByParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-
-type ReadTimestampListParams* {.defaults.} = object
-  campaignName*: string = ""
-  sessionNumber*: int = -1
-  isMainSession*: bool = true
-implDefaults(ReadTimestampListParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+type ReadSessionAudioByParams* = ReadSessionByParams
+type ReadTimestampListParams* = ReadSessionByParams
 
 type ReadWithoutParams* {.defaults.} = object
 implDefaults(ReadWithoutParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
