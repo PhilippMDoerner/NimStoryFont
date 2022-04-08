@@ -5,7 +5,7 @@ import userModel
 import userRequestParams
 import std/[options, tables, strutils, strformat, sugar]
 import norm/model
-import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationConstants
 
 
