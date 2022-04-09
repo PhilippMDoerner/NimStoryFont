@@ -6,8 +6,8 @@ import characterModel
 import constructor/defaults
 
 type CharacterEncounterConnection* {.defaults, tableName: ENCOUNTER_CHARACTER_TABLE.} = ref object of Model
-    character_id*: int64 = MODEL_INIT_ID
-    encounter_id*: int64 = MODEL_INIT_ID
+    character_id* {.fk: Character.}: int64 = MODEL_INIT_ID
+    encounter_id* {.fk: Encounter.}: int64 = MODEL_INIT_ID
 
 implDefaults(CharacterEncounterConnection)
 proc newModel*(T: typedesc[CharacterEncounterConnection]): CharacterEncounterConnection =

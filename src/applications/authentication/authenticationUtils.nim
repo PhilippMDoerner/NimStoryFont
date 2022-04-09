@@ -27,12 +27,16 @@ proc getCampaignId[T: Model](entry: T): int64 =
     result = entry.campaign_id()
 
 
-proc checkCampaignWritePermission[T: Model](ctx: JWTContext, entry: T) =
-  let entryCampaignId: int64 = entry.getCampaignId()
+proc checkCampaignWritePermission(ctx: JWTContext, entryCampaignId: int64) =
   let userAccessLevel: CampaignAccessLevel = ctx.tokenData.campaignMemberships[entryCampaignId]
   let hasWriteAccess = userAccessLevel == CampaignAccessLevel.MEMBER or userAccessLevel == CampaignAccessLevel.ADMIN
   if not hasWriteAccess:
     raise newException(CampaignPermissionError, "Only members and admins of this campaign can create/update/delete entries")
+
+
+proc checkCampaignWritePermission[T: Model](ctx: JWTContext, entry: T) =
+  let entryCampaignId: int64 = entry.getCampaignId()
+  checkCampaignWritePermission(ctx, entryCampaignId)
 
 proc checkAdminPermission*[T: Model](ctx: JWTContext, entry: T) = 
   let hasAdminPermission = ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser
@@ -69,6 +73,14 @@ proc checkCreatePermission*[T: Model](ctx: JWTContext, entry: T) =
 proc checkDeletePermission*[T: Model](ctx: JWTContext, entry: T) =
   checkCampaignWritePermission(ctx, entry)
 
+proc checkUpdatePermission*(ctx: JWTContext, campaignId: int64) =
+  checkCampaignWritePermission(ctx, campaignId)
+
+proc checkCreatePermission*(ctx: JWTContext, campaignId: int64) =
+  checkCampaignWritePermission(ctx, campaignId)
+
+proc checkDeletePermission*(ctx: JWTContext, campaignId: int64) =
+  checkCampaignWritePermission(ctx, campaignId)
 
 proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
   let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)

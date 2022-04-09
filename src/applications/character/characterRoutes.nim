@@ -1,9 +1,10 @@
 import prologue
 import ../../middleware/loginMiddleware
 import ../allUrlParams
-import characterModel
 import characterService
 import characterSerialization
+import characterControllers
+import characterUtils
 import std/strformat
 import ../genericArticleControllers
 
@@ -49,4 +50,17 @@ proc addCharacterRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
-   
+
+    app.addRoute(
+        re"/encounterconnection/",
+        handler = createCharacterConnection,
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/encounterconnection/{ID_PATTERN}/", 
+        handler = createDeleteByIdHandler[DeleteParams, CharacterEncounterConnection](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
