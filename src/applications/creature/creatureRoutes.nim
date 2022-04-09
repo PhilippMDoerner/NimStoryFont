@@ -9,7 +9,7 @@ import ../genericArticleControllers
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createCreateArticleHandler[CreateParams, Creature, CreatureSerializable](serialize),
+        handler = createCreateArticleHandler[CreateParams, Creature, CreatureSerializable](serializeCreature),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
@@ -23,14 +23,14 @@ proc addCreatureRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createUpdateByIdHandler[UpdateParams, Creature, CreatureSerializable](serialize),
+        handler = createUpdateByIdHandler[UpdateParams, Creature, CreatureSerializable](serializeCreature),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/creature/{ID_PATTERN}/", 
-        handler = createReadByIdHandler[ReadByIdParams, Creature, CreatureSerializable](serialize),  
+        handler = createReadByIdHandler[ReadByIdParams, CreatureRead, CreatureSerializable](serializeCreatureRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
@@ -44,7 +44,7 @@ proc addCreatureRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-        handler = createReadByNameHandler[ReadByNameParams, CreatureRead, CreatureSerializable](serialize),  
+        handler = createReadByNameHandler[ReadByNameParams, CreatureRead, CreatureSerializable](serializeCreatureRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
