@@ -21,7 +21,8 @@ type CharacterSerializable* = object
     encounters*: seq[EncounterRead]
     items*: seq[ItemOverview]
     playerClassConnections*: seq[PlayerClass]
-    
+
+type CharacterEncounterReadSerializable* = CharacterEncounterRead
 
 # type CharacterSerializable2* = object
 #     player_character*: bool
@@ -127,3 +128,7 @@ proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): 
         alive: entry.alive,
         images: imagePaths
     )
+
+
+proc serializeCharacterEncounterRead*(connection: DbConn, entry: CharacterEncounterRead): CharacterEncounterReadSerializable =
+    result = entry
