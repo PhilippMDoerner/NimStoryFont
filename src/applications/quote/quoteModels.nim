@@ -44,7 +44,15 @@ proc newModel*(T: typedesc[QuoteRead]): QuoteRead = newQuoteRead()
 
 
 type QuoteConnection* {.defaults, tableName: QUOTE_CHARACTER_TABLE.} = ref object of Model
-  character_id*: Character = newModel(Character)
-  quote_id*: QuoteRead = newModel(QuoteRead)
+  character_id* {.fk: QuoteSession.}: int64 = MODEL_INIT_ID
+  quote_id* {.fk: QuoteSession.}: int64 = MODEL_INIT_ID
 implDefaults(QuoteConnection)
 proc newModel*(T: typedesc[QuoteConnection]): QuoteConnection = newQuoteConnection()
+
+
+
+type QuoteConnectionRead* {.defaults, tableName: QUOTE_CHARACTER_TABLE.} = ref object of Model
+  character_id*: Character = newModel(Character)
+  quote_id*: QuoteRead = newModel(QuoteRead)
+implDefaults(QuoteConnectionRead)
+proc newModel*(T: typedesc[QuoteConnectionRead]): QuoteConnectionRead = newQuoteConnectionRead()

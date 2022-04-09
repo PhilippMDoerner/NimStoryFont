@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import quoteService
 import quoteSerialization
 import quoteUtils
+import quoteControllers
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -30,13 +31,6 @@ proc addQuoteRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/quote/{ID_PATTERN}/", 
-        handler = createReadByIdHandler[ReadByIdParams, QuoteRead, QuoteSerializable](serializeQuoteRead),  
-        httpMethod = HttpGet,
-        middlewares = @[loginMiddleware()]
-    )
-
-    app.addRoute(
         re fmt"/quote/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/random/", 
         handler = createReadHandler(
           getRandomCharacterQuote,
@@ -58,3 +52,16 @@ proc addQuoteRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
    
+    app.addRoute(
+        re fmt"/quoteconnection/",
+        handler = createQuoteConnection,
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+    # app.addRoute(
+    #     re fmt"/quoteconnection/{ID_PATTERN}/", 
+    #     handler = createDeleteByIdHandler[DeleteParams, QuoteConnection](),
+    #     httpMethod = HttpDelete,
+    #     middlewares = @[loginMiddleware()]
+    # )
