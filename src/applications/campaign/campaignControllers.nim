@@ -9,6 +9,7 @@ import ../allUrlParams
 import ../user/userService
 import std/[strformat, strutils, sequtils, sugar]
 import ../authentication/authenticationConstants
+import ../authentication/authenticationUtils
 import ../genericArticleRepository
 
 type RequestedUser = object
@@ -49,3 +50,18 @@ proc changeMembership*(ctx: Context) {.async.} =
         let data = campaignMemberships.map(membership => connection.serializeMembership(membership))
         
         resp jsonyResponse(ctx, data)
+
+
+
+proc deactivateCampaignController*(ctx: Context) {.async.} = 
+    let ctx = JWTContext(ctx)
+    
+    let campaignId: int64 = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        var campaign: Campaign = connection.getEntryById(campaignId, Campaign)
+        checkAdminPermission(ctx, campaign)
+        connection.deactivateCampaign(campaign)
+
+        respDefault(Http204)

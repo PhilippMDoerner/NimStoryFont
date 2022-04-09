@@ -1,9 +1,10 @@
 import ../genericArticleRepository
+import ../genericArticleService
 import campaignModel
 import campaignRepository
 import campaignUtils
 import norm/[sqlite, model]
-import std/[options, sets, tables]
+import std/[options, sets, tables, strformat]
 import tinypool
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
@@ -48,3 +49,11 @@ proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: Cam
   let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
   var membershipToRemove = UserGroup(user_Id: newMember, group_id: campaignGroup)
   connection.deleteEntryInTransaction(membershipToRemove)
+
+
+proc deactivateCampaign*(connection: DbConn, campaign: var Campaign) =
+  if campaign.is_deactivated:
+    raise newException(InvalidDatabaseManipulation, fmt"Campaigns cannot be deleted, they only get deactivated. '{campaign.name}' is already deactivated.")
+  
+  campaign.is_deactivated = true
+  discard connection.updateEntryInTransaction(campaign)

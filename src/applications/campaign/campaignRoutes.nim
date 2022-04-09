@@ -25,12 +25,12 @@ proc addCampaignRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
 
-    # app.addRoute(#TODO: Write
-    #     re fmt"/campaign/{ID_PATTERN}/", 
-    #     handler = createDeleteByIdHandler[DeleteParams, Campaign](),
-    #     httpMethod = HttpDelete,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/campaign/{ID_PATTERN}/", 
+        handler = deactivateCampaignController,
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
 
     app.addRoute(
         re fmt"/campaign/{ID_PATTERN}/", 
