@@ -100,4 +100,9 @@ type ReadSessionAudioByParams* = ReadSessionByParams
 type ReadTimestampListParams* = ReadSessionByParams
 
 type ReadWithoutParams* {.defaults.} = object
+  userToken*: TokenData = newTokenData()
 implDefaults(ReadWithoutParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+type CampaignNameParams* {.defaults.} = object
+  campaignName*: string = ""
+implDefaults(CampaignNameParams, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

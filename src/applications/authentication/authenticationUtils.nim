@@ -15,7 +15,9 @@ proc getCampaignId[T: Model](entry: T): int64 =
   ## Depending on the input type, this has differing behaviours
   ## If the input has a direct campaign field directly, that field is taken
   ## If the input has no direct campaign field, a campaign_id() proc must be provided by the caller
-  when compiles(entry.campaign_id):
+  when entry is Campaign:
+    result = entry.id
+  elif compiles(entry.campaign_id):
     when entry.campaign_id is int64:
       result = entry.campaign_id
     elif entry.campaign_id is Model:
@@ -43,8 +45,6 @@ proc checkSuperUserPermission*[T: Model](ctx: JWTContext, entry: T) =
   if not hasSuperUserPermission:
     raise newException(AdminPermissionError, "Only superusers of the webpage can perform this action")
 
-proc noPermissionCheck*[T: Model](ctx: JWTContext, entry: T) =
-  return
 
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
   let campaign = getEntryByField("name", campaignName, Campaign)
