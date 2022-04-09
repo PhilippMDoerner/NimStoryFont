@@ -34,7 +34,7 @@ proc getCampaigns*(connection: DbConn, campaignIds: varargs[int64]): seq[Campaig
   var campaigns = @[newModel(CampaignOverview)]
 
   let campaignIdStr: string = campaignIds.map(id => intToStr(id.int)).join(",")
-  let sqlCondition = fmt"campaign.id IN ({campaignIdStr})"
+  let sqlCondition = fmt"{CampaignOverview.table()}.id IN ({campaignIdStr})"
   connection.select(campaigns, sqlCondition)
 
   result = campaigns
