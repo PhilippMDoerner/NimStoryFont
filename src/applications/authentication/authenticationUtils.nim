@@ -5,7 +5,7 @@ import ../genericArticleRepository
 import std/[options, tables, strformat]
 import ../../utils/jwtContext
 import ../allUrlParams
-import ../campaign/campaignService
+import ../campaign/campaignModel
 
 type CampaignPermissionError* = object of CatchableError
 type AdminPermissionError* = object of CatchableError
@@ -47,7 +47,7 @@ proc noPermissionCheck*[T: Model](ctx: JWTContext, entry: T) =
   return
 
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
-  let campaign = getCampaignByName(campaignName)
+  let campaign = getEntryByField("name", campaignName, Campaign)
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
   if not hasCampaignMembership:
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
