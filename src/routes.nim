@@ -20,6 +20,7 @@ import applications/mapMarkerType/markerTypeRoutes
 import applications/sessionaudio/sessionaudioRoutes
 import applications/sessionAudioTimestamp/timestampRoutes
 import applications/user/userRoutes
+import applications/quote/quoteRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -45,3 +46,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addSessionAudioRoutes(app)
   addUserRoutes(app)
   addTimestampRoutes(app)
+  addQuoteRoutes(app)
