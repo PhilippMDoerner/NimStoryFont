@@ -34,7 +34,7 @@ proc addUserRoutes*(app: Prologue) =
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
-    # createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType)
+
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
         handler = createReadHandler[ReadByIdParams, UserRead, UserSerializable](readUserById, checkUserDeletePermission, serializeUserRead),  
