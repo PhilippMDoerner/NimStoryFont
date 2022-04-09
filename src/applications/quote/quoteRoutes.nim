@@ -59,9 +59,9 @@ proc addQuoteRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
 
-    # app.addRoute(
-    #     re fmt"/quoteconnection/{ID_PATTERN}/", 
-    #     handler = createDeleteByIdHandler[DeleteParams, QuoteConnection](),
-    #     httpMethod = HttpDelete,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/quoteconnection/{ID_PATTERN}/", 
+        handler = createDeleteByIdHandler[DeleteParams, QuoteConnection](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
