@@ -12,6 +12,9 @@ proc campaign_id*(entry: Quote): int64 =
 proc campaign_id*(entry: QuoteRead): int64 =
   result = entry.session_id.campaign_id.id
 
+proc campaign_id*(entry: QuoteConnection): int64 =
+  result = getEntryById(entry.quote_id, QuoteRead).campaign_id()
+
 proc checkQuoteListPermission*(ctx: JWTContext, entries: seq[QuoteRead]) =
   checkCampaignReadListPermission(ctx, entries)
 
