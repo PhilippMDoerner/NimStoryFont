@@ -5,6 +5,8 @@ import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../applicationConstants
 import ../utils/databaseUtils
 
+type InvalidDatabaseManipulation* = object of CatchableError
+
 type SerializationByIdProc*[M: object | ref object] = proc(entryId: int64): M {.gcsafe.}
 type SerializationProc*[T: Model, M: object | ref object] = proc(connection: DbConn, entry: T): M {.gcsafe.}
 type OverviewSerializationProc*[M: object | ref object] = proc(campaignName: string): seq[M] {.gcsafe.}
