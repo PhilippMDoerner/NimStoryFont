@@ -1,4 +1,5 @@
 import applications/character/characterRoutes
+import applications/campaign/campaignRoutes
 import applications/creature/creatureRoutes
 import applications/image/imageRoutes
 import applications/authentication/authenticationRoutes
@@ -23,6 +24,7 @@ import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
   addAuthenticationRoutes(app)
+  addCampaignRoutes(app)
   addCharacterRoutes(app)
   addCreatureRoutes(app)
   addImageRoutes(app)
