@@ -57,3 +57,5 @@ proc checkCampaignMembershipChangePermission*(ctx: JWTContext, campaignId: int64
     raise newException(CampaignPermissionError, "Only admins of a campaign can add/remove members from it")
 
 
+proc noCampaignListPermissionCheck*(ctx: JWTContext, entries: seq[CampaignOverview]) = 
+  return

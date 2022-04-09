@@ -1,9 +1,14 @@
 import prologue
 import ../../middleware/[loginMiddleware]
 import campaignControllers
+import campaignService
+import campaignSerialization
+import campaignUtils
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
+
+
 
 proc addCampaignRoutes*(app: Prologue) =
     app.addRoute(
@@ -12,45 +17,54 @@ proc addCampaignRoutes*(app: Prologue) =
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
-    # app.addRoute(
-    #     re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
-    #     handler = createCreateArticleHandler[CreateParams, Creature, CreatureSerializable](serialize),
-    #     httpMethod = HttpPost,
-    #     middlewares = @[loginMiddleware()]
-    # )
 
-    # app.addRoute(
-    #     re fmt"/creature/{ID_PATTERN}/", 
-    #     handler = createDeleteByIdHandler[DeleteParams, Creature](),
+    app.addRoute(
+        re fmt"/campaign/",
+        handler = createCreateArticleHandler[CreateParams, Campaign, CampaignSerializable](serializeCampaign),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+    # app.addRoute(#TODO: Write
+    #     re fmt"/campaign/{ID_PATTERN}/", 
+    #     handler = createDeleteByIdHandler[DeleteParams, Campaign](),
     #     httpMethod = HttpDelete,
     #     middlewares = @[loginMiddleware()]
     # )
 
-    # app.addRoute(
-    #     re fmt"/creature/{ID_PATTERN}/", 
-    #     handler = createUpdateByIdHandler[UpdateParams, Creature, CreatureSerializable](serialize),
-    #     httpMethod = HttpPut,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/campaign/{ID_PATTERN}/", 
+        handler = createUpdateByIdHandler[UpdateParams, Campaign, CampaignSerializable](serializeCampaign),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
 
-    # app.addRoute(
-    #     re fmt"/creature/{ID_PATTERN}/", 
-    #     handler = createReadByIdHandler[ReadByIdParams, Creature, CreatureSerializable](serialize),  
-    #     httpMethod = HttpGet,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/campaign/{ID_PATTERN}/", 
+        handler = createReadByIdHandler[ReadByIdParams, Campaign, CampaignSerializable](serializeCampaign),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
 
-    # app.addRoute(
-    #     re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/overview/", 
-    #     handler = createReadCampaignListHandler[ReadListParams, CreatureOverview, CreatureOverviewSerializable](overviewSerialize),  
-    #     httpMethod = HttpGet,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/campaign/{CAMPAIGN_NAME_PATTERN}/", 
+        handler = createReadHandler[CampaignNameParams, CampaignRead, CampaignSerializable](
+          readCampaignByName,
+          checkAdminPermission,
+          serializeCampaignRead
+        ),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
     
-    # app.addRoute(
-    #     re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
-    #     handler = createReadByNameHandler[ReadByNameParams, CreatureRead, CreatureSerializable](serialize),  
-    #     httpMethod = HttpGet,
-    #     middlewares = @[loginMiddleware()]
-    # )
+    app.addRoute(
+        re fmt"/campaign/overview/", 
+        handler = createReadListHandler(
+          getAllCampaignOverviews,
+          noCampaignListPermissionCheck,
+          overviewSerialize
+        ),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
    

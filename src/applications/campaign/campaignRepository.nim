@@ -29,3 +29,12 @@ proc readCampaignMembers*(connection: DbConn, campaign: CampaignRead): seq[UserG
     campaign.admin_group_id.get().id
   ]
   result = connection.getGroupMembers(campaignGroupIds)
+
+proc getCampaigns*(connection: DbConn, campaignIds: varargs[int64]): seq[CampaignOverview] =
+  var campaigns = @[newModel(CampaignOverview)]
+
+  let campaignIdStr: string = campaignIds.map(id => intToStr(id.int)).join(",")
+  let sqlCondition = fmt"campaign.id IN ({campaignIdStr})"
+  connection.select(campaigns, sqlCondition)
+
+  result = campaigns

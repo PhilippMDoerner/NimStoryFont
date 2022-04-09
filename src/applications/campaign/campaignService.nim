@@ -3,11 +3,14 @@ import campaignModel
 import campaignRepository
 import campaignUtils
 import norm/[sqlite, model]
-import std/[options, sets]
+import std/[options, sets, tables]
 import tinypool
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../user/userModel
+import ../allUrlParams
+import ../../utils/jwtContext
+import ../authentication/myJwt
 
 export campaignModel
 
@@ -23,6 +26,15 @@ proc getAllCampaigns*(): seq[Campaign] =
 proc getAllCampaignReads*(): seq[CampaignRead] = 
   result = getList(CampaignRead)
 
+proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams): CampaignRead =
+  result = connection.getEntryByField("name", requestParams.campaignName, CampaignRead)
+
+proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignOverview] =
+  var memberships: seq[int64] = @[]
+  for campaignId in requestParams.userToken.campaignMemberships.keys:
+    memberships.add(campaignId)
+
+  result = connection.getCampaigns(memberships)
 
 proc getCampaignMembers*(connection: DbConn, campaign: Campaign | CampaignRead): seq[UserGroup] =
   result = connection.readCampaignMembers(campaign)
