@@ -1,8 +1,8 @@
 import norm/[model, pragmas]
-import encounterModel
+import ../encounter/encounterModel
 import ../../applicationSettings
 import ../../applicationConstants
-import ../character/characterModel
+import characterModel
 import constructor/defaults
 
 type CharacterEncounterConnection* {.defaults, tableName: ENCOUNTER_CHARACTER_TABLE.} = ref object of Model

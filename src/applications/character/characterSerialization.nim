@@ -1,6 +1,6 @@
 import characterModel
 import ../item/itemModel
-import ../encounter/[characterEncounterModel, encounterModel]
+import ../encounter/[encounterModel]
 import ../image/imageModel
 import ../playerclass/playerClassModel
 import ../campaign/campaignModel
@@ -10,6 +10,7 @@ import std/[sugar, sequtils, options]
 import ../genericArticleRepository
 import ../../utils/databaseUtils
 import norm/sqlite
+import characterEncounterModel
 
 #TODO: Do this once you've got general data fetching etc. set up properly across your stuff. That's basically step 2, step 1 being getting a first draft for it all going
 #TODO: You'll need to define essentially the same serializers as you had in python. You may want to move the sub-serialization procs into their own module if you get conflicts
