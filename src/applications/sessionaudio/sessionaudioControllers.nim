@@ -1,5 +1,6 @@
 import sessionaudioService
 import sessionAudioSerialization
+import sessionaudioUtils
 import prologue
 import std/[strutils, options, json, strformat]
 import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
@@ -8,7 +9,7 @@ import ../authentication/authenticationUtils
 import ../controllerTemplates
 import ../allUrlParams
 import ../../utils/djangoDateTime/[serialization]
-
+import ../genericArticleRepository
 
 
 proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLoadFile] =
@@ -59,11 +60,3 @@ proc createSessionAudioControlloer*(ctx: Context) {.async, gcsafe.}=
 #         let updatedImageEntry: Image = updateImageFileOrName(sessionaudioToUpdateId, sessionaudioFormData)
 #         resp jsonyResponse[Image](ctx , updatedImageEntry)
 
-
-# proc deleteImageView*(ctx: Context) {.async, gcsafe.} =
-#     let ctx = JWTContext(ctx)
-#     let sessionaudioToDeleteId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
-
-#     respondBadRequestOnDbError():
-#         deleteImage(sessionaudioToDeleteId)
-#         respDefault(Http204)
