@@ -7,12 +7,13 @@ import ../genericArticleControllers
 import sessionAudioSerialization
 import sessionaudioModel
 import sessionaudioUtils
+import sessionaudioControllers
 
 
 proc addSessionAudioRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createCreateArticleHandler[CreateParams, SessionAudio, SessionAudioSerializable](serializeSessionAudio),
+        handler = createSessionAudioControlloer,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
