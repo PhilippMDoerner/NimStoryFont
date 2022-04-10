@@ -172,7 +172,7 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
 proc createDeleteHandler*[P: object, E: Model](
   readProc: ReadProc[P, E],
   checkPermission: CheckPermissionProc[E],
-  delete: DeleteProc[E]
+  deleteProc: DeleteProc[E]
 ): HandlerAsync =
   result = proc (ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -183,7 +183,7 @@ proc createDeleteHandler*[P: object, E: Model](
       withDbTransaction(connection):
         var entryToDelete: E = connection.readProc(params)
         checkPermission(ctx, entryToDelete)
-        connection.delete(entryToDelete)
+        connection.deleteProc(entryToDelete)
       
         respDefault(Http204)
 
