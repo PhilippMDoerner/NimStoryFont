@@ -12,8 +12,6 @@ import imageRepository
 
 export imageModel
 
-proc getRelativeFilepathTo(absoluteFilepath: string, mediaDirectory: string): string =
-  result = absoluteFilepath.substr(mediaDirectory.len + 1)
 
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] = 
   result = getImagesForArticle(articleType, articleId)#
@@ -44,7 +42,7 @@ proc createImage*(imageDTO: var ImageDTO): Option[Image] =
 
   try:
     result = some(createEntry(image))
-  except DbError:
+  except Exception:
     deleteArticleImage(absoluteImagePath)
     raise
 

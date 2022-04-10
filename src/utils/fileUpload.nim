@@ -38,6 +38,9 @@ proc deleteArticleImage*(absoluteFilePath: string) =
 proc deleteArticleImage*(relativeFilePath: string, mediaDirectory: string) =
   deleteArticleImage(fmt"{mediaDirectory}/{relativeFilePath}")
 
-proc uploadSessionAudio*(file: var UpLoadFile, mediaDirectory: string): string =
-  let sessionaudioDirectory = fmt "{mediaDirectory}/session_audio" #TODO: Contemplate having this in a directory that can be configured separately
+proc uploadSessionAudio*(file: var UpLoadFile, audioDirectory: string): string =
+  let sessionaudioDirectory = fmt "{audioDirectory}/session_audio" #TODO: Contemplate having this in a directory that can be configured separately
   uploadFile(file, sessionaudioDirectory)
+
+proc getRelativeFilepathTo*(absoluteFilepath: string, mediaDirectory: string): string =
+  result = absoluteFilepath.substr(mediaDirectory.len + 1)
