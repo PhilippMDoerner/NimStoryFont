@@ -32,7 +32,7 @@ proc addQuoteRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/quote/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/random/", 
-        handler = createReadHandler(
+        handler = createReadHandler[ReadByNameParams, QuoteRead, QuoteSerializable](
           getRandomCharacterQuote,
           checkQuotePermission,
           serializeQuoteRead

@@ -37,14 +37,22 @@ proc addUserRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/user/{ID_PATTERN}/", 
-        handler = createReadHandler[ReadByIdParams, UserRead, UserSerializable](readUserById, checkUserDeletePermission, serializeUserRead),  
+        handler = createReadHandler[ReadByIdParams, UserRead, UserSerializable](
+            readUserById, 
+            checkUserDeletePermission, 
+            serializeUserRead
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/user/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadListHandler[ReadListParams, UserOverview, UserOverviewSerializable](getCampaignUserListOverview, checkCampaignReadListPermission, overviewSerialize),  
+        handler = createReadListHandler[ReadListParams, UserOverview, UserOverviewSerializable](
+            getCampaignUserListOverview, 
+            checkCampaignReadListPermission, 
+            overviewSerialize
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
