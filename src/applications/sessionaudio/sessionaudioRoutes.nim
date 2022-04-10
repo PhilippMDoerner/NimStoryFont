@@ -27,8 +27,15 @@ proc addSessionAudioRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/sessionaudio/{ID_PATTERN}/", 
-        handler = createUpdateByIdHandler[UpdateParams, SessionAudio, SessionAudioSerializable](serializeSessionAudio),
+        handler = patchSessionAudioController,
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/sessionaudio/{ID_PATTERN}/", 
+        handler = patchSessionAudioController,
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
@@ -48,7 +55,11 @@ proc addSessionAudioRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/{SESSION_IS_MAIN_SESSION_PATTERN}/{SESSION_NUMBER_PATTERN}/", 
-        handler = createReadHandler[ReadSessionAudioByParams, SessionAudioRead, SessionAudioSerializable](getSessionAudioByParams, checkReadPermission, serializeSessionAudioRead),  
+        handler = createReadHandler[ReadSessionAudioByParams, SessionAudioRead, SessionAudioSerializable](
+            getSessionAudioByParams, 
+            checkReadPermission, 
+            serializeSessionAudioRead
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

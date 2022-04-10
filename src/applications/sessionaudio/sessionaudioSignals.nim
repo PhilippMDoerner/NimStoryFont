@@ -15,3 +15,4 @@ proc deleteSessionAudioFile(connection: DbConn, modelInstance: SessionAudio) =
   deleteArticleImage(sessionAudioFilepath, mediaDirectory)
 
 connect(SignalType.stPreDelete, SessionAudio, deleteSessionAudioFile)
+connect(SignalType.stPostUpdate, SessionAudio, deleteSessionAudioFile)
