@@ -22,7 +22,7 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
         return none(SessionAudioRead)
 
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
-    let absoluteFilePath: string = uploadSessionAudio(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
+    let absoluteFilePath: string = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
     let pathInDatabase: string = absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)
     
     var newEntry = SessionAudio(
@@ -36,7 +36,7 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
         let createdEntry = connection.createEntryInTransaction(newEntry)
         result = some(connection.getEntryById(createdEntry.id, SessionAudioRead))
     except Exception:
-        deleteArticleImage(absoluteFilePath)
+        deleteFile(absoluteFilePath)
         raise
 
 proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, entry: var SessionAudio): SessionAudio =
@@ -44,7 +44,7 @@ proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, 
 
     var absoluteFilePath: string = ""
     if requestParams.sessionaudioFile.isSome():
-        absoluteFilePath = uploadSessionAudio(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
+        absoluteFilePath = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
         let pathInDatabase: string = absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)
         entry.audio_file = pathInDatabase
     
@@ -55,7 +55,7 @@ proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, 
         result = connection.updateEntryInTransaction(entry)
     
     except Exception:
-        if absoluteFilePath != "": deleteArticleImage(absoluteFilePath)
+        if absoluteFilePath != "": deleteFile(absoluteFilePath)
         raise
 
 proc getSessionAudioByParams*(connection: DbConn, requestParams: ReadSessionAudioByParams): SessionAudioRead =

@@ -27,7 +27,7 @@ proc extractFKIdFieldFromContext(ctx: JWTContext, fieldName: string): Option[int
 
 proc createImageView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
-    let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
+    let mediaDirectory: string = ctx.getSettings("imageDir").getStr()
 
     var imageFormData = ImageDTO(
         imageFile: ctx.extractFileFromContext("image"),
@@ -51,7 +51,7 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
 proc updateImageView*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let imageToUpdateId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
-    let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
+    let mediaDirectory: string = ctx.getSettings("imageDir").getStr()
 
     var imageFormData = ImageDTO(
         imageFile: ctx.extractFileFromContext("image"),

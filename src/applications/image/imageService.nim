@@ -28,7 +28,7 @@ proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
     return none(Image)
 
-  let absoluteImagePath: string = saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
+  let absoluteImagePath: string = saveFile(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
   let imagePathInDatabase = absoluteImagePath.getRelativeFilepathTo(imageDTO.mediaDirectory)
   var image: Image = Image(
     image: imagePathInDatabase,
@@ -43,7 +43,7 @@ proc createImage*(imageDTO: var ImageDTO): Option[Image] =
   try:
     result = some(createEntry(image))
   except Exception:
-    deleteArticleImage(absoluteImagePath)
+    deleteFile(absoluteImagePath)
     raise
 
 #TODO: Refactor this to more cleanly handle when to delete an old image if the image was swapped out
@@ -54,7 +54,7 @@ proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
   var newImageRelativeFilePath: Option[string]
   let isImageBeingReplaced = imageDTO.imageFile.isSome()
   if isImageBeingReplaced: 
-    let newImageAbsoluteFilePath = saveArticleImage(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
+    let newImageAbsoluteFilePath = saveFile(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
     newImageRelativeFilePath = some(newImageAbsoluteFilePath.getRelativeFilepathTo(imageDTO.mediaDirectory))
   else:
     newImageRelativeFilePath = none(string)
@@ -70,8 +70,8 @@ proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
   
   except DbError:
     if isImageBeingReplaced:
-      deleteArticleImage(newImageRelativeFilePath.get(), imageDTO.mediaDirectory)
+      deleteFile(newImageRelativeFilePath.get(), imageDTO.mediaDirectory)
       raise
 
   if isImageBeingReplaced:
-    deleteArticleImage(oldImageRelativeFilePath, imageDTO.mediaDirectory) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
+    deleteFile(oldImageRelativeFilePath, imageDTO.mediaDirectory) #Delete last to make sure you only delete after the image was succesfully swapped out in the database

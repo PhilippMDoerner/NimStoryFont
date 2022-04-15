@@ -14,12 +14,12 @@ proc renameFile(file: var UpLoadFile) =
   let newFileName = fmt "{name}_{randomString(10)}{extension}"
   file.filename = newFileName
 
-proc uploadFile(file: var UpLoadFile, uploadDirectory: string): string =
+proc saveFile*(file: var UpLoadFile, uploadDirectory: string): string =
   if not dirExists(uploadDirectory):
-    raise newException(FileNotFoundError, fmt "The article image directory '{uploadDirectory}' does not exist")
+    raise newException(FileNotFoundError, fmt "The media directory '{uploadDirectory}' does not exist")
   
   var filePath = fmt "{uploadDirectory}/{file.filename}"
-  if fileExists(filePath):
+  while fileExists(filePath):
     file.renameFile()
     filePath = fmt "{uploadDirectory}/{file.filename}" # TODO: Contemplate turning this into a while loop
 
@@ -27,20 +27,11 @@ proc uploadFile(file: var UpLoadFile, uploadDirectory: string): string =
   
   result = filePath
 
-proc saveArticleImage*(file: var UpLoadFile, mediaDirectory: string): string =
-  let articleImageDirectory = fmt "{mediaDirectory}/article_images"
-  uploadFile(file, articleImageDirectory)
-
-proc deleteArticleImage*(absoluteFilePath: string) =
+proc deleteFile*(absoluteFilePath: string) =
   if fileExists(absoluteFilePath):
     removeFile(absoluteFilePath)
 
-proc deleteArticleImage*(relativeFilePath: string, mediaDirectory: string) =
-  deleteArticleImage(fmt"{mediaDirectory}/{relativeFilePath}")
-
-proc uploadSessionAudio*(file: var UpLoadFile, audioDirectory: string): string =
-  let sessionaudioDirectory = fmt "{audioDirectory}/session_audio" #TODO: Contemplate having this in a directory that can be configured separately
-  uploadFile(file, sessionaudioDirectory)
+proc deleteFile*(relativeFilePath: string, mediaDirectory: string) = deleteFile(fmt"{mediaDirectory}/{relativeFilePath}")
 
 proc getRelativeFilepathTo*(absoluteFilepath: string, mediaDirectory: string): string =
   result = absoluteFilepath.substr(mediaDirectory.len + 1)

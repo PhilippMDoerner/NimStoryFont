@@ -118,7 +118,7 @@ proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.}=
 # proc updateImageView*(ctx: Context) {.async, gcsafe.} =
 #     let ctx = JWTContext(ctx)
 #     let sessionaudioToUpdateId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
-#     let mediaDirectory: string = ctx.getSettings("mediaDir").getStr()
+#     let mediaDirectory: string = ctx.getSettings("audioDir").getStr()
 
 #     var sessionaudioFormData = ImageDTO(
 #         sessionaudioFile: ctx.extractFileFromContext("sessionaudio"),

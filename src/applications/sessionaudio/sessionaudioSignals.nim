@@ -12,7 +12,7 @@ proc deleteSessionAudioFile(connection: DbConn, modelInstance: SessionAudio) =
   let sessionAudioFilepath: string = modelInstance.audio_file
   let mediaDirectory: string = settings["audioDir"].getStr()
   echo fmt"Audio File Deleting {sessionAudioFilepath} from {mediaDirectory}"
-  deleteArticleImage(sessionAudioFilepath, mediaDirectory)
+  deleteFile(sessionAudioFilepath, mediaDirectory)
 
 connect(SignalType.stPreDelete, SessionAudio, deleteSessionAudioFile)
 connect(SignalType.stPostUpdate, SessionAudio, deleteSessionAudioFile)
