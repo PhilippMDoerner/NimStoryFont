@@ -10,8 +10,8 @@ proc deleteImageFile(connection: DbConn, modelInstance: Image) =
   ## Deletes an image file off the harddrive if the corresponding image entry
   ## in the database is deleted
   let imageFilepath: string = modelInstance.image
-  let mediaDirectory: string = settings["mediaDir"].getStr()
-  deleteArticleImage(imageFilepath, mediaDirectory)
+  let mediaDirectory: string = settings["imageDir"].getStr()
+  deleteFile(imageFilepath, mediaDirectory)
 
 connect(SignalType.stPreDelete, Image, deleteImageFile)
 
