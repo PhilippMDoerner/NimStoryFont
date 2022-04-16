@@ -30,7 +30,7 @@ proc getAllCampaignReads*(): seq[CampaignRead] =
 proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams): CampaignRead =
   result = connection.getEntryByField("name", requestParams.campaignName, CampaignRead)
 
-proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignOverview] =
+proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
   var memberships: seq[int64] = @[]
   for campaignId in requestParams.userToken.campaignMemberships.keys:
     memberships.add(campaignId)
