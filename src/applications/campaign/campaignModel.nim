@@ -29,10 +29,10 @@ implDefaults(Campaign)
 proc newModel*(T: typedesc[Campaign]): Campaign = newCampaign()
 
 
-type CampaignDefaultMap {.defaults, tableName: MAP_TABLE} = ref object of Model
-    icon: Option[string] = some("")
-    image: string = ""
-    name: string = ""
+type CampaignDefaultMap* {.defaults, tableName: MAP_TABLE} = ref object of Model
+    icon*: Option[string] = some("")
+    image*: string = ""
+    name*: string = ""
 
 implDefaults(CampaignDefaultMap)
 proc newModel*(T: typedesc[CampaignDefaultMap]): CampaignDefaultMap = newCampaignDefaultMap()
