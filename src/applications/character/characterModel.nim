@@ -27,13 +27,13 @@ type Character* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
     name*: string = ""
     gender*: string = ""
     race*: string = ""
-    title*: Option[string] = none(string) # A title the character might have, e.g. "Lord", "Duke", "Doctor"
-    description*: Option[string] = none(string) # A description of the character
-    current_location_id* {.fk: Location.} : Option[int64] = none(int64) # The id of the location at which the character is currently located
+    title*: Option[string] = some("") # A title the character might have, e.g. "Lord", "Duke", "Doctor"
+    description*: Option[string] = some("") # A description of the character
+    current_location_id* {.fk: Location.} : Option[int64] = some(MODEL_INIT_ID) # The id of the location at which the character is currently located
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID # The id of the campaign that this character occurred in
-    organization_id* {.fk: Organization.} : Option[int64] = none(int64)
+    organization_id* {.fk: Organization.} : Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(Character)
 
@@ -59,7 +59,7 @@ implDefaults(CharacterParentLocation)
 type CharacterLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
     name*: string =""
-    parent_location_id*: Option[CharacterParentLocation] = none(CharacterParentLocation)
+    parent_location_id*: Option[CharacterParentLocation] = some(newCharacterParentLocation())
 
 implDefaults(CharacterLocation)
 
@@ -73,13 +73,13 @@ type CharacterRead* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Mod
     name*: string = ""
     gender*: string = ""
     race*: string = ""
-    title*: Option[string] = none(string)
-    description*: Option[string] = none(string)
-    current_location_id*: Option[CharacterLocation] = none(CharacterLocation)
+    title*: Option[string] = some("")
+    description*: Option[string] = some("")
+    current_location_id*: Option[CharacterLocation] = some(newCharacterLocation())
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
-    organization_id*: Option[OrganizationOverview] = none(OrganizationOverview)
+    organization_id*: Option[OrganizationOverview] = some(newModel(OrganizationOverview))
 
 implDefaults(CharacterRead)
 ##[Enables generic instantiation of the model. This enable the use of 
