@@ -14,13 +14,13 @@ import norm/sqlite
 import characterEncounterModel
 
 type CharacterLocationSerializable* = object
-    pk: int64
-    name: string
-    name_full: Option[string]
-    parent_location: Option[string]
+    pk*: int64
+    name*: string
+    name_full*: Option[string]
+    parent_location*: Option[string]
 
 type CharacterSerializable* = object
-    pk: int64
+    pk*: int64
     player_character*: bool
     player_class_connections*: seq[PlayerClass]
     alive*: bool 
@@ -29,17 +29,17 @@ type CharacterSerializable* = object
     race*: string
     title*: Option[string] 
     description*: Option[string]
-    current_location: Option[int64]
-    current_location_details: Option[CharacterLocationSerializable]
+    current_location*: Option[int64]
+    current_location_details*: Option[CharacterLocationSerializable]
     creation_datetime*: DjangoDateTime
     update_datetime*: DjangoDateTime 
     campaign_id*: int64
     campaign_details*: MinimumCampaignOverview
-    organization: Option[int64]
+    organization*: Option[int64]
     organization_details*: Option[OrganizationOverview]
     items*: seq[ItemOverview]
-    encounters: seq[EncounterRead]
-    images: seq[string]
+    encounters*: seq[EncounterRead]
+    images*: seq[string]
 
 proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocation]): Option[CharacterLocationSerializable] =
     debug fmt"entry is none: {entry.isNone()}"
@@ -106,7 +106,7 @@ type CharacterOverviewSerializable* = object
     update_datetime*: DjangoDateTime
     player_character*: bool
     alive*: bool
-    images: seq[string]
+    images*: seq[string]
 
 proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
