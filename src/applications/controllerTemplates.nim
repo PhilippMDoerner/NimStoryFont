@@ -10,17 +10,17 @@ template respondBadRequestOnDbError*(body: untyped) =
       body
 
   except DbError:
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries()) 
+    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
     resp get400BadRequestResponse(getCurrentExceptionMsg())
 
   except NotFoundError: #grep -Hnr "NotFoundError" ~/.nimble/pkgs
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries()) 
+    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
     resp get404NotFoundResponse() 
 
   except CampaignPermissionError:
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries())
+    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries())
     resp get403ForbiddenResponse()
 
   except Exception:
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getStackTraceEntries()) 
+    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
     resp get500ServerErrorResponse()
