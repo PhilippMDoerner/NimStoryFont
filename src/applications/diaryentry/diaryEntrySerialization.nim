@@ -2,15 +2,10 @@ import diaryEntryModel
 import diaryEntryRepository
 import ../genericArticleRepository
 import ../campaign/campaignModel
-import ../item/itemModel
 import ../session/sessionModel
 import ../encounter/[encounterModel]
-import ../image/imageModel
-import ../playerclass/playerClassModel
-import ../location/[locationModel, locationRepository]
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, strutils, strformat, logging]
-import ../../utils/databaseUtils
+import std/[sugar, options, strutils, strformat]
 import norm/[model, sqlite]
 
 
@@ -18,9 +13,13 @@ type DiaryEntryAuthorSerializable* = object
     pk: int64
     name: string
 
+type DiaryEntryStub* = object
+    session_details: DiaryEntrySession
+    author_details: DiaryEntryAuthorSerializable
+
 type AdjacentDiaryEntries* = object
-    prior_diaryentry: Option[DiaryEntry]
-    next_diaryentry: Option[DiaryEntry]
+    prior_diaryentry: Option[DiaryEntryStub]
+    next_diaryentry: Option[DiaryEntryStub]
 
 type DiaryEntrySerializable* = object
     pk*: int64
@@ -33,10 +32,24 @@ type DiaryEntrySerializable* = object
     encounters*: seq[Encounter]
     adjacent_diaryentries*: AdjacentDiaryEntries
 
+proc serializeToDiaryEntryStub(entry: Option[DiaryEntryRead]): Option[DiaryEntryStub] =
+    if entry.isNone():
+        return none(DiaryEntryStub)
+    
+    let diaryEntry = entry.get()
+    result = some(DiaryEntryStub(
+            session_details: diaryEntry.session_id,
+            author_details: DiaryEntryAuthorSerializable(
+            pk: diaryEntry.author_id.id, 
+            name: diaryEntry.author_id.username
+        )
+        )
+    )
+
 proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): AdjacentDiaryEntries =
     let diaryentries: seq[DiaryEntryRead] = connection.getDiaryEntriesForCampaign(entry.session_id.campaign_id.name)
     if diaryentries.len() == 0:
-        return AdjacentDiaryEntries(prior_diaryentry: none(DiaryEntry), next_diaryentry: none(DiaryEntry))
+        return AdjacentDiaryEntries(prior_diaryentry: none(DiaryEntryStub), next_diaryentry: none(DiaryEntryStub))
     
     var entryIndex = -1
     for i in 0..diaryentries.len()-1:
@@ -44,28 +57,24 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
             entryIndex = i
             break
     
-    var nextDiaryEntryId = none(int64)
-    var priorDiaryEntryId = none(int64)
+    var nextDiaryEntry = none(DiaryEntryRead)
+    var priorDiaryEntry = none(DiaryEntryRead)
     if entryIndex == diaryentries.len()-1:
-        priorDiaryEntryId = some(diaryentries[entryIndex - 1].id)
+        priorDiaryEntry = some(diaryentries[entryIndex - 1])
 
     elif entryIndex == 0:
-        nextDiaryEntryId = some(diaryentries[entryIndex + 1].id)
+        nextDiaryEntry = some(diaryentries[entryIndex + 1])
 
     elif entryIndex == -1:
         raise newException(ValueError, fmt"The entry with id {entry.id} was not in a list of diaryentries for campaign {entry.session_id.campaign_id.name}.")
     
     else:
-        priorDiaryEntryId = some(diaryentries[entryIndex - 1].id)
-        nextDiaryEntryId = some(diaryentries[entryIndex + 1].id)
-
-
-    let priorDiaryEntry = if priorDiaryEntryId.isSome(): some(connection.getEntryById(priorDiaryEntryId.get(), DiaryEntry)) else: none(DiaryEntry)
-    let nextDiaryEntry = if nextDiaryEntryId.isSome(): some(connection.getEntryById(nextDiaryEntryId.get(), DiaryEntry)) else: none(DiaryEntry)
+        priorDiaryEntry = some(diaryentries[entryIndex - 1])
+        nextDiaryEntry = some(diaryentries[entryIndex + 1])
 
     result = AdjacentDiaryEntries(
-        prior_diaryentry: priorDiaryEntry, 
-        next_diaryentry: nextDiaryEntry
+        prior_diaryentry: serializeToDiaryEntryStub(priorDiaryEntry), 
+        next_diaryentry: serializeToDiaryEntryStub(nextDiaryEntry)
     )
     
 proc serializeDiaryEntryRead*(connection: DbConn, entry: DiaryEntryRead): DiaryEntrySerializable =
