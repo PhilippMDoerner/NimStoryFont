@@ -1,7 +1,18 @@
-import std/[strformat, strutils, sugar, sequtils, options]
+import std/[strformat, strutils, sugar, options]
 import ../genericArticleRepository
 import norm/[sqlite]
 import locationModel
+
+proc parseParentIdRow(row: Row): Option[string] =
+  let value: DbValue = row[0]
+  case value.kind:
+  of dvkInt:
+    result = some(fmt"{value.i}")
+  of dvkString:
+    result = some(value.s)
+  else:
+    result = none(string)
+  
 
 proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[string] =
   let parentLocationIdQuery: SqlQuery = sql fmt"""
@@ -24,11 +35,9 @@ proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[st
     parentLocationIdQuery,
     locationId.dbValue()
   )
+  
+  result = rawParentLocationIdRow.flatmap(parseParentIdRow)
 
-  if rawParentLocationIdRow.isSome():
-    result = some(rawParentLocationIdRow.get()[0].s):
-  else:
-    result = none(string)
 
 
 proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
