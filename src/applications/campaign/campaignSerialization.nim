@@ -116,3 +116,7 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         default_map_details: entry.default_map_id,
         duration: campaignDuration
     )
+
+#TODO: Double check that if this is used during "change member" etc. provides correct data amounts
+proc serializeMembership*(connection: DbConn, entry: UserGroup): UserSerializable = 
+  result = connection.serializeUser(entry.user_id)
