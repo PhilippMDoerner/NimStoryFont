@@ -6,6 +6,7 @@ import norm/model
 import std/[options, strformat, algorithm, strutils]
 import tinypool
 import ../allUrlParams
+import locationRepository
 
 export locationModel
 
@@ -37,3 +38,6 @@ proc getParentLocations*(location: Location): seq[Location] =
             currentLocation = parentLocation
         
     result.reverse()
+
+proc readParentLocations*(connection: DbConn, location: Location): seq[Location] =
+    result = locationRepository.getParentLocations(connection, location.id)
