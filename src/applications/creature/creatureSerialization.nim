@@ -1,17 +1,53 @@
 import creatureModel
 import norm/sqlite
 import ../genericArticleRepository
+import ../image/imageModel
+import std/[options, sequtils, strformat, sugar]
+import ../../utils/djangoDateTime/djangoDateTimeType
+import ../campaign/campaignModel
 
-type CreatureSerializable* = CreatureRead
-type CreatureOverviewSerializable* = CreatureOverview
+type CreatureSerializable* = object
+    pk*: int64
+    name*: string
+    description*: Option[string]
+    creation_datetime*: DjangoDateTime
+    update_datetime*: DjangoDateTime
+    campaign: int64
+    campaign_details*: MinimumCampaignOverview
+    images: seq[Image]
 
 
 proc serializeCreatureRead*(connection: DbConn, entry: CreatureRead): CreatureSerializable =
-    result = entry
+    let images = connection.getManyFromOne(entry, Image)
+    result = CreatureSerializable(
+        pk: entry.id,
+        name: entry.name,
+        description: entry.description,
+        creation_datetime: entry.creation_datetime,
+        update_datetime: entry.update_datetime,
+        campaign: entry.campaign_id.id,
+        campaign_details: entry.campaign_id,
+        images: images
+    )
 
 proc serializeCreature*(connection: DbConn, entry: Creature): CreatureSerializable =
     let fullEntry = connection.getEntryById(entry.id, CreatureRead)
     result = connection.serializeCreatureRead(fullEntry)
 
+
+type CreatureOverviewSerializable* = object
+    pk*: int64
+    name*: string
+    name_full*: string
+    campaign_details*: MinimumCampaignOverview
+    update_datetime*: DjangoDateTime
+
+
 proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOverviewSerializable =
-    result = entry
+    result = CreatureOverviewSerializable(
+        pk: entry.id,
+        name: entry.name,
+        name_full: entry.name,
+        campaign_details: entry.campaign_id,
+        update_datetime: entry.update_datetime
+    )
