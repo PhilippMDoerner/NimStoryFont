@@ -13,9 +13,6 @@ import ../../utils/databaseUtils
 import norm/sqlite
 import characterEncounterModel
 
-
-type CharacterEncounterReadSerializable* = CharacterEncounterRead
-
 type CharacterLocationSerializable* = object
     pk: int64
     name: string
@@ -43,9 +40,6 @@ type CharacterSerializable* = object
     items*: seq[ItemOverview]
     encounters: seq[EncounterRead]
     images: seq[string]
-    
-
-
 
 proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocation]): Option[CharacterLocationSerializable] =
     debug fmt"entry is none: {entry.isNone()}"
@@ -98,6 +92,12 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
         player_class_connections: characterClasses
     )
 
+proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSerializable =
+    let entry = connection.getEntryById(entry.id, CharacterRead)
+    result = connection.serializeCharacterRead(entry)
+
+
+
 type CharacterOverviewSerializable* = object
     pk*: int64
     name*: string
@@ -107,12 +107,6 @@ type CharacterOverviewSerializable* = object
     player_character*: bool
     alive*: bool
     images: seq[string]
-
-
-proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSerializable =
-    let entry = connection.getEntryById(entry.id, CharacterRead)
-    result = connection.serializeCharacterRead(entry)
-
 
 proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
@@ -130,5 +124,7 @@ proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): 
     )
 
 
+
+type CharacterEncounterReadSerializable* = CharacterEncounterRead
 proc serializeCharacterEncounterRead*(connection: DbConn, entry: CharacterEncounterRead): CharacterEncounterReadSerializable =
     result = entry
