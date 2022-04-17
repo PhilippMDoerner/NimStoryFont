@@ -33,6 +33,3 @@ type ModelWith*[Field: static string, ModelType] {.explain.} = concept model
   hasCustomPragma(model.toIdent(Field), fk) # Checks if field with name in "Field" has the custom pragma "fk"
   model.toIdent(Field).getTableName().sameTableName(ModelType.table()) # Checks if field with name in "Field" has fk pragma with the same tablename as the model in "ModelType"
 
-
-echo "THIS IS QUEST CHECK"
-echo Quest is ModelWith["giver_id", Character]

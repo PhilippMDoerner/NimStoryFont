@@ -53,7 +53,6 @@ proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocati
         return none(CharacterLocationSerializable)
 
     let currentLocation: CharacterLocation = entry.get() 
-    echo currentLocation.toJson()
     let parentLocationName: Option[string] = if currentLocation.parent_location_id.isSome(): some(currentLocation.parent_location_id.get().name) else: none(string)
     
     let parentLocations: seq[Location] = connection.getParentLocations(currentLocation.id)
