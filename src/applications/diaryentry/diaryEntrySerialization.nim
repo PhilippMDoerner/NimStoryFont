@@ -21,6 +21,7 @@ type AdjacentDiaryEntries* = object
     prior_diaryentry: Option[DiaryEntryStub]
     next_diaryentry: Option[DiaryEntryStub]
 
+#TODO: EncounterSerialization refinement
 type DiaryEntrySerializable* = object
     pk*: int64
     title*: Option[string]
@@ -115,7 +116,7 @@ type DiaryEntryOverviewSerializable* = object
     author_details*: DiaryEntryAuthorSerializable
 
 proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
-    let title = if entry.title.isSome(): entry.title.get() else: ""
+    let title = entry.title.get("")
     result = DiaryEntryOverviewSerializable(
         pk: entry.id,
         name_full: fmt"Diary Entry #{entry.session_id.session_number:>3} - {title}",
