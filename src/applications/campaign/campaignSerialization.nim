@@ -116,6 +116,3 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         default_map_details: entry.default_map_id,
         duration: campaignDuration
     )
-
-proc serializeMembership*(connection: DbConn, entry: UserGroup): MembershipSerializable = 
-  result = entry
