@@ -1,18 +1,14 @@
 import diaryEntryModel
 import ../genericArticleRepository
-import ../genericArticleService
-import norm/[sqlite, model]
-import ../../utils/databaseUtils
-import std/[sequtils, sugar]
+import norm/[sqlite]
 import diaryEntryRepository
 import diaryEntrySerialization
-import ../serializationUtils
 import ../allUrlParams
 
 export diaryEntryModel
 export diaryEntrySerialization
 
-proc getDiaryEntry*(connection: DbConn, requestParams: ReadDiaryEntryParams): DiaryEntrySerializable =
+proc getDiaryEntry*(connection: DbConn, requestParams: ReadDiaryEntryParams): DiaryEntryRead =
   result = diaryEntryRepository.getDairyEntry(
     connection,
     requestParams.campaignName, 
