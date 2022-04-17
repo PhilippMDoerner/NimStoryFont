@@ -20,7 +20,7 @@ implDefaults(DiaryEntry)
 proc newModel*(T: typedesc[DiaryEntry]): DiaryEntry = newDiaryEntry()
 
 
-type DiaryEntrySession {.defaults, tableName: SESSION_TABLE.} = ref object of Model
+type DiaryEntrySession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
