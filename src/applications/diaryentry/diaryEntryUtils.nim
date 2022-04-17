@@ -2,6 +2,10 @@ import diaryEntryService
 import ../genericArticleRepository
 import ../session/sessionModel
 import std/[strformat, options]
+import ../../utils/jwtContext
+import ../authentication/authenticationUtils
+import prologue except Session
+import ../allUrlParams
 
 
 proc campaign_id*(model: DiaryEntry): int64 =
@@ -17,3 +21,6 @@ proc `$`*(model: DiaryEntry): string =
   result.add(fmt "Diary Entry #{session.session_number}")
   if model.title.isSome():
     result.add(fmt " - {model.title}")
+  
+proc checkDiaryEntryReadListPermission*(ctx: JWTContext, entries: seq[DiaryEntryRead]) =
+  checkCampaignReadListPermission(ctx, entries)

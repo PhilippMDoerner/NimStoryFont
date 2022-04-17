@@ -1,15 +1,13 @@
 import norm/sqlite
 import diaryEntryModel
-import tinypool
 import ../../utils/djangoDateTime/[normConversion]
 
 
-proc getDiaryEntriesForCampaign*(campaignName: string): seq[DiaryEntryRead] =
+proc getDiaryEntriesForCampaign*(connection: DbConn, campaignName: string): seq[DiaryEntryRead] =
   var entries: seq[DiaryEntryRead] = @[newModel(DiaryEntryRead)]
   const condition: string = " session_id_campaign_id.name LIKE ?"
 
-  withDbConn(connection):
-    connection.select(entries, condition, campaignName)
+  connection.select(entries, condition, campaignName)
 
   result = entries
 

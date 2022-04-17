@@ -6,6 +6,7 @@ import std/[options, tables, strformat]
 import ../../utils/jwtContext
 import ../allUrlParams
 import ../campaign/campaignModel
+import ../../applicationSettings
 
 type CampaignPermissionError* = object of CatchableError
 type AdminPermissionError* = object of CatchableError

@@ -32,7 +32,11 @@ proc addDiaryEntryRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/diaryentry/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, DiaryEntryRead, DiaryEntryOverviewSerializable](overviewSerialize),  
+        handler = createReadListHandler(
+            getCampaignDiaryEntries,
+            checkDiaryEntryReadListPermission,
+            overviewSerialize
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

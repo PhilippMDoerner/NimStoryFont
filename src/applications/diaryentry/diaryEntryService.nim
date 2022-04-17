@@ -1,7 +1,7 @@
 import diaryEntryModel
 import ../genericArticleRepository
 import ../genericArticleService
-import norm/model
+import norm/[sqlite, model]
 import ../../utils/databaseUtils
 import std/[sequtils, sugar]
 import diaryEntryRepository
@@ -22,3 +22,5 @@ proc getDiaryEntry*(connection: DbConn, requestParams: ReadDiaryEntryParams): Di
   )
 
     
+proc getCampaignDiaryEntries*(connection: DbConn, requestParams: ReadListParams): seq[DiaryentryRead] =
+  result = connection.getDiaryEntriesForCampaign(requestParams.campaignName)
