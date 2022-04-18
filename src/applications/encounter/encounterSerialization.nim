@@ -73,7 +73,9 @@ proc serializeEncounterConnection(entry: EncounterRead, connection: CharacterEnc
     )
 
 proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[CharacterEncounterRead], encounterLocationParents: seq[Location]): EncounterSerializable =
-    let name = fmt"{entry.diaryentry_id.session_id.session_number} - {entry.location_id.map(entry => entry.name)}"
+    var name = fmt"{entry.diaryentry_id.session_id.session_number}"
+    if entry.location_id.isSome():
+        name.add(fmt" - {entry.location_id.get().name}")
     result = EncounterSerializable(
         pk: entry.id,
         description: entry.description,

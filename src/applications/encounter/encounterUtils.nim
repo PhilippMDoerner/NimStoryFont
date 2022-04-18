@@ -4,7 +4,9 @@ import encounterModel
 
 proc `$`*(encounter: EncounterRead): string =
     result.add(if encounter.diaryentry_id.session_id.is_main_session: "Main " else: "Side ")
-    result.add(fmt "Session {encounter.diaryentry_id.session_id.session_number} - {encounter.title}")
+    result.add(fmt "Session {encounter.diaryentry_id.session_id.session_number}")
+    if encounter.title.isSome():
+        result.add(fmt" - {encounter.title.get()}")
 
 
 proc `$`*(encounter: Encounter): string =
