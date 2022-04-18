@@ -18,7 +18,7 @@ proc newTableModel*(T: typedesc[CharacterEncounterConnection]): CharacterEncount
 
 type CharacterEncounterRead*  {.defaults, tableName: ENCOUNTER_CHARACTER_TABLE.} = ref object of Model
     encounter_id*: EncounterRead = newModel(EncounterRead)
-    character_id* {.fk: Character.}: int64 = MODEL_INIT_ID
+    character_id*: Character = newModel(Character)
 
 implDefaults(CharacterEncounterRead)
 proc newModel*(T: typedesc[CharacterEncounterRead]): CharacterEncounterRead =
