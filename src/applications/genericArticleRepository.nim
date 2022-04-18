@@ -1,8 +1,8 @@
 import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
-import ../utils/databaseUtils
+import ../utils/[macroUtils, databaseUtils]
 import norm/[model, sqlite]
 import jsony
-import std/[options, strformat]
+import std/[options, strformat, sequtils, sugar, strutils, tables]
 import core/[signalSystem]
 
 export sqlite
@@ -141,6 +141,21 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
     result = targetEntries
 
+proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
+    mixin newModel
+    let entryIds: seq[int64] = oneEntries.map(entry => entry.id)
+
+    let idString = entryIds.map(id => id.int.intToStr()).join(",")
+    let condition = fmt"{relatedManyType.table()}.{manyTypeforeignKeyFieldName} IN ({idString})"
+
+    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
+    connection.select(targetEntries, condition)
+
+    for entryId in entryIds:
+        let id = entryId
+        result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName).id == id)
+
+
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
     mixin newModel
@@ -159,6 +174,30 @@ proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[
     withDbConn(connection):
         result = getManyFromOne[O, M](connection, oneEntry, relatedManyType)
 
+
+proc getManyToMany*[M1: Model, J: Model, M2: Model](
+    connection: MyDbConn, 
+    queryStartEntries: seq[M1], 
+    joinModel: typedesc[J], 
+    otherManyModel: typedesc[M2], 
+    fkColumnFromJoinToManyStart: static string, 
+    fkColumnFromJoinToManyEnd: static string
+): Table[int64, seq[M2]] =
+    mixin newModel
+    var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
+    var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
+
+    let queryStartEntryIds: seq[int64] = queryStartEntries.map(entry => entry.id)
+
+    let idString = queryStartEntryIds.map(id => id.int.intToStr()).join(",")
+    const joinTableName = J.table()
+    let sqlCondition: string = fmt"{joinTableName}.{fkColumnFromJoinToManyStart} IN ({idString})"
+    
+    connection.select(joinModelEntries, sqlCondition)
+
+    for entryId in queryStartEntryIds:
+        let id = entryId
+        result[entryId] = joinModelEntries.filter(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd).id == id)
 
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
