@@ -1,11 +1,14 @@
 import diaryEntryModel
 import diaryEntryRepository
+import diaryEntryService
+import ../character/characterEncounterModel
 import ../genericArticleRepository
 import ../campaign/campaignModel
 import ../session/sessionModel
+import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, options, strutils, strformat, sequtils]
+import std/[sugar, options, strutils, strformat, sequtils, tables]
 import norm/[model, sqlite]
 
 
@@ -74,7 +77,24 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
     
 proc serializeDiaryEntryRead*(connection: DbConn, entry: DiaryEntryRead): DiaryEntrySerializable =
     let session = connection.getEntryById(entry.session_id.id, SessionRead)
+
     let encounters = connection.getManyFromOne(entry, EncounterRead)
+    let encounterParentLocations: Table[int64, seq[Location]] = connection.getDiaryEntryEncounterLocations(encounters)
+    let encounterCharacterConnections: Table[int64, seq[CharacterEncounterRead]] = connection.getDiaryEntryEncounterConnections(encounters)
+    var serializedEncounters: seq[EncounterSerializable] = @[]
+    for encounter in encounters:
+        let parentLocations: seq[Location] = if encounterParentLocations.hasKey(encounter.id): 
+                encounterParentLocations[encounter.id]
+            else: 
+                @[]
+        let connections: seq[CharacterEncounterRead] = if encounterCharacterConnections.hasKey(encounter.id): 
+                encounterCharacterConnections[encounter.id]
+            else: 
+                @[]
+
+        serializedEncounters.add(serializeEncounterRead(encounter, connections, parentLocations))
+
+
 
     result = DiaryEntrySerializable(
         pk: entry.id,

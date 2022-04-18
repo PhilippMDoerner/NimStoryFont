@@ -25,3 +25,5 @@ proc getDairyEntry*(connection: DbConn, campaignName: string, sessionNumber: int
   connection.select(entry, condition, queryParams)
   
   result = entry
+
+# proc getParentLocationsForDiaryentryEncounters*(connection: DbConn, diaryentryId: int64): seq[seq[Location]]

@@ -1,20 +1,20 @@
-import std/[strformat, strutils, sugar, options]
+import std/[strformat, strutils, sugar, options, sequtils, tables, sets]
 import ../genericArticleRepository
 import norm/[sqlite]
 import locationModel
 
-proc parseParentIdRow(row: Row): Option[string] =
-  let value: DbValue = row[0]
+proc parseParentIdRow(value: DbValue): string =
   case value.kind:
   of dvkInt:
-    result = some(fmt"{value.i}")
+    result = value.i.int.intToStr()
   of dvkString:
-    result = some(value.s)
+    result = value.s
   else:
-    result = none(string)
-  
+    result = ""
 
-proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[string] =
+proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Table[int64, string] =
+  let locationIdsDed = locationIds.deduplicate()
+  let locationIdStr: string = locationIdsDed.map(id => id.int.intToStr).join(",")
   let parentLocationIdQuery: SqlQuery = sql fmt"""
     WITH RECURSIVE locationpath(id, id_path) AS
     (
@@ -26,17 +26,57 @@ proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[st
       FROM wikientries_location cloc
       JOIN locationpath ON cloc.parent_location_id=locationpath.id
     )
-    SELECT id_path
+    SELECT id, id_path
     FROM locationpath
-    WHERE id = ?;
+    WHERE id IN ({locationIdStr});
   """
   
-  let rawParentLocationIdRow: Option[Row] = connection.getRow(
-    parentLocationIdQuery,
-    locationId.dbValue()
-  )
+  let rawParentLocationIdRows: seq[Row] = connection.getAllRows(parentLocationIdQuery)
+
+  assert(locationIdsDed.len() == rawParentLocationIdRows.len(), "Failed to fetch an id_path for every id when fetching parent locations!")
+
+  for row in rawParentLocationIdRows:
+    result[($row[0]).parseInt().int64] = row[1].parseParentIdRow()
+
+proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[string] =
+  let idStrings: Table[int64, string] = connection.getParentLocationIdStrings(@[locationId])
+  if idStrings.len() == 1:
+    for key in idStrings.keys:
+      result = some(idStrings[key])
+
+  elif idStrings.len() == 0:
+    result = none(string)
+
+  else:
+    raise newException(ValueError, fmt"Received 2 sets of parentLocations for the single location id {locationId}")
+
+
+proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int64, seq[Location]] =
+  let parentLocationIdStrings: Table[int64, string] = connection.getParentLocationIdStrings(locationIds)
   
-  result = rawParentLocationIdRow.flatmap(parseParentIdRow)
+  var parentLocationIdSets: Table[int64, HashSet[int64]] = initTable[int64, HashSet[int64]]()
+  var totalIdSet: HashSet[int64] = initHashSet[int64]()
+  for locationId in parentLocationIdStrings.keys:
+    let idString: string = parentLocationIdStrings[locationId]
+    let idSet: HashSet[int64] = idString.split(',').map(idStr => idStr.parseInt().int64).toHashSet()
+    
+    parentLocationIdSets[locationId] = idSet
+    totalIdSet.incl(idSet)
+
+  var allIdsStr: string = ""
+  for id in totalIdSet.items:
+    allIdsStr.add(fmt"{id},")
+  allIdsStr.removeSuffix(",")
+
+  let condition = fmt"id IN ({allIdsStr})"
+
+  var parentLocations: seq[Location] = @[newModel(Location)]
+  connection.select(parentLocations, condition)
+
+  for locationId in locationIds:
+    let parentIds: HashSet[int64] = parentLocationIdSets[locationId]
+    let parentLocationsForId: seq[Location] = parentLocations.filter(loc => parentIds.contains(loc.id))
+    result[locationId] = parentLocationsForId
 
 
 
