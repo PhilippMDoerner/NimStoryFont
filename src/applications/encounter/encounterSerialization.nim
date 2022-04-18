@@ -1,10 +1,11 @@
 import norm/model
 import encounterModel
+import encounterUtils
 import ../genericArticleRepository
 import std/[options, sequtils, sugar, strformat, strutils]
 import ../campaign/campaignModel
-import ../character/characterEncounterModel
-import ../location/locationRepository
+import ../character/[characterUtils, characterEncounterModel]
+import ../location/[locationModel, locationRepository]
 import ../../utils/djangoDateTime/djangoDateTimeType
 
 
@@ -14,10 +15,24 @@ type EncounterLocationSerializable* = object
     pk: int64
     parent_location_name: Option[string]
 
+type ConnectionCharacter* = object
+    name: string
+    name_full: string
+    pk: int64
+
+type ConnectionEncounter = ConnectionCharacter
+
+type EncounterConnectionSerializable* = object
+    pk: int64
+    encounter: int64
+    encounter_details: ConnectionEncounter
+    character: int64
+    character_details: ConnectionCharacter
+
 type EncounterSerializable* = object
     pk: int64
     description: Option[string]
-    encounterConnections: seq[CharacterEncounterRead]
+    encounterConnections: seq[EncounterConnectionSerializable]
     name: string
     location: Option[int64]
     location_details: Option[EncounterLocationSerializable]
@@ -31,8 +46,7 @@ type EncounterSerializable* = object
 
 type EncounterOverviewSerializable* = EncounterRead
 
-proc serializeEncounterLocation(connection: DbConn, entry: EncounterLocation): EncounterLocationSerializable =
-    let encounterParentLocations = connection.getParentLocations(entry.id)
+proc serializeEncounterLocation(entry: EncounterLocation, encounterParentLocations: seq[Location]): EncounterLocationSerializable =
     result = EncounterLocationSerializable(
         pk: entry.id,
         name: entry.name,
@@ -40,21 +54,49 @@ proc serializeEncounterLocation(connection: DbConn, entry: EncounterLocation): E
         parent_location_name: entry.parent_location_id.map(ploc => ploc.name)
     )
 
-proc serializeEncounterRead*(connection: DbConn, entry: EncounterRead): EncounterSerializable =
+proc serializeEncounterConnection(entry: EncounterRead, connection: CharacterEncounterRead): EncounterConnectionSerializable =
+    let encounterName = $entry
+    result = EncounterConnectionSerializable(
+        pk: connection.id,
+        encounter: connection.encounter_id.id,
+        character: connection.character_id.id,
+        encounter_details: ConnectionEncounter(
+            pk: connection.encounter_id.id,
+            name: encounterName,
+            name_full: encounterName
+        ),
+        character_details: ConnectionCharacter(
+            pk: connection.character_id.id,
+            name: connection.character_id.name,
+            name_full: $connection.character_id
+        )
+    )
+
+proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[CharacterEncounterRead], encounterLocationParents: seq[Location]): EncounterSerializable =
     let name = fmt"{entry.diaryentry_id.session_id.session_number} - {entry.location_id.map(entry => entry.name)}"
     result = EncounterSerializable(
         pk: entry.id,
         description: entry.description,
         name: name,
+        encounterConnections: encounterConnections.map(con => serializeEncounterConnection(entry, con)),
         location: entry.location_id.map(loc => loc.id),
-        location_details: entry.location_id.map(loc => connection.serializeEncounterLocation(loc)),
+        location_details: entry.location_id.map(loc => serializeEncounterLocation(loc, encounterLocationParents)),
         title: entry.title,
         creation_datetime: entry.creation_datetime,
         update_datetime: entry.update_datetime,
         diaryentry: entry.diaryentry_id.id,
         order_index: entry.order_index,
-        campaign_details: connection.getEntryById(entry.diaryentry_id.session_id.campaign_id, MinimumCampaignOverview)
+        campaign_details: entry.diaryentry_id.session_id.campaign_Id
     )
+
+proc serializeEncounterRead*(connection: DbConn, entry: EncounterRead): EncounterSerializable =
+    let encounterConnections = connection.getManyFromOne(entry, CharacterEncounterRead)
+
+    let encounterLocation = entry.location_id
+    let encounterLocationParents = if encounterLocation.isSome(): connection.getParentLocations(encounterLocation.get().id) else: @[]
+
+    result = serializeEncounterRead(entry, encounterConnections, encounterLocationParents)
+
 
 proc serializeEncounter*(connection: DbConn, entry: Encounter): EncounterSerializable =
     let entryRead = connection.getEntryById(entry.id, EncounterRead)

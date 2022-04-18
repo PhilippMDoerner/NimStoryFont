@@ -11,11 +11,11 @@ import constructor/defaults
 const ORDER_INDEX_INCREMENT* = 10
 
 type Encounter* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
-    description*: Option[string] = none(string)
-    title*: Option[string] = none(string)
+    description*: Option[string] = some("")
+    title*: Option[string] = some("")
     diaryentry_id* {.fk: DiaryEntry.}: int64 = MODEL_INIT_ID
-    location_id* {.fk: Location.} : Option[int64] = none(int64)
-    order_index*: Option[int] = none(int)
+    location_id* {.fk: Location.} : Option[int64] = some(MODEL_INIT_ID)
+    order_index*: Option[int] = some(-1)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 implDefaults(Encounter)
@@ -42,7 +42,7 @@ proc newModel*(T: typedesc[EncounterLocation]): EncounterLocation = newEncounter
 type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
     session_number*: int = -1
     is_main_session*: bool = true
-    campaign_id* {.fk: Campaign.}: int64 = -1
+    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
 implDefaults(EncounterSession)
 proc newModel*(T: typedesc[EncounterSession]): EncounterSession = newEncounterSession()
 
@@ -54,11 +54,11 @@ proc newModel*(T: typedesc[EncounterDiaryentry]): EncounterDiaryentry = newEncou
 
 
 type EncounterRead* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
-    description*: Option[string] = none(string)
-    title*: Option[string] = none(string)
+    description*: Option[string] = some("")
+    title*: Option[string] = some("")
     diaryentry_id*: EncounterDiaryentry = newEncounterDiaryentry()
     location_id*: Option[EncounterLocation] = some(newEncounterLocation())
-    order_index*: Option[int] = none(int)
+    order_index*: Option[int] = some(-1)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 implDefaults(EncounterRead)
