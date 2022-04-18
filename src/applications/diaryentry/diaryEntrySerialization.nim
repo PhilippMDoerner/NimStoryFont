@@ -80,7 +80,7 @@ proc serializeDiaryEntryRead*(connection: DbConn, entry: DiaryEntryRead): DiaryE
 
     let encounters = connection.getManyFromOne(entry, EncounterRead)
     let encounterParentLocations: Table[int64, seq[Location]] = connection.getDiaryEntryEncounterLocations(encounters)
-    let encounterCharacterConnections: Table[int64, seq[CharacterEncounterRead]] = connection.getDiaryEntryEncounterConnections(encounters)
+    let encounterCharacterConnections: Table[int64, seq[CharacterEncounterRead]] = connection.getManyFromOne(encounters, CharacterEncounterRead, "encounter_id")
     var serializedEncounters: seq[EncounterSerializable] = @[]
     for encounter in encounters:
         let parentLocations: seq[Location] = if encounterParentLocations.hasKey(encounter.id): 
