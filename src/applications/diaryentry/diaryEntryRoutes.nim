@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import ../allUrlParams
 import diaryEntryModel
 import diaryEntryService
+import diaryEntrySerialization
 import diaryEntryUtils
 import ../genericArticleControllers
 import std/strformat
