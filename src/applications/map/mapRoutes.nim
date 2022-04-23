@@ -39,7 +39,7 @@ proc addMapRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/map/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, MapRead, MapSerializable](overviewSerialize),  
+        handler = createReadCampaignListHandler[ReadListParams, MapRead, MapOverviewSerializable](overviewSerialize),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
