@@ -1,6 +1,6 @@
 import characterModel
 import ../item/itemModel
-import ../encounter/[encounterModel]
+import ../encounter/[encounterModel, encounterSerialization]
 import ../image/imageModel
 import ../playerclass/playerClassModel
 import ../location/[locationModel, locationRepository]
@@ -38,11 +38,10 @@ type CharacterSerializable* = object
     organization*: Option[int64]
     organization_details*: Option[OrganizationOverview]
     items*: seq[ItemOverview]
-    encounters*: seq[EncounterRead]
+    encounters*: seq[EncounterSerializable]
     images*: seq[string]
 
 proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocation]): Option[CharacterLocationSerializable] =
-    debug fmt"entry is none: {entry.isNone()}"
     if entry.isNone():
         return none(CharacterLocationSerializable)
 
@@ -61,7 +60,6 @@ proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocati
 
 
 proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): CharacterSerializable =
-    debug "Serialize char"
     let characterImages = connection.getManyFromOne(entry, Image)
     let imagePaths = characterImages.map(imageEntry => imageEntry.image)
     let characterLocation: Option[CharacterLocationSerializable] = connection.getCurrentLocationDetails(entry.current_location_id)
@@ -70,6 +68,9 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
     let characterClasses: seq[PlayerClass] = connection.getManyToMany(entry, PlayerClassConnectionRead, PlayerClass)
     let organizationId: Option[int64] = if entry.organization_id.isSome(): some(entry.organization_id.get().id) else: none(int64) 
     
+    let encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
+    let serializedEncounters: seq[EncounterSerializable] = encounters.map(enc => connection.serializeEncounterRead(enc))
+
     result = CharacterSerializable(
         pk: entry.id,
         player_character: entry.player_character,
@@ -89,7 +90,8 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
         items: items,
         images: imagePaths,
         organization: organizationId,
-        player_class_connections: characterClasses
+        player_class_connections: characterClasses,
+        encounters: serializedEncounters
     )
 
 proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSerializable =
