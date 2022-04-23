@@ -39,5 +39,10 @@ proc getParentLocations*(location: Location): seq[Location] =
         
     result.reverse()
 
+
+proc readParentLocations*(location: Location | LocationRead): seq[Location] =
+    withDbConn(connection):
+        result = locationRepository.getParentLocations(connection, location.id)
+
 proc readParentLocations*(connection: DbConn, location: Location): seq[Location] =
     result = locationRepository.getParentLocations(connection, location.id)
