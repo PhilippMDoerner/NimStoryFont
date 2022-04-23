@@ -1,15 +1,56 @@
 import norm/model
 import mapModel
+import ../campaign/campaignModel
+import ../mapMarker/[markerSerialization, markerModel]
 import ../genericArticleRepository
+import ../../utils/djangoDateTime/djangoDateTimeType
+import std/[options, sugar, sequtils]
 
-type MapSerializable* = MapRead
-type MapOverviewSerializable* = MapRead
-
-proc serializeMap*(connection: DbConn, entry: Map): MapSerializable =
-    result = connection.getEntryById(entry.id, MapRead)
+type MapSerializable* = object
+    pk: int64
+    name: string
+    image: string
+    icon: Option[string]
+    update_datetime: DjangoDateTime
+    campaign: int64
+    campaign_details: MinimumCampaignOverview
+    markers: seq[MarkerSerializable]
 
 proc serializeMapRead*(connection: DbConn, entry: MapRead): MapSerializable =
-    result = entry
+    let markers = connection.getManyFromOne(entry, MarkerRead)
+        .map(marker => connection.serializeMarkerRead(marker))
+    
+    result = MapSerializable(
+        pk: entry.id,
+        name: entry.name,
+        image: entry.image,
+        icon: entry.icon,
+        update_datetime: entry.update_datetime,
+        campaign: entry.campaign_id.id,
+        campaign_details: entry.campaign_id,
+        markers: markers
+    )
+
+proc serializeMap*(connection: DbConn, entry: Map): MapSerializable =
+    let mapRead = connection.getEntryById(entry.id, MapRead)
+    result = connection.serializeMapRead(mapRead)
+
+
+
+type MapOverviewSerializable* = object
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+    icon: Option[string]
 
 proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializable =
-    result = entry
+    result = MapOverviewSerializable(
+        pk: entry.id,
+        name_full: entry.name,
+        name: entry.name,
+        campaign_details: entry.campaign_id,
+        icon: entry.icon,
+        update_datetime: entry.update_datetime
+    )
