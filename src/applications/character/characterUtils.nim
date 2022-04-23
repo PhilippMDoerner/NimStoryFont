@@ -1,11 +1,13 @@
 import characterModel
-import std/strformat
+import std/[options, strformat, sugar]
 import characterEncounterModel
 import ../genericArticleRepository
 
 proc `$`*(character: CharacterRead | Character): string =
-    result.add(fmt "{character.name}")
-    if character.alive:
+    let titleString = character.title.map(title => fmt"{title} - ").get("")
+    result.add(titleString)
+    result.add(character.name)
+    if not character.alive:
         result.add(" (†)")  
 
 proc campaign_id*(entry: CharacterEncounterConnection): int64 =
