@@ -5,9 +5,6 @@ import ../location/[locationModel, locationRepository]
 import ../genericArticleRepository
 import std/[sugar, options, sequtils]
 
-type MarkerOverview* = Marker
-type MarkerOverviewSerializable* = MarkerOverview
-
 type MarkerLocation = object
     name: string
     description: Option[string]
@@ -53,7 +50,3 @@ proc serializeMarkerRead*(connection: DbConn, entry: MarkerRead): MarkerSerializ
 proc serializeMarker*(connection: DbConn, entry: Marker): MarkerSerializable =
     let fullEntry = connection.getEntryById(entry.id, MarkerRead)
     result = connection.serializeMarkerRead(fullEntry)
-
-proc overviewSerialize*(connection: DbConn, entry: MarkerOverview): MarkerOverviewSerializable =
-    result = entry
-
