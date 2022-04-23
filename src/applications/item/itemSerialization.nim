@@ -8,23 +8,23 @@ import ../../utils/djangoDateTime/djangoDateTimeType
 
 
 type OwnerDetails* = object
-    name: string
-    pk: int64
+    name*: string
+    pk*: int64
 
 proc serializeOwner*(entry: ItemOwner): OwnerDetails =
     result = OwnerDetails(name: entry.name, pk: entry.id)
 
 type ItemSerializable* = object
-    pk: int64
-    name: string
-    owner: Option[int64]
-    owner_details: Option[OwnerDetails]
-    description: Option[string]
+    pk*: int64
+    name*: string
+    owner*: Option[int64]
+    owner_details*: Option[OwnerDetails]
+    description*: Option[string]
     update_datetime*: DjangoDateTime
     creation_datetime*: DjangoDateTime
-    images: seq[string]
-    campaign: int64
-    campaign_details: MinimumCampaignOverview
+    images*: seq[string]
+    campaign*: int64
+    campaign_details*: MinimumCampaignOverview
 
 proc serializeItemRead*(connection: DbConn, entry: ItemRead): ItemSerializable =
     let owner: Option[OwnerDetails] = entry.owner_id.map(serializeOwner)
@@ -46,11 +46,11 @@ proc serializeItem*(connection: DbConn, entry: Item): ItemSerializable =
     result = connection.serializeItemRead(entryRead)
 
 type ItemOverviewSerializable* = object
-    pk: int64
-    name_full: string
-    name: string
-    campaign_details: MinimumCampaignOverview
-    update_datetime: DjangoDateTime
+    pk*: int64
+    name_full*: string
+    name*: string
+    campaign_details*: MinimumCampaignOverview
+    update_datetime*: DjangoDateTime
 
 
 proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerializable =
