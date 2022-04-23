@@ -1,6 +1,6 @@
 import std/[strformat, strutils, sugar, options, sequtils, tables, sets]
 import ../genericArticleRepository
-import norm/[sqlite]
+import norm/[sqlite, model]
 import locationModel
 
 proc parseParentIdRow(value: DbValue): string =
@@ -105,3 +105,11 @@ proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
   connection.select(parentLocations, condition)
 
   result = parentLocations
+
+proc getSubLocations*(connection: DbConn, locationId: int64): seq[Location] =
+  var sublocations: seq[Location] = @[newModel(Location)]
+
+  const condition = fmt"{Location.table()}.parent_location_id = ?"
+  connection.select(sublocations, condition, locationId)
+
+  result = sublocations
