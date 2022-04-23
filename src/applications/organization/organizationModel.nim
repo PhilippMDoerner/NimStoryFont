@@ -33,7 +33,7 @@ proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = newOrg
 type OrganizationParentLocation {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The parent location of a location, that a character 
     currently resides in]##
-    name: string = ""
+    name*: string = ""
 
 implDefaults(OrganizationParentLocation)
 
@@ -41,7 +41,7 @@ implDefaults(OrganizationParentLocation)
 type OrganizationLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
     name*: string = ""
-    parent_location_id*: Option[OrganizationParentLocation] = none(OrganizationParentLocation)
+    parent_location_id*: Option[OrganizationParentLocation] = some(newOrganizationParentLocation())
 
 implDefaults(OrganizationLocation)
 proc newModel*(T: typedesc[OrganizationLocation]): OrganizationLocation = newOrganizationLocation()
@@ -69,9 +69,3 @@ type OrganizationCharacter* {.defaults, tableName: CHARACTER_TABLE.} = ref objec
 
 implDefaults(OrganizationCharacter)
 proc newModel*(T: typedesc[OrganizationCharacter]): OrganizationCharacter = newOrganizationCharacter()
-
-
-type OrganizationSerializable* = ref object
-    organization*: OrganizationRead
-    members*: seq[OrganizationCharacter]
-    images*: seq[Image]
