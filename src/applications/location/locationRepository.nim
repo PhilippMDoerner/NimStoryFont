@@ -12,7 +12,7 @@ proc parseParentIdRow(value: DbValue): string =
   else:
     result = ""
 
-proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Table[int64, string] =
+proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Table[int64, Option[string]] =
   let locationIdsDed = locationIds.deduplicate()
   let locationIdStr: string = locationIdsDed.map(id => id.int.intToStr).join(",")
   let parentLocationIdQuery: SqlQuery = sql fmt"""
@@ -36,13 +36,20 @@ proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Ta
   assert(locationIdsDed.len() == rawParentLocationIdRows.len(), "Failed to fetch an id_path for every id when fetching parent locations!")
 
   for row in rawParentLocationIdRows:
-    result[($row[0]).parseInt().int64] = row[1].parseParentIdRow()
+    let rowLocationId: string = $row[0]
+    var rowParentLocationIdStr: string = row[1].parseParentIdRow()
+    rowParentLocationIdStr.removeSuffix(rowLocationId)
+    rowParentLocationIdStr.removeSuffix(",")
+    if rowParentLocationIdStr == "":
+      result[rowLocationId.parseInt().int64] = none(string)
+    else:
+      result[rowLocationId.parseInt().int64] = some(rowParentLocationIdStr)
 
 proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[string] =
-  let idStrings: Table[int64, string] = connection.getParentLocationIdStrings(@[locationId])
+  let idStrings: Table[int64, Option[string]] = connection.getParentLocationIdStrings(@[locationId])
   if idStrings.len() == 1:
     for key in idStrings.keys:
-      result = some(idStrings[key])
+      result = idStrings[key]
 
   elif idStrings.len() == 0:
     result = none(string)
@@ -52,13 +59,20 @@ proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[st
 
 
 proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int64, seq[Location]] =
-  let parentLocationIdStrings: Table[int64, string] = connection.getParentLocationIdStrings(locationIds)
+  let parentLocationIdStrings: Table[int64, Option[string]] = connection.getParentLocationIdStrings(locationIds)
   
   var parentLocationIdSets: Table[int64, HashSet[int64]] = initTable[int64, HashSet[int64]]()
   var totalIdSet: HashSet[int64] = initHashSet[int64]()
   for locationId in parentLocationIdStrings.keys:
-    let idString: string = parentLocationIdStrings[locationId]
-    let idSet: HashSet[int64] = idString.split(',').map(idStr => idStr.parseInt().int64).toHashSet()
+    let parentLocationIdString: Option[string] = parentLocationIdStrings[locationId]
+    if parentLocationIdString.isNone():
+      continue
+
+    var idSet: HashSet[int64] = parentLocationIdString
+      .get()
+      .split(',')
+      .map(idStr => idStr.parseInt().int64)
+      .toHashSet()
     
     parentLocationIdSets[locationId] = idSet
     totalIdSet.incl(idSet)
