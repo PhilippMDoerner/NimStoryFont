@@ -7,7 +7,7 @@ import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, strutils, strformat, logging]
+import std/[sugar, sequtils, options, strutils, strformat]
 import ../genericArticleRepository
 import ../../utils/databaseUtils
 import norm/sqlite
