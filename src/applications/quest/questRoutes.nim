@@ -38,7 +38,7 @@ proc addQuestRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/quest/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, QuestOverview, QuestOverviewSerializable](overviewSerialize),
+        handler = createReadCampaignListHandler[ReadListParams, QuestRead, QuestOverviewSerializable](overviewSerialize),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
