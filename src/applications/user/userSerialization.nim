@@ -1,19 +1,37 @@
 import userModel
 import norm/sqlite
 import ../genericArticleRepository
+import std/[options, sugar, sequtils]
+import ../authentication/authenticationModels
 
-type UserRead* = User
-type UserOverview* = User
-type UserSerializable* = UserRead
-type UserOverviewSerializable* = UserOverview
+type UserGroupSerializable* = object
+    name: string
+    pk: int64
 
+proc serializeUserGroup(entry: Group): UserGroupSerializable =
+    result = UserGroupSerializable(name: entry.name, pk: entry.id)
 
-proc serializeUserRead*(connection: DbConn, entry: UserRead): UserSerializable =
-    result = entry
+type UserSerializable* = object
+    username: string
+    pk: int64
+    email: Option[string]
+    is_staff: bool
+    is_superuser: bool
+    is_active: bool
+    groups: seq[int64]
+    group_details: seq[UserGroupSerializable]
 
 proc serializeUser*(connection: DbConn, entry: User): UserSerializable =
-    let fullEntry = connection.getEntryById(entry.id, UserRead)
-    result = connection.serializeUser(fullEntry)
-
-proc overviewSerialize*(connection: DbConn, entry: UserOverview): UserOverviewSerializable =
-    result = entry
+    let email = if entry.email == "": none(string) else: some(entry.email)
+    let groups = connection.getManyToMany(entry, UserGroup, Group)
+    
+    result = UserSerializable(
+        username: entry.username,
+        pk: entry.id,
+        email: email,
+        is_staff: entry.is_staff,
+        is_superuser: entry.is_superuser,
+        is_active: entry.is_active,
+        groups: groups.map(group => group.id),
+        group_details: groups.map(serializeUserGroup)
+    )
