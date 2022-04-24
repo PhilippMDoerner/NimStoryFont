@@ -59,13 +59,13 @@ proc serializeCampaignRead*(connection: DbConn, entry: CampaignRead): CampaignSe
     let campaignMembers: seq[UserGroup] = connection.getCampaignMembers(entry)
     let members = campaignMembers
         .filter(userGroup => userGroup.group_id.id == entry.member_group_id.get().id)
-        .map(userGroup => userGroup.user_id)
+        .map(userGroup => connection.serializeUser(userGroup.user_id))
     let admins = campaignMembers
         .filter(userGroup => userGroup.group_id.id == entry.admin_group_id.get().id)
-        .map(userGroup => userGroup.user_id)
+        .map(userGroup => connection.serializeUser(userGroup.user_id))
     let guests = campaignMembers
         .filter(userGroup => userGroup.group_id.id == entry.guest_group_id.get().id)
-        .map(userGroup => userGroup.user_id)
+        .map(userGroup => connection.serializeUser(userGroup.user_id))
 
     result = CampaignSerializable(
         pk: entry.id,
