@@ -60,3 +60,6 @@ proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, 
 
 proc getSessionAudioByParams*(connection: DbConn, requestParams: ReadSessionAudioByParams): SessionAudioRead =
     result = connection.getSessionAudio(requestParams.campaignName, requestParams.sessionNumber, requestParams.isMainSession)
+
+proc getCampaignSessionAudio*(connection: DbConn, requestParams: ReadListParams): seq[SessionAudioRead] =
+  result = connection.getSessionAudioForCampaign(requestParams.campaignName)
