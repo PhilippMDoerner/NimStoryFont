@@ -48,7 +48,11 @@ proc addSessionAudioRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/sessionaudio/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, SessionAudioRead, SessionAudioOverviewSerializable](overview_serialize),  
+        handler = createReadListHandler[ReadListParams, SessionAudioRead, SessionAudioOverviewSerializable](
+            getCampaignSessionAudio,
+            checkSessionAudioReadListPermission,
+            overview_serialize
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
