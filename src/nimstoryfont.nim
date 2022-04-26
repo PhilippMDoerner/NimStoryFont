@@ -1,4 +1,5 @@
 import prologue
+import prologue/middlewares/[staticfile, cors]
 import applicationSettings
 import applicationEvents
 import utils/jwtContext
@@ -17,6 +18,19 @@ proc main() =
         settings, 
         startup = getStartUpEvents(), 
         shutdown = getShutDownEvents()
+    )
+
+    when not defined(release):
+        app.use(staticFileMiddleware("media", "static"))
+
+    app.use(CorsMiddleware(
+            allowOrigins = @["*"],
+            allowMethods = @["*"],
+            allowHeaders = @["*"],
+            exposeHeaders = @["*"],
+            allowCredentials = false,
+            maxAge = 7200,
+        )
     )
     addApplicationRoutes(app)
     app.run(JWTContext)
