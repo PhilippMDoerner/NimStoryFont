@@ -9,7 +9,7 @@ proc addAuthenticationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re"/token/",
+        re"/token",
         authenticationControllers.login,
         httpMethod = HttpPost
     )
