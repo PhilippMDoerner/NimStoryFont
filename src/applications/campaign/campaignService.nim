@@ -31,11 +31,13 @@ proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams):
   result = connection.getEntryByField("name", requestParams.campaignName, CampaignRead)
 
 proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
-  var memberships: seq[int64] = @[]
-  for campaignId in requestParams.userToken.campaignMemberships.keys:
-    memberships.add(campaignId)
+  var campaignIdsOfUser: seq[int64] = @[]
 
-  result = connection.getCampaigns(memberships)
+  for campaignIdentifier in requestParams.userToken.campaignMemberships.keys:
+    if campaignIdentifier.kind == CampaignIdType.citInt:
+      campaignIdsOfUser.add(campaignIdentifier.id)
+
+  result = connection.getCampaigns(campaignIdsOfUser)
 
 proc getCampaignMembers*(connection: DbConn, campaign: Campaign | CampaignRead): seq[UserGroup] =
   result = connection.readCampaignMembers(campaign)

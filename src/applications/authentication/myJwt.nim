@@ -3,20 +3,13 @@ import jwt
 import ../../applicationConstants
 import std/[options, logging, json, tables, random, times, strutils, strformat]
 import authenticationModels
-import constructor/defaults
+import tokenTypes 
 
 export jwt
+export tokenTypes
 
-type TokenData* {.defaults.} = object
-    campaignMemberships*: Table[int64, CampaignAccessLevel] = initTable[int64, CampaignAccessLevel]()
-    isAdmin*: bool = false
-    isSuperUser*: bool = false
-    userId*: int64 = MODEL_INIT_ID
-    userName*: string = ""
-implDefaults(TokenData)
-proc newTokenData*(): TokenData = initTokenData()
 
-proc isInitTokenData*(tokenData: TokenData): bool = tokenData.userId == MODEL_INIT_ID
+
 
 #[ parses a JWT from string form to JWT form]#
 proc parseJWT*(unparsedToken: string): Option[JWT] =
@@ -100,10 +93,11 @@ proc extractTokenData*(token: JWT): TokenData =
         isSuperUser: bool = token.claims["isSuperUser"].node.bval
 
     let unparsedCampaignMemberships: OrderedTable[string, JsonNode] = token.claims["campaign_memberships"].node.fields
-    var campaignMemberships: CampaignMemberships = initTable[int64, CampaignAccessLevel]()
+    var campaignMemberships: CampaignMemberships = newMembershipTable()
 
     for campaignIdStr, membership in unparsedCampaignMemberships.pairs:
-        campaignMemberships[parseInt(campaignIdStr)] = parseEnum[CampaignAccessLevel](membership.getStr())
+        let accessLevel = parseEnum[CampaignAccessLevel](membership.getStr())
+        campaignMemberships[campaignIdStr] = accessLevel
 
     result = TokenData(
         campaignMemberships: campaignMemberships, 
@@ -137,7 +131,9 @@ proc `%`*(table: CampaignMemberships): JsonNode =
     ## Necessary to be able to parse CampaignMemberships to json for the JWT
     result = newJObject()
     for key, value in table.pairs:
-        result.add(fmt"{key}", %value)
+        case key.kind:
+        of CampaignIdType.citString: result.add(key.campaignName, %value)
+        of CampaignIdType.citInt: result.add(fmt"{key.id}", %value)
         
 
 proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetime: TimeInterval): JWT =
@@ -153,7 +149,7 @@ proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetim
             "user_name": userContainer.user.username,
             "isAdmin": userContainer.user.is_staff,
             "isSuperUser": userContainer.user.is_superuser,
-            "campaign_memberships": userContainer.campaignMemberships,
+            "campaign_memberships": userContainer.campaignMemberships.toJson(),
             "exp": expirationTimestamp,
             "token_type": tokenType,
             "jti": randomString(50)
