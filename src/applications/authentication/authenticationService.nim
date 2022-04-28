@@ -11,19 +11,19 @@ export authenticationModels
 proc addCampaignGroup(
     membershipTable: var Table[string, CampaignMemberships], 
     groupName: string, 
-    campaignId: int64,
+    campaignIdentifier: int64 | string,
     accessLevel: CampaignAccessLevel
 ) =
     if not membershipTable.hasKey(groupName):
-        membershipTable[groupName] = initTable[int64, CampaignAccessLevel]()
+        membershipTable[groupName] = newMembershipTable()
     
-    membershipTable[groupName][campaignId] = accessLevel
+    membershipTable[groupName][campaignIdentifier] = accessLevel
 
 
 #You may want to cache the results of this proc somehow, for at least an hour
-proc getCampaignMembershipTable(): Table[string, CampaignMemberships] =
+proc getCampaignIdMembershipTable(): Table[string, CampaignMemberships] =
   #Generates a map representation of which groups have access to which campaigns. 
-  #Basically table[GroupName][CampaignName] --> AccessLevel
+  #Basically table[GroupName][campaignId] --> AccessLevel
   let campaigns: seq[CampaignRead] = getAllCampaignReads()
 
   var membershipTable = initTable[string, CampaignMemberships]()
@@ -31,30 +31,32 @@ proc getCampaignMembershipTable(): Table[string, CampaignMemberships] =
     if campaign.guest_group_id.isSome():
         let guestGroupName: string = campaign.guest_group_id.get().name
         membershipTable.addCampaignGroup(guestGroupName, campaign.id, CampaignAccessLevel.GUEST)
+        membershipTable.addCampaignGroup(guestGroupName, campaign.name, CampaignAccessLevel.GUEST)
     
     if campaign.member_group_id.isSome():
         let memberGroupName: string = campaign.member_group_id.get().name
         membershipTable.addCampaignGroup(memberGroupName, campaign.id, CampaignAccessLevel.MEMBER)
+        membershipTable.addCampaignGroup(memberGroupName, campaign.name, CampaignAccessLevel.MEMBER)
         
     if campaign.admin_group_id.isSome():
         let adminGroupName: string = campaign.admin_group_id.get().name
         membershipTable.addCampaignGroup(adminGroupName, campaign.id, CampaignAccessLevel.ADMIN)
+        membershipTable.addCampaignGroup(adminGroupName, campaign.name, CampaignAccessLevel.ADMIN)
 
   result = membershipTable
 
-
 proc getUserCampaignMemberships(user: User): CampaignMemberships =
-    var userMemberships: CampaignMemberships = initTable[int64, CampaignAccessLevel]()
+    var userMemberships: CampaignMemberships = newMembershipTable()
 
-    let campaignMembershipTable: Table[string, CampaignMemberships] = getCampaignMembershipTable()
+    let campaignIdMembershipTable: Table[string, CampaignMemberships] = getCampaignIdMembershipTable()
 
     let userGroups: seq[Group] = getManyToMany(user, UserGroup, Group)
     for group in userGroups:
-        let isCampaignGroup: bool = campaignMembershipTable.hasKey(group.name)
+        let isCampaignGroup: bool = campaignIdMembershipTable.hasKey(group.name)
         if not isCampaignGroup:
             continue
 
-        let campaignMemberships: CampaignMemberships = campaignMembershipTable[group.name]
+        let campaignMemberships: CampaignMemberships = campaignIdMembershipTable[group.name]
         for campaignId in campaignMemberships.keys:
             userMemberships[campaignId] = campaignMemberships[campaignId]
     
@@ -63,7 +65,10 @@ proc getUserCampaignMemberships(user: User): CampaignMemberships =
 
 proc getUserContainer*(user: User): UserContainer =
     let campaignMemberships = getUserCampaignMemberships(user)
-    result = UserContainer(user: user, campaignMemberships: campaignMemberships)
+    result = UserContainer(
+        user: user, 
+        campaignMemberships: campaignMemberships
+    )
 
 
 proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission] =

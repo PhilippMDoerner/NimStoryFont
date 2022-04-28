@@ -1,15 +1,11 @@
 import norm/[model, pragmas]
 import ../../applicationSettings
 import ../../applicationConstants
-import std/[tables]
 import constructor/defaults
 import ../user/userModel
+import tokenTypes
 
-type CampaignAccessLevel* = enum
-  GUEST = "guest", MEMBER = "member", ADMIN = "admin"
-
-type CampaignMemberships* = Table[int64, CampaignAccessLevel]
-
+export tokenTypes
 
 type Group* {.defaults, tableName: GROUP_TABLE.} = ref object of Model
     name*: string = ""

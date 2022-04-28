@@ -3,7 +3,7 @@ import norm/[model, sqlite]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../user/userSerialization
 import ../genericArticleRepository
-import std/[sugar, sequtils, options, algorithm]
+import std/[sugar, sequtils, options, algorithm, strformat]
 import campaignService
 import ../session/sessionModel
 
@@ -104,14 +104,16 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         campaignDuration.start_date = none(DjangoDateTime)
         campaignDuration.last_date = none(DjangoDateTime)
 
+    let backgroundImage = fmt"localhost:8080/{entry.background_image}"
+    let campaignIcon = entry.icon.map(icon => fmt"localhost:8080/{icon}")
     result = CampaignOverviewSerializable(
         pk: entry.id,
         name: entry.name,
         subtitle: entry.subtitle,
-        background_image: entry.background_image,
+        background_image: backgroundImage,
         is_deactivated: entry.is_deactivated,
         has_audio_recording_permission: entry.has_audio_recording_permission,
-        icon: entry.icon,
+        icon: campaignIcon,
         default_map: default_map_id,
         default_map_details: entry.default_map_id,
         duration: campaignDuration
