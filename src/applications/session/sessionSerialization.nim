@@ -6,6 +6,7 @@ import ../genericArticleRepository
 import sessionUtils
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import std/[options, sequtils, strformat]
+import ../articleModel
 
 type SessionDiaryEntrySerializable* = object
     author_name: string
