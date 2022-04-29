@@ -88,10 +88,12 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
   connection.select(parentLocations, condition)
 
   for locationId in locationIds:
-    let parentIds: HashSet[int64] = parentLocationIdSets[locationId]
-    let parentLocationsForId: seq[Location] = parentLocations.filter(loc => parentIds.contains(loc.id))
-    result[locationId] = parentLocationsForId
-
+    if parentLocationIdSets.hasKey(locationId):
+      let parentIds: HashSet[int64] = parentLocationIdSets[locationId]
+      let parentLocationsForId: seq[Location] = parentLocations.filter(loc => parentIds.contains(loc.id))
+      result[locationId] = parentLocationsForId
+    else:
+      result[locationId] = @[]
 
 
 proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
