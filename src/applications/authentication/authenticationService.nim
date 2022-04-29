@@ -1,7 +1,7 @@
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService]
 import authenticationModels
-import std/[options, sequtils, tables, strutils, strformat]
+import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model
 import ../user/userService
 
@@ -31,17 +31,17 @@ proc getCampaignIdMembershipTable(): Table[string, CampaignMemberships] =
     if campaign.guest_group_id.isSome():
         let guestGroupName: string = campaign.guest_group_id.get().name
         membershipTable.addCampaignGroup(guestGroupName, campaign.id, CampaignAccessLevel.GUEST)
-        membershipTable.addCampaignGroup(guestGroupName, campaign.name, CampaignAccessLevel.GUEST)
+        membershipTable.addCampaignGroup(guestGroupName, campaign.name.toLower(), CampaignAccessLevel.GUEST)
     
     if campaign.member_group_id.isSome():
         let memberGroupName: string = campaign.member_group_id.get().name
         membershipTable.addCampaignGroup(memberGroupName, campaign.id, CampaignAccessLevel.MEMBER)
-        membershipTable.addCampaignGroup(memberGroupName, campaign.name, CampaignAccessLevel.MEMBER)
+        membershipTable.addCampaignGroup(memberGroupName, campaign.name.toLower(), CampaignAccessLevel.MEMBER)
         
     if campaign.admin_group_id.isSome():
         let adminGroupName: string = campaign.admin_group_id.get().name
         membershipTable.addCampaignGroup(adminGroupName, campaign.id, CampaignAccessLevel.ADMIN)
-        membershipTable.addCampaignGroup(adminGroupName, campaign.name, CampaignAccessLevel.ADMIN)
+        membershipTable.addCampaignGroup(adminGroupName, campaign.name.toLower(), CampaignAccessLevel.ADMIN)
 
   result = membershipTable
 
