@@ -3,6 +3,7 @@ import ../genericArticleRepository
 import ../../utils/databaseUtils
 import userModel
 import userRequestParams
+import userRepository
 import std/[options, tables, strutils, strformat, sugar]
 import norm/model
 import ../../utils/djangoDateTime/[djangoDateTimeType]
@@ -23,7 +24,7 @@ proc getUserByName*(userName: string): User =
 
 proc getCampaignUserListOverview*(connection: DbConn, requestParams: ReadListParams): seq[User] =
   ## lists all campaign entries using a limited but performant representation of a User
-  result = connection.getCampaignList(requestParams.campaignName, User)
+  result = connection.getCampaignUsers(requestParams.campaignName)
 
 
 proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var User): User =
