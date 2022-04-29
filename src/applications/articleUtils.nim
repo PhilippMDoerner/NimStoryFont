@@ -22,29 +22,29 @@ proc getArticleData*(articleTable: ArticleTable, articleId: int64): JsonNode =
   var jsonString: string
 
   case articleTable:
-    of ArticleTable.CHARACTER:
+    of ArticleTable.atbCHARACTER:
       jsonString = getEntryById(articleId, characterService.Character).toJson()
-    of ArticleTable.CREATURE:
+    of ArticleTable.atbCREATURE:
       jsonString = getEntryById(articleId, creatureService.Creature).toJson()
-    of ArticleTable.DIARYENTRY:
+    of ArticleTable.atbDIARYENTRY:
       jsonString = getEntryById(articleId, diaryentryService.DiaryEntry).toJson()
-    of ArticleTable.ENCOUNTER:
+    of ArticleTable.atbENCOUNTER:
       jsonString = getEntryById(articleId, encounterService.Encounter).toJson()
-    of ArticleTable.ITEM:
+    of ArticleTable.atbITEM:
       jsonString = getEntryById(articleId, itemService.Item).toJson()
-    of ArticleTable.LOCATION:
+    of ArticleTable.atbLOCATION:
       jsonString = getEntryById(articleId, locationService.Location).toJson()
-    of ArticleTable.MAP:
+    of ArticleTable.atbMAP:
       jsonString = getEntryById(articleId, mapService.Map).toJson()
-    of ArticleTable.ORGANIZATION:
+    of ArticleTable.atbORGANIZATION:
       jsonString = getEntryById(articleId, organizationService.Organization).toJson()
-    of ArticleTable.QUEST:
+    of ArticleTable.atbQUEST:
       jsonString = getEntryById(articleId, questService.Quest).toJson()
-    of ArticleTable.SESSIONAUDIO:
+    of ArticleTable.atbSESSIONAUDIO:
       jsonString = getEntryById(articleId, sessionaudioService.SessionAudio).toJson()
-    of ArticleTable.SPELL:
+    of ArticleTable.atbSPELL:
       jsonString = getEntryById(articleId, spellService.Spell).toJson()
-    of ArticleTable.RULE:
+    of ArticleTable.atbRULE:
       jsonString = getEntryById(articleId, ruleService.Rule).toJson()
 
   result = parseJson(jsonString)

@@ -5,6 +5,7 @@ import ../image/imageModel
 import std/[options, sequtils, strformat, sugar]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../campaign/campaignModel
+import ../articleModel
 
 type CreatureSerializable* = object
     pk*: int64
@@ -36,6 +37,7 @@ proc serializeCreature*(connection: DbConn, entry: Creature): CreatureSerializab
 
 
 type CreatureOverviewSerializable* = object
+    article_type: ArticleType
     pk*: int64
     name*: string
     name_full*: string
@@ -45,6 +47,7 @@ type CreatureOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOverviewSerializable =
     result = CreatureOverviewSerializable(
+        article_type: ArticleType.atCreature,
         pk: entry.id,
         name: entry.name,
         name_full: entry.name,

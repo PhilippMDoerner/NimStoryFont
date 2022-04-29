@@ -1,6 +1,7 @@
 import norm/model
 import itemModel
 import itemUtils
+import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import std/[options, sugar]
@@ -46,6 +47,7 @@ proc serializeItem*(connection: DbConn, entry: Item): ItemSerializable =
     result = connection.serializeItemRead(entryRead)
 
 type ItemOverviewSerializable* = object
+    article_type: ArticleType
     pk*: int64
     name_full*: string
     name*: string
@@ -55,6 +57,7 @@ type ItemOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerializable =
     result = ItemOverviewSerializable(
+        article_type: ArticleType.atItem,
         pk: entry.id,
         name_full: $entry,
         name: entry.name,

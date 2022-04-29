@@ -2,6 +2,7 @@ import norm/model
 import locationModel
 import locationUtils
 import locationRepository
+import ../articleModel
 import ../image/imageModel
 import ../mapMarker/[markerModel, markerSerialization]
 import ../character/[characterModel, characterSerialization, characterUtils]
@@ -132,6 +133,7 @@ proc serializeLocation*(connection: DbConn, entry: Location): LocationSerializab
 
 
 type LocationOverviewSerializable* = object
+    article_type: ArticleType
     pk: int64
     name_full: string
     name: string
@@ -141,6 +143,7 @@ type LocationOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOverviewSerializable =
     result = LocationOverviewSerializable(
+        article_type: ArticleType.atLocation,
         pk: entry.id,
         name_full: entry.name,
         name: entry.name,
