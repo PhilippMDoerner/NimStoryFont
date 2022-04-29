@@ -138,7 +138,6 @@ proc `%`*(table: CampaignMemberships): JsonNode =
 
 proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetime: TimeInterval): JWT =
     let expirationTimestamp: int64 = getExpirationTimestamp(tokenType, tokenLifetime)
-    #TODO: Find a way to parse the campaignMemberships to json with std/json
     result = toJWT(%*{
         "header": {
             "alg": "HS256",
