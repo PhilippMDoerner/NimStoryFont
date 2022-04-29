@@ -112,7 +112,7 @@ type CharacterOverviewSerializable* = object
     alive*: bool
     images*: seq[string]
 
-proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
+proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
     let imagePaths = images.map(entry => entry.image)
 

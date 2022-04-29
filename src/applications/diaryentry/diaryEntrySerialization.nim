@@ -10,6 +10,7 @@ import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[sugar, options, strutils, strformat, sequtils, tables]
 import norm/[model, sqlite]
+import ../articleModel
 
 
 type DiaryEntryAuthorSerializable* = object
@@ -120,6 +121,7 @@ proc serializeDiaryEntry*(connection: DbConn, entry: DiaryEntry): DiaryEntrySeri
 
 
 type DiaryEntryOverviewSerializable* = object
+    article_type*: ArticleType
     pk*: int64
     name_full*: string
     name*: string
@@ -132,6 +134,7 @@ type DiaryEntryOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
     let title = entry.title.get("")
     result = DiaryEntryOverviewSerializable(
+        article_type: ArticleType.atDiaryEntry,
         pk: entry.id,
         name_full: fmt"Diary Entry #{entry.session_id.session_number:>3} - {title}",
         name: title,

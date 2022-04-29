@@ -22,8 +22,14 @@ proc newTableModel*(T: typedesc[Location]): Location = newLocation()
 proc newModel*(T: typedesc[Location]): Location = newLocation()
 
 
+type GrandParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+    name*: string = ""
+implDefaults(GrandParentLocation)
+proc newModel*(T: typedesc[GrandParentLocation]): GrandParentLocation = newGrandParentLocation()
+
 type ParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
     name*: string = ""
+    parent_location_id*: Option[GrandParentLocation] = some(newModel(GrandParentLocation))
 implDefaults(ParentLocation)
 proc newModel*(T: typedesc[ParentLocation]): ParentLocation = newParentLocation()
 

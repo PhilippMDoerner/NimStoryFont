@@ -106,6 +106,18 @@ proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
 
   result = parentLocations
 
+proc getParentLocationReads*(connection: DbConn, locationId: int64): seq[LocationRead] =
+  let parentLocationIds: Option[string] = connection.getParentLocationIdString(locationId)
+  if parentLocationIds.isNone():
+    return @[]
+
+  var parentLocations: seq[LocationRead] = @[newModel(LocationRead)]
+
+  let condition = fmt"id IN ({parentLocationIds.get()})"
+  connection.select(parentLocations, condition)
+
+  result = parentLocations
+
 proc getSubLocations*(connection: DbConn, locationId: int64): seq[Location] =
   var sublocations: seq[Location] = @[newModel(Location)]
 

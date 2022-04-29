@@ -39,4 +39,4 @@ type ArticleType* = enum
   atQuest = "quest"
   atSessionAudio = "sessionaudio"
   atSpell = "spell"
-  atRule = "rule"
+  atRule = "rules"
