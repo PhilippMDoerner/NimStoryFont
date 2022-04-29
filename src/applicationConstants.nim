@@ -1,7 +1,7 @@
 import prologue/middlewares/cors
 
 const MODEL_INIT_ID*: int64 = -1
-const NONE_STRING_LOWER*: string = "none"
+const NONE_STRING*: string = "none"
 const ID_STRING_PREFIX*: string = "id_"
 
 

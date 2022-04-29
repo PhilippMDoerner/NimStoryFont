@@ -15,7 +15,7 @@ proc getLocationByName*(connection: DbConn, params: ReadLocationByNameParams): L
     var entry: LocationRead = newModel(LocationRead)
     const locationTable: string = LocationRead.table()
 
-    if params.parentLocationName.toLowerAscii() == NONE_STRING_LOWER:
+    if params.parentLocationName.toLowerAscii() == NONE_STRING:
         var sqlCondition: string = fmt "{locationTable}.name = ? AND {locationTable}.parent_location_id IS NULL AND campaign_id.name = ?"
         let queryParams: array[2, DbValue] = [params.articleName.dbValue(), params.campaignName.dbValue()]
         connection.select(entry, sqlCondition, queryParams)

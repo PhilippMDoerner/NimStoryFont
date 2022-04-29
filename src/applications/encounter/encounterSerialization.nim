@@ -7,7 +7,7 @@ import ../campaign/campaignModel
 import ../character/[characterUtils, characterEncounterModel]
 import ../location/[locationModel, locationRepository]
 import ../../utils/djangoDateTime/djangoDateTimeType
-
+import ../articleModel
 
 type EncounterLocationSerializable* = object
     name: string
@@ -43,8 +43,6 @@ type EncounterSerializable* = object
     order_index: Option[int]
     campaign_details: MinimumCampaignOverview
 
-
-type EncounterOverviewSerializable* = EncounterRead
 
 proc serializeEncounterLocation(entry: EncounterLocation, encounterParentLocations: seq[Location]): EncounterLocationSerializable =
     result = EncounterLocationSerializable(
@@ -104,5 +102,40 @@ proc serializeEncounter*(connection: DbConn, entry: Encounter): EncounterSeriali
     let entryRead = connection.getEntryById(entry.id, EncounterRead)
     result = connection.serializeEncounterRead(entryRead)
 
+type EncounterDiaryentrySerializable* = object
+    session_number: int
+    author_name: string
+    is_main_session: bool
+
+proc serializeDiaryEntry(entry: EncounterDiaryentry): EncounterDiaryentrySerializable =
+    result = EncounterDiaryEntrySerializable(
+        session_number: entry.session_id.session_number,
+        author_name: entry.author_id.username,
+        is_main_session: entry.session_id.is_main_session
+    )
+
+type EncounterOverviewSerializable* = object
+    article_type: ArticleType
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+    diaryentry: int64
+    title: Option[string]
+    diaryentry_details: EncounterDiaryentrySerializable
+
+    
+
 proc overviewSerialize*(connection: DbConn, entry: EncounterRead): EncounterOverviewSerializable =
-    result = entry
+    result = EncounterOverviewSerializable(
+        article_type: ArticleType.atEncounter,
+        pk: entry.id,
+        name_full: $entry,
+        name: $entry,
+        campaign_details: entry.diaryentry_id.session_id.campaign_id,
+        update_datetime: entry.update_datetime,
+        diaryentry: entry.diaryentry_id.id,
+        title: entry.title,
+        diaryentry_details: entry.diaryentry_id.serializeDiaryEntry()
+    )

@@ -46,9 +46,14 @@ type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Mo
 implDefaults(EncounterSession)
 proc newModel*(T: typedesc[EncounterSession]): EncounterSession = newEncounterSession()
 
+type DiaryEntryAuthor* {.defaults, tableName: USER_TABLE.} = ref object of Model
+    username*: string = ""
+implDefaults(DiaryEntryAuthor)
+proc newModel*(T: typedesc[DiaryEntryAuthor]): DiaryEntryAuthor = newDiaryEntryAuthor()
 
 type EncounterDiaryentry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
     session_id*: EncounterSession = newEncounterSession()
+    author_id*: DiaryEntryAuthor = newDiaryEntryAuthor()
 implDefaults(EncounterDiaryentry)
 proc newModel*(T: typedesc[EncounterDiaryentry]): EncounterDiaryentry = newEncounterDiaryentry()
 

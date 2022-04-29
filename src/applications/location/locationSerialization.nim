@@ -10,6 +10,7 @@ import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[options, sugar, sequtils]
+import ../../applicationConstants
 
 type LocationCharacter* = object
     pk*: int64
@@ -31,18 +32,35 @@ proc serializeLocationMarker(entry: MarkerRead): LocationMarker =
     result = LocationMarker(map: entry.map_id.name, map_icon: entry.icon)
 
 type ParentLocationSerializable* = object
-    pk*: int64
+    pk*: Option[int64]
     name*: string
     name_full*: string
-    partent_location*: Option[string]
+    parent_location*: Option[string]
 
-proc serializeParentLocation(entry: ParentLocation | Location): ParentLocationSerializable =
+proc serializeParentLocation(entry: ParentLocation | LocationRead): ParentLocationSerializable =
     result = ParentLocationSerializable(
-        pk: entry.id,
+        pk: some(entry.id),
         name: entry.name,
         name_full: entry.name,
-        partent_location: some("")
+        parent_location: some(entry.parent_location_id.get().name)
     )
+
+proc serializeParentLocation(entry: Option[ParentLocation]): ParentLocationSerializable =
+    if entry.isSome():
+        result = entry.get().serializeParentLocation()
+    else:
+        result = ParentLocationSerializable(
+            pk: none(int64),
+            name: NONE_STRING,
+            name_full: NONE_STRING,
+            parent_location: none(string)
+        )
+
+proc serializeParentLocation(entry: Option[LocationRead]): ParentLocationSerializable =
+    if entry.isSome():
+        result = entry.get().serializeParentLocation()
+    else:
+        result = serializeParentLocation(none(ParentLocation))
 
 
 type SubLocationSerializable* = object
@@ -52,7 +70,7 @@ type SubLocationSerializable* = object
     name: string
     description: Option[string]
     parent_location: Option[int64]
-    parent_location_details: Option[ParentLocationSerializable]
+    parent_location_details: ParentLocationSerializable
     parent_location_list: seq[string]
     name_full: string
     characters: seq[LocationCharacter]
@@ -74,7 +92,7 @@ proc serializeSubLocation(connection: DbConn, entry: LocationRead): SubLocationS
         name_full: $entry,
         description: entry.description,
         parent_location: entry.parent_location_id.map(ploc => ploc.id),
-        parent_location_details: entry.parent_location_id.map(serializeParentLocation),
+        parent_location_details: entry.parent_location_id.serializeParentLocation(),
         parent_location_list: parentLocationNames,
         characters: characters,
         marker_details: markers,
@@ -101,7 +119,7 @@ type LocationSerializable* = object
 
 proc serializeLocationRead*(connection: DbConn, entry: LocationRead): LocationSerializable =
     let images: seq[Image] = connection.getManyFromOne(entry, Image)
-    let parentLocations: seq[ParentLocationSerializable] = connection.getParentLocations(entry.id)
+    let parentLocations: seq[ParentLocationSerializable] = connection.getParentLocationReads(entry.id)
         .map(serializeParentLocation)
     let sublocations: seq[SubLocationSerializable] = connection.getManyFromOne(entry, LocationRead)
         .map(sloc => connection.serializeSubLocation(sloc))
@@ -139,7 +157,7 @@ type LocationOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
-    parent_location_details: Option[ParentLocationSerializable]
+    parent_location_details: ParentLocationSerializable
 
 proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOverviewSerializable =
     result = LocationOverviewSerializable(
@@ -149,5 +167,5 @@ proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOvervi
         name: entry.name,
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime,
-        parent_location_details: entry.parent_location_id.map(serializeParentLocation)
+        parent_location_details: entry.parent_location_id.serializeParentLocation()
     )

@@ -16,7 +16,7 @@ proc getMarkerForMap*(connection: DbConn, campaignName: string, mapName: string)
 proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerRead =
   var entry = newModel(MarkerRead)
 
-  if parentLocationName.toLowerAscii() == NONE_STRING_LOWER:
+  if parentLocationName.toLowerAscii() == NONE_STRING:
       var sqlCondition: string = fmt """ 
         map_id_campaign_id.name = ? 
         AND location_id_parent_location_id.name IS NULL 
