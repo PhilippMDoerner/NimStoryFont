@@ -1,6 +1,7 @@
 import diaryEntryModel
 import diaryEntryRepository
 import diaryEntryService
+import diaryEntryUtils
 import ../character/characterEncounterModel
 import ../genericArticleRepository
 import ../campaign/campaignModel
@@ -116,9 +117,24 @@ proc serializeDiaryEntry*(connection: DbConn, entry: DiaryEntry): DiaryEntrySeri
     let entryRead = connection.getEntryById(entry.id, DiaryEntryRead)
     result = connection.serializeDiaryEntryRead(entryRead)
 
+    
+type DiaryEntrySessionSerializable* = object
+    start_day: Option[int]
+    end_day: Option[int]
+    session_number: int
+    pk: int64
+    is_main_session: bool
+    is_main_session_int: 0..1
 
-
-
+proc serializeDiaryEntrySession*(entry: DiaryEntrySession): DiaryEntrySessionSerializable =
+    result = DiaryEntrySessionSerializable(
+        start_day: entry.start_day,
+        end_day: entry.end_day,
+        session_number: entry.session_number,
+        pk: entry.id,
+        is_main_session: entry.is_main_session,
+        is_main_session_int: entry.is_main_session.int
+    )
 
 type DiaryEntryOverviewSerializable* = object
     article_type*: ArticleType
@@ -128,7 +144,7 @@ type DiaryEntryOverviewSerializable* = object
     campaign*: int64
     campaign_details*: MinimumCampaignOverview
     update_datetime*: DjangoDateTime
-    session_details*: DiaryEntrySession
+    session_details*: DiaryEntrySessionSerializable
     author_details*: DiaryEntryAuthorSerializable
 
 proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
@@ -136,12 +152,12 @@ proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOv
     result = DiaryEntryOverviewSerializable(
         article_type: ArticleType.atDiaryEntry,
         pk: entry.id,
-        name_full: fmt"Diary Entry #{entry.session_id.session_number:>3} - {title}",
+        name_full: $entry,
         name: title,
         campaign: entry.session_id.campaign_id.id,
         campaign_details: entry.session_id.campaign_id,
         update_datetime: entry.update_datetime,
-        session_details: entry.session_id,
+        session_details: entry.session_id.serializeDiaryEntrySession(),
         author_details: DiaryEntryAuthorSerializable(
             pk: entry.author_id.id, 
             name: entry.author_id.username
