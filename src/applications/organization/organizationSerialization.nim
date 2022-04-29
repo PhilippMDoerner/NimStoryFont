@@ -6,10 +6,8 @@ import ../image/[imageModel, imageService]
 import ../campaign/campaignModel
 import std/[sugar, options, sequtils]
 import ../../utils/djangoDateTime/djangoDateTimeType
-
-
-
-type OrganizationOverviewSerializable* = OrganizationOverview
+import ../articleModel
+import organizationUtils
 
 type HeadquarterSerializable = object
     name: string
@@ -62,5 +60,23 @@ proc serializeOrganization*(connection: DbConn, entry: Organization): Organizati
     let fullEntry = connection.getEntryById(entry.id, OrganizationRead)
     result = connection.serializeOrganizationRead(fullEntry)
 
+
+
+type OrganizationOverviewSerializable* = object
+    article_type: ArticleType
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+
+
 proc overviewSerialize*(connection: DbConn, entry: OrganizationOverview): OrganizationOverviewSerializable =
-    result = entry
+    result = OrganizationOverviewSerializable(
+        article_type: ArticleType.atOrganization,
+        pk: entry.id,
+        name_full: $entry,
+        name: entry.name,
+        campaign_details: entry.campaign_id,
+        update_datetime: entry.update_datetime
+    )

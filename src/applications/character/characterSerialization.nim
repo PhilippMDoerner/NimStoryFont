@@ -11,6 +11,7 @@ import std/[sugar, sequtils, options, strutils, strformat]
 import ../genericArticleRepository
 import ../../utils/databaseUtils
 import norm/sqlite
+import ../articleModel
 import characterEncounterModel
 
 type CharacterLocationSerializable* = object
@@ -101,6 +102,7 @@ proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSeriali
 
 
 type CharacterOverviewSerializable* = object
+    article_type*: ArticleType
     pk*: int64
     name*: string
     name_full*: string
@@ -115,6 +117,7 @@ proc serializeCharacterOverview*(connection: DbConn, entry: CharacterOverview): 
     let imagePaths = images.map(entry => entry.image)
 
     result = CharacterOverviewSerializable(
+        article_type: ArticleType.atCharacter,
         pk: entry.id,
         name: entry.name,
         name_full: entry.name, #TODO: get rid of name_full, you have to refactor the frontend to instead set the "dead" sign itself instead of relying on the sent name

@@ -2,11 +2,12 @@ import sessionaudioModel
 import norm/sqlite
 import ../genericArticleRepository
 import ../session/[sessionModel, sessionSerialization]
-import std/[options, sugar, sequtils, strformat, os]
+import std/[options, strformat, os]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import sessionaudioRepository
 import ../campaign/campaignModel
 import sessionaudioUtils
+import ../articleModel
 
 type SessionAudioStub* = object
     isMainSessionInt: 0..1
@@ -72,6 +73,7 @@ proc serializeSessionAudioSession(entry: SessionAudioSession): SessionAudioSessi
     )
 
 type SessionAudioOverviewSerializable* = object
+    article_type: ArticleType
     pk: int64
     name_full: string
     name: string
@@ -85,6 +87,7 @@ proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAud
     let (directory, fileName, fileExtension) = entry.audio_file.splitFile()
 
     result = SessionAudioOverviewSerializable(
+        article_type: ArticleType.atSessionAudio,
         pk: entry.id,
         name_full: $entry,
         name: $entry,

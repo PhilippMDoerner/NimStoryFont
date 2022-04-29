@@ -5,6 +5,7 @@ import ../playerclass/[playerClassModel, playerClassSerialization]
 import std/[options, sugar, sequtils]
 import ../campaign/campaignModel
 import ../../utils/djangoDateTime/djangoDateTimeType
+import ../articleModel
 
 type SpellConnectionSerializable* = object
     pk: int64
@@ -21,6 +22,7 @@ proc serializeSpellConnection(entry: SpellConnectionRead): SpellConnectionSerial
     )
 
 type SpellSerializable* = object
+    article_type: ArticleType
     name: string
     pk: int64
     player_class_connections: seq[SpellConnectionSerializable]
@@ -45,6 +47,7 @@ proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializabl
         .map(serializeSpellConnection)
     
     result = SpellSerializable(
+        article_type: ArticleType.atSpell,
         name: entry.name,
         pk: entry.id,
         spell_level: entry.spell_level,

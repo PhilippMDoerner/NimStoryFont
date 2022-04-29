@@ -5,6 +5,7 @@ import ../mapMarker/[markerSerialization, markerModel]
 import ../genericArticleRepository
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[options, sugar, sequtils]
+import ../articleModel
 
 type MapSerializable* = object
     pk: int64
@@ -38,6 +39,7 @@ proc serializeMap*(connection: DbConn, entry: Map): MapSerializable =
 
 
 type MapOverviewSerializable* = object
+    article_type: ArticleType
     pk: int64
     name_full: string
     name: string
@@ -47,6 +49,7 @@ type MapOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializable =
     result = MapOverviewSerializable(
+        article_type: ArticleType.atMap,
         pk: entry.id,
         name_full: entry.name,
         name: entry.name,

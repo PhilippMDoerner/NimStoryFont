@@ -4,8 +4,10 @@ import ../genericArticleRepository
 import ../campaign/campaignModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import std/[options, sugar]
+import ../articleModel
 
 type RuleSerializable* = object
+    article_type: ArticleType
     pk: int64
     creation_datetime: DjangoDateTime
     update_datetime: DjangoDateTime
@@ -17,6 +19,7 @@ type RuleSerializable* = object
 
 proc serializeRuleRead*(connection: DbConn, entry: RuleRead): RuleSerializable =
     result = RuleSerializable(
+        article_type: ArticleType.atRule,
         pk: entry.id,
         creation_datetime: entry.creation_datetime,
         update_datetime: entry.update_datetime,

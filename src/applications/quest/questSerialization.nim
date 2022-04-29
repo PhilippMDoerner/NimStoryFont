@@ -7,7 +7,7 @@ import ../campaign/campaignModel
 import ../character/[characterModel, characterUtils]
 import std/[options, sugar, sequtils]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
-
+import ../articleModel
 
 type QuestCharacter* = object
     name: string
@@ -100,6 +100,7 @@ proc serializeQuest*(connection: DbConn, entry: Quest): QuestSerializable =
 
 
 type QuestOverviewSerializable* = object
+    article_type: ArticleType
     pk: int64
     name_full: string
     name: string
@@ -111,6 +112,7 @@ type QuestOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: QuestRead): QuestOverviewSerializable =
     result = QuestOverviewSerializable(
+        article_type: ArticleType.atQuest,
         pk: entry.id,
         name_full: $entry,
         name: entry.name,
