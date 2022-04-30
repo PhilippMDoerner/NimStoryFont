@@ -45,11 +45,15 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, mode
     the comparison is case-sensitive.]##
     mixin newModel
 
-    var entries: seq[M] = @[]
-    entries.add(newModel(M))
+    var entries: seq[M] = @[newModel(M)]
     
+    var condition = "campaign_id.name LIKE ?"
+    when M.hasField("name"):
+        const tableName = M.table()
+        condition.add(fmt" ORDER BY {tableName}.name")
+
     let queryParams: array[1, DbValue] = [campaignName.dbValue()]
-    connection.select(entries, "campaign_id.name LIKE ?", queryParams)
+    connection.select(entries, condition, queryParams)
 
     result = entries
 
