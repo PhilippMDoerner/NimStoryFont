@@ -49,7 +49,7 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, mode
     entries.add(newModel(M))
     
     let queryParams: array[1, DbValue] = [campaignName.dbValue()]
-    connection.select(entries, "campaign_id.name = ?", queryParams)
+    connection.select(entries, "campaign_id.name LIKE ?", queryParams)
 
     result = entries
 
@@ -73,7 +73,7 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
     var entry: M = newModel(M)
     
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt "{modelTableName}.name = ? AND campaign_id.name = ?"
+    var sqlCondition: string = fmt "{modelTableName}.name LIKE ? AND campaign_id.name LIKE ?"
     
     let queryParams: array[2, DbValue] = [entryName.dbValue(), campaignName.dbValue()]
     connection.select(entry, sqlCondition, queryParams)
