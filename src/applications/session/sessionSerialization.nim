@@ -34,7 +34,7 @@ type SessionSerializable* = object
     update_datetime: DjangoDateTime
     campaign: int64
     campaign_details: MinimumCampaignOverview
-    id: int64
+    pk: int64
     name: string
     diaryentries: seq[SessionDiaryEntrySerializable]
     has_recording: bool
@@ -44,7 +44,7 @@ proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSeria
         .map(serializeSessionDiaryentry)
     
     result = SessionSerializable(
-        id: entry.id,
+        pk: entry.id,
         session_number: entry.session_number,
         session_date: entry.session_date,
         is_main_session: entry.is_main_session,
