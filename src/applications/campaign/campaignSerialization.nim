@@ -104,8 +104,8 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         campaignDuration.start_date = none(DjangoDateTime)
         campaignDuration.last_date = none(DjangoDateTime)
 
-    let backgroundImage = fmt"localhost:8080/{entry.background_image}"
-    let campaignIcon = entry.icon.map(icon => fmt"localhost:8080/{icon}")
+    let backgroundImage = fmt"/media/{entry.background_image}"
+    let campaignIcon = entry.icon.map(icon => fmt"/media/{icon}")
     result = CampaignOverviewSerializable(
         pk: entry.id,
         name: entry.name,
