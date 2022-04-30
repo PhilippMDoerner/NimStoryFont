@@ -86,7 +86,7 @@ proc checkDeletePermission*(ctx: JWTContext, campaignId: int64) =
 proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
   let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)
   if campaignName.isNone():
-    raise newException(RouteError, fmt"Tried to check read list permission on route {ctx.request.url} for a campaign, but the path contained no parameter '{CAMPAIGN_NAME_PARAM}'!")
+    raise newException(RouteError, fmt"Tried to check read list permission on route for a campaign, but the path contained no parameter '{CAMPAIGN_NAME_PARAM}'!")
   
   let campaign = getEntryByField("name", campaignName.get(), Campaign)
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
