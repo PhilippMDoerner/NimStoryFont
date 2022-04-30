@@ -32,7 +32,7 @@ proc addMarkerRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/marker/{ID_PATTERN}/", 
+        re fmt"/marker/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, MarkerRead, MarkerSerializable](serializeMarkerRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

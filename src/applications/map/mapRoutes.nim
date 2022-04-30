@@ -31,7 +31,7 @@ proc addMapRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/map/{ID_PATTERN}/", 
+        re fmt"/map/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, MapRead, MapSerializable](serializeMapRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

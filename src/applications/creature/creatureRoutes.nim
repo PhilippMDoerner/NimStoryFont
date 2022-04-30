@@ -29,7 +29,7 @@ proc addCreatureRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/creature/{ID_PATTERN}/", 
+        re fmt"/creature/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, CreatureRead, CreatureSerializable](serializeCreatureRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

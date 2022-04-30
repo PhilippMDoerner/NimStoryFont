@@ -30,7 +30,7 @@ proc addLocationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/location/{ID_PATTERN}/", 
+        re fmt"/location/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, LocationRead, LocationSerializable](serializeLocationRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

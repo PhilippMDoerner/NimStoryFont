@@ -40,7 +40,7 @@ proc addSessionAudioRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/sessionaudio/{ID_PATTERN}/", 
+        re fmt"/sessionaudio/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, SessionAudioRead, SessionAudioSerializable](serializeSessionAudioRead),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

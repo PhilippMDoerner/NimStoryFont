@@ -36,7 +36,7 @@ proc addUserRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/user/{ID_PATTERN}/", 
+        re fmt"/user/pk/{ID_PATTERN}/", 
         handler = createReadHandler[ReadByIdParams, User, UserSerializable](
             readUserById, 
             checkUserDeletePermission, 

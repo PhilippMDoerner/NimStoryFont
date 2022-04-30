@@ -30,7 +30,7 @@ proc addSpellRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/spell/{ID_PATTERN}/", 
+        re fmt"/spell/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, SpellRead, SpellSerializable](serializeSpellRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
