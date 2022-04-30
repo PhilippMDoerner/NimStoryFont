@@ -65,3 +65,4 @@ proc serializeQuote*(connection: DbConn, entry: Quote): QuoteSerializable =
     let fullEntry = connection.getEntryById(entry.id, QuoteRead)
     result = connection.serializeQuoteRead(fullEntry)
 
+
