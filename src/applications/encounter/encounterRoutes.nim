@@ -31,7 +31,7 @@ proc addEncounterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/encounter/{ID_PATTERN}/",
+        re fmt"/encounter/pk/{ID_PATTERN}/",
         handler = createReadByIdHandler[ReadByIdParams, EncounterRead, EncounterSerializable](serializeEncounterRead),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

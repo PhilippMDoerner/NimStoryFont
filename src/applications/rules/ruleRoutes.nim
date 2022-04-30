@@ -30,7 +30,7 @@ proc addRuleRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/rule/{ID_PATTERN}/", 
+        re fmt"/rule/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, RuleRead, RuleSerializable](serializeRuleRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

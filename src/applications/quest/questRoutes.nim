@@ -30,7 +30,7 @@ proc addQuestRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/quest/{ID_PATTERN}/", 
+        re fmt"/quest/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, QuestRead, QuestSerializable](serializeQuestRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

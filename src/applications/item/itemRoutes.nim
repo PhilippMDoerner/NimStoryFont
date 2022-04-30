@@ -29,7 +29,7 @@ proc addItemRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/item/{ID_PATTERN}/", 
+        re fmt"/item/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, ItemRead, ItemSerializable](serializeItemRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

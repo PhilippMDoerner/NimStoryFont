@@ -30,7 +30,7 @@ proc addOrganizationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/organization/{ID_PATTERN}/", 
+        re fmt"/organization/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, OrganizationRead, OrganizationSerializable](serializeOrganizationRead), 
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
