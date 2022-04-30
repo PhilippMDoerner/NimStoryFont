@@ -29,7 +29,8 @@ type LocationMarker* = object
     map_icon: Option[string]
 
 proc serializeLocationMarker(entry: MarkerRead): LocationMarker =
-    result = LocationMarker(map: entry.map_id.name, map_icon: entry.icon)
+    echo entry.toJson()
+    result = LocationMarker(map: entry.map_id.name, map_icon: entry.map_id.icon)
 
 type ParentLocationSerializable* = object
     pk*: Option[int64]
@@ -108,7 +109,7 @@ type LocationSerializable* = object
     name_full*: string
     description*: Option[string]
     parent_location*: Option[int64]
-    parent_location_details*: Option[ParentLocationSerializable]
+    parent_location_details*: ParentLocationSerializable
     parent_location_list*: seq[string]
     images*: seq[Image]
     sublocations*: seq[SubLocationSerializable]
@@ -135,7 +136,7 @@ proc serializeLocationRead*(connection: DbConn, entry: LocationRead): LocationSe
         name_full: $entry,
         description: entry.description,
         parent_location: entry.parent_location_id.map(ploc => ploc.id),
-        parent_location_details: entry.parent_location_id.map(serializeParentLocation),
+        parent_location_details: entry.parent_location_id.serializeParentLocation(),
         parent_location_list: parentLocations.map(ploc => ploc.name),
         images: images,
         sublocations: sublocations,

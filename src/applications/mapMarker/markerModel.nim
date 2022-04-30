@@ -26,6 +26,7 @@ proc newModel*(T: typedesc[Marker]): Marker = newMarker()
 
 type MarkerMap* {.defaults, tableName: MAP_TABLE.} = ref object of Model
   campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  icon*: Option[string] = some("")
   name*: string = ""
 
 implDefaults(MarkerMap)
