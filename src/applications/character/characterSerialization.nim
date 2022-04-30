@@ -1,7 +1,7 @@
 import characterModel
 import ../item/itemModel
 import ../encounter/[encounterModel, encounterSerialization]
-import ../image/imageModel
+import ../image/[imageSerialization, imageModel]
 import ../playerclass/playerClassModel
 import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
@@ -59,7 +59,7 @@ type CharacterSerializable* = object
     organization_details*: Option[OrganizationOverview]
     items*: seq[ItemOverview]
     encounters*: seq[EncounterSerializable]
-    images*: seq[string]
+    images*: seq[ImageSerializable]
 
 proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocation]): Option[CharacterLocationSerializable] =
     if entry.isNone():
@@ -80,8 +80,7 @@ proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocati
 
 
 proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): CharacterSerializable =
-    let characterImages = connection.getManyFromOne(entry, Image)
-    let imagePaths = characterImages.map(imageEntry => imageEntry.image)
+    let characterImages = connection.getManyFromOne(entry, Image).map(serializeImage)
     let characterLocation: Option[CharacterLocationSerializable] = connection.getCurrentLocationDetails(entry.current_location_id)
     let characterLocationId: Option[int64] = if characterLocation.isSome(): some(characterLocation.get().pk) else: none(int64) 
     let items = connection.getManyFromOne(entry, ItemOverview)
@@ -108,7 +107,7 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
         campaign_details: entry.campaign_id,
         organization_details: entry.organization_id,
         items: items,
-        images: imagePaths,
+        images: characterImages,
         organization: organizationId,
         player_class_connections: characterClasses.map(serializePlayerClassConnection),
         encounters: serializedEncounters
@@ -134,7 +133,7 @@ type CharacterOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
-    let imagePaths = images.map(entry => entry.image)
+    let imagePaths = images.map(serializeImagePath)
 
     result = CharacterOverviewSerializable(
         article_type: ArticleType.atCharacter,
