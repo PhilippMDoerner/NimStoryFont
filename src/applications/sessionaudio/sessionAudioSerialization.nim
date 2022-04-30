@@ -2,11 +2,12 @@ import sessionaudioModel
 import norm/sqlite
 import ../genericArticleRepository
 import ../session/[sessionModel, sessionSerialization]
-import std/[options, strformat, os]
+import std/[options, strformat, os, sequtils, strutils, sugar]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import sessionaudioRepository
 import ../campaign/campaignModel
 import sessionaudioUtils
+import ../sessionAudioTimestamp/timestampModel
 import ../articleModel
 
 type SessionAudioStub* = object
@@ -74,6 +75,7 @@ proc serializeSessionAudioSession(entry: SessionAudioSession): SessionAudioSessi
 
 type SessionAudioOverviewSerializable* = object
     article_type: ArticleType
+    description*: string
     pk: int64
     name_full: string
     name: string
@@ -85,9 +87,11 @@ type SessionAudioOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAudioOverviewSerializable =
     let (directory, fileName, fileExtension) = entry.audio_file.splitFile()
+    let timestampNames = connection.getManyFromOne(entry, Timestamp).map(timestamp => timestamp.name)
 
     result = SessionAudioOverviewSerializable(
         article_type: ArticleType.atSessionAudio,
+        description: timestampNames.join(" "),
         pk: entry.id,
         name_full: $entry,
         name: $entry,

@@ -91,6 +91,7 @@ type CharacterOverview* {.defaults, tableName: CHARACTER_TABLE.} = ref object of
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
     make a list of characters with necessary meta data ]##
     player_character*: bool = false
+    description*: Option[string] = some("")
     alive*: bool = true
     name*: string = ""
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()

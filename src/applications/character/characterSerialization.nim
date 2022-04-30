@@ -9,7 +9,7 @@ import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[sugar, sequtils, options, strutils, strformat]
 import ../genericArticleRepository
-import ../../utils/databaseUtils
+import ../../utils/[myStrutils, databaseUtils]
 import norm/sqlite
 import ../articleModel
 import characterEncounterModel
@@ -103,6 +103,7 @@ proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSeriali
 
 type CharacterOverviewSerializable* = object
     article_type*: ArticleType
+    description: Option[string]
     pk*: int64
     name*: string
     name_full*: string
@@ -118,6 +119,7 @@ proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): Character
 
     result = CharacterOverviewSerializable(
         article_type: ArticleType.atCharacter,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name: entry.name,
         name_full: entry.name, #TODO: get rid of name_full, you have to refactor the frontend to instead set the "dead" sign itself instead of relying on the sent name

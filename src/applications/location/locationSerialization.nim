@@ -8,7 +8,7 @@ import ../mapMarker/[markerModel, markerSerialization]
 import ../character/[characterModel, characterSerialization, characterUtils]
 import ../campaign/campaignModel
 import ../genericArticleRepository
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import std/[options, sugar, sequtils]
 import ../../applicationConstants
 
@@ -42,7 +42,7 @@ proc serializeParentLocation(entry: ParentLocation | LocationRead): ParentLocati
         pk: some(entry.id),
         name: entry.name,
         name_full: entry.name,
-        parent_location: some(entry.parent_location_id.get().name)
+        parent_location: entry.parent_location_id.map(ploc => ploc.name)
     )
 
 proc serializeParentLocation(entry: Option[ParentLocation]): ParentLocationSerializable =
@@ -152,6 +152,7 @@ proc serializeLocation*(connection: DbConn, entry: Location): LocationSerializab
 
 type LocationOverviewSerializable* = object
     article_type: ArticleType
+    description: Option[string]
     pk: int64
     name_full: string
     name: string
@@ -162,6 +163,7 @@ type LocationOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOverviewSerializable =
     result = LocationOverviewSerializable(
         article_type: ArticleType.atLocation,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name_full: entry.name,
         name: entry.name,
