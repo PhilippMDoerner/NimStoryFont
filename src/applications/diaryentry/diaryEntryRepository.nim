@@ -5,7 +5,10 @@ import ../../utils/djangoDateTime/[normConversion]
 
 proc getDiaryEntriesForCampaign*(connection: DbConn, campaignName: string): seq[DiaryEntryRead] =
   var entries: seq[DiaryEntryRead] = @[newModel(DiaryEntryRead)]
-  const condition: string = " session_id_campaign_id.name LIKE ? ORDER BY session_id.id, author_id.id"
+  const condition: string = """ 
+    session_id_campaign_id.name LIKE ? 
+    ORDER BY session_id.session_number DESC, author_id.id ASC
+  """
 
   connection.select(entries, condition, campaignName)
 
