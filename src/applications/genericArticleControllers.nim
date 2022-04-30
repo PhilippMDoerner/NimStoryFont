@@ -1,5 +1,5 @@
 import prologue
-import std/[strutils, sequtils, sugar]
+import std/[strutils, sequtils, sugar, uri]
 import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import tinypool
 import controllerTemplates
@@ -30,7 +30,7 @@ proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue:
   elif fieldValue is int or fieldValue is int64:
     fieldValue = parseInt(ctx.getPathParams(fieldName))
   elif fieldValue is string:
-    fieldValue = ctx.getPathParams(fieldName)
+    fieldValue = ctx.getPathParams(fieldName).decodeUrl()
   elif fieldValue is bool:
     fieldValue = parseBool(ctx.getPathParams(fieldName))
   else:
