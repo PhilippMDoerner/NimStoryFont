@@ -44,6 +44,13 @@ proc addSpellRoutes*(app: Prologue) =
     )
     
     app.addRoute(
+        re fmt"/spell/{CAMPAIGN_NAME_PATTERN}/", 
+        handler = createReadCampaignListHandler[ReadListParams, SpellRead, SpellSerializable](serializeSpellRead),
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
         re fmt"/spell/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
         handler = createReadByNameHandler[ReadByNameParams, SpellRead, SpellSerializable](serializeSpellRead),  
         httpMethod = HttpGet,
