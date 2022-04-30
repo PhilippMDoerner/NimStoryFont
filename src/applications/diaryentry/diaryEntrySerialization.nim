@@ -8,7 +8,7 @@ import ../campaign/campaignModel
 import ../session/sessionModel
 import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import std/[sugar, options, strutils, strformat, sequtils, tables]
 import norm/[model, sqlite]
 import ../articleModel
@@ -138,6 +138,7 @@ proc serializeDiaryEntrySession*(entry: DiaryEntrySession): DiaryEntrySessionSer
 
 type DiaryEntryOverviewSerializable* = object
     article_type*: ArticleType
+    description*: Option[string]
     pk*: int64
     name_full*: string
     name*: string
@@ -149,8 +150,12 @@ type DiaryEntryOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
     let title = entry.title.get("")
+    let encounters = connection.getManyFromOne(entry, EncounterRead)
+    let firstEncounter: Option[EncounterRead] = if encounters.len() > 0: some(encounters[0]) else: none(EncounterRead)
+
     result = DiaryEntryOverviewSerializable(
         article_type: ArticleType.atDiaryEntry,
+        description: firstEncounter.flatMap(enc => enc.description).map(truncate),
         pk: entry.id,
         name_full: $entry,
         name: title,

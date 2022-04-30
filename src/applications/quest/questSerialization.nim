@@ -6,7 +6,7 @@ import ../session/sessionModel
 import ../campaign/campaignModel
 import ../character/[characterModel, characterUtils]
 import std/[options, sugar, sequtils]
-import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
 
 type QuestCharacter* = object
@@ -101,6 +101,7 @@ proc serializeQuest*(connection: DbConn, entry: Quest): QuestSerializable =
 
 type QuestOverviewSerializable* = object
     article_type: ArticleType
+    description: Option[string]
     pk: int64
     name_full: string
     name: string
@@ -113,9 +114,11 @@ type QuestOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: QuestRead): QuestOverviewSerializable =
     result = QuestOverviewSerializable(
         article_type: ArticleType.atQuest,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name_full: $entry,
         name: entry.name,
+        update_datetime: entry.update_datetime,
         campaign_details: entry.campaign_id,
         taker_details: entry.taker_id.map(serializeQuestCharacter).get(groupCharacter),
         abstract: entry.abstract,

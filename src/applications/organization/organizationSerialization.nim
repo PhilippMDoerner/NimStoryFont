@@ -5,7 +5,7 @@ import organizationService
 import ../image/[imageModel, imageService]
 import ../campaign/campaignModel
 import std/[sugar, options, sequtils]
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
 import organizationUtils
 
@@ -64,6 +64,7 @@ proc serializeOrganization*(connection: DbConn, entry: Organization): Organizati
 
 type OrganizationOverviewSerializable* = object
     article_type: ArticleType
+    description*: Option[string]
     pk: int64
     name_full: string
     name: string
@@ -74,6 +75,7 @@ type OrganizationOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: OrganizationOverview): OrganizationOverviewSerializable =
     result = OrganizationOverviewSerializable(
         article_type: ArticleType.atOrganization,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name_full: $entry,
         name: entry.name,

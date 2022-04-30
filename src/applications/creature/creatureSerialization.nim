@@ -3,7 +3,7 @@ import norm/sqlite
 import ../genericArticleRepository
 import ../image/imageModel
 import std/[options, sequtils, strformat, sugar]
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../campaign/campaignModel
 import ../articleModel
 
@@ -38,6 +38,7 @@ proc serializeCreature*(connection: DbConn, entry: Creature): CreatureSerializab
 
 type CreatureOverviewSerializable* = object
     article_type: ArticleType
+    description: Option[string]
     pk*: int64
     name*: string
     name_full*: string
@@ -48,6 +49,7 @@ type CreatureOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOverviewSerializable =
     result = CreatureOverviewSerializable(
         article_type: ArticleType.atCreature,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name: entry.name,
         name_full: entry.name,

@@ -5,7 +5,7 @@ import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import std/[options, sugar]
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 
 
 type OwnerDetails* = object
@@ -48,6 +48,7 @@ proc serializeItem*(connection: DbConn, entry: Item): ItemSerializable =
 
 type ItemOverviewSerializable* = object
     article_type: ArticleType
+    description*: Option[string]
     pk*: int64
     name_full*: string
     name*: string
@@ -58,6 +59,7 @@ type ItemOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerializable =
     result = ItemOverviewSerializable(
         article_type: ArticleType.atItem,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name_full: $entry,
         name: entry.name,

@@ -24,6 +24,7 @@ proc newTableModel*(T: typedesc[Organization]): Organization = newOrganization()
 
 type OrganizationOverview* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
+    description*: Option[string]
     campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
 

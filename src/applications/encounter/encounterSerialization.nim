@@ -6,7 +6,7 @@ import std/[options, sequtils, sugar, strformat, strutils]
 import ../campaign/campaignModel
 import ../character/[characterUtils, characterEncounterModel]
 import ../location/[locationModel, locationRepository]
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
 
 type EncounterLocationSerializable* = object
@@ -116,6 +116,7 @@ proc serializeDiaryEntry(entry: EncounterDiaryentry): EncounterDiaryentrySeriali
 
 type EncounterOverviewSerializable* = object
     article_type: ArticleType
+    description*: Option[string]
     pk: int64
     name_full: string
     name: string
@@ -130,6 +131,7 @@ type EncounterOverviewSerializable* = object
 proc overviewSerialize*(connection: DbConn, entry: EncounterRead): EncounterOverviewSerializable =
     result = EncounterOverviewSerializable(
         article_type: ArticleType.atEncounter,
+        description: entry.description.map(truncate),
         pk: entry.id,
         name_full: $entry,
         name: $entry,
