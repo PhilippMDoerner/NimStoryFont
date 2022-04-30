@@ -7,8 +7,8 @@ import constructor/defaults
 import playerClassModel
 
 type PlayerClassSerializable* = object
-  name: string
-  pk: int64
+  name*: string
+  pk*: int64
 
 proc serializePlayerClass*(connection: DbConn, entry: PlayerClass): PlayerClassSerializable =
   result = PlayerClassSerializable(

@@ -12,6 +12,7 @@ import ../genericArticleRepository
 import ../../utils/[myStrutils, databaseUtils]
 import norm/sqlite
 import ../articleModel
+import ../playerclass/[playerClassSerialization, playerClassModel]
 import characterEncounterModel
 
 type CharacterLocationSerializable* = object
@@ -20,10 +21,28 @@ type CharacterLocationSerializable* = object
     name_full*: Option[string]
     parent_location*: Option[string]
 
+
+type CharacterPlayerClassConnectionSerializable* = object
+    pk*: int64
+    player_class*: int64
+    character*: int64
+    player_class_details*: PlayerClassSerializable
+
+proc serializePlayerClassConnection(entry: PlayerClassConnectionRead): CharacterPlayerClassConnectionSerializable =
+    result = CharacterPlayerClassConnectionSerializable(
+        pk: entry.id,
+        player_class: entry.player_class_id.id,
+        character: entry.character_id,
+        player_class_details: PlayerClassSerializable(
+            pk: entry.player_class_id.id,
+            name: entry.player_class_id.name
+        )
+    )
+
 type CharacterSerializable* = object
     pk*: int64
     player_character*: bool
-    player_class_connections*: seq[PlayerClass]
+    player_class_connections*: seq[CharacterPlayerClassConnectionSerializable]
     alive*: bool 
     name*: string
     gender*: string
@@ -66,7 +85,7 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
     let characterLocation: Option[CharacterLocationSerializable] = connection.getCurrentLocationDetails(entry.current_location_id)
     let characterLocationId: Option[int64] = if characterLocation.isSome(): some(characterLocation.get().pk) else: none(int64) 
     let items = connection.getManyFromOne(entry, ItemOverview)
-    let characterClasses: seq[PlayerClass] = connection.getManyToMany(entry, PlayerClassConnectionRead, PlayerClass)
+    let characterClasses: seq[PlayerClassConnectionRead] = connection.getManyFromOne(entry, PlayerClassConnectionRead)
     let organizationId: Option[int64] = if entry.organization_id.isSome(): some(entry.organization_id.get().id) else: none(int64) 
     
     let encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
@@ -91,7 +110,7 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
         items: items,
         images: imagePaths,
         organization: organizationId,
-        player_class_connections: characterClasses,
+        player_class_connections: characterClasses.map(serializePlayerClassConnection),
         encounters: serializedEncounters
     )
 
