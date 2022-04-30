@@ -152,10 +152,11 @@ proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOv
     let title = entry.title.get("")
     let encounters = connection.getManyFromOne(entry, EncounterRead)
     let firstEncounter: Option[EncounterRead] = if encounters.len() > 0: some(encounters[0]) else: none(EncounterRead)
+    let firstEncounterText = if firstEncounter.isSome(): firstEncounter.get().description.map(truncate) else: none(string)
 
     result = DiaryEntryOverviewSerializable(
         article_type: ArticleType.atDiaryEntry,
-        description: firstEncounter.flatMap(enc => enc.description).map(truncate),
+        description: firstEncounterText,
         pk: entry.id,
         name_full: $entry,
         name: title,
