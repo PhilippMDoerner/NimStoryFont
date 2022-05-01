@@ -8,9 +8,9 @@ type DjangoDateTime* = distinct DateTime
 
 #Borrowed functionality from actual DateTime that is needed
 proc toTime*(x: DjangoDateTime): Time  {.borrow.}
-proc format*(x: DjangoDateTime, loc: DateTimeLocale = DefaultLocale): string =
+proc format*(x: DjangoDateTime, loc: DateTimeLocale = DefaultLocale, dateFormat = PRIMARY_DB_TIME_FORMAT): string =
     let trueDt = x.DateTime 
-    result = trueDt.format(PRIMARY_DB_TIME_FORMAT, loc)
+    result = trueDt.format(dateFormat, loc)
 proc now*(): DjangoDateTime = DjangoDateTime(times.now())
 proc parse*(
     input: string, 

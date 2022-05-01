@@ -1,6 +1,7 @@
 import jsony
 import djangoDateTimeType
 import std/json
+import ../../applicationSettings
 
 proc dumpHook*(s: var string, value: DjangoDateTime) =
     ##[ jsony-Hook that is automatically called to convert DjangoDateTime to string 
@@ -8,7 +9,7 @@ proc dumpHook*(s: var string, value: DjangoDateTime) =
     ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
     ``value``: The value you want to convert to a string]##
     s.add '"'
-    s.add value.format()
+    s.add value.format(dateFormat = OUTPUT_TIME_FORMAT)
     s.add '"'
 
 proc parseHook*(s: string, i: var int, v: var DjangoDateTime) =
@@ -21,6 +22,6 @@ proc parseHook*(s: string, i: var int, v: var DjangoDateTime) =
     s.parseHook(i, str)
     v = parseDefault(str)
 
-proc toJsonHook*(djangoDateTime: DjangoDateTime): JsonNode = %djangoDateTime.format()
+proc toJsonHook*(djangoDateTime: DjangoDateTime): JsonNode = %djangoDateTime.format(dateFormat = OUTPUT_TIME_FORMAT)
 proc fromJsonHook*(self: var DjangoDateTime, jsonNode: JsonNode) =
     self = parseDefault(jsonNode.getStr())
