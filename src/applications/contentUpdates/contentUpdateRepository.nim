@@ -19,7 +19,7 @@ proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageNumber: int
     OFFSET ?
   """
   
-  let pageStartIndex = pageSize * (pageNumber-1)
+  let pageStartIndex = pageSize * pageNumber
   var rows: seq[Row]
   withDbConn(connection):
     rows = connection.getAllRows(
