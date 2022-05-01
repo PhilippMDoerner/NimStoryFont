@@ -105,13 +105,13 @@ proc serializeEncounter*(connection: DbConn, entry: Encounter): EncounterSeriali
 type EncounterDiaryentrySerializable* = object
     session_number: int
     author_name: string
-    is_main_session: bool
+    is_main_session: 0..1
 
 proc serializeDiaryEntry(entry: EncounterDiaryentry): EncounterDiaryentrySerializable =
     result = EncounterDiaryEntrySerializable(
         session_number: entry.session_id.session_number,
         author_name: entry.author_id.username,
-        is_main_session: entry.session_id.is_main_session
+        is_main_session: entry.session_id.is_main_session.int
     )
 
 type EncounterOverviewSerializable* = object

@@ -21,7 +21,7 @@ proc getSessionAudio*(connection: DbConn, campaignName: string, sessionNumber: i
 proc getSessionAudioForCampaign*(connection: DbConn, campaignName: string): seq[SessionAudioRead] =
   var entries = @[newModel(SessionAudioRead)]
 
-  const condition = "session_id_campaign_id.name LIKE ?"
+  const condition = "session_id_campaign_id.name LIKE ? ORDER BY session_id.session_number DESC"
 
   connection.select(entries, condition, campaignName.dbValue())
 
