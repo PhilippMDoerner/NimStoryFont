@@ -14,9 +14,9 @@ proc newModel*(T: typedesc[ItemOwner]): ItemOwner = newItemOwner()
 
 
 type Item* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
-    description*: Option[string] = none(string)
+    description*: Option[string] = some("")
     name*: string = ""
-    owner_id* {.fk: ItemOwner.}: Option[int64] = none(int64)
+    owner_id* {.fk: ItemOwner.}: Option[int64] = some(MODEL_INIT_ID)
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
@@ -29,16 +29,16 @@ proc newTableModel*(T: typedesc[Item]): Item = newItem()
 type ItemOverview* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
     name*: string = ""
     campaign_id*: int64 = MODEL_INIT_ID
-    owner_id* {.fk: ItemOwner.}: Option[int64] = none(int64)
+    owner_id* {.fk: ItemOwner.}: Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(ItemOverview)
 proc newModel*(T: typedesc[ItemOverview]): ItemOverview = newItemOverview()
 
 
 type ItemRead* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
-    description*: Option[string] = none(string)
+    description*: Option[string] = some("")
     name*: string = ""
-    owner_id*: Option[ItemOwner] = none(ItemOwner)
+    owner_id*: Option[ItemOwner] = some(newModel(ItemOwner))
     campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
