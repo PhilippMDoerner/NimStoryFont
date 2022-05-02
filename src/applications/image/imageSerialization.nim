@@ -1,4 +1,5 @@
-import ../image/imageModel
+import imageModel
+import imageUtils
 import std/[options, strformat]
 
 type ImageSerializable* = object
@@ -14,7 +15,7 @@ type ImageSerializable* = object
 proc serializeImage*(entry: Image): ImageSerializable =
   result = ImageSerializable(
     pk: entry.id,
-    image: fmt"/media/{entry.image}",
+    image: entry.image.getImagePath(),
     name: entry.name,
     character_article: entry.character_article_id,
     creature_article: entry.creature_article_id,
@@ -22,6 +23,3 @@ proc serializeImage*(entry: Image): ImageSerializable =
     location_article: entry.location_article_id,
     organization_article: entry.organization_article_id
   )
-
-proc serializeImagePath*(entry: Image): string =
-  result.add(fmt"/media/{entry.image}")
