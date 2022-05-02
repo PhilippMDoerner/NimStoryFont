@@ -1,4 +1,4 @@
-import ../session/[sessionUtils, sessionModel]
+import ../session/[sessionModel]
 import sessionaudioModel
 import ../genericArticleRepository
 import std/[strformat]
