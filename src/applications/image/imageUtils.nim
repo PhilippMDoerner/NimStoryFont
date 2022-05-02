@@ -1,6 +1,7 @@
 import imageModel
 import ../genericArticleRepository
 import std/[strformat, options]
+import ../../applicationSettings
 
 proc convertToWebP*(imageFilepath: string): string =
   #TODO: Actually implement this proc
@@ -22,3 +23,9 @@ proc campaign_id*(entry: Image): int64 =
     result = getEntryById(entry.organization_article_id.get(), ImageOrganization).campaign_id
   else:
     raise newException(InvalidImageError, fmt"An impossible image occurred that wasn't associated with any article type. Image Id was {entry.id}")
+
+proc getImagePath*(dbPath: string): string =
+  result.add(fmt"/media/{dbPath}")
+
+proc getImagePath*(entry: Image): string =
+  result.add(entry.image.getImagePath())
