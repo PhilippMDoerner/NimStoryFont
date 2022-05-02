@@ -75,6 +75,14 @@ implDefaults(CampaignOverview)
 proc newModel*(T: typedesc[CampaignOverview]): CampaignOverview = newCampaignOverview()
 
 
+type EmptySearchResponse* {.defaults, tableName: EMPTY_SEARCH_RESPONSE_TABLE.} = ref object of Model
+    text*: string = ""
+    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+
+implDefaults(EmptySearchResponse)
+proc newModel*(T: typedesc[EmptySearchResponse]): EmptySearchResponse = newEmptySearchResponse()
+
+
 type CampaignStatistics* = object
     character_count*: int
     item_count*: int
