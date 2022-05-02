@@ -29,3 +29,7 @@ proc getImagePath*(dbPath: string): string =
 
 proc getImagePath*(entry: Image): string =
   result.add(entry.image.getImagePath())
+
+proc adjustImagePaths*(entries: var seq[Image]) =
+  for i in 0..entries.high():
+    entries[i].image = entries[i].image.getImagePath()

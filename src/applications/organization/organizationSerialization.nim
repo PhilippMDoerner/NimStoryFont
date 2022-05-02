@@ -2,7 +2,7 @@ import organizationModel
 import norm/sqlite
 import ../genericArticleRepository
 import organizationService
-import ../image/[imageModel, imageService]
+import ../image/[imageModel, imageService, imageSerialization]
 import ../campaign/campaignModel
 import std/[sugar, options, sequtils]
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
@@ -33,12 +33,14 @@ type OrganizationSerializable* = object
     headquarter_details: Option[HeadquarterSerializable]
     description: Option[string]
     members: seq[OrganizationCharacter]
-    images: seq[Image]
+    images: seq[ImageSerializable]
     campaign: int64
     campaign_details: MinimumCampaignOverview
 
 proc serializeOrganizationRead*(connection: DbConn, entry: OrganizationRead): OrganizationSerializable =
     let images = connection.getManyFromOne(entry, Image)
+        .map(serializeImage)
+    
     let members = connection.getManyFromOne(entry, OrganizationCharacter)
 
     result = OrganizationSerializable(

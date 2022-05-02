@@ -1,5 +1,6 @@
 import norm/model
 import mapModel
+import ../image/imageUtils
 import ../campaign/campaignModel
 import ../mapMarker/[markerSerialization, markerModel]
 import ../genericArticleRepository
@@ -24,8 +25,8 @@ proc serializeMapRead*(connection: DbConn, entry: MapRead): MapSerializable =
     result = MapSerializable(
         pk: entry.id,
         name: entry.name,
-        image: entry.image,
-        icon: entry.icon,
+        image: entry.image.getImagePath(),
+        icon: entry.icon.map(getImagePath),
         update_datetime: entry.update_datetime,
         campaign: entry.campaign_id.id,
         campaign_details: entry.campaign_id,
@@ -56,6 +57,6 @@ proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializ
         name_full: entry.name,
         name: entry.name,
         campaign_details: entry.campaign_id,
-        icon: entry.icon,
+        icon: entry.icon.map(getImagePath),
         update_datetime: entry.update_datetime
     )

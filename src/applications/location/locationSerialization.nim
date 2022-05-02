@@ -3,7 +3,7 @@ import locationModel
 import locationUtils
 import locationRepository
 import ../articleModel
-import ../image/imageModel
+import ../image/[imageUtils, imageModel, imageSerialization]
 import ../mapMarker/[markerModel, markerSerialization]
 import ../character/[characterModel, characterSerialization, characterUtils]
 import ../campaign/campaignModel
@@ -111,7 +111,7 @@ type LocationSerializable* = object
     parent_location*: Option[int64]
     parent_location_details*: ParentLocationSerializable
     parent_location_list*: seq[string]
-    images*: seq[Image]
+    images*: seq[ImageSerializable]
     sublocations*: seq[SubLocationSerializable]
     characters*: seq[LocationCharacter]
     marker_details*: seq[LocationMarker]
@@ -119,7 +119,9 @@ type LocationSerializable* = object
     campaign_details*: MinimumCampaignOverview
 
 proc serializeLocationRead*(connection: DbConn, entry: LocationRead): LocationSerializable =
-    let images: seq[Image] = connection.getManyFromOne(entry, Image)
+    var images = connection.getManyFromOne(entry, Image)
+        .map(serializeImage)
+
     let parentLocations: seq[ParentLocationSerializable] = connection.getParentLocationReads(entry.id)
         .map(serializeParentLocation)
     let sublocations: seq[SubLocationSerializable] = connection.getManyFromOne(entry, LocationRead)

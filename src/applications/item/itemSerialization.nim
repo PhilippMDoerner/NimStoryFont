@@ -1,10 +1,11 @@
 import norm/model
 import itemModel
 import itemUtils
+import ../image/[imageModel, imageUtils]
 import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
-import std/[options, sugar]
+import std/[options, sugar, sequtils]
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 
 
@@ -29,6 +30,8 @@ type ItemSerializable* = object
 
 proc serializeItemRead*(connection: DbConn, entry: ItemRead): ItemSerializable =
     let owner: Option[OwnerDetails] = entry.owner_id.map(serializeOwner)
+    let images = connection.getManyFromOne(entry, Image).map(img => img.image.getImagePath())
+    
     result = ItemSerializable(
         pk: entry.id,
         name: entry.name,
@@ -37,7 +40,7 @@ proc serializeItemRead*(connection: DbConn, entry: ItemRead): ItemSerializable =
         description: entry.description,
         update_datetime: entry.update_datetime,
         creation_datetime: entry.creation_datetime,
-        images: @[],
+        images: images,
         campaign: entry.campaign_id.id,
         campaign_details: entry.campaign_id
     )

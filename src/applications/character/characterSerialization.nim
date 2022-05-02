@@ -1,7 +1,7 @@
 import characterModel
 import ../item/itemModel
 import ../encounter/[encounterModel, encounterSerialization]
-import ../image/[imageSerialization, imageModel]
+import ../image/[imageSerialization, imageModel, imageUtils]
 import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
@@ -129,7 +129,7 @@ type CharacterOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
-    let imagePaths = images.map(serializeImagePath)
+    let imagePaths = images.map(getImagePath)
 
     result = CharacterOverviewSerializable(
         article_type: ArticleType.atCharacter,
