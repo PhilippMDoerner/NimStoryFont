@@ -1,6 +1,5 @@
 import prologue
 import jwt
-import ../../applicationConstants
 import std/[options, logging, json, tables, random, times, strutils, strformat]
 import authenticationModels
 import tokenTypes 

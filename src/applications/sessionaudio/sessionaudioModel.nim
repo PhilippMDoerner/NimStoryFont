@@ -5,8 +5,7 @@ import ../../applicationSettings
 import ../../applicationConstants
 import ../session/sessionModel
 import ../campaign/campaignModel
-import ../encounter/encounterModel
-import std/options
+
 
 type SessionAudio* {.defaults, tableName: SESSIONAUDIO_TABLE} = ref object of Model
   audio_file*: string = ""
