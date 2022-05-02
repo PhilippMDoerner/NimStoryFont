@@ -74,3 +74,20 @@ type CampaignOverview* {.defaults, tableName: CAMPAIGN_TABLE.} = ref object of M
 implDefaults(CampaignOverview)
 proc newModel*(T: typedesc[CampaignOverview]): CampaignOverview = newCampaignOverview()
 
+
+type CampaignStatistics* = object
+    character_count*: int
+    item_count*: int
+    location_count*: int
+    creature_count*: int
+    diaryentry_count*: int
+    encounter_count*: int
+    organization_count*: int
+    quest_count*: int
+    quote_count*: int
+    session_audio_count*: int
+    timestamp_count*: int
+    map_count*: int
+    marker_count*: int
+    spell_count*: int
+    rule_count*: int

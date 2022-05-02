@@ -67,5 +67,12 @@ proc addCampaignRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/admin/statistics/{CAMPAIGN_NAME_PATTERN}",
+        handler = getCampaignStatistics,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
     
    
