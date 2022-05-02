@@ -2,7 +2,6 @@ import characterModel
 import ../item/itemModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../image/[imageSerialization, imageModel]
-import ../playerclass/playerClassModel
 import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
@@ -33,10 +32,7 @@ proc serializePlayerClassConnection(entry: PlayerClassConnectionRead): Character
         pk: entry.id,
         player_class: entry.player_class_id.id,
         character: entry.character_id,
-        player_class_details: PlayerClassSerializable(
-            pk: entry.player_class_id.id,
-            name: entry.player_class_id.name
-        )
+        player_class_details: entry.player_class_id.serializePlayerClass()
     )
 
 type CharacterSerializable* = object
@@ -82,10 +78,10 @@ proc getCurrentLocationDetails(connection: DbConn, entry: Option[CharacterLocati
 proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): CharacterSerializable =
     let characterImages = connection.getManyFromOne(entry, Image).map(serializeImage)
     let characterLocation: Option[CharacterLocationSerializable] = connection.getCurrentLocationDetails(entry.current_location_id)
-    let characterLocationId: Option[int64] = if characterLocation.isSome(): some(characterLocation.get().pk) else: none(int64) 
+    let characterLocationId: Option[int64] = characterLocation.map(charLoc => charLoc.pk)
     let items = connection.getManyFromOne(entry, ItemOverview)
     let characterClasses: seq[PlayerClassConnectionRead] = connection.getManyFromOne(entry, PlayerClassConnectionRead)
-    let organizationId: Option[int64] = if entry.organization_id.isSome(): some(entry.organization_id.get().id) else: none(int64) 
+    let organizationId: Option[int64] = entry.organization_id.map(org => org.id) 
     
     let encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
     let serializedEncounters: seq[EncounterSerializable] = encounters.map(enc => connection.serializeEncounterRead(enc))
