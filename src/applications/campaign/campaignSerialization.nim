@@ -8,10 +8,6 @@ import campaignService
 import ../session/sessionModel
 import ../image/imageUtils
 
-type EmptySearchResponse* = ref object of Model
-    text*: string
-    campaign*: int64 
-
 
 type CampaignSerializable* = object
     pk*: int64
@@ -54,7 +50,7 @@ type MembershipSerializable* = UserGroup
 
 
 proc serializeCampaignRead*(connection: DbConn, entry: CampaignRead): CampaignSerializable =
-    let campaignEmptySearchResponses: seq[EmptySearchResponse] = @[]
+    let campaignEmptySearchResponses: seq[EmptySearchResponse] = connection.getManyFromOne(entry, EmptySearchResponse)
     let default_map_id: Option[int64] = if entry.default_map_id.isSome(): some(entry.default_map_id.get().id) else: none(int64)
 
     let campaignMembers: seq[UserGroup] = connection.getCampaignMembers(entry)
