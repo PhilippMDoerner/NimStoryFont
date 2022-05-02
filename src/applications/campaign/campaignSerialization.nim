@@ -6,6 +6,7 @@ import ../genericArticleRepository
 import std/[sugar, sequtils, options, algorithm, strformat]
 import campaignService
 import ../session/sessionModel
+import ../image/imageUtils
 
 type EmptySearchResponse* = ref object of Model
     text*: string
@@ -71,7 +72,7 @@ proc serializeCampaignRead*(connection: DbConn, entry: CampaignRead): CampaignSe
         pk: entry.id,
         name: entry.name,
         subtitle: entry.subtitle,
-        background_image: entry.background_image,
+        background_image: entry.background_image.getImagePath(),
         is_deactivated: entry.is_deactivated,
         has_audio_recording_permission: entry.has_audio_recording_permission,
         update_datetime: entry.update_datetime,
@@ -104,16 +105,15 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         campaignDuration.start_date = none(DjangoDateTime)
         campaignDuration.last_date = none(DjangoDateTime)
 
-    let backgroundImage = fmt"/media/{entry.background_image}"
-    let campaignIcon = entry.icon.map(icon => fmt"/media/{icon}")
+
     result = CampaignOverviewSerializable(
         pk: entry.id,
         name: entry.name,
         subtitle: entry.subtitle,
-        background_image: backgroundImage,
+        background_image: entry.backgroundImage.getImagePath(),
         is_deactivated: entry.is_deactivated,
         has_audio_recording_permission: entry.has_audio_recording_permission,
-        icon: campaignIcon,
+        icon: entry.icon.map(getImagePath),
         default_map: default_map_id,
         default_map_details: entry.default_map_id,
         duration: campaignDuration
