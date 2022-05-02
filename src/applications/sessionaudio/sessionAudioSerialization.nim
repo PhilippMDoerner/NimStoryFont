@@ -91,7 +91,7 @@ proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAud
 
     result = SessionAudioOverviewSerializable(
         article_type: ArticleType.atSessionAudio,
-        description: timestampNames.join(" "),
+        description: timestampNames.join(" - "),
         pk: entry.id,
         name_full: $entry,
         name: $entry,
