@@ -21,8 +21,8 @@ proc newModel*(T: typedesc[PlayerClassConnectionRead]): PlayerClassConnectionRea
 
 
 type PlayerClassConnection* {.defaults, tableName: CHARACTER_PLAYERCLASS_TABLE.} = ref object of Model
-    character_id*: int64 = MODEL_INIT_ID
-    player_class_id*: int64 = MODEL_INIT_ID
+    character_id* {.fk: Character.}: int64 = MODEL_INIT_ID
+    player_class_id* {.fk: PlayerClass.}: int64 = MODEL_INIT_ID
 implDefaults(PlayerClassConnection)
 proc newModel*(T: typedesc[PlayerClassConnection]): PlayerClassConnection = newPlayerClassConnection()
 
