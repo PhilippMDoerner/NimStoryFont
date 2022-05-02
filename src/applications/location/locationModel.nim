@@ -10,10 +10,10 @@ import constructor/defaults
 type 
     Location* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
         name*: string = ""
-        description*: Option[string] = none(string)
+        description*: Option[string] = some("")
         creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
         update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-        parent_location_id* {.fk: Location.}: Option[int64] = none(int64)
+        parent_location_id* {.fk: Location.}: Option[int64] = some(MODEL_INIT_ID)
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID # The id of the campaign that this character occurred in
 
 implDefaults(Location)
@@ -36,7 +36,7 @@ proc newModel*(T: typedesc[ParentLocation]): ParentLocation = newParentLocation(
 type 
     LocationRead* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
         name*: string = ""
-        description*: Option[string] = none(string)
+        description*: Option[string] = some("")
         creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
         update_datetime*: DjangoDateTime = djangoDateTimeType.now()
         parent_location_id*: Option[ParentLocation] = some(newModel(ParentLocation))
