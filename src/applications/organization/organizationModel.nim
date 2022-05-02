@@ -5,7 +5,6 @@ import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import ../campaign/campaignModel
 import ../location/locationModel
-import ../image/imageModel
 import constructor/defaults
 
 type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
@@ -13,9 +12,9 @@ type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of M
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    description*: Option[string] = none(string)
-    leader*: Option[string] = none(string)
-    headquarter_id* {.fk: Location.}: Option[int64] = none(int64)
+    description*: Option[string] = some("")
+    leader*: Option[string] = some("")
+    headquarter_id* {.fk: Location.}: Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(Organization)
 proc newModel*(T: typedesc[Organization]): Organization = newOrganization()
@@ -54,9 +53,9 @@ type OrganizationRead* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object 
     campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    description*: Option[string] = none(string)
-    leader*: Option[string] = none(string)
-    headquarter_id*: Option[OrganizationLocation] = none(OrganizationLocation)
+    description*: Option[string] = some("")
+    leader*: Option[string] = some("")
+    headquarter_id*: Option[OrganizationLocation] = some(newModel(OrganizationLocation))
 
 implDefaults(OrganizationRead)
 proc newModel*(T: typedesc[OrganizationRead]): OrganizationRead = newOrganizationRead()

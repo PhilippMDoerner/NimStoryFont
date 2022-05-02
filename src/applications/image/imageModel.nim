@@ -47,11 +47,11 @@ proc newModel*(T: typedesc[ImageOrganization]): ImageOrganization = newImageOrga
 type Image* {.defaults, tableName: IMAGE_TABLE.} = ref object of Model
     image*: string = "" #The actual image path
     name*: Option[string] = some("")
-    character_article_id* {.fk: ImageCharacter.}: Option[int64] = none(int64)
-    creature_article_id* {.fk: ImageCreature.}: Option[int64] = none(int64)
-    item_article_id* {.fk: ImageItem.} : Option[int64] = none(int64)
-    location_article_id* {.fk: ImageLocation.}: Option[int64] = none(int64)
-    organization_article_id* {.fk: ImageOrganization.}: Option[int64] = none(int64)
+    character_article_id* {.fk: ImageCharacter.}: Option[int64] = some(MODEL_INIT_ID)
+    creature_article_id* {.fk: ImageCreature.}: Option[int64] = some(MODEL_INIT_ID)
+    item_article_id* {.fk: ImageItem.} : Option[int64] = some(MODEL_INIT_ID)
+    location_article_id* {.fk: ImageLocation.}: Option[int64] = some(MODEL_INIT_ID)
+    organization_article_id* {.fk: ImageOrganization.}: Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(Image)
 proc newModel*(T: typedesc[Image]): Image = newImage()
