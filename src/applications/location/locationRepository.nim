@@ -115,7 +115,7 @@ proc getParentLocationReads*(connection: DbConn, locationId: int64): seq[Locatio
 
   var parentLocations: seq[LocationRead] = @[newModel(LocationRead)]
 
-  let condition = fmt"id IN ({parentLocationIds.get()})"
+  let condition = fmt"{LocationRead.table()}.id IN ({parentLocationIds.get()})"
   connection.select(parentLocations, condition)
 
   result = parentLocations
