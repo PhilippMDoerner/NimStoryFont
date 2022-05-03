@@ -5,7 +5,7 @@ import diaryEntryUtils
 import ../character/characterEncounterModel
 import ../genericArticleRepository
 import ../campaign/campaignModel
-import ../session/sessionModel
+import ../session/[sessionSerialization, sessionModel]
 import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
@@ -19,7 +19,7 @@ type DiaryEntryAuthorSerializable* = object
     name: string
 
 type DiaryEntryStub* = object
-    session_details: DiaryEntrySession
+    session_details: SessionSerializable
     author_details: DiaryEntryAuthorSerializable
 
 type AdjacentDiaryEntries* = object
@@ -32,14 +32,17 @@ type DiaryEntrySerializable* = object
     campaign_details*: MinimumCampaignOverview
     creation_datetime*: DjangoDateTime
     update_datetime*: DjangoDateTime
-    session_details*: SessionRead
+    session_details*: SessionSerializable
     author_details*: DiaryEntryAuthorSerializable
     encounters*: seq[EncounterSerializable]
     adjacent_diaryentries*: AdjacentDiaryEntries
 
-proc serializeToDiaryEntryStub(entry: DiaryEntryRead): DiaryEntryStub =
+proc serializeToDiaryEntryStub(connection: DbConn, entry: DiaryEntryRead): DiaryEntryStub =
+    let session = connection.getEntryById(entry.session_id.id, SessionRead)
+    let serializedSession = connection.serializeSessionRead(session)
+
     result = DiaryEntryStub(
-            session_details: entry.session_id,
+            session_details: serializedSession,
             author_details: DiaryEntryAuthorSerializable(
                 pk: entry.author_id.id, 
                 name: entry.author_id.username
@@ -73,12 +76,13 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
         nextDiaryEntry = some(diaryentries[entryIndex + 1])
 
     result = AdjacentDiaryEntries(
-        prior_diaryentry: priorDiaryEntry.map(serializeToDiaryEntryStub), 
-        next_diaryentry: nextDiaryEntry.map(serializeToDiaryEntryStub)
+        prior_diaryentry: priorDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry)), 
+        next_diaryentry: nextDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry))
     )
     
 proc serializeDiaryEntryRead*(connection: DbConn, entry: DiaryEntryRead): DiaryEntrySerializable =
     let session = connection.getEntryById(entry.session_id.id, SessionRead)
+    let serializedSession = connection.serializeSessionRead(session)
 
     let encounters = connection.getManyFromOne(entry, EncounterRead)
     let encounterParentLocations: Table[int64, seq[Location]] = connection.getDiaryEntryEncounterLocations(encounters)
@@ -104,7 +108,7 @@ proc serializeDiaryEntryRead*(connection: DbConn, entry: DiaryEntryRead): DiaryE
         campaign_details: entry.session_id.campaign_id,
         creation_datetime: entry.creation_datetime,
         update_datetime: entry.update_datetime,
-        session_details: session,
+        session_details: serializedSession,
         author_details: DiaryEntryAuthorSerializable(
             pk: entry.author_id.id, 
             name: entry.author_id.username
