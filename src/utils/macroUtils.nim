@@ -4,6 +4,9 @@ import norm/model
 macro getField*(obj: Model, fieldName: static string): untyped =
   nnkDotExpr.newTree(obj, ident(fieldName))
 
+template setField*(obj: var Model, fieldName: static string, value: untyped) =
+  obj.getField(fieldName) = value
+
 proc hasField*[T](obj: T, fieldName: static string): bool {.compileTime.} =
   result = compiles(obj.getField(fieldName))
 
