@@ -10,7 +10,7 @@ import ../genericArticleControllers
 
 proc addQuoteRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/quote/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/quote/",
         handler = createCreateArticleHandler[CreateParams, Quote, QuoteSerializable](serializeQuote),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]

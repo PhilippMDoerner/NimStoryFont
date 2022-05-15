@@ -10,7 +10,7 @@ import mapModel
 
 proc addMapRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/map/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/map/",
         handler = createCreateArticleHandler[CreateParams, Map, MapSerializable](serializeMap),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
