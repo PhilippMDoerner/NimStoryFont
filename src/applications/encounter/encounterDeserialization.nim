@@ -1,6 +1,6 @@
 import encounterModel
 import std/tables
-import ../createDeserializationHookGenerator
+import ../genericDeserialization
 
 const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = {
   "diaryentry": "diaryentry_id",
