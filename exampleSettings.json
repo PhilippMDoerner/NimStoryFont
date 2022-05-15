@@ -1,0 +1,20 @@
+{
+    "prologue": {
+        "address": "",
+        "port": 8080,
+        "debug": true,
+        "reusePort": true,
+        "appName": "",
+        "secretKey": "a wonderful secret key",
+        "bufSize": 40960
+    },
+    "name": "debug",
+    "accessTokenLifetimeInDays": 365,
+    "refreshTokenLifetimeInDays": 100,
+    "databaseConnectionLimit": 8,
+    "databasePath": "db.sqlite3",
+    "baseDir": "/home",
+    "imageDir": "/home",
+    "audioDir": "/home",
+    "pageSize": 24
+}
