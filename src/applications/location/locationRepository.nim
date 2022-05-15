@@ -15,12 +15,18 @@ proc parseParentIdRow(value: DbValue): string =
 proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Table[int64, Option[string]] =
   let locationIdsDed = locationIds.deduplicate()
   let locationIdStr: string = locationIdsDed.map(id => id.int.intToStr).join(",")
+  echo "dasdas"
+  echo locationIdStr
   let parentLocationIdQuery: SqlQuery = sql fmt"""
     WITH RECURSIVE locationpath(id, id_path) AS
     (
       -- root select statement
-      SELECT id, id FROM wikientries_location baseLoc WHERE baseLoc.parent_location_id IS NULL
+      SELECT id, id 
+      FROM wikientries_location baseLoc 
+      WHERE baseLoc.parent_location_id IS NULL
+      
       UNION ALL
+      
       -- recursive select statement
       SELECT cloc.id, locationpath.id_path ||','|| cloc.id 
       FROM wikientries_location cloc

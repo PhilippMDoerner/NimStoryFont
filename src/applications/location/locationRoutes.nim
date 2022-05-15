@@ -2,6 +2,7 @@ import prologue
 import ../../middleware/loginMiddleware
 import locationService
 import locationSerialization
+import locationDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -26,6 +27,13 @@ proc addLocationRoutes*(app: Prologue) =
         re fmt"/location/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Location, LocationSerializable](serializeLocation),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/location/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Location, LocationSerializable](serializeLocation),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
