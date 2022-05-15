@@ -1,9 +1,13 @@
 import norm/model
-import std/[tables, options, json, typetraits]
+import std/[tables, options, json, typetraits, strutils, strformat, logging]
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 include genericUpdateDeserialization
+import jsony
 
+export jsony
+export typetraits
 export macroUtils
+export logging
 export djangoDateTimeType
 
 
@@ -39,6 +43,8 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
     entry.update_datetime = currentDateTime
     setOptionalsToNone[T](entry)
 
+  ## PROC FOR DESERIALIZING ENTRY UPDATE JSON
+  proc deserializeEntry*[T: Model](jsonStr: string, modelType: typedesc[T]): T = jsonStr.fromJson(T)
 
   ## PROC FOR DESERIALIZING ENTRY PATCHING JSON
 
