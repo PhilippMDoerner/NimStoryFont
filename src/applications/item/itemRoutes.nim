@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import ../allUrlParams
 import itemService
 import itemSerialization
+import itemDeserialization
 import std/strformat
 import ../genericArticleControllers
 
@@ -25,6 +26,13 @@ proc addItemRoutes*(app: Prologue) =
         re fmt"/item/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Item, ItemSerializable](serializeItem),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/item/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Item, ItemSerializable](serializeItem),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
