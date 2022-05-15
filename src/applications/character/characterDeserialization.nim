@@ -1,6 +1,6 @@
 import characterModel
 import std/tables
-import ../genericDeserialization
+import ../createDeserializationHookGenerator
 
 const RENAMED_CREATE_INPUT: Table[string, string] = {
   "organization": "organization_id", 

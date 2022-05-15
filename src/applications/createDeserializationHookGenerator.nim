@@ -1,15 +1,15 @@
 import norm/model
-import std/[tables, options]
+import std/[tables, options, json, typetraits]
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 
 export macroUtils
+export djangoDateTimeType
 
 template setOptionalsToNone[T: Model](entry: var T) =
   ## Takes an initialized model-type and sets all its optional fields to none()
   for fieldName, fieldValue in T()[].fieldPairs:
     when fieldValue is Option:
       entry.getField(fieldName) = none(fieldValue.get().type())
-
 
 template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], renameTable: Table[string, string]) =
   ## Creates an entire deserialization-module worth of jsony-hooks for the Model 
@@ -31,3 +31,5 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
     entry.creation_datetime = currentDateTime
     entry.update_datetime = currentDateTime
     setOptionalsToNone[T](entry)
+
+
