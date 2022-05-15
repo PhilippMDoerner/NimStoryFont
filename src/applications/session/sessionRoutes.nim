@@ -16,14 +16,14 @@ proc addSessionRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/session/{ID_PATTERN}/", 
+        re fmt"/session/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Session](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/session/{ID_PATTERN}/",
+        re fmt"/session/pk/{ID_PATTERN}/",
         handler = createUpdateByIdHandler[UpdateParams, Session, SessionSerializable](serializeSession),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

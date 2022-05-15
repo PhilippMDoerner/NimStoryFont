@@ -17,14 +17,14 @@ proc addMarkerTypeRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/markerType/{ID_PATTERN}/", 
+        re fmt"/markerType/pk/{ID_PATTERN}/", 
         handler = createDeleteHandler[DeleteParams, MarkerType](readArticleById, checkAdminPermission, deleteArticle),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/markerType/{ID_PATTERN}/", 
+        re fmt"/markerType/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

@@ -5,6 +5,7 @@ import diaryEntryModel
 import diaryEntryService
 import diaryEntrySerialization
 import diaryEntryUtils
+import diaryEntryDeserialization
 import ../genericArticleControllers
 import std/strformat
 import ../authentication/authenticationUtils
@@ -18,16 +19,23 @@ proc addDiaryEntryRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/diaryentry/{ID_PATTERN}/", 
+        re fmt"/diaryentry/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, DiaryEntry](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/diaryentry/{ID_PATTERN}/",
+        re fmt"/diaryentry/pk/{ID_PATTERN}/",
         handler = createUpdateByIdHandler[UpdateParams, DiaryEntry, DiaryEntrySerializable](serializeDiaryEntry),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/diaryentry/pk/{ID_PATTERN}/",
+        handler = createPatchByIdHandler[UpdateParams, DiaryEntry, DiaryEntrySerializable](serializeDiaryEntry),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 

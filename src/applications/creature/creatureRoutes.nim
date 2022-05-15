@@ -2,29 +2,37 @@ import prologue
 import ../../middleware/[loginMiddleware]
 import creatureService
 import creatureSerialization
+import creatureDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
 
 proc addCreatureRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/creature/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/creature/",
         handler = createCreateArticleHandler[CreateParams, Creature, CreatureSerializable](serializeCreature),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/creature/{ID_PATTERN}/", 
+        re fmt"/creature/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Creature](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/creature/{ID_PATTERN}/", 
+        re fmt"/creature/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Creature, CreatureSerializable](serializeCreature),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/creature/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Creature, CreatureSerializable](serializeCreature),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 

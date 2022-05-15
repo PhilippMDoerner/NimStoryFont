@@ -17,14 +17,14 @@ proc addMapRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/map/{ID_PATTERN}/", 
+        re fmt"/map/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Map](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/map/{ID_PATTERN}/", 
+        re fmt"/map/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Map, MapSerializable](serializeMap),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

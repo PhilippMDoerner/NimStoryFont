@@ -18,7 +18,7 @@ proc addTimestampRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/timestamp/{ID_PATTERN}/", 
+        re fmt"/timestamp/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Timestamp](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
