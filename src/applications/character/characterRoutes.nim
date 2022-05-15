@@ -32,6 +32,13 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
+        re fmt"/character/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
+        httpMethod = HttpPatch,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
         re fmt"/character/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, CharacterRead, CharacterSerializable](serializeCharacterRead), 
         httpMethod = HttpGet,
