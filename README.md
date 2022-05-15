@@ -13,6 +13,7 @@ The dependencies of this project are:
 -   Password hashing: nimcrypto - https://github.com/cheatfate/nimcrypto
 -   Simplifaction of model-object construction: constructor - https://github.com/beef331/constructor
 -   Connection pooling: tinypool - https://github.com/PhilippMDoerner/TinyPool
+-   Compressing HTTP Responses: zippy - https://github.com/guzba/zippy
 
 # General Architecture Idea
 Every domain has its own "application" folder named after the domain (with the exception of the "core" folder).
@@ -27,6 +28,7 @@ Files within this project follow the following naming scheme, where "X" is the n
 - XUtils - Utility procs for the models of this application. Most of the time that's procs checking whether you have access permission (where I can't use the generic version from `authenticationUtils` for some reason due to compiler complaints) and procs for stringifying Model-object-instances
 - XControllers - Custom handler procs when they're doing more than just CRUD work. May be ommitted if the necessary handler procs can be generated using genericArticleController procs, which build handler-procs for you.
 - XSerialization - Converts model-object of this domain into a "Serializable" that jsony later can turn into a json-string.
+- XDeserialization - Covers procs and helper procs used to deserialize the JSON sent via PUT, PATCH and POST HTTP Requests to update/create entries in the database
 
 # General Control Flow
 Within the typical Handler-Proc of this application, we have this control flow in read-procs:
