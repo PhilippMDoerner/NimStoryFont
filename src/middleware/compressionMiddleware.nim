@@ -19,4 +19,3 @@ proc responseCompressionMiddleware*(): HandlerAsync =
         ctx.response.body = compress(ctx.response.body, BestCompression, CompressedDataFormat.dfDeflate)
         ctx.response.headers.add("X-compressed-size", $ctx.response.body.len) # just for me to see the difference
 
-#      compress("gzip'ed response body", BestSpeed, dfGzip),
