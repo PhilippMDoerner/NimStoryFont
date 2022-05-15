@@ -5,6 +5,7 @@ import tinypool
 import controllerTemplates
 import genericArticleService
 import genericArticleRepository
+import genericUpdateDeserialization
 import authentication/authenticationUtils
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
@@ -15,6 +16,8 @@ export jsony
 export serialization
 export normConversion
 export genericArticleService
+export genericUpdateDeserialization
+
 export authenticationUtils
 
 
@@ -106,7 +109,30 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
 proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createUpdateHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
 
+proc createPatchHandler*[P: object, E: Model, S: object | ref object](
+  readProc: ReadProc[P, E],
+  checkPermission: CheckPermissionProc[E],
+  updateProc: UpdateProc[P, E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
 
+    let params: P = ctx.extractQueryParams(P)
+    let jsonStr: string = ctx.request.body()
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        var oldEntry: E = connection.readProc(params)
+        checkPermission(ctx, oldEntry)
+        updateEntryWithJson(oldEntry, jsonStr)
+        let newUpdatedEntry: E = connection.updateProc(params, oldEntry)
+        let data: S = connection.serialize(newUpdatedEntry)
+
+        resp jsonyResponse(ctx, data)
+
+proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  result = createPatchHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
 
 proc createCreateHandler*[P: object, E: Model, S: object | ref object](
   checkPermission: CheckPermissionProc[E],
