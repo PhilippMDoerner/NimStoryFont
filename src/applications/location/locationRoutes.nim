@@ -16,14 +16,14 @@ proc addLocationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/location/{ID_PATTERN}/", 
+        re fmt"/location/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Location](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/location/{ID_PATTERN}/", 
+        re fmt"/location/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Location, LocationSerializable](serializeLocation),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

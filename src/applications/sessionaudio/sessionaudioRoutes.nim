@@ -19,21 +19,21 @@ proc addSessionAudioRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/sessionaudio/{ID_PATTERN}/", 
+        re fmt"/sessionaudio/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, SessionAudio](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/sessionaudio/{ID_PATTERN}/", 
+        re fmt"/sessionaudio/pk/{ID_PATTERN}/", 
         handler = patchSessionAudioController,
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/sessionaudio/{ID_PATTERN}/", 
+        re fmt"/sessionaudio/pk/{ID_PATTERN}/", 
         handler = patchSessionAudioController,
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]

@@ -16,14 +16,14 @@ proc addOrganizationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/organization/{ID_PATTERN}/", 
+        re fmt"/organization/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Organization](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/organization/{ID_PATTERN}/", 
+        re fmt"/organization/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Organization, OrganizationSerializable](serializeOrganization),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

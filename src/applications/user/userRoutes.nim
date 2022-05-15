@@ -17,14 +17,14 @@ proc addUserRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/user/{ID_PATTERN}/", 
+        re fmt"/user/pk/{ID_PATTERN}/", 
         handler = createDeleteHandler[DeleteParams, User](readUserById, checkUserDeletePermission, deleteUser),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/user/{ID_PATTERN}/", 
+        re fmt"/user/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, User, UserSerializable](
             readProc = readUserById, 
             checkPermission = checkUserDeletePermission, 

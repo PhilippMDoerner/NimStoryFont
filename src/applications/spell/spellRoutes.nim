@@ -16,14 +16,14 @@ proc addSpellRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/spell/{ID_PATTERN}/", 
+        re fmt"/spell/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Spell](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/spell/{ID_PATTERN}/", 
+        re fmt"/spell/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Spell, SpellSerializable](serializeSpell),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

@@ -17,14 +17,14 @@ proc addQuoteRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/quote/{ID_PATTERN}/", 
+        re fmt"/quote/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Quote](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/quote/{ID_PATTERN}/", 
+        re fmt"/quote/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Quote, QuoteSerializable](serializeQuote),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
@@ -56,7 +56,7 @@ proc addQuoteRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/quoteconnection/{ID_PATTERN}/", 
+        re fmt"/quoteconnection/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, QuoteConnection](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]

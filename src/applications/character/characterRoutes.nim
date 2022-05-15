@@ -25,14 +25,14 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/character/{ID_PATTERN}/", 
+        re fmt"/character/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/character/{ID_PATTERN}/", 
+        re fmt"/character/pk/{ID_PATTERN}/", 
         handler = createPatchByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
@@ -78,7 +78,7 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/encounterconnection/{ID_PATTERN}/", 
+        re fmt"/encounterconnection/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, CharacterEncounterConnection](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]

@@ -16,14 +16,14 @@ proc addRuleRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/rule/{ID_PATTERN}/", 
+        re fmt"/rule/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Rule](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/rule/{ID_PATTERN}/", 
+        re fmt"/rule/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Rule, RuleSerializable](serializeRule),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

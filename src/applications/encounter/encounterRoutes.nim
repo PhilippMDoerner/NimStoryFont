@@ -24,7 +24,7 @@ proc addEncounterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Encounter](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
@@ -38,7 +38,7 @@ proc addEncounterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/{ID_PATTERN}/", 
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Encounter, EncounterSerializable](serializeEncounter),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

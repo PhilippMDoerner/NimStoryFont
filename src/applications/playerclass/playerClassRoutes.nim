@@ -21,7 +21,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/player_class/{ID_PATTERN}/", 
+        re fmt"/player_class/pk/{ID_PATTERN}/", 
         handler = createDeleteHandler[DeleteParams, PlayerClass](
             readArticleById,
             checkPlayerClassPermission,
@@ -32,7 +32,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/player_class/{ID_PATTERN}/", 
+        re fmt"/player_class/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, PlayerClass, PlayerClassSerializable](
             readArticleById,
             checkPlayerClassPermission,

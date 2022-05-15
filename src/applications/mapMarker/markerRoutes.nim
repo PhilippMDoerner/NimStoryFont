@@ -18,14 +18,14 @@ proc addMarkerRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/marker/{ID_PATTERN}/", 
+        re fmt"/marker/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Marker](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/marker/{ID_PATTERN}/", 
+        re fmt"/marker/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Marker, MarkerSerializable](serializeMarker),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

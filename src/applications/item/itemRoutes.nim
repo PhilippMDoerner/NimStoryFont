@@ -15,14 +15,14 @@ proc addItemRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/item/{ID_PATTERN}/", 
+        re fmt"/item/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Item](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/item/{ID_PATTERN}/", 
+        re fmt"/item/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Item, ItemSerializable](serializeItem),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]

@@ -16,14 +16,14 @@ proc addQuestRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/quest/{ID_PATTERN}/", 
+        re fmt"/quest/pk/{ID_PATTERN}/", 
         handler = createDeleteByIdHandler[DeleteParams, Quest](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
-        re fmt"/quest/{ID_PATTERN}/", 
+        re fmt"/quest/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Quest, QuestSerializable](serializeQuest),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
