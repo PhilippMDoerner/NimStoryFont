@@ -107,14 +107,3 @@ proc transferJsonValue[M: Model](entry: var M, fieldName: static string, fieldTy
       transferDateTimeValue(value, valueNode)
   
   moveValueIntoField(entry, fieldName, value)
-
-
-proc updateEntryWithJson*[T: Model](entry: var T, jsonString: string) =
-  let json: JsonNode = jsonString.parseJson()
-  for fieldName, fieldValue in T()[].fieldPairs:
-    if json.hasKey(fieldName):
-      when fieldValue is Option:
-        transferJsonValue(entry, fieldName, genericParams(fieldValue.type()).get(0), json[fieldName])
-      else:
-        transferJsonValue(entry, fieldName, fieldValue.type(), json[fieldName])
-

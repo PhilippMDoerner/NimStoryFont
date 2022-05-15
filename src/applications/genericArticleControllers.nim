@@ -116,16 +116,18 @@ proc createPatchHandler*[P: object, E: Model, S: object | ref object](
   serialize: SerializeProc[E, S]
 ): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
+    mixin updateEntryWithJson
+
     let ctx = JWTContext(ctx)
 
     let params: P = ctx.extractQueryParams(P)
-    let jsonStr: string = ctx.request.body()
+    let jsonData: JsonNode = ctx.request.body().parseJson()
 
     respondBadRequestOnDbError():
       withDbTransaction(connection):
         var oldEntry: E = connection.readProc(params)
         checkPermission(ctx, oldEntry)
-        updateEntryWithJson(oldEntry, jsonStr)
+        updateEntryWithJson[E](oldEntry, jsonData)
         let newUpdatedEntry: E = connection.updateProc(params, oldEntry)
         let data: S = connection.serialize(newUpdatedEntry)
 
