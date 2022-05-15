@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import campaignControllers
 import campaignService
 import campaignSerialization
+import campaignDeserialization
 import campaignUtils
 import std/strformat
 import ../allUrlParams
@@ -40,7 +41,7 @@ proc addCampaignRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/campaign/pk/pk/{ID_PATTERN}/", 
+        re fmt"/campaign/pk/{ID_PATTERN}/", 
         handler = createReadByIdHandler[ReadByIdParams, Campaign, CampaignSerializable](serializeCampaign),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

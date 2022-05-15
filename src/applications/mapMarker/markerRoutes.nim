@@ -11,7 +11,7 @@ import ../authentication/authenticationUtils
 
 proc addMarkerRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/marker/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/marker/",
         handler = createCreateArticleHandler[CreateParams, Marker, MarkerSerializable](serializeMarker),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
