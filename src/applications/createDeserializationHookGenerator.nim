@@ -6,24 +6,28 @@ include genericUpdateDeserialization
 export macroUtils
 export djangoDateTimeType
 
+
+proc invertTable*(table: Table[string, string]): Table[string, string] {.compileTime.} =
+  for key, value in table.pairs:
+    result[value] = key
+
 template setOptionalsToNone[T: Model](entry: var T) =
   ## Takes an initialized model-type and sets all its optional fields to none()
   for fieldName, fieldValue in T()[].fieldPairs:
     when fieldValue is Option:
       entry.getField(fieldName) = none(fieldValue.get().type())
 
-template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], renameTable: Table[string, string]) =
+template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], modelToJsonFieldNameMap: Table[string, string]) =
   ## Creates an entire deserialization-module worth of jsony-hooks for the Model 
   ## `deserializedType`.
   
   ## PROCS FOR DESERIALIZING ENTRY CREATION JSON
-
   proc renameHook*(v: var T, fieldName: var string) =
     ##  A jsony renameHook the converts fieldNames that differ between the 
     ## `deserializedType` and the actual fieldNames received in the json-string
     ## that shall be deserialized.
-    if renameTable.hasKey(fieldName):
-      fieldName = renameTable[fieldName]
+    if modelToJsonFieldNameMap.hasKey(fieldName):
+      fieldName = modelToJsonFieldNameMap[fieldName]
   
   proc newHook*(entry: var T) =
     ## A jsony newHook that provides default values for an article-model.
@@ -42,8 +46,10 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
     ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
     ## that also has a key-value pair in `json`, then that value will be copied from `json`
     ## into `entry`, overwriting whatever value was there before.
+    const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
+
     for modelFieldName, fieldValue in entry[].fieldPairs:
-      const jsonFieldName = if renameTable.hasKey(modelFieldName): renameTable[modelFieldName] else: modelFieldName
+      const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
       
       if json.hasKey(jsonFieldName):
         when fieldValue is Option:
