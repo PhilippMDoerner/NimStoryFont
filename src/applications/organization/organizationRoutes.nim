@@ -4,6 +4,7 @@ import ../allUrlParams
 import organizationModel
 import organizationSerialization
 import organizationService
+import organizationDeserialization
 import std/strformat
 import ../genericArticleControllers
 
@@ -26,6 +27,13 @@ proc addOrganizationRoutes*(app: Prologue) =
         re fmt"/organization/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Organization, OrganizationSerializable](serializeOrganization),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/organization/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Organization, OrganizationSerializable](serializeOrganization),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
