@@ -5,6 +5,7 @@ import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
 import markerSerialization
+import markerDeserialization
 import markerUtils
 import ../authentication/authenticationUtils
 
@@ -28,6 +29,13 @@ proc addMarkerRoutes*(app: Prologue) =
         re fmt"/marker/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Marker, MarkerSerializable](serializeMarker),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/marker/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Marker, MarkerSerializable](serializeMarker),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
