@@ -6,12 +6,12 @@ import ../genericArticleRepository
 import std/[sugar, options, sequtils]
 import ../campaign/campaignModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-
+import ../../applicationConstants
 
 type MarkerLocation = object
     name: string
     description: Option[string]
-    parent_location_name: Option[string]
+    parent_location_name: string
     sublocations: seq[string]
 
 proc serializeMarkerLocation(connection: DbConn, entry: LocationRead): MarkerLocation = 
@@ -19,7 +19,7 @@ proc serializeMarkerLocation(connection: DbConn, entry: LocationRead): MarkerLoc
     result = MarkerLocation(
         name: entry.name,
         description: entry.description,
-        parent_location_name: entry.parent_location_id.map(ploc => ploc.name),
+        parent_location_name: entry.parent_location_id.map(ploc => ploc.name).get(NONE_STRING),
         sublocations: sublocations
     )
 
