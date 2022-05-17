@@ -3,6 +3,7 @@ import ../../middleware/[loginMiddleware]
 import markerTypeService
 import std/strformat
 import markerTypeSerialization
+import markerTypeDeserialization
 import markerTypeUtils
 import ../allUrlParams
 import ../genericArticleControllers
@@ -27,6 +28,13 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         re fmt"/markertype/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/markertype/pk/{ID_PATTERN}/", 
+        handler = createPatchHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
