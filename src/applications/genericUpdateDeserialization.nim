@@ -1,11 +1,11 @@
 import norm/model
-import std/[tables, options, json, typetraits]
+import std/[tables, options, json, typetraits, strutils]
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 
 export macroUtils
 export djangoDateTimeType
 
-type Parseable = int | int64 | string | float | bool | DjangoDateTime
+type Parseable = int | int64 | string | float | bool | DjangoDateTime | enum
 
 template transferJsonIntValue(receiver: var Option[int], valueNode: JsonNode) =
   case valueNode.kind:
@@ -62,6 +62,14 @@ template transferDateTimeValue(receiver: var Option[DjangoDateTime], node: JsonN
   else:
     raise newException(JsonParsingError, fmt"The field '{typeName}.{fieldName}' expects a DjangoDateTime value, which must be parsed from either a DateTime-string or a unix timestamp. The json was of kind '{valueNode.kind}'" )
 
+template transferEnumValue[T: enum](receiver: var Option[T], valueNode: JsonNode) =
+  case valueNode.kind:
+  of JsonNodeKind.JString:
+    let enumVal: T = valueNode.str.parseEnum[:T]()
+    receiver = some(enumVal)
+  else:
+    raise newException(JsonParsingError, fmt"The field '{typeName}.{fieldName}' expects an enum value, which must be parsed from a string. The json was of kind '{valueNode.kind}'" )
+
 
 template moveValueIntoField[M: Model](entry: var M, fieldName: static string, value: Option[Parseable]) =
   when entry.getField(fieldName).type() is Option:
@@ -105,5 +113,8 @@ proc transferJsonValue[M: Model](entry: var M, fieldName: static string, fieldTy
     
     elif fieldType is DjangoDateTime:
       transferDateTimeValue(value, valueNode)
+
+    elif fieldType is enum:
+      transferEnumValue(value, valueNode)
   
   moveValueIntoField(entry, fieldName, value)
