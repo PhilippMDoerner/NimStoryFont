@@ -88,7 +88,7 @@ proc addCampaignRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/admin/statistics/",
+        re fmt"/admin/statistics",
         handler = getWikiStatistics,
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
