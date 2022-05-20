@@ -8,7 +8,7 @@ export djangoDateTimeType
 
 type Parseable = int | int64 | string | float | bool | DjangoDateTime | enum
 
-template transferJsonIntValue(receiver: var Option[int], valueNode: JsonNode) =
+template transferJsonIntValue(receiver: var Option[untyped], valueNode: JsonNode) =
   case valueNode.kind:
   of JsonNodeKind.JInt:
     receiver = some(valueNode.num.int)
@@ -19,6 +19,22 @@ template transferJsonIntValue(receiver: var Option[int], valueNode: JsonNode) =
       raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type, but the json was of kind '{valueNode.kind}'")
+
+
+template transferJsonIntRange0To9Value(receiver: var Option[untyped], valueNode: JsonNode) =
+  case valueNode.kind:
+  of JsonNodeKind.JInt:
+    let rangeNumber: 0..9 = valueNode.num.int
+    receiver = some(rangeNumber)
+  of JsonNodeKind.JString:
+    try:
+      let rangeNumber: 0..9 = valueNode.str.parseInt()
+      receiver = some(rangeNumber)
+    except ValueError:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
+  else:
+    raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type, but the json was of kind '{valueNode.kind}'")
+
 
 template transferJsonInt64Value(receiver: var Option[int64], valueNode: JsonNode) =
   case valueNode.kind:
@@ -102,7 +118,10 @@ proc transferJsonValue[M: Model](entry: var M, fieldName: static string, fieldTy
       raise newException(JsonParsingError, fmt"Attempted to set the field {typeName}.{fieldName} to null, but it is not an optional type!")
 
   else:
-    when fieldType is int:
+    when fieldType is 0..9:
+      transferJsonIntRange0To9Value(value, valueNode)
+
+    elif fieldType is int:
       transferJsonIntValue(value, valueNode)
     
     elif fieldType is int64:
