@@ -82,8 +82,6 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 proc getWikiStatistics*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
 
-  let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
-
   respondBadRequestOnDbError():
     withDbConn(connection):
       let statistics: Statistics = connection.getWikiStatistics()
