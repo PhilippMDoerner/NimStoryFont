@@ -75,5 +75,16 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 
   respondBadRequestOnDbError():
     withDbConn(connection):
-      let statistics = connection.getCampaignStatistics(campaignName)
+      let statistics: Statistics = connection.getCampaignStatistics(campaignName)
+      resp jsonyResponse(ctx, statistics)
+    
+
+proc getWikiStatistics*(ctx: Context) {.async.} =
+  let ctx = JWTContext(ctx)
+
+  let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
+
+  respondBadRequestOnDbError():
+    withDbConn(connection):
+      let statistics: Statistics = connection.getWikiStatistics()
       resp jsonyResponse(ctx, statistics)

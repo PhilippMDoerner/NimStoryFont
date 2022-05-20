@@ -83,7 +83,7 @@ implDefaults(EmptySearchResponse)
 proc newModel*(T: typedesc[EmptySearchResponse]): EmptySearchResponse = newEmptySearchResponse()
 
 
-type CampaignStatistics* = object
+type Statistics* = object
     character_count*: int
     item_count*: int
     location_count*: int

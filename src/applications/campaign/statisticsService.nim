@@ -19,10 +19,10 @@ import ../sessionaudio/sessionaudioModel
 import ../sessionAudioTimestamp/timestampModel
 import ../spell/spellModel
 
-proc getCampaignStatistics*(connection: DbConn, campaignName: string): CampaignStatistics =
+proc getCampaignStatistics*(connection: DbConn, campaignName: string): Statistics =
   let campaignId = connection.getEntryByField("name", campaignName, Campaign).id
 
-  result = CampaignStatistics(
+  result = Statistics(
     character_count: connection.count(CharacterRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
     creature_count: connection.count(CreatureRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
     diaryentry_count: connection.getDiaryEntryCount(campaignId),
@@ -40,4 +40,21 @@ proc getCampaignStatistics*(connection: DbConn, campaignName: string): CampaignS
     spell_count: connection.count(SpellRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
   )
 
-proc get
+proc getWikiStatistics*(connection: DbConn): Statistics =
+  result = Statistics(
+    character_count: connection.count(Character).int,
+    creature_count: connection.count(Creature).int,
+    diaryentry_count: connection.count(DiaryEntry).int,
+    encounter_count: connection.count(Encounter).int,
+    item_count: connection.count(Item).int,
+    location_count: connection.count(Location).int,
+    map_count: connection.count(Map).int,
+    marker_count: connection.count(Marker).int,
+    organization_count: connection.count(Organization).int,
+    quest_count: connection.count(Quest).int,
+    quote_count: connection.count(Quote).int,
+    rule_count: connection.count(Rule).int,
+    session_audio_count: connection.count(SessionAudio).int,
+    timestamp_count: connection.count(Timestamp).int,
+    spell_count: connection.count(Spell).int,
+  )
