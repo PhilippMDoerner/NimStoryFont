@@ -1,4 +1,4 @@
 import spellModel
 
-proc `$`*(model: Spell): string = 
+proc `$`*(model: Spell | SpellRead): string = 
     model.name

@@ -1,4 +1,5 @@
 import spellModel
+import spellUtils
 import norm/sqlite
 import ../genericArticleRepository
 import ../playerclass/[playerClassModel, playerClassSerialization]
@@ -71,3 +72,22 @@ proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializabl
 proc serializeSpell*(connection: DbConn, entry: Spell): SpellSerializable =
     let fullEntry = connection.getEntryById(entry.id, SpellRead)
     result = connection.serializeSpellRead(fullEntry)
+
+
+type SpellOverviewSerializable* = object
+    article_type: string
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+
+proc overviewSerialize*(connection: DbConn, entry: SpellRead): SpellOverviewSerializable =
+    result = SpellOverviewSerializable(
+        article_type: "spell",
+        pk: entry.id,
+        name_full: $entry,
+        name: entry.name,
+        campaign_details: entry.campaign_id,
+        update_datetime: entry.update_datetime
+    )
