@@ -5,6 +5,7 @@ import spellModel
 import spellService
 import std/strformat
 import spellSerialization
+import spellDeserialization
 import ../genericArticleControllers
 
 proc addSpellRoutes*(app: Prologue) =
@@ -26,6 +27,13 @@ proc addSpellRoutes*(app: Prologue) =
         re fmt"/spell/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Spell, SpellSerializable](serializeSpell),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/spell/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Spell, SpellSerializable](serializeSpell),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
