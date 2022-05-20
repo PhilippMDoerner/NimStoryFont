@@ -5,6 +5,7 @@ import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
 import sessionAudioSerialization
+import sessionAudioDeserialization
 import sessionaudioModel
 import sessionaudioUtils
 import sessionaudioControllers
@@ -34,7 +35,7 @@ proc addSessionAudioRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/sessionaudio/pk/{ID_PATTERN}/", 
-        handler = patchSessionAudioController,
+        handler =  createPatchByIdHandler[UpdateParams, SessionAudio, SessionAudioSerializable](serializeSessionAudio),
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
