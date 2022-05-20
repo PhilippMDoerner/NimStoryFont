@@ -123,3 +123,12 @@ proc updateEncounterOrderAfterBackwardsInsert*(connection: DbConn, affectedEncou
         let isCutEncounter = encounter.id == cutEncounter.id
         if not isCutEncounter:
             connection.update(encounter)
+
+
+proc getCampaignEncounters*(connection: DbConn, campaignName: string): seq[EncounterRead] =
+  var entries: seq[EncounterRead] = @[newModel(EncounterRead)]
+  const condition: string = """diaryentry_id_session_id_campaign_id.name LIKE ?"""
+
+  connection.select(entries, condition, campaignName)
+
+  result = entries

@@ -51,3 +51,14 @@ proc addEncounterRoutes*(app: Prologue) =
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/encounter/{CAMPAIGN_NAME_PATTERN}/overview/", 
+        handler = createReadListHandler(
+          readCampaignEncounters,
+          checkEncounterListPermission,
+          overviewSerialize
+        ),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
