@@ -26,14 +26,24 @@ proc addMarkerTypeRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/markertype/pk/{ID_PATTERN}/", 
-        handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
+        handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](
+            readArticleById, 
+            checkAdminPermission, 
+            updateArticle, 
+            serializeMarkerType
+        ),
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/markertype/pk/{ID_PATTERN}/", 
-        handler = createPatchHandler[UpdateParams, MarkerType, MarkerTypeSerializable](readArticleById, checkAdminPermission, updateArticle, serializeMarkerType),
+        handler = createPatchHandler[UpdateParams, MarkerType, MarkerTypeSerializable](
+            readArticleById, 
+            checkAdminPermission, 
+            updateArticle, 
+            serializeMarkerType
+        ),
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
