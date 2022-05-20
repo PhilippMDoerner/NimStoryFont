@@ -3,6 +3,7 @@ import ../campaign/[campaignModel, campaignService]
 import authenticationModels
 import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model
+import ../allUrlParams
 import ../user/userService
 
 export authenticationModels
@@ -80,3 +81,6 @@ proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission
   connection.select(permissionEntries, sqlCondition)
 
   result = permissionEntries
+
+proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[Group] =
+  result = connection.getList(Group)

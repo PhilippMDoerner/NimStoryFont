@@ -100,3 +100,7 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
   if not hasCampaignMembership:
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
+
+
+proc checkNoPermission*(ctx: JWTContext, entries: seq[authenticationModels.Group]) = 
+  return

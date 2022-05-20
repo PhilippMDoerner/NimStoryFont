@@ -16,5 +16,5 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
   if isDeletingAdmin:
     checkSuperuserPermission(ctx, entry)
 
-
-
+proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
+  return

@@ -70,3 +70,11 @@ proc addUserRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
 
+    app.addRoute(
+        "/user/",
+        handler = createReadListHandler(
+            readListProc = getUsers,
+            checkPermission = checkNoUserPermission,
+            serialize = serializeUser
+        )
+    )
