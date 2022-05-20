@@ -3,6 +3,7 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import ruleModel
 import ruleSerialization
+import ruleDeserialization
 import ruleService
 import std/strformat
 import ../genericArticleControllers
@@ -26,6 +27,13 @@ proc addRuleRoutes*(app: Prologue) =
         re fmt"/rule/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Rule, RuleSerializable](serializeRule),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/rule/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Rule, RuleSerializable](serializeRule),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
