@@ -22,6 +22,9 @@ proc readUserById*(connection: DbConn, requestParams: ReadByIdParams | UpdatePar
 proc getUserByName*(userName: string): User =
   result = getEntryByField("username", userName, User)
 
+proc getUsers*(connection: DbConn, requestParams: ReadWithoutParams): seq[User] =
+  result = connection.getList(User)
+
 proc getCampaignUserListOverview*(connection: DbConn, requestParams: ReadListParams): seq[User] =
   ## lists all campaign entries using a limited but performant representation of a User
   result = connection.getCampaignUsers(requestParams.campaignName)
