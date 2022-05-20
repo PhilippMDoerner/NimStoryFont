@@ -1,4 +1,4 @@
 import ruleModel
 
-proc `$`*(model: Rule): string =
+proc `$`*(model: Rule | RuleRead): string =
     result = model.name

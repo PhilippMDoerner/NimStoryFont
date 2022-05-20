@@ -1,4 +1,5 @@
 import ruleModel
+import ruleUtils
 import norm/sqlite
 import ../genericArticleRepository
 import ../campaign/campaignModel
@@ -32,3 +33,23 @@ proc serializeRuleRead*(connection: DbConn, entry: RuleRead): RuleSerializable =
 proc serializeRule*(connection: DbConn, entry: Rule): RuleSerializable =
     let fullEntry = connection.getEntryById(entry.id, RuleRead)
     result = connection.serializeRuleRead(fullEntry)
+
+
+type RuleOverviewSerializable* = object
+    article_type: string
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+
+
+proc overviewSerialize*(connection: DbConn, entry: RuleRead): RuleOverviewSerializable =
+    result = RuleOverviewSerializable(
+        article_type: "rule",
+        pk: entry.id,
+        name_full: $entry,
+        name: entry.name,
+        campaign_details: entry.campaign_id,
+        update_datetime: entry.update_datetime
+    )
