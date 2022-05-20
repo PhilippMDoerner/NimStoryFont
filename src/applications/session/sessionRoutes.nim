@@ -2,6 +2,7 @@ import prologue except Session
 import ../../middleware/[loginMiddleware]
 import ../allUrlParams
 import sessionSerialization
+import sessionDeserialization
 import sessionModel
 import sessionService
 import ../genericArticleControllers
@@ -26,6 +27,13 @@ proc addSessionRoutes*(app: Prologue) =
         re fmt"/session/pk/{ID_PATTERN}/",
         handler = createUpdateByIdHandler[UpdateParams, Session, SessionSerializable](serializeSession),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/session/pk/{ID_PATTERN}/",
+        handler = createPatchByIdHandler[UpdateParams, Session, SessionSerializable](serializeSession),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
