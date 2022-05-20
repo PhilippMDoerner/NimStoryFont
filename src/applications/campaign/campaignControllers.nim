@@ -75,5 +75,5 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 
   respondBadRequestOnDbError():
     withDbConn(connection):
-      let statistics = connection.getStatistics(campaignName)
+      let statistics = connection.getCampaignStatistics(campaignName)
       resp jsonyResponse(ctx, statistics)

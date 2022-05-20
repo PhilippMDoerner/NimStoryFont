@@ -19,7 +19,7 @@ import ../sessionaudio/sessionaudioModel
 import ../sessionAudioTimestamp/timestampModel
 import ../spell/spellModel
 
-proc getStatistics*(connection: DbConn, campaignName: string): CampaignStatistics =
+proc getCampaignStatistics*(connection: DbConn, campaignName: string): CampaignStatistics =
   let campaignId = connection.getEntryByField("name", campaignName, Campaign).id
 
   result = CampaignStatistics(
@@ -39,3 +39,5 @@ proc getStatistics*(connection: DbConn, campaignName: string): CampaignStatistic
     timestamp_count: connection.getTimestampCount(campaignId),
     spell_count: connection.count(SpellRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
   )
+
+proc get
