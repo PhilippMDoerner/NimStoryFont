@@ -16,7 +16,7 @@ const SESSION_DATE_FORMAT* = "yyyy-MM-dd"
 ###TABLE NAMES
 #Auth
 const GROUP_TABLE* = "auth_group"
-const GROUP_PERMISSION_TABLE* = "auth_group_permission"
+const GROUP_PERMISSION_TABLE* = "auth_group_permissions"
 const PERMISSION_TABLE* = "auth_permission"
 const USER_TABLE* = "auth_user"
 const USER_GROUP_TABLE* = "auth_user_groups"
