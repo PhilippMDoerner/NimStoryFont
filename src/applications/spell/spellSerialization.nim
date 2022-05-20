@@ -5,7 +5,7 @@ import ../genericArticleRepository
 import ../playerclass/[playerClassModel, playerClassSerialization]
 import std/[options, sugar, sequtils]
 import ../campaign/campaignModel
-import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../articleModel
 
 type SpellConnectionSerializable* = object
@@ -75,7 +75,8 @@ proc serializeSpell*(connection: DbConn, entry: Spell): SpellSerializable =
 
 
 type SpellOverviewSerializable* = object
-    article_type: string
+    article_type: ArticleType
+    description: string
     pk: int64
     name_full: string
     name: string
@@ -84,7 +85,8 @@ type SpellOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: SpellRead): SpellOverviewSerializable =
     result = SpellOverviewSerializable(
-        article_type: "spell",
+        article_type: ArticleType.atSpell,
+        description: truncate(entry.description),
         pk: entry.id,
         name_full: $entry,
         name: entry.name,

@@ -3,7 +3,7 @@ import ruleUtils
 import norm/sqlite
 import ../genericArticleRepository
 import ../campaign/campaignModel
-import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import std/[options, sugar]
 import ../articleModel
 
@@ -36,7 +36,8 @@ proc serializeRule*(connection: DbConn, entry: Rule): RuleSerializable =
 
 
 type RuleOverviewSerializable* = object
-    article_type: string
+    article_type: ArticleType
+    description: Option[string]
     pk: int64
     name_full: string
     name: string
@@ -46,7 +47,8 @@ type RuleOverviewSerializable* = object
 
 proc overviewSerialize*(connection: DbConn, entry: RuleRead): RuleOverviewSerializable =
     result = RuleOverviewSerializable(
-        article_type: "rule",
+        article_type: ArticleType.atRule,
+        description: entry.description.map(txt => truncate(txt)),
         pk: entry.id,
         name_full: $entry,
         name: entry.name,
