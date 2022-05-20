@@ -11,7 +11,7 @@ type FontAwesomeType* = enum
   VERSION4 = "fa"
 
 func dbType*(T: typedesc[FontAwesomeType]): string = "TEXT"
-func dbValue*(val: FontAwesomeType): DbValue = dbValue(val)
+func dbValue*(val: FontAwesomeType): DbValue = dbValue($val)
 func to*(dbVal: DbValue, T: typedesc[FontAwesomeType]): FontAwesomeType =
   ## Allows converting the string value of a FontAwesomeType into the enum 
   let isStringValue = dbVal.kind == dvkString
