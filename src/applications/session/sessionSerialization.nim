@@ -2,10 +2,11 @@ import sessionModel
 import norm/sqlite
 import ../campaign/campaignModel
 import ../diaryentry/[diaryEntryModel]
+import ../sessionaudio/sessionaudioModel
 import ../genericArticleRepository
 import sessionUtils
 import ../../utils/djangoDateTime/[djangoDateTimeType]
-import std/[options, sequtils, strformat]
+import std/[options, sequtils, strformat, sugar]
 import ../articleModel
 
 type SessionDiaryEntrySerializable* = object
@@ -67,3 +68,42 @@ proc serializeSession*(connection: DbConn, entry: Session): SessionSerializable 
     let fullEntry = connection.getEntryById(entry.id, SessionRead)
     result = connection.serializeSessionRead(fullEntry)
 
+
+type SessionOverviewSerializable* = object
+    article_type: string
+    pk: int64
+    name_full: string
+    name: string
+    campaign_details: MinimumCampaignOverview
+    update_datetime: DjangoDateTime
+    has_recording: bool
+    author_ids: seq[int64]
+    start_day: Option[int]
+    end_day: Option[int]
+    session_number: int
+    is_main_session: bool
+    is_main_session_int: 0..1
+    session_date: DjangoDateTime
+
+proc overviewSerialize*(connection: DbConn, entry: SessionRead): SessionOverviewSerializable =
+    let entryString = $entry
+    let hasRecording: bool = connection.getManyFromOne(entry, SessionAudio).len > 0
+    let authorIds = connection.getManyFromOne(entry, DiaryEntry)
+        .map(diaryentry => diaryentry.author_id)
+
+    result = SessionOverviewSerializable(
+        article_type: "session",
+        pk: entry.id,
+        name_full: entryString,
+        name: entryString,
+        campaign_details: entry.campaign_id,
+        update_datetime: entry.update_datetime,
+        has_recording: hasRecording,
+        author_ids: author_ids,
+        start_day: entry.start_day,
+        end_day: entry.end_day,
+        session_number: entry.session_number,
+        is_main_session: entry.is_main_session,
+        is_main_session_int: entry.is_main_session.int,
+        session_date: entry.session_date
+    )
