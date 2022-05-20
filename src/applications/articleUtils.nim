@@ -65,10 +65,10 @@ proc getArticleData*(articleTable: ArticleTable, articleId: int64): JsonNode =
 
       of ArticleTable.atbSPELL:
         let entry = connection.getEntryById(articleId, spellService.SpellRead)
-        jsonString = connection.serializeSpellRead(entry).toJson()
+        jsonString = connection.overviewSerialize(entry).toJson()
 
       of ArticleTable.atbRULE:
         let entry = connection.getEntryById(articleId, ruleService.RuleRead)
-        jsonString = connection.serializeRuleRead(entry).toJson()
+        jsonString = connection.overviewSerialize(entry).toJson()
 
   result = parseJson(jsonString)
