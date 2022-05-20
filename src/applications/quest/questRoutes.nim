@@ -4,6 +4,7 @@ import ../allUrlParams
 import questModel
 import questService
 import questSerialization
+import questDeserialization
 import std/strformat
 import ../genericArticleControllers
 
@@ -26,6 +27,13 @@ proc addQuestRoutes*(app: Prologue) =
         re fmt"/quest/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Quest, QuestSerializable](serializeQuest),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/quest/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Quest, QuestSerializable](serializeQuest),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
