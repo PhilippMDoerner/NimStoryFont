@@ -5,6 +5,7 @@ import std/strformat
 import ../genericArticleControllers
 import userRequestParams
 import userSerialization
+import userDeserialization
 import userUtils
 import ../authentication/authenticationUtils
 
@@ -32,6 +33,18 @@ proc addUserRoutes*(app: Prologue) =
             serialize = serializeUser
         ),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/user/pk/{ID_PATTERN}/",
+        handler = createPatchHandler[UpdateParams, User, UserSerializable](
+            readProc = readUserById,
+            checkPermission = checkUserDeletePermission,
+            updateProc = updateUser,
+            serialize = serializeUser
+        ),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
