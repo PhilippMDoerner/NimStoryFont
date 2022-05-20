@@ -57,6 +57,17 @@ proc addCampaignRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/campaign/", 
+        handler = createReadListHandler(
+          getAllCampaignOverviews,
+          noCampaignListPermissionCheck,
+          serializeCampaignRead
+        ),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
     
     app.addRoute(
         re fmt"/campaign/{CAMPAIGN_NAME_PATTERN}/", 
