@@ -36,6 +36,7 @@ type SessionSerializable* = object
     campaign_details: MinimumCampaignOverview
     pk: int64
     name: string
+    name_full: string
     diaryentries: seq[SessionDiaryEntrySerializable]
     has_recording: bool
 
@@ -43,6 +44,8 @@ proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSeria
     let diaryentries = connection.getManyFromOne(entry, DiaryEntryRead)
         .map(serializeSessionDiaryentry)
     
+    let sessionString = $entry
+
     result = SessionSerializable(
         pk: entry.id,
         session_number: entry.session_number,
@@ -51,7 +54,8 @@ proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSeria
         is_main_session_int: entry.is_main_session.int,
         start_day: entry.start_day,
         end_day: entry.end_day,
-        name: $entry,
+        name: sessionString,
+        name_full: sessionString,
         update_datetime: entry.update_datetime,
         creation_datetime: entry.creation_datetime,
         campaign: entry.campaign_id.id,
