@@ -76,5 +76,6 @@ proc addUserRoutes*(app: Prologue) =
             readListProc = getUsers,
             checkPermission = checkNoUserPermission,
             serialize = serializeUser
-        )
+        ),
+        httpMethod = HttpGet
     )
