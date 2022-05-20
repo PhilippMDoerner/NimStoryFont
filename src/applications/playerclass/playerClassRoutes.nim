@@ -10,7 +10,7 @@ import ../genericArticleControllers
 
 proc addPlayerClassRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/player_class/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/player_class/",
         handler = createCreateHandler[CreateParams, PlayerClass, PlayerClassSerializable](
             checkPlayerClassPermission,
             createArticle,
