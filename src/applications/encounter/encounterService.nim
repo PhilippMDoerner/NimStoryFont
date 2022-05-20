@@ -83,3 +83,7 @@ proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: 
         var diaryentry = newModel(DiaryEntry)
         diaryentry.id = cutEncounter.diaryentry_id
         result = getManyFromOne(connection, diaryentry, EncounterRead)
+
+
+proc readCampaignEncounters*(connection: DbConn, requestParams: ReadListParams): seq[EncounterRead] =
+    result = connection.getCampaignEncounters(requestParams.campaignName)

@@ -1,6 +1,8 @@
 import ../genericArticleRepository
 import std/[strformat, options]
 import encounterModel
+import ../authentication/authenticationUtils
+import ../../utils/jwtContext
 
 proc `$`*(encounter: EncounterRead): string =
     result.add(if encounter.diaryentry_id.session_id.is_main_session: "Main " else: "Side ")
@@ -23,3 +25,6 @@ proc campaign_id*(encounter: Encounter): int64 =
 
 proc campaign_id*(encounter: EncounterRead): int64 =
     result = encounter.diaryentry_id.session_id.campaign_id.id
+
+proc checkEncounterListPermission*(ctx: JWTContext, entries: seq[EncounterRead]) =
+  checkCampaignReadListPermission(ctx, entries)
