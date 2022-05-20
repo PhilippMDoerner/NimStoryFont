@@ -1,7 +1,7 @@
 import ../utils/errorResponses
 import norm/sqlite
 import authentication/authenticationUtils
-import std/logging
+import std/[json, logging]
 
 template respondBadRequestOnDbError*(body: untyped) =
   ## template to handle some usual error cases. Returns HTTP400
@@ -20,6 +20,10 @@ template respondBadRequestOnDbError*(body: untyped) =
   except CampaignPermissionError:
     debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries())
     resp get403ForbiddenResponse()
+
+  except JsonParsingError:
+    debug("Error during parsing of input: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries())
+    resp get400BadRequestResponse(getCurrentExceptionMsg())
 
   except Exception:
     debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
