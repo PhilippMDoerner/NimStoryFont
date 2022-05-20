@@ -2,6 +2,7 @@ import norm/model
 import std/[tables, options, json, typetraits, strutils]
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 
+export strutils
 export macroUtils
 export djangoDateTimeType
 
@@ -11,6 +12,11 @@ template transferJsonIntValue(receiver: var Option[int], valueNode: JsonNode) =
   case valueNode.kind:
   of JsonNodeKind.JInt:
     receiver = some(valueNode.num.int)
+  of JsonNodeKind.JString:
+    try:
+      receiver = some(valueNode.str.parseInt())
+    except ValueError:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type, but the json was of kind '{valueNode.kind}'")
 
