@@ -4,6 +4,7 @@ import quoteService
 import quoteSerialization
 import quoteUtils
 import quoteControllers
+import quoteDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -27,6 +28,13 @@ proc addQuoteRoutes*(app: Prologue) =
         re fmt"/quote/pk/{ID_PATTERN}/", 
         handler = createUpdateByIdHandler[UpdateParams, Quote, QuoteSerializable](serializeQuote),
         httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/quote/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Quote, QuoteSerializable](serializeQuote),
+        httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
 
