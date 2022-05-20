@@ -11,7 +11,7 @@ import ../genericArticleControllers
 
 proc addMarkerTypeRoutes*(app: Prologue) =
     app.addRoute(
-        re fmt"/markertype/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/markertype/",
         handler = createCreateHandler[CreateParams, MarkerType, MarkerTypeSerializable](checkAdminPermission, createArticle, serializeMarkerType),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
