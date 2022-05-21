@@ -14,7 +14,7 @@ template transferJsonIntValue(receiver: var Option[untyped], valueNode: JsonNode
     receiver = some(valueNode.num.int)
   of JsonNodeKind.JString:
     try:
-      receiver = some(valueNode.str.parseInt())
+      receiver = if valueNode.str == "": none(int) else: some(valueNode.str.parseInt())
     except ValueError:
       raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
   else:
@@ -29,7 +29,7 @@ template transferJsonIntRange0To9Value(receiver: var Option[untyped], valueNode:
   of JsonNodeKind.JString:
     try:
       let rangeNumber: 0..9 = valueNode.str.parseInt()
-      receiver = some(rangeNumber)
+      receiver = if valueNode.str == "": none(range[0..9]) else: some(rangeNumber)
     except ValueError:
       raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
   else:
@@ -40,6 +40,12 @@ template transferJsonInt64Value(receiver: var Option[int64], valueNode: JsonNode
   case valueNode.kind:
   of JsonNodeKind.JInt:
     receiver = some(valueNode.num)
+  of JsonNodeKind.JString:
+    try:
+      receiver = if valueNode.str == "": none(int64) else: some(valueNode.str.parseInt().int64)
+    except ValueError:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
+  
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int64-type, but the json was of kind '{valueNode.kind}'")
 
