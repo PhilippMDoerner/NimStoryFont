@@ -14,13 +14,20 @@ type SpellConnectionSerializable* = object
     spell: int64
     player_class_details: PlayerClassSerializable
 
-proc serializeSpellConnection(entry: SpellConnectionRead): SpellConnectionSerializable =
+proc serializeSpellConnectionRead*(entry: SpellConnectionRead): SpellConnectionSerializable =
     result = SpellConnectionSerializable(
         pk: entry.id,
         player_class: entry.player_class_id.id,
         spell: entry.spell_id.id,
         player_class_details: serializePlayerClass(entry.player_class_id)
     )
+
+proc serializeSpellConnectionRead*(connection: DbConn, entry: SpellConnectionRead): SpellConnectionSerializable =
+    result = entry.serializeSpellConnectionRead()
+
+proc serializeSpellConnection*(connection: DbConn, entry: SpellConnection): SpellConnectionSerializable =
+    let spellConnectionRead = connection.getEntryById(entry.id, SpellConnectionRead)
+    result = connection.serializeSpellConnectionRead(spellConnectionRead)
 
 type SpellSerializable* = object
     article_type: ArticleType
@@ -45,7 +52,7 @@ type SpellSerializable* = object
 
 proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializable =
     let serializedSpellConnections = connection.getManyFromOne(entry, SpellConnectionRead)
-        .map(serializeSpellConnection)
+        .map(serializeSpellConnectionRead)
     
     result = SpellSerializable(
         article_type: ArticleType.atSpell,
