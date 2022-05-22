@@ -1,6 +1,6 @@
 import characterModel
 import ../item/itemModel
-import ../encounter/[encounterModel, encounterSerialization]
+import ../encounter/[encounterModel, encounterSerialization, encounterUtils]
 import ../image/[imageSerialization, imageModel, imageUtils]
 import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
@@ -13,6 +13,7 @@ import norm/sqlite
 import ../articleModel
 import ../playerclass/[playerClassSerialization, playerClassModel]
 import characterEncounterModel
+import characterUtils
 
 type CharacterLocationSerializable* = object
     pk*: int64
@@ -145,7 +146,32 @@ proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): Character
     )
 
 
+type ConnectionDetailsSerializable* = object
+    name: Option[string]
+    name_full: string
+    pk: int64
 
-type CharacterEncounterReadSerializable* = CharacterEncounterRead
+
+type CharacterEncounterReadSerializable* = object
+    pk: int64
+    encounter: int64
+    encounter_details: ConnectionDetailsSerializable
+    character: int64
+    character_details: ConnectionDetailsSerializable
+
 proc serializeCharacterEncounterRead*(connection: DbConn, entry: CharacterEncounterRead): CharacterEncounterReadSerializable =
-    result = entry
+    result = CharacterEncounterReadSerializable(
+        pk: entry.id,
+        encounter: entry.encounter_id.id,
+        character: entry.character_id.id,
+        encounter_details: ConnectionDetailsSerializable(
+            name: entry.encounter_id.title,
+            name_full: $entry.encounter_id,
+            pk: entry.encounter_id.id
+        ),
+        character_details: ConnectionDetailsSerializable(
+            name: some(entry.character_id.name),
+            name_full: $entry.character_id,
+            pk: entry.character_id.id
+        )
+    )
