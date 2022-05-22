@@ -51,6 +51,7 @@ type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn,
 type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
 type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
 type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
+type PatchProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(params: REQUESTPARAMS, entryToPatch: var ENTRY)
 type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
