@@ -1,6 +1,7 @@
 import jsony
 import prologue
 import jwtContext
+import norm/model
 
 func jsonyResponse*(text: string, code = Http200, headers = initResponseHeaders(),
                    version = HttpVer11): Response {.inline.} =
@@ -16,3 +17,11 @@ proc jsonyResponse*[T](
   version = HttpVer11
 ): Response {.inline.} =
   jsonyResponse(text = jsony.toJson(content), code = code, headers = headers)
+
+
+proc outdatedUpdateResponse*[T: Model](
+  ctx: JWTContext,
+  content: T
+): Response {.inline.} =
+  result = initResponse(HttpVer11, code = Http409, headers = initResponseHeaders(), body = content.toJson())
+  result.headers["Content-Type"] = "application/json" 
