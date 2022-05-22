@@ -41,7 +41,7 @@ type QuoteSerializable* = object
     session: int64
     session_details: SessionSerializable
     encounter: Option[int64]
-    connection: seq[QuoteConnectionSerializable]
+    connections: seq[QuoteConnectionSerializable]
 
 
 
@@ -58,7 +58,7 @@ proc serializeQuoteRead*(connection: DbConn, entry: QuoteRead): QuoteSerializabl
         session: entry.session_id.id,
         session_details: connection.serializeSessionRead(session),
         encounter: entry.encounter_id.map(enc => enc.id),
-        connection: quoteConnections.map(serializeQuoteConnectionRead)
+        connections: quoteConnections.map(serializeQuoteConnectionRead)
     )
 
 proc serializeQuote*(connection: DbConn, entry: Quote): QuoteSerializable =
