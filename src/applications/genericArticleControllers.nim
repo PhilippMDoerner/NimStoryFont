@@ -157,7 +157,7 @@ proc createPatchHandler2*[P: object, E: Model, S: object | ref object](
         checkPermission(ctx, oldEntry)
         try:
           var patchedEntry: E = patchEntryWithJsonProc(jsonData, oldEntry)
-          let newUpdatedEntry: E = connection.updateEntryInTransaction(patchedEntry)
+          let newUpdatedEntry: E = connection.updateArticle(params,patchedEntry)
           let data: S = connection.serialize(newUpdatedEntry)
 
           resp jsonyResponse(ctx, data)
