@@ -29,7 +29,6 @@ type LocationMarker* = object
     map_icon: Option[string]
 
 proc serializeLocationMarker(entry: MarkerRead): LocationMarker =
-    echo entry.toJson()
     result = LocationMarker(map: entry.map_id.name, map_icon: entry.map_id.icon)
 
 type ParentLocationSerializable* = object

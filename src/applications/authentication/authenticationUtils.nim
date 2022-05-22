@@ -30,7 +30,6 @@ proc getCampaignId[T: Model](entry: T): int64 =
 
 
 proc checkCampaignWritePermission(ctx: JWTContext, entryCampaignId: int64) =
-  echo jsony.toJson(ctx.tokenData.campaignMemberships)
   let isCampaignMember = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
   if not isCampaignMember:
     raise newException(CampaignPermissionError, fmt"You are not a member of the campaign '{entryCampaignId}' which you're creating an entry for")
