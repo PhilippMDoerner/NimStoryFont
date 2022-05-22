@@ -5,7 +5,7 @@ import tinypool
 import controllerTemplates
 import genericArticleService
 import genericArticleRepository
-import genericUpdateDeserialization
+import genericDeserialization
 import authentication/authenticationUtils
 import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
@@ -16,7 +16,7 @@ export jsony
 export serialization
 export normConversion
 export genericArticleService
-export genericUpdateDeserialization
+export genericDeserialization
 
 export authenticationUtils
 
