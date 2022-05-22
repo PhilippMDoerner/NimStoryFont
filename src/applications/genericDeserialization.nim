@@ -1,5 +1,6 @@
 import norm/model
 import std/[tables, options, json, typetraits, strutils, strformat, logging]
+from std/times import toUnix
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 include genericUpdateDeserialization
 import jsony
@@ -9,7 +10,7 @@ export typetraits
 export macroUtils
 export logging
 export djangoDateTimeType
-
+export toUnix
 
 proc invertTable*(table: Table[string, string]): Table[string, string] {.compileTime.} =
   for key, value in table.pairs:
@@ -21,7 +22,7 @@ template setOptionalsToNone[T: Model](entry: var T) =
     when fieldValue is Option:
       entry.getField(fieldName) = none(fieldValue.get().type())
 
-template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], modelToJsonFieldNameMap: Table[string, string]) =
+template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], modelToJsonFieldNameMap: Table[string, string], isArticle: static bool = false) =
   ## Creates an entire deserialization-module worth of jsony-hooks for the Model 
   ## `deserializedType`.
   
@@ -38,7 +39,7 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
     ## These default values are the current DateTime for update- and creation
     ## date as well as "none" values for all Optional values of the Article.
     entry = new(deserializedType)
-    let currentDateTime: DjangoDateTime = now()
+    let currentDateTime: DjangoDateTime = djangoDateTimeType.now()
     entry.creation_datetime = currentDateTime
     entry.update_datetime = currentDateTime
     setOptionalsToNone[T](entry)
@@ -47,20 +48,46 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
   proc deserializeEntry*[T: Model](jsonStr: string, modelType: typedesc[T]): T = jsonStr.fromJson(T)
 
   ## PROC FOR DESERIALIZING ENTRY PATCHING JSON
+  when isArticle:
+    proc updateArticleWithJson*[T: Model](json: JsonNode, oldEntry: T): T = #TODO: Attach article type to this generic
+      ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
+      ## that also has a key-value pair in `json`, then that value will be copied from `json`
+      ## into `entry`, overwriting whatever value was there before.
+      const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
 
-  proc updateEntryWithJson*[T: Model](entry: var T, json: JsonNode) =
-    ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
-    ## that also has a key-value pair in `json`, then that value will be copied from `json`
-    ## into `entry`, overwriting whatever value was there before.
-    const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
+      result = oldEntry.deepCopy()
+      let serverTimestamp: int64 = oldEntry.update_datetime.toTime().toUnix()
 
-    for modelFieldName, fieldValue in entry[].fieldPairs:
-      const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
-      
-      if json.hasKey(jsonFieldName):
-        when fieldValue is Option:
-          #fieldValue.T is the inner type of the Option type
-          transferJsonValue(entry, modelFieldName, fieldValue.T, json[jsonFieldName])
-        else:
-          transferJsonValue(entry, modelFieldName, fieldValue.type(), json[jsonFieldName])
+      for modelFieldName, fieldValue in result[].fieldPairs:
+        const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
+        
+        if json.hasKey(jsonFieldName):
+          when fieldValue is Option:
+            #fieldValue.T is the inner type of the Option type
+            transferJsonValue(result, modelFieldName, fieldValue.T, json[jsonFieldName])
+          else:
+            transferJsonValue(result, modelFieldName, fieldValue.type(), json[jsonFieldName])
 
+      let userTimestamp: int64 = result.update_datetime.toTime().toUnix()
+      let isBasedOnOutdatedUserData = userTimestamp < serverTimestamp
+      let hasChanges = oldEntry != result
+      if isBasedOnOutdatedUserData and hasChanges:
+        raise newException(OutdatedDataError, "Tried updating a database entry that with data that has already been changed by another user!")
+
+
+  else:
+    proc updateEntryWithJson*[T: Model](entry: var T, json: JsonNode) =
+      ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
+      ## that also has a key-value pair in `json`, then that value will be copied from `json`
+      ## into `entry`, overwriting whatever value was there before.
+      const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
+
+      for modelFieldName, fieldValue in entry[].fieldPairs:
+        const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
+        
+        if json.hasKey(jsonFieldName):
+          when fieldValue is Option:
+            #fieldValue.T is the inner type of the Option type
+            transferJsonValue(entry, modelFieldName, fieldValue.T, json[jsonFieldName])
+          else:
+            transferJsonValue(entry, modelFieldName, fieldValue.type(), json[jsonFieldName])

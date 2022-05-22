@@ -7,6 +7,7 @@ export macroUtils
 export djangoDateTimeType
 
 type Parseable = int | int64 | string | float | bool | DjangoDateTime | enum
+type OutdatedDataError* = object of CatchableError
 
 template transferJsonIntValue(receiver: var Option[untyped], valueNode: JsonNode) =
   case valueNode.kind:

@@ -51,7 +51,7 @@ type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn,
 type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
 type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
 type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
-type PatchProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(params: REQUESTPARAMS, entryToPatch: var ENTRY)
+type PatchProc*[ENTRY: Model] = proc(updateData: JsonNode, entryToPatch: ENTRY): ENTRY
 type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
@@ -136,6 +136,42 @@ proc createPatchHandler*[P: object, E: Model, S: object | ref object](
 
 proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   result = createPatchHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
+
+
+proc createPatchHandler2*[P: object, E: Model, S: object | ref object](
+  readProc: ReadProc[P, E],
+  checkPermission: CheckPermissionProc[E],
+  patchEntryWithJsonProc: PatchProc[E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = proc(ctx: Context) {.async.} =
+
+    let ctx = JWTContext(ctx)
+
+    let params: P = ctx.extractQueryParams(P)
+    let jsonData: JsonNode = ctx.request.body().parseJson()
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        let oldEntry: E = connection.readProc(params)
+        checkPermission(ctx, oldEntry)
+        try:
+          var patchedEntry: E = patchEntryWithJsonProc(jsonData, oldEntry)
+          let newUpdatedEntry: E = connection.updateEntryInTransaction(patchedEntry)
+          let data: S = connection.serialize(newUpdatedEntry)
+
+          resp jsonyResponse(ctx, data)
+
+        except OutdatedDataError:
+          resp outdatedUpdateResponse(ctx, oldEntry)
+
+proc createPatchByIdHandler2*[P: object, E: Model, S: object | ref object](
+  patchEntryWithJsonProc: PatchProc[E],
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  result = createPatchHandler2[P, E, S](readArticleById, checkUpdatePermission, patchEntryWithJsonProc, serialize)
+
+
 
 proc createCreateHandler*[P: object, E: Model, S: object | ref object](
   checkPermission: CheckPermissionProc[E],
