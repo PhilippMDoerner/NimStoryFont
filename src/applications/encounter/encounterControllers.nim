@@ -5,6 +5,8 @@ import std/[json, strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
+import ../../utils/djangoDateTime/[serialization]
+
 
 
 proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
