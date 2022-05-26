@@ -123,8 +123,6 @@ proc updateEntryWithJson*[T: Model](json: JsonNode, oldEntry: T): T =
   ## that also has a key-value pair in `json`, then that value will be copied from `json`
   ## into `entry`, overwriting whatever value was there before.
   const jsonToModelFieldNameMap: Table[string, string] = mapJsonToModelFieldNames(T).invertTable()
-  echo "Walumba"
-  echo %*jsonToModelFieldNameMap
 
   result = oldEntry.deepCopy()
 

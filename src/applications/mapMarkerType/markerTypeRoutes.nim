@@ -41,7 +41,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         handler = createPatchHandler[UpdateParams, MarkerType, MarkerTypeSerializable](
             readArticleById, 
             checkAdminPermission, 
-            updateArticle, 
+            patchArticle, 
             serializeMarkerType
         ),
         httpMethod = HttpPatch,
