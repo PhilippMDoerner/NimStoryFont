@@ -150,3 +150,76 @@ proc transferJsonValue[M: Model](entry: var M, fieldName: static string, fieldTy
       transferEnumValue(value, valueNode)
   
   moveValueIntoField(entry, fieldName, value)
+
+
+
+proc addMapping(table: var Table[string, string], fieldName: string) {.compileTime.} =
+  var jsonName = fieldName
+  jsonName.removeSuffix("_id")
+  table[jsonName] = fieldName
+
+proc mapJsonToModelFieldNames[T: Model](modelType: typedesc[T]): Table[string, string] {.compileTime.} =  
+  var mappings = initTable[string, string]()
+  for sourceFieldName, sourceFieldValue in T()[].fieldPairs:
+      #Handles case where field is an int64 with fk pragma
+      when sourceFieldValue.hasCustomPragma(fk):
+        mappings.addMapping(sourceFieldName)
+
+      #Handles case where field is a Model type
+      elif sourceFieldValue is Model:
+        mappings.addMapping(sourceFieldName)
+      
+      #Handles case where field is a Option[Model] type
+      elif sourceFieldValue is Option:
+        when sourceFieldValue.get() is Model:
+          mappings.addMapping(sourceFieldName)
+
+  result = mappings
+
+
+
+
+proc invertTable*(table: Table[string, string]): Table[string, string] {.compileTime.} =
+  for key, value in table.pairs:
+    result[value] = key
+
+proc updateArticleWithJson*[T: Model](json: JsonNode, oldEntry: T): T = #TODO: Attach article type to this generic
+  ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
+  ## that also has a key-value pair in `json`, then that value will be copied from `json`
+  ## into `entry`, overwriting whatever value was there before.
+  const jsonToModelFieldNameMap: Table[string, string] = mapJsonToModelFieldNames(T).invertTable()
+  result = oldEntry.deepCopy()
+  let serverTimestamp: int64 = oldEntry.update_datetime.toTime().toUnix()
+
+  for modelFieldName, fieldValue in result[].fieldPairs:
+    const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
+    if json.hasKey(jsonFieldName):
+      when fieldValue is Option:
+        #fieldValue.T is the inner type of the Option type
+        transferJsonValue(result, modelFieldName, fieldValue.T, json[jsonFieldName])
+      else:
+        transferJsonValue(result, modelFieldName, fieldValue.type(), json[jsonFieldName])
+
+  let userTimestamp: int64 = result.update_datetime.toTime().toUnix()
+  let isBasedOnOutdatedUserData = userTimestamp < serverTimestamp
+  let hasChanges = oldEntry != result
+  if isBasedOnOutdatedUserData and hasChanges:
+    raise newException(OutdatedDataError, "Tried updating a database entry that with data that has already been changed by another user!")
+
+proc updateEntryWithJson*[T: Model](json: JsonNode, oldEntry: T): T =
+  ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
+  ## that also has a key-value pair in `json`, then that value will be copied from `json`
+  ## into `entry`, overwriting whatever value was there before.
+  const jsonToModelFieldNameMap: Table[string, string] = mapJsonToModelFieldNames(T).invertTable()
+
+  result = oldEntry.deepCopy()
+
+  for modelFieldName, fieldValue in result[].fieldPairs:
+    const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
+    
+    if json.hasKey(jsonFieldName):
+      when fieldValue is Option:
+        #fieldValue.T is the inner type of the Option type
+        transferJsonValue(result, modelFieldName, fieldValue.T, json[jsonFieldName])
+      else:
+        transferJsonValue(result, modelFieldName, fieldValue.type(), json[jsonFieldName])

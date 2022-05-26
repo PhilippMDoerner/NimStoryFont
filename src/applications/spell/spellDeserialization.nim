@@ -8,7 +8,7 @@ const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = {
   "spell": "spell_id"
 }.toTable()
 
-createArticleDeserializationHooks(Spell, JSON_TO_MODEL_FIELD_NAME_MAP)
+createDeserializationHooks(Spell, JSON_TO_MODEL_FIELD_NAME_MAP)
 
 proc renameHook*(v: var SpellConnection, fieldName: var string) =
   ##  A jsony renameHook the converts fieldNames that differ between the 

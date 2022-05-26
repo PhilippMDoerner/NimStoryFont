@@ -7,4 +7,4 @@ const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = {
   "parent_location": "parent_location_id"
 }.toTable()
 
-createArticleDeserializationHooks(Location, JSON_TO_MODEL_FIELD_NAME_MAP)
+createDeserializationHooks(Location, JSON_TO_MODEL_FIELD_NAME_MAP)

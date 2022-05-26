@@ -7,4 +7,4 @@ const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = {
   "author": "author_id"
 }.toTable()
 
-createArticleDeserializationHooks(DiaryEntry, JSON_TO_MODEL_FIELD_NAME_MAP)
+createDeserializationHooks(DiaryEntry, JSON_TO_MODEL_FIELD_NAME_MAP)
