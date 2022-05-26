@@ -52,6 +52,7 @@ type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, p
 type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
 type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
 type PatchProc*[ENTRY: Model] = proc(updateData: JsonNode, entryToPatch: ENTRY): ENTRY
+type PatchProc2*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, entryToPatch: ENTRY): ENTRY
 type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
@@ -141,23 +142,27 @@ proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](serial
 proc createPatchHandler2*[P: object, E: Model, S: object | ref object](
   readProc: ReadProc[P, E],
   checkPermission: CheckPermissionProc[E],
-  patchEntryWithJsonProc: PatchProc[E],
+  patchEntryWithJsonProc: PatchProc2[P, E],
   serialize: SerializeProc[E, S]
 ): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
+    mixin jsonToModelFieldNameRemappings
 
     let ctx = JWTContext(ctx)
 
-    let params: P = ctx.extractQueryParams(P)
-    let jsonData: JsonNode = ctx.request.body().parseJson()
+    var params: P = ctx.extractQueryParams(P)
+
+    when defined(jsonToModelFieldNameRemappings):
+      params.jsonToModelFieldNameRemappings = jsonToModelFieldNameRemappings
 
     respondBadRequestOnDbError():
       withDbTransaction(connection):
-        let oldEntry: E = connection.readProc(params)
+        var oldEntry: E = connection.readProc(params)
         checkPermission(ctx, oldEntry)
-        try:
-          var patchedEntry: E = patchEntryWithJsonProc(jsonData, oldEntry)
-          let newUpdatedEntry: E = connection.updateArticle(params,patchedEntry)
+
+        try:         
+          let newUpdatedEntry: E = connection.patchEntryWithJsonProc(params, oldEntry)
+
           let data: S = connection.serialize(newUpdatedEntry)
 
           resp jsonyResponse(ctx, data)
@@ -166,10 +171,12 @@ proc createPatchHandler2*[P: object, E: Model, S: object | ref object](
           resp outdatedUpdateResponse(ctx, oldEntry)
 
 proc createPatchByIdHandler2*[P: object, E: Model, S: object | ref object](
-  patchEntryWithJsonProc: PatchProc[E],
   serialize: SerializeProc[E, S]
 ): HandlerAsync =
-  result = createPatchHandler2[P, E, S](readArticleById, checkUpdatePermission, patchEntryWithJsonProc, serialize)
+  
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const patchProc: PatchProc2[P, E] = patchArticle[P, E]
+  result = createPatchHandler2[P, E, S](readProc, checkUpdatePermission, patchArticle, serialize)
 
 
 
