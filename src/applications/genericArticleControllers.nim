@@ -78,10 +78,14 @@ proc createReadHandler*[P: object, E: Model, S: object | ref object](
         resp jsonyResponse(ctx, data)
 
 proc createReadByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createReadHandler[P, E, S](readArticleById, checkReadPermission, serialize)
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const checkPermissionProc: CheckPermissionProc[E] = checkReadPermission[E]
+  result = createReadHandler[P, E, S](readProc, checkPermissionProc, serialize)
 
 proc createReadByNameHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createReadHandler[P, E, S](readArticleByName, checkReadPermission, serialize)
+  const readProc: ReadProc[P, E] = readArticleByName[P, E]
+  const checkPermissionProc: CheckPermissionProc[E] = checkReadPermission[E]
+  result = createReadHandler[P, E, S](readProc, checkReadPermission, serialize)
 
 
 
@@ -108,7 +112,10 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
         resp jsonyResponse(ctx, data)
 
 proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createUpdateHandler[P, E, S](readArticleById, checkUpdatePermission, updateArticle, serialize)
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const checkPermissionProc: CheckPermissionProc[E] = checkUpdatePermission[E]
+  const updateProc: UpdateProc[P, E] = updateArticle[P, E]
+  result = createUpdateHandler[P, E, S](readProc, checkPermissionProc, updateProc, serialize)
 
 proc createPatchHandler*[P: object, E: Model, S: object | ref object](
   readProc: ReadProc[P, E],
@@ -172,7 +179,9 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
         resp jsonyResponse(ctx, data)
 
 proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
-  result = createCreateHandler[P, E, S](checkCreatePermission, createArticle, serialize)
+  const checkPermissionProc: CheckPermissionProc[E] = checkCreatePermission[E]
+  const createProc: CreateProc[P, E] = createArticle[P, E]
+  result = createCreateHandler[P, E, S](checkPermissionProc, createProc, serialize)
 
 
 
@@ -231,4 +240,7 @@ proc createDeleteHandler*[P: object, E: Model](
         respDefault(Http204)
 
 proc createDeleteByIdHandler*[P: object, E: Model](): HandlerAsync =
-  result = createDeleteHandler[P, E](readArticleById, checkDeletePermission, deleteArticle)
+  const checkPermissionProc: CheckPermissionProc[E] = checkDeletePermission[E]
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const deleteProc: DeleteProc[E] = deleteArticle[E]
+  result = createDeleteHandler[P, E](readProc, checkPermissionProc, deleteProc)
