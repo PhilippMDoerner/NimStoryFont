@@ -1,4 +1,4 @@
-import norm/model
+import norm/[pragmas, model]
 import std/[tables, options, json, typetraits, strutils]
 import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 
