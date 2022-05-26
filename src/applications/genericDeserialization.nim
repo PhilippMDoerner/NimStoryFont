@@ -59,6 +59,29 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
       ## into `entry`, overwriting whatever value was there before.
       const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
 
+
+proc addMapping(table: var Table[string, string], fieldName: string) {.compileTime.} =
+  var jsonName = fieldName
+  jsonName.removeSuffix("_id")
+  table[jsonName] = fieldName
+
+proc mapJsonToModelFieldNames[T: Model](modelType: typedesc[T]): Table[string, string] {.compileTime.} =  
+  var mappings = initTable[string, string]()
+  for sourceFieldName, sourceFieldValue in T()[].fieldPairs:
+      #Handles case where field is an int64 with fk pragma
+      when sourceFieldValue.hasCustomPragma(fk):
+        mappings.addMapping(sourceFieldName)
+
+      #Handles case where field is a Model type
+      elif sourceFieldValue is Model:
+        mappings.addMapping(sourceFieldName)
+      
+      #Handles case where field is a Option[Model] type
+      elif sourceFieldValue is Option:
+        when sourceFieldValue.get() is Model:
+          mappings.addMapping(sourceFieldName)
+
+  result = mappings
       result = oldEntry.deepCopy()
       let serverTimestamp: int64 = oldEntry.update_datetime.toTime().toUnix()
 
