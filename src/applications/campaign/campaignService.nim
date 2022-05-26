@@ -27,6 +27,9 @@ proc getAllCampaigns*(): seq[Campaign] =
 proc getAllCampaignReads*(): seq[CampaignRead] = 
   result = getList(CampaignRead)
 
+proc getAllCampaignReads*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
+  result = connection.getList(CampaignRead)
+
 proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams): CampaignRead =
   result = connection.getEntryByField("name", requestParams.campaignName, CampaignRead)
 
