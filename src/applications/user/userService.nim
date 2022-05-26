@@ -1,17 +1,16 @@
 import ../genericArticleRepository
-#import ../genericArticleService
+import ../genericArticleService
 import ../../utils/databaseUtils
 import userModel
 import userRequestParams
 import userRepository
 import std/[options, tables, strutils, strformat, sugar]
 import norm/model
-import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../utils/[macroUtils, djangoDateTime/djangoDateTimeType]
 import ../../applicationConstants
 
 
 export userModel
-
 
 proc getUserById*(userId: int64): User =
   result = getEntryById(userId, User)
@@ -43,6 +42,12 @@ proc updateUser*(connection: Dbconn, requestData: UpdateParams, entry: var User)
   assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
 
   result = connection.updateEntryInTransaction(entry)
+
+proc patchUser*(connection: Dbconn, requestData: UpdateParams, entry: User): User =
+  assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
+
+  result = connection.patchEntry(requestData, entry)
+
 
 proc deleteUser*(connection: DbConn, userToDelete: var User) =
   connection.deleteEntryInTransaction(userToDelete)

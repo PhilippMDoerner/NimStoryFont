@@ -41,7 +41,7 @@ proc addUserRoutes*(app: Prologue) =
         handler = createPatchHandler[UpdateParams, User, UserSerializable](
             readProc = readUserById,
             checkPermission = checkUserDeletePermission,
-            updateProc = updateUser,
+            patchEntryWithJsonProc = patchUser,
             serialize = serializeUser
         ),
         httpMethod = HttpPatch,

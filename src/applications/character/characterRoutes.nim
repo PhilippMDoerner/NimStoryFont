@@ -26,15 +26,7 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/pk/{ID_PATTERN}/", 
-        handler = createUpdateByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
-        httpMethod = HttpPut,
-        middlewares = @[loginMiddleware()]
-    )
-
-    app.addRoute(
-        re fmt"/character/pk/{ID_PATTERN}/", 
-        handler = createPatchByIdHandler2[UpdateParams, Character, CharacterSerializable](
-            patchEntryWithjsonProc = updateArticleWithJson,
+        handler = createPatchByIdHandler[UpdateParams, Character, CharacterSerializable](
             serialize = serializeCharacter
         ),
         httpMethod = HttpPatch,
