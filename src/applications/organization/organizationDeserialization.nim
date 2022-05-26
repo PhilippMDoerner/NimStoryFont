@@ -7,4 +7,4 @@ const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = {
   "headquarter": "headquarter_id"
 }.toTable()
 
-createArticleDeserializationHooks(Organization, JSON_TO_MODEL_FIELD_NAME_MAP)
+createDeserializationHooks(Organization, JSON_TO_MODEL_FIELD_NAME_MAP)
