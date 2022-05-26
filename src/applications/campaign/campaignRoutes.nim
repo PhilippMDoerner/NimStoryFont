@@ -61,7 +61,7 @@ proc addCampaignRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/campaign/", 
         handler = createReadListHandler(
-          getAllCampaignOverviews,
+          getAllCampaignReads,
           noCampaignListPermissionCheck,
           serializeCampaignRead
         ),  
