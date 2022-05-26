@@ -1,9 +1,11 @@
 import genericArticleRepository
+import genericDeserialization
 import norm/[model, sqlite]
 import jsony
 import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../applicationConstants
 import ../utils/databaseUtils
+import std/[json, tables]
 
 type InvalidDatabaseManipulation* = object of CatchableError
 
@@ -48,6 +50,14 @@ proc updateArticle*[P: object, E: Model](connection: DbConn, params: P, entry: v
   ## A default implementation of updating the given article in the DB
   entry.update_datetime = djangoDateTimeType.now()
   result = connection.updateEntryInTransaction(entry)
+
+proc patchArticle*[P: object, E: Model](connection: DbConn, params: P, entry: E): E =
+  ## A default implementation of patching the given article with inbdividually changed fields and persisting that to the DB
+  let jsonData: JsonNode = params.body.parseJson()
+  var patchedEntry: E = updateArticleWithJson[E](jsonData, entry)
+  
+  patchedEntry.update_datetime = djangoDateTimeType.now()
+  result = connection.updateEntryInTransaction(patchedEntry)
 
 proc createArticle*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
   ## A default implementation of creating the given article in the DB
