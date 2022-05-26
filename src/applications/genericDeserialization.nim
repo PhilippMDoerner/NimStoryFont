@@ -22,10 +22,10 @@ template setOptionalsToNone[T: Model](entry: var T) =
     when fieldValue is Option:
       entry.getField(fieldName) = none(fieldValue.get().type())
 
-template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], modelToJsonFieldNameMap: Table[string, string], isArticle: static bool = false) =
+template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc[T], modelToJsonFieldNameMap: Table[string, string]) =
   ## Creates an entire deserialization-module worth of jsony-hooks for the Model 
   ## `deserializedType`.
-  
+
   ## PROCS FOR DESERIALIZING ENTRY CREATION JSON
   proc renameHook*(v: var T, fieldName: var string) =
     ##  A jsony renameHook the converts fieldNames that differ between the 
