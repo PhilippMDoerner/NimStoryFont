@@ -39,9 +39,13 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
     ## These default values are the current DateTime for update- and creation
     ## date as well as "none" values for all Optional values of the Article.
     entry = new(deserializedType)
+    
     let currentDateTime: DjangoDateTime = djangoDateTimeType.now()
-    entry.creation_datetime = currentDateTime
-    entry.update_datetime = currentDateTime
+    when deserializedType.hasField("creation_datetime"):
+      entry.creation_datetime = currentDateTime
+    when deserializedType.hasField("update_datetime"):
+      entry.update_datetime = currentDateTime
+
     setOptionalsToNone[T](entry)
 
   ## PROC FOR DESERIALIZING ENTRY UPDATE JSON
