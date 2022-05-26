@@ -51,24 +51,6 @@ template createArticleDeserializationHooks*[T: Model](deserializedType: typedesc
   ## PROC FOR DESERIALIZING ENTRY UPDATE JSON
   proc deserializeEntry*[T: Model](jsonStr: string, modelType: typedesc[T]): T = jsonStr.fromJson(T)
 
-  ## PROC FOR DESERIALIZING ENTRY PATCHING JSON
-  proc updateEntryWithJson*[T: Model](entry: var T, json: JsonNode) =
-    ## Modifies the given `entry` using the passed in `json`.  If a field exists on entry
-    ## that also has a key-value pair in `json`, then that value will be copied from `json`
-    ## into `entry`, overwriting whatever value was there before.
-    const jsonToModelFieldNameMap = modelToJsonFieldNameMap.invertTable()
-
-    for modelFieldName, fieldValue in entry[].fieldPairs:
-      const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
-      
-      if json.hasKey(jsonFieldName):
-        when fieldValue is Option:
-          #fieldValue.T is the inner type of the Option type
-          transferJsonValue(entry, modelFieldName, fieldValue.T, json[jsonFieldName])
-        else:
-          transferJsonValue(entry, modelFieldName, fieldValue.type(), json[jsonFieldName])
-
-
 proc addMapping(table: var Table[string, string], fieldName: string) {.compileTime.} =
   var jsonName = fieldName
   jsonName.removeSuffix("_id")
