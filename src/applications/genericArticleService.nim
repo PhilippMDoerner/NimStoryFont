@@ -59,6 +59,13 @@ proc patchArticle*[P: object, E: Model](connection: DbConn, params: P, entry: E)
   patchedEntry.update_datetime = djangoDateTimeType.now()
   result = connection.updateEntryInTransaction(patchedEntry)
 
+proc patchEntry*[P: object, E: Model](connection: DbConn, params: P, entry: E): E =
+  ## A default implementation of patching the given article with inbdividually changed fields and persisting that to the DB
+  let jsonData: JsonNode = params.body.parseJson()
+  var patchedEntry: E = updateEntryWithJson[E](jsonData, entry)
+  
+  result = connection.updateEntryInTransaction(patchedEntry)
+
 proc createArticle*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
   ## A default implementation of creating the given article in the DB
   let creationTime: DjangoDateTime = djangoDateTimeType.now();
