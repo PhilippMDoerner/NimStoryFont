@@ -3,6 +3,7 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import questModel
 import questService
+import questControllers
 import questSerialization
 import std/strformat
 import ../genericArticleControllers
@@ -57,3 +58,10 @@ proc addQuestRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
    
+
+    app.addRoute(
+        re fmt"/queststates", 
+        handler = getQuestStates,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
