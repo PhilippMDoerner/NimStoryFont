@@ -11,7 +11,6 @@ import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
 import jsony
 import allUrlParams
-import serializationUtils
 
 export jsony
 export serialization
