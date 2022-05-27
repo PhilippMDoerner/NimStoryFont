@@ -3,6 +3,8 @@ import std/sets
 import ../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../utils/macroUtils
 
+##This is the global module for all jsony hook procs
+
 const fkFieldNames = toHashSet([
   "author", 
   "character", 
@@ -32,14 +34,12 @@ const fkFieldNames = toHashSet([
   "parent_location",
   "type",
   "headquarter",
-
 ])
 
 proc renameHook*[T: Model](entry: var T, fieldName: var string) =
-  ## Renames incoming fk fields in json, which should have the "_id" suffix. 
-  ## Necessary solely because Django secretly has that "_id" suffix in the database
-  ## but intentionally hides it while implementing, leading to me specifying
-  ## JSON previously that did not have the "_id" suffix which I now require
+  ## Contains a mapping for all parts where the incoming fieldname does not
+  ## match the field names in the models. For the most part that is translating
+  ## "pk" to "id" and appending "_id" to choice words.
   if fkFieldNames.contains(fieldName):
     fieldName.add("_id")
   elif fieldName == "pk":
@@ -53,7 +53,7 @@ template setOptionalsToNone[T: Model](entry: var T) =
       entry.getField(fieldName) = none(fieldValue.get().type())
 
 proc newHook*[T: Model](entry: var T) =
-  ## A jsony newHook that provides default values for an article-model.
+  ## A jsony newHook that provides default values for a norm-model.
   ## These default values are the current DateTime for update- and creation
   ## date as well as "none" values for all Optional values of the Article.
   entry = new(T)
