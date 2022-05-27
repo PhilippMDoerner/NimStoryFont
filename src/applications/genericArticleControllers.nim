@@ -11,9 +11,11 @@ import ../utils/djangoDateTime/[normConversion, serialization]
 import norm/[model]
 import jsony
 import allUrlParams
+import serializationUtils
 
 export jsony
 export serialization
+export serializationUtils
 export normConversion
 export genericArticleService
 export genericDeserialization
@@ -50,7 +52,7 @@ proc extractQueryParams[Q: object](ctx: JWTContext, dataContainerType: typedesc[
 type CreateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, newEntry: var ENTRY): ENTRY
 type ReadProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
 type ReadListProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): seq[ENTRY]
-type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, updateEntry: var ENTRY): ENTRY
+type UpdateProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS): ENTRY
 type PatchProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, params: REQUESTPARAMS, entryToPatch: ENTRY): ENTRY
 type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
@@ -106,7 +108,7 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
       withDbTransaction(connection):
         let oldEntry: E = connection.readProc(params)
         checkPermission(ctx, oldEntry)
-        let newUpdatedEntry: E = connection.updateProc(params, newEntry)
+        let newUpdatedEntry: E = connection.updateProc(params)
         let data: S = connection.serialize(newUpdatedEntry)
 
         resp jsonyResponse(ctx, data)

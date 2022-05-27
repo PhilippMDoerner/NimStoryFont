@@ -35,7 +35,9 @@ proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var 
   result = connection.createEntryInTransaction(newEntry)
 
 
-proc updateUser*(connection: Dbconn, requestData: UpdateParams, entry: var User): User =
+proc updateUser*(connection: Dbconn, requestData: UpdateParams): User =
+  var entry = requestData.body.fromJson(User)
+  
   if entry.id == MODEL_INIT_ID:
     entry.id = requestData.id
   
