@@ -64,6 +64,17 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
+        re fmt"/character/{CAMPAIGN_NAME_PATTERN}/playercharacters/", 
+        handler = createReadListHandler[ReadListParams, CharacterOverview, CharacterOverviewSerializable](
+            getPlayerCharacters,
+            checkCharacterReadListPermission,
+            overviewSerialize
+        ),  
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
         re fmt"/character/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
         handler = createReadByNameHandler[ReadByNameParams, CharacterRead, CharacterSerializable](serializeCharacterRead),  
         httpMethod = HttpGet,

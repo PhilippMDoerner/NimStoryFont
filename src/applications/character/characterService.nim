@@ -15,3 +15,6 @@ proc createCharacterEncounterConnection*(connection: DbConn, characterId: int64,
 
 proc getNonPlayerCharacters*(connection: DbConn, requestParams: ReadListParams): seq[CharacterOverview] =
   result = connection.getNonPlayerCharacters(requestParams.campaignName)
+
+proc getPlayerCharacters*(connection: DbConn, requestParams: ReadListParams): seq[CharacterOverview] =
+  result = connection.getPlayerCharacters(requestParams.campaignName)

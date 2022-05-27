@@ -131,9 +131,6 @@ proc createPatchHandler*[P: object, E: Model, S: object | ref object](
 
     var params: P = ctx.extractQueryParams(P)
 
-    when defined(jsonToModelFieldNameRemappings):
-      params.jsonToModelFieldNameRemappings = jsonToModelFieldNameRemappings
-
     respondBadRequestOnDbError():
       withDbTransaction(connection):
         var oldEntry: E = connection.readProc(params)
