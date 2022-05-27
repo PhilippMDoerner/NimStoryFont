@@ -7,6 +7,7 @@ import characterDeserialization
 import characterControllers
 import characterUtils
 import std/strformat
+import ../serializationUtils
 import ../genericArticleControllers
 
 proc addCharacterRoutes*(app: Prologue) =
@@ -26,9 +27,14 @@ proc addCharacterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/character/pk/{ID_PATTERN}/", 
-        handler = createPatchByIdHandler[UpdateParams, Character, CharacterSerializable](
-            serialize = serializeCharacter
-        ),
+        handler = createUpdateByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/character/pk/{ID_PATTERN}/", 
+        handler = createPatchByIdHandler[UpdateParams, Character, CharacterSerializable](serializeCharacter),
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
