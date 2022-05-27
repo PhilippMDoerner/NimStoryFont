@@ -4,8 +4,6 @@ import serializationUtils
 import norm/[model, sqlite]
 import jsony
 import ../utils/djangoDateTime/[djangoDateTimeType]
-import ../applicationConstants
-import ../utils/databaseUtils
 import std/[json, tables]
 
 export serializationUtils
