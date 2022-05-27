@@ -1,6 +1,6 @@
 import userModel
 import std/[json, tables, options]
-include ../genericDeserialization
+include ../serializationUtils
 
 const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = initTable[string, string]()
 
