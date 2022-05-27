@@ -5,7 +5,6 @@ import diaryEntryModel
 import diaryEntryService
 import diaryEntrySerialization
 import diaryEntryUtils
-import diaryEntryDeserialization
 import ../genericArticleControllers
 import std/strformat
 import ../authentication/authenticationUtils

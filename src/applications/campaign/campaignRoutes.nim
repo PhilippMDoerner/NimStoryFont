@@ -3,7 +3,6 @@ import ../../middleware/[loginMiddleware]
 import campaignControllers
 import campaignService
 import campaignSerialization
-import campaignDeserialization
 import campaignUtils
 import std/strformat
 import ../allUrlParams

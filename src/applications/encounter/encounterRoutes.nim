@@ -4,7 +4,6 @@ import encounterControllers
 import std/strformat
 import encounterService
 import encounterSerialization
-import encounterDeserialization
 import encounterUtils
 import ../allUrlParams
 import ../genericArticleControllers

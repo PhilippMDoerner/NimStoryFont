@@ -5,7 +5,6 @@ import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
 import markerSerialization
-import markerDeserialization
 import markerUtils
 import ../authentication/authenticationUtils
 

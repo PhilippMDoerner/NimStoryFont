@@ -2,7 +2,6 @@ import prologue
 import ../../middleware/[loginMiddleware]
 import timestampService
 import timestampSerialization
-import timestampDeserialization
 import timestampUtils
 import std/strformat
 import ../authentication/authenticationUtils

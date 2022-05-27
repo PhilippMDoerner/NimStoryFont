@@ -2,7 +2,6 @@ import prologue
 import ../../middleware/loginMiddleware
 import locationService
 import locationSerialization
-import locationDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers

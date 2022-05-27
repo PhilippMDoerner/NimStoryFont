@@ -4,7 +4,6 @@ import ../allUrlParams
 import organizationModel
 import organizationSerialization
 import organizationService
-import organizationDeserialization
 import std/strformat
 import ../genericArticleControllers
 
