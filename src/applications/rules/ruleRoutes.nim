@@ -3,7 +3,6 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import ruleModel
 import ruleSerialization
-import ruleDeserialization
 import ruleService
 import std/strformat
 import ../genericArticleControllers

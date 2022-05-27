@@ -3,7 +3,6 @@ import ../../middleware/loginMiddleware
 import ../allUrlParams
 import characterService
 import characterSerialization
-import characterDeserialization
 import characterControllers
 import characterUtils
 import std/strformat

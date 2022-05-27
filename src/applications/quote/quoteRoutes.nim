@@ -4,7 +4,6 @@ import quoteService
 import quoteSerialization
 import quoteUtils
 import quoteControllers
-import quoteDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers

@@ -22,14 +22,7 @@ template createDeserializationHooks*[T: Model](deserializedType: typedesc[T], mo
   ## Creates an entire deserialization-module worth of jsony-hooks for the Model 
   ## `deserializedType`.
 
-  ## PROCS FOR DESERIALIZING ENTRY CREATION JSON
-  proc renameHook*(v: var T, fieldName: var string) =
-    ##  A jsony renameHook the converts fieldNames that differ between the 
-    ## `deserializedType` and the actual fieldNames received in the json-string
-    ## that shall be deserialized.
-    if modelToJsonFieldNameMap.hasKey(fieldName):
-      fieldName = modelToJsonFieldNameMap[fieldName]
-  
+  ## PROCS FOR DESERIALIZING ENTRY CREATION JSON  
   proc newHook*(entry: var T) =
     ## A jsony newHook that provides default values for an article-model.
     ## These default values are the current DateTime for update- and creation

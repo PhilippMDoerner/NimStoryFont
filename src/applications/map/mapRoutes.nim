@@ -2,7 +2,6 @@ import prologue
 import ../../middleware/[loginMiddleware]
 import mapService
 import mapSerialization
-import mapDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers

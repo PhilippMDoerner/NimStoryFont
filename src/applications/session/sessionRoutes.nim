@@ -2,7 +2,6 @@ import prologue except Session
 import ../../middleware/[loginMiddleware]
 import ../allUrlParams
 import sessionSerialization
-import sessionDeserialization
 import sessionModel
 import sessionService
 import ../genericArticleControllers

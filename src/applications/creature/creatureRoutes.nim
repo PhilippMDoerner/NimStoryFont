@@ -2,7 +2,6 @@ import prologue
 import ../../middleware/[loginMiddleware]
 import creatureService
 import creatureSerialization
-import creatureDeserialization
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers

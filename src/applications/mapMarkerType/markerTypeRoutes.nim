@@ -3,7 +3,6 @@ import ../../middleware/[loginMiddleware]
 import markerTypeService
 import std/strformat
 import markerTypeSerialization
-import markerTypeDeserialization
 import markerTypeUtils
 import ../allUrlParams
 import ../genericArticleControllers
