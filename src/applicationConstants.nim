@@ -13,3 +13,21 @@ const SHORT_DESCRIPTION_WORD_COUNT*: int = 30
 # CSP_INCLUDE_NONCE_IN = ('style-src',)
 # CSP_CONNECT_SRC = ("'self'",)
 # CSP_EXCLUDE_URL_PREFIXES = ("/api/swagger", "/api/openapi")
+
+type QuestState* = enum
+  qsInProgress = "In progress", 
+  qsCompleted = "Completed", 
+  qsFailed = "Failed", 
+  qsOnHold = "On Hold"
+
+type SpellSchool* = enum
+  ssAbjuration = "Abjuration", 
+  ssConjuration = "Conjuration", 
+  ssDivination = "Divination", 
+  ssEnchantment = "Enchantment", 
+  ssEvocation = "Evocation", 
+  ssIllusion = "Illusion", 
+  ssNecromancy = "Necromancy", 
+  ssTransmutation = "Transmutation"
+
+
