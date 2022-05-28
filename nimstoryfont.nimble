@@ -12,7 +12,7 @@ bin           = @["nimstoryfont"]
 
 requires "nim >= 1.6.2"
 requires "norm >= 2.4.0"
-requires "prologue >= 0.5.8"
+requires "prologue >= 0.6.0"
 requires "jsony >= 1.1.2"
 requires "constructor >= 1.0.3"
 requires "tinypool >= 0.3.1"
