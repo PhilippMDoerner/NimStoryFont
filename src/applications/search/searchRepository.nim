@@ -67,7 +67,6 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
     row.to(searchEntry, nil)
     searchEntries.add(searchEntry)
 
-  echo searchEntries.toJson()
   result = searchEntries
 
 
