@@ -2,7 +2,7 @@ import questModel
 import questUtils
 import norm/sqlite
 import ../genericArticleRepository
-import ../session/sessionModel
+import ../session/[sessionUtils, sessionModel]
 import ../campaign/campaignModel
 import ../character/[characterModel, characterUtils]
 import std/[options, sugar, sequtils]
@@ -25,6 +25,7 @@ proc serializeQuestCharacter(entry: Character): QuestCharacter =
 
 type QuestSession* = object
     pk: int64
+    name: string
     session_number: int64
     session_date: DjangoDateTime
     is_main_session: bool
@@ -39,6 +40,7 @@ type QuestSession* = object
 proc serializeQuestSession(entry: SessionRead): QuestSession =
     result = QuestSession(
         pk: entry.id,
+        name: $entry,
         session_number: entry.session_number,
         session_date: entry.session_date,
         is_main_session: entry.is_main_session,
