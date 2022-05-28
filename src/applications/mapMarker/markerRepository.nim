@@ -3,15 +3,13 @@ import markerModel
 import ../../utils/djangoDateTime/[normConversion]
 import std/[strutils, strformat]
 import ../../applicationConstants
+import ../genericArticleRepository
 
 proc getMarkerForMap*(connection: DbConn, campaignName: string, mapName: string): seq[MarkerRead] =
-  var entries: seq[MarkerRead] = @[newModel(MarkerRead)]
   const condition: string = " map_id_campaign_id.name LIKE ? AND map_id.name LIKE ?"
-
   let queryParams: array[2, DbValue] = [campaignName.dbValue(), mapName.dbValue()]
-  connection.select(entries, condition, queryParams)
 
-  result = entries
+  result = connection.getList(MarkerRead, condition, queryParams)
 
 proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerRead =
   var entry = newModel(MarkerRead)

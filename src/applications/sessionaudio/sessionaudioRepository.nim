@@ -2,7 +2,7 @@ import norm/[model, sqlite]
 import sessionaudioModel
 import ../../utils/djangoDateTime/[normConversion]
 import std/[sugar, sequtils, options, strutils, strformat]
-
+import ../genericArticleRepository
 
 
 proc getSessionAudio*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionAudioRead =
@@ -19,13 +19,8 @@ proc getSessionAudio*(connection: DbConn, campaignName: string, sessionNumber: i
   result = entry
 
 proc getSessionAudioForCampaign*(connection: DbConn, campaignName: string): seq[SessionAudioRead] =
-  var entries = @[newModel(SessionAudioRead)]
-
   const condition = "session_id_campaign_id.name LIKE ? ORDER BY session_id.session_number DESC"
-
-  connection.select(entries, condition, campaignName.dbValue())
-
-  result = entries
+  result = connection.getList(SessionAudioRead, condition, campaignName.dbValue())
 
 type SessionAudioNeighbours = tuple
   priorNeighbour: Option[SessionAudioRead]
@@ -64,9 +59,7 @@ proc getSessionAudioNeighbours*(connection: DbConn, campaignName: string, sessio
   let neighbourIdStr: string = neighbourIds.map(id => $id).join(",")
   let condition = fmt"{SessionAudio.table()}.id IN ({neighbourIdStr})"
 
-  var entries = @[newModel(SessionAudioRead)]
-
-  connection.select(entries, condition)
+  var entries = connection.getList(SessionAudioRead, condition)
 
   case entries.len():
   of 0:
