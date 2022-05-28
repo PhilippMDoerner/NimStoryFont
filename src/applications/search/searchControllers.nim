@@ -5,7 +5,11 @@ import jsony
 import ../controllerTemplates
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../allUrlParams
+import std/options
 
+type SearchResponse = object
+    articles: seq[SearchSerializable]
+    empty_response: Option[string]
 
 proc findArticles*(ctx: Context) {.async.} = 
     let ctx = JWTContext(ctx)
@@ -15,4 +19,5 @@ proc findArticles*(ctx: Context) {.async.} =
 
     respondBadRequestOnDbError():
         let articles: seq[SearchSerializable] = searchService.findArticles(campaignName, searchText)
-        resp jsonyResponse(ctx, articles)
+        let responeData = SearchResponse(empty_response: none(string), articles: articles)
+        resp jsonyResponse(ctx, responeData)

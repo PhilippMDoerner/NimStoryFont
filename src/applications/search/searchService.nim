@@ -32,7 +32,8 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
 
   withDbConn(connection):
     for searchHit in searchHits:
-      let articleTable: ArticleTable = parseEnum[ArticleTable](searchHit.table_name)      
+      let tableName: string = searchHit.table_name
+      let articleTable: ArticleTable = parseEnum[ArticleTable](tableName)      
       let articleDataJsonString: JsonNode = getArticleData(articleTable, searchHit.record_id)
 
-      result.add(SearchSerializable(hit: searchHit, articleDataJson: articleDataJsonString))
+      result.add(articleDataJsonString)

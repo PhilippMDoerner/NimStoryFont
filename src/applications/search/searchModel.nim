@@ -29,6 +29,4 @@ implDefaults(SearchHit)
 
 proc newViewModel*(T: typedesc[SearchHit]): SearchHit = initSearchHit()
 
-type SearchSerializable* {.defaults.} = object
-  hit*: SearchHit
-  articleDataJson*: JsonNode
+type SearchSerializable* = JsonNode
