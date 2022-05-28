@@ -24,7 +24,10 @@ proc updateSearchEntryContent*(connection: DbConn, article: Article) =
 proc addSearchEntry*(connection: DbConn, article: Article) =
   let searchTitle: string = article.getSearchTitle()
   let searchBody: string = article.getSearchBody()
-  addSearchEntry(connection, searchTitle, searchBody, article.type.table(), article.id, article.campaign_id)
+  var articleTable: string = article.type().table()
+  articleTable.removeSuffix('"')
+  articleTable.removePrefix('"')
+  addSearchEntry(connection, searchTitle, searchBody, articleTable, article.id, article.campaign_id)
 
 
 proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchSerializable] =
