@@ -34,28 +34,46 @@ proc getList*[M: Model]( modelType: typedesc[M]): seq[M] =
     withDbConn(connection):
         result = getList[M](connection, modelType)
 
-
-
-#TODO: Figure out how to infer the campaign_id field somehow
-proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
-    ##[ Retrieves all rows/entries of a campaign with the given name and 
-    returns them as Model M. 
-    
-    ``campaignName`` must be exactly equal to the name of the targetted campaign,
-    the comparison is case-sensitive.]##
+proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M], condition: string, queryParams: varargs[DbValue]): seq[M] =
     mixin newModel
 
-    var entries: seq[M] = @[newModel(M)]
-    
-    var condition = "campaign_id.name LIKE ?"
+    var entryList: seq[M] = @[]
+    entryList.add(newModel(M))
+
+    connection.select(entryList, condition, queryParams)
+
+    result = entryList
+
+
+proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
     when M.hasField("name"):
         const tableName = M.table()
-        condition.add(fmt" ORDER BY {tableName}.name")
+        const condition = fmt"campaign_id.name LIKE ? ORDER BY {tableName}.name"
+    else:
+        const condition = "campaign_id.name LIKE ?"
 
-    let queryParams: array[1, DbValue] = [campaignName.dbValue()]
-    connection.select(entries, condition, queryParams)
+    result = connection.getList(M, condition, campaignName.dbValue())
 
-    result = entries
+# #TODO: Figure out how to infer the campaign_id field somehow
+# proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
+#     ##[ Retrieves all rows/entries of a campaign with the given name and 
+#     returns them as Model M. 
+    
+#     ``campaignName`` must be exactly equal to the name of the targetted campaign,
+#     the comparison is case-sensitive.]##
+#     mixin newModel
+
+#     var entries: seq[M] = @[newModel(M)]
+    
+#     var condition = "campaign_id.name LIKE ?"
+#     when M.hasField("name"):
+#         const tableName = M.table()
+#         condition.add(fmt" ORDER BY {tableName}.name")
+
+#     let queryParams: array[1, DbValue] = [campaignName.dbValue()]
+#     connection.select(entries, condition, queryParams)
+
+#     result = entries
 
 proc getCampaignList*[M: Model](campaignName: string, modelType: typedesc[M]): seq[M] =
     ##[ Helper proc for getCampaignList when you don't want to provide the connection yourself]##
