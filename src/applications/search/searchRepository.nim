@@ -1,13 +1,22 @@
 import searchModel
 import norm/model
-import std/[db_sqlite, strformat]
+import std/[db_sqlite, strformat, unicode, strutils, logging]
 import ../campaign/campaignService
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
 import ../../utils/myStrutils
 import tinypool
+import jsony
 
 #TODO Replace the hard coded table here with an insert
+proc toTitleQueryParam(tokens: seq[string]): string = 
+  let joinedTokens = tokens.join("* OR ")
+  result.add(fmt"{joinedTokens}*")
+
+proc toBodyQueryParam(tokens: seq[string]): string =
+  let joinedTokens = tokens.join("* AND ")
+  result.add(fmt"{joinedTokens}*")
+
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
@@ -31,15 +40,25 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
       LIMIT ?;
   """
 
+  let tokens = searchText.split(' ')
+  let tokensRev = searchText.reversed().split(' ')
+
+  let queryParams: array[5, string] = [
+    tokens.toTitleQueryParam(), 
+    tokensRev.toTitleQueryParam(), 
+    tokens.toBodyQueryParam(), 
+    tokensRev.toBodyQueryParam(),
+    searchLimit.intToStr()
+  ]
+
+  when defined(normDebug):
+    log(lvlDebug, fmt"'{searchSQLStatement.string}' <- {queryParams.toJson()}")
+
   var rows: seq[Row]
   withDbConn(connection):
     rows = connection.getAllRows(
       searchSQLStatement,
-      searchText, 
-      searchText, 
-      searchText, 
-      searchText,
-      searchLimit
+      queryParams
     )
 
   var searchEntries: seq[SearchHit] = @[]
@@ -48,13 +67,14 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
     row.to(searchEntry, nil)
     searchEntries.add(searchEntry)
 
+  echo searchEntries.toJson()
   result = searchEntries
 
 
 
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
-  let addSearchEntryQuery = sql"""
+  let addSearchEntryQuery = sql fmt"""
     INSERT INTO search_article_content (
       title,
       title_rev, 
@@ -65,47 +85,60 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
       campaign_id, 
       guid
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, '{tableName}', {record_id}, {campaign_id}, '{tableName}_{record_id}')
   """
 
-  connection.exec(
-    addSearchEntryQuery,
+  let queryParams: array[4, string] = [
     searchTitle,
     searchTitle.reverseString(),
     searchBody,
     searchBody.reverseString(),
-    tableName,
-    $recordId,
-    $campaignId,
-    fmt "{tableName}_{record_id}"
+  ]
+
+  when defined(normDebug):
+    log(lvlDebug, fmt"'{addSearchEntryQuery.string}' <- {queryParams.toJson()}")
+
+  connection.exec(
+    addSearchEntryQuery,
+    queryParams
   )
 
 proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
-  let updateSearchEntryQuery = sql"""
+  let updateSearchEntryQuery = sql fmt"""
     UPDATE search_article_content 
     SET
       title = ?,
       title_rev = ?,
       body = ?,
       body_rev = ?
-    WHERE guid = ?
+    WHERE guid = '{guid}'
   """
 
-  connection.exec(
-    updateSearchEntryQuery,
+  let queryParams: array[4, string] = [
     searchTitle,
     searchTitle.reverseString(),
     searchBody,
     searchBody.reverseString(),
-    guid
+  ]
+
+  when defined(normDebug):
+    log(lvlDebug, fmt"'{updateSearchEntryQuery.string}' <- {queryParams.toJson()}")
+
+
+  connection.exec(
+    updateSearchEntryQuery,
+    queryParams,
   )
 
 
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
-    let deleteSearchEntryQuery = sql"""
+    let deleteSearchEntryQuery = sql fmt"""
       DELETE FROM search_article_content
-      WHERE guid = ?
+      WHERE guid = '{guid}'
     """
+
+    when defined(normDebug):
+      log(lvlDebug, fmt"'{deleteSearchEntryQuery.string}'")
 
     connection.exec(
       deleteSearchEntryQuery,
