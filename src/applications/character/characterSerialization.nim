@@ -6,7 +6,7 @@ import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, strutils, strformat]
+import std/[sugar, sequtils, options, strutils, strformat, algorithm]
 import ../genericArticleRepository
 import ../../utils/[myStrutils, databaseUtils]
 import norm/sqlite
@@ -84,7 +84,9 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
     let characterClasses: seq[PlayerClassConnectionRead] = connection.getManyFromOne(entry, PlayerClassConnectionRead)
     let organizationId: Option[int64] = entry.organization_id.map(org => org.id) 
     
-    let encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
+    var encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
+    encounters.sort((enc1, enc2) => enc2.diaryentry_id.session_id.session_number - enc1.diaryentry_id.session_id.session_number)
+    
     let serializedEncounters: seq[EncounterSerializable] = encounters.map(enc => connection.serializeEncounterRead(enc))
 
     result = CharacterSerializable(
