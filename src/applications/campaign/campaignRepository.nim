@@ -3,16 +3,12 @@ import std/[strformat, strutils, sequtils, sugar, options]
 import ../authentication/authenticationModels
 import campaignModel
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
-
+import ../genericArticleRepository
 
 proc getGroupMembers*(connection: DbConn, groupIds: varargs[int64]): seq[UserGroup] =
-  var members = @[newModel(UserGroup)]
-
   let groupIdStrs: string = groupIds.map(id => intToStr(id.int)).join(",")
   let sqlCondition = fmt"{UserGroup.table()}.group_id IN ({groupIdStrs})"
-  connection.select(members, sqlCondition)
-
-  result = members
+  result = connection.getList(UserGroup, sqlCondition)
 
 proc readCampaignMembers*(connection: DbConn, campaign: Campaign): seq[UserGroup] =
   let campaignGroupIds: array[3, int64] = [
@@ -31,10 +27,6 @@ proc readCampaignMembers*(connection: DbConn, campaign: CampaignRead): seq[UserG
   result = connection.getGroupMembers(campaignGroupIds)
 
 proc getCampaigns*(connection: DbConn, campaignIds: varargs[int64]): seq[CampaignRead] =
-  var campaigns = @[newModel(CampaignRead)]
-
   let campaignIdStr: string = campaignIds.map(id => intToStr(id.int)).join(",")
   let sqlCondition = fmt"{CampaignRead.table()}.id IN ({campaignIdStr})"
-  connection.select(campaigns, sqlCondition)
-
-  result = campaigns
+  result = connection.getList(CampaignRead, sqlCondition)

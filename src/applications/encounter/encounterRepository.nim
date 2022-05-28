@@ -4,20 +4,17 @@ import norm/sqlite
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/[normConversion]
-
+import ../genericArticleRepository
 
 proc getEncountersAtAndAfterOrderIndex*(connection: DbConn, diaryentryId: int64, orderIndex: int): seq[Encounter] =
-    var followingEncounters: seq[Encounter] = @[newModel(Encounter)]    
     const sqlCondition = fmt "{ENCOUNTER_TABLE}.diaryentry_id = ? AND {ENCOUNTER_TABLE}.order_index >= ?"
-    connection.select(followingEncounters, sqlCondition, diaryentryId, orderIndex)
-    result = followingEncounters
+    result = connection.getList(Encounter, sqlCondition, diaryentryId.dbValue(), orderIndex.dbValue())
 
 
 proc getEncountersBetweenOrderIndices*(connection: DbConn, diaryentryId: int64, orderIndex1: int, orderIndex2: int): seq[Encounter] =
     let rangeStartOrderIndex = min(orderIndex1, orderIndex2)
     let rangeEndOrderIndex = max(orderIndex1, orderIndex2)
 
-    var affectedEncounters: seq[Encounter] = @[newModel(Encounter)]
     let condition = fmt """
         {ENCOUNTER_TABLE}.diaryentry_id = ? 
         AND {ENCOUNTER_TABLE}.order_index >= ? 
@@ -25,9 +22,7 @@ proc getEncountersBetweenOrderIndices*(connection: DbConn, diaryentryId: int64, 
         ORDER BY {ENCOUNTER_TABLE}.order_index ASC
     """
 
-    connection.select(affectedEncounters, condition, diaryentry_id, rangeStartOrderIndex, rangeEndOrderIndex)
-
-    result = affectedEncounters
+    result = connection.getList(Encounter, condition, diaryentryId.dbValue(), rangeStartOrderIndex.dbValue(), rangeEndOrderIndex.dbValue())
 
 
 proc getNextEncounter*(connection: DbConn, encounter: Encounter): Option[Encounter] =
@@ -126,9 +121,5 @@ proc updateEncounterOrderAfterBackwardsInsert*(connection: DbConn, affectedEncou
 
 
 proc getCampaignEncounters*(connection: DbConn, campaignName: string): seq[EncounterRead] =
-  var entries: seq[EncounterRead] = @[newModel(EncounterRead)]
   const condition: string = """diaryentry_id_session_id_campaign_id.name LIKE ?"""
-
-  connection.select(entries, condition, campaignName)
-
-  result = entries
+  result = connection.getList(EncounterRead, condition, campaignName.dbValue())

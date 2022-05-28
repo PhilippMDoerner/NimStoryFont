@@ -1,18 +1,15 @@
 import norm/sqlite
 import diaryEntryModel
 import ../../utils/djangoDateTime/[normConversion]
-
+import ../genericArticleRepository
 
 proc getDiaryEntriesForCampaign*(connection: DbConn, campaignName: string): seq[DiaryEntryRead] =
-  var entries: seq[DiaryEntryRead] = @[newModel(DiaryEntryRead)]
   const condition: string = """ 
     session_id_campaign_id.name LIKE ? 
     ORDER BY session_id.session_number DESC, author_id.id ASC
   """
 
-  connection.select(entries, condition, campaignName)
-
-  result = entries
+  result = connection.getList(DiaryEntryRead, condition, campaignName.dbValue())
 
 proc getDairyEntry*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool, authorName: string): DiaryEntryRead =
   var entry = newModel(DiaryEntryRead)
