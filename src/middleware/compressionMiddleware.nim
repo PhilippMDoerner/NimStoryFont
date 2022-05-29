@@ -1,6 +1,7 @@
 import zippy
 import prologue
 import std/[strformat, strutils]
+import jsony
 
 
 proc responseCompressionMiddleware*(): HandlerAsync =
@@ -10,10 +11,8 @@ proc responseCompressionMiddleware*(): HandlerAsync =
 
     if ctx.request.headers.hasKey("Accept-Encoding"):
       let encodings: seq[string] = ctx.request.getHeaderOrDefault("Accept-Encoding")
-      assert(encodings.len() == 1, "The expected buggy behaviour is that the entires tring of Accept-Encoding is packaged as one value")
-      let allowCompression = encodings[0].contains("deflate")
-      
-      if allowCompression:
+      #Somehow when compiling against debug builds it does not take the encodings as an array of strings
+      if "deflate" in encodings or (encodings.len() > 0 and "deflate" in encodings[0]):
         ctx.response.headers.add("Content-Encoding", "deflate")
         ctx.response.headers.add("X-org-size", $ctx.response.body.len) # just for me to see the difference
         ctx.response.body = compress(ctx.response.body, BestCompression, CompressedDataFormat.dfDeflate)
