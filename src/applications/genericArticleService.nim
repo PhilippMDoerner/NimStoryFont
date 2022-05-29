@@ -51,15 +51,7 @@ proc updateArticle*[P: object, E: Model](connection: DbConn, params: P): E =
   ## A default implementation of updating the given article in the DB
   var entry: E = params.body.fromJson(E)
   entry.update_datetime = djangoDateTimeType.now()
-  echo "\n\n\n\n"
-  echo "Walumba"
-  echo params.body
-  echo entry.toJson()
   let newEntry = connection.updateEntryInTransaction(entry)
-
-
-  echo newEntry.toJson()
-  echo "\n\n\n\n"
 
   result = newEntry
 
