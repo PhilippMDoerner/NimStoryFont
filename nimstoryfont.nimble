@@ -19,3 +19,17 @@ requires "tinypool >= 0.3.1"
 requires "jwt >= 0.2.0"
 requires "nimcrypto >= 0.5.4"
 requires "zippy >= 0.9.7"
+
+# Tasks
+task release, "Build a production release":
+  --verbose
+  --forceBuild:on
+  --opt:speed
+  --define:release
+  --define:lto
+  --define:ssl
+  --define:usestd  # stdlib asynchttpserver
+  --define:logueRouteLoose  # optional loose routing
+  --hints:off
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
