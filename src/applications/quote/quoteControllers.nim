@@ -16,28 +16,28 @@ type CreateQuoteConnectionRequestBody* = object
   quote*: int64
 
 proc createQuoteConnection*(ctx: Context) {.async.} = 
-    let ctx = JWTContext(ctx)
-    
-    let body = ctx.request.body.fromJson(CreateQuoteConnectionRequestBody)
-    let characterId: int64 = body.character.parseInt().int64
-    let quoteId: int64 = body.quote
+  let ctx = JWTContext(ctx)
+  
+  let body = ctx.request.body.fromJson(CreateQuoteConnectionRequestBody)
+  let characterId: int64 = body.character.parseInt().int64
+  let quoteId: int64 = body.quote
 
-    respondBadRequestOnDbError():
-      withDbTransaction(connection):
-        let quote = connection.getEntryById(quoteId, QuoteRead)
-        checkQuotePermission(ctx, quote)
+  respondBadRequestOnDbError():
+    withDbTransaction(connection):
+      let quote = connection.getEntryById(quoteId, QuoteRead)
+      checkQuotePermission(ctx, quote)
 
-        let entry: QuoteConnectionRead = connection.createQuoteConnection(quoteId, characterId)
-        let data = connection.serializeQuoteConnectionRead(entry)
-        resp jsonyResponse(ctx, data)
+      let entry: QuoteConnectionRead = connection.createQuoteConnection(quoteId, characterId)
+      let data = connection.serializeQuoteConnectionRead(entry)
+      resp jsonyResponse(ctx, data)
 
 
 proc getRandomQuote*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
 
   let params = ReadByNameParams(
-    campaignName: ctx.getPathParams(CAMPAIGN_NAME_PARAM).decodeUrl(), 
-    articleName: ctx.getPathParams(ARTICLE_NAME_PARAM).decodeUrl(),
+    campaignName: ctx.getPathParams(CAMPAIGN_NAME_PARAM), 
+    articleName: ctx.getPathParams(ARTICLE_NAME_PARAM),
     userToken: ctx.tokenData
   )
 
