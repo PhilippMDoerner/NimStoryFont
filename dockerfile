@@ -17,7 +17,7 @@ COPY ./settings.json .
 RUN chmod 777 /settings.json
 
 #Remove later with mount stuff
-COPY ./db.sqlite3 . 
+COPY ./db.sqlite3 .
 
 # Setup necessary directories
 RUN mkdir -p /run/nginx
@@ -32,12 +32,7 @@ RUN ln -s /etc/nginx/sites-available/nimstoryfont.com /etc/nginx/sites-enabled/n
 COPY ./startDocker.sh .
 RUN chmod +x /startDocker.sh
 
-CMD ["/startDocker.sh"]
-# RUN /nimstoryfont
-
-# STOPSIGNAL SIGTERM
-# CMD ["nginx", "-g", "daemon off;"]
-# ENTRYPOINT [ "/bin/sh" ]
+#CMD ["/startDocker.sh"]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
 ## https://www.youtube.com/watch?v=SnSH8Ht3MIc
@@ -55,8 +50,4 @@ CMD ["/startDocker.sh"]
 # Remove container:
 # sudo docker container rm nimstorydocker
 
-# Step 1) Make a docker image with nginx
-# Step 2) Get nimstoryfont binary copied into the image
-# Step 3) Mount an sqlite file external to the container
-# Step 4) Mount file volumes (audio1, audio2, images) external to the container
-# Step 5) Get webserver to start up
+# Step 1) Figure out how to access nginx (Can already access nimstoryfont)
