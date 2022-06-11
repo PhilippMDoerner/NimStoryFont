@@ -1,23 +1,43 @@
 FROM frolvlad/alpine-glibc
-COPY ./nimstoryfont .
-COPY ./config/nginx.conf /etc/nginx/nginx.conf
 
+# Install dependencies
 RUN apk update
-RUN apk add --no-cache nginx openrc sqlite-libs
-RUN mkdir -p /run/nginx
-RUN openrc boot
-RUN rc-service nginx start
-RUN /nimstoryfont
+RUN apk add --no-cache nginx openrc
+RUN apk add --no-cache sqlite-libs
 
+# Expose Ports
 EXPOSE 80/tcp
 EXPOSE 443/tcp
+EXPOSE 8080
+
+# Copy necessary files
+COPY ./nimstoryfont .
+COPY ./config/nginx.conf /etc/nginx/nginx.conf
+COPY ./settings.json .
+RUN chmod 777 /settings.json
+
+# Setup necessary directories
+RUN mkdir -p /run/nginx
+RUN mkdir /etc/nginx/sites-available
+RUN mkdir /etc/nginx/sites-enabled
+COPY ./config/nimstoryfont.com /etc/nginx/sites-available
+RUN ln -s /etc/nginx/sites-available/nimstoryfont.com /etc/nginx/sites-enabled/nimstoryfont.com
+
+# Mount external directories
+
+#Startup command
+COPY ./startDocker.sh .
+RUN chmod +x /startDocker.sh
+
+CMD ["/startDocker.sh"]
+# RUN /nimstoryfont
 
 # STOPSIGNAL SIGTERM
 # CMD ["nginx", "-g", "daemon off;"]
 # ENTRYPOINT [ "/bin/sh" ]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
-##https://www.youtube.com/watch?v=SnSH8Ht3MIc
+## https://www.youtube.com/watch?v=SnSH8Ht3MIc
 ##Issues I need to figure out: 
 ## 1) Try to use a debian base so you can run the binary properly
 ## 2) Try to figure out how to access an sqlite file outside the docker container: https://stackoverflow.com/questions/63421601/how-to-access-sqlite-file-on-host-machine-from-a-docker-container-using-docker-c
