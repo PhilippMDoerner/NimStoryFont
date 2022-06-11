@@ -5,16 +5,19 @@ RUN apk update
 RUN apk add --no-cache nginx openrc
 RUN apk add --no-cache sqlite-libs
 
-# Expose Ports
-EXPOSE 80/tcp
-EXPOSE 443/tcp
-EXPOSE 8080
+# Expose Ports -- Mostly documentation for later
+#EXPOSE 80/tcp
+#EXPOSE 443/tcp
+#EXPOSE 8080 ##Only for Debug purposes
 
 # Copy necessary files
 COPY ./nimstoryfont .
 COPY ./config/nginx.conf /etc/nginx/nginx.conf
 COPY ./settings.json .
 RUN chmod 777 /settings.json
+
+#Remove later with mount stuff
+COPY ./db.sqlite3 . 
 
 # Setup necessary directories
 RUN mkdir -p /run/nginx
