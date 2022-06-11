@@ -29,7 +29,7 @@ RUN mkdir /audiomedia
 COPY ./startDocker.sh .
 RUN chmod +x /startDocker.sh
 
-#CMD ["/startDocker.sh"]
+CMD ["/startDocker.sh"]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
 ## https://www.youtube.com/watch?v=SnSH8Ht3MIc
