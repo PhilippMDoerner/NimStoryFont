@@ -21,10 +21,6 @@ COPY ./db.sqlite3 .
 
 # Setup necessary directories
 RUN mkdir -p /run/nginx
-RUN mkdir /etc/nginx/sites-available
-RUN mkdir /etc/nginx/sites-enabled
-COPY ./config/nimstoryfont.com /etc/nginx/sites-available
-RUN ln -s /etc/nginx/sites-available/nimstoryfont.com /etc/nginx/sites-enabled/nimstoryfont.com
 
 # Mount external directories
 
@@ -32,7 +28,7 @@ RUN ln -s /etc/nginx/sites-available/nimstoryfont.com /etc/nginx/sites-enabled/n
 COPY ./startDocker.sh .
 RUN chmod +x /startDocker.sh
 
-#CMD ["/startDocker.sh"]
+CMD ["/startDocker.sh"]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
 ## https://www.youtube.com/watch?v=SnSH8Ht3MIc
@@ -50,4 +46,5 @@ RUN chmod +x /startDocker.sh
 # Remove container:
 # sudo docker container rm nimstorydocker
 
-# Step 1) Figure out how to access nginx (Can already access nimstoryfont)
+# Step 1) Figure out how to mount external sqlite file
+# Step 2) Figure out how to do this with HTTP certificates
