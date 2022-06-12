@@ -15,7 +15,6 @@ COPY ./nimstoryfont .
 COPY ./config/nginx.conf /etc/nginx/nginx.conf
 COPY ./config/dockerSettings.json /settings.json
 RUN chmod 777 /settings.json
-COPY ./dist .
 
 # Setup necessary directories
 RUN mkdir -p /run/nginx
@@ -23,6 +22,7 @@ RUN mkdir /certificates
 RUN mkdir /database
 RUN mkdir /imagemedia
 RUN mkdir /audiomedia
+RUN mkdir /frontend
 
 # Mount external directories
 
