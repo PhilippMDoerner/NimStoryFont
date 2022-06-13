@@ -26,10 +26,12 @@ task release, "Build a production release":
   --forceBuild:on
   --opt:speed
   --define:release
+  --threads:on
+  --mm:orc
+  --deepcopy:on
   --define:lto
   --define:ssl
   --define:usestd  # stdlib asynchttpserver
-  --define:logueRouteLoose  # optional loose routing
   --hints:off
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
