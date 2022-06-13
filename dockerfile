@@ -27,8 +27,8 @@ RUN mkdir /frontend
 # Mount external directories
 
 #Startup command
-COPY ./startDocker.sh .
-RUN chmod +x /startDocker.sh
+COPY ./config/dockerStartScript.sh .
+RUN chmod +x /dockerStartScript.sh
 
 CMD ["/startDocker.sh"]
 
