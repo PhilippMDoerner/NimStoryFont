@@ -1,9 +1,6 @@
 #!/bin/bash
 sudo docker container stop test
 sudo docker container rm test
-
-nimble release
-
 sudo docker build -t nsi .
 
 echo "Run new container"
