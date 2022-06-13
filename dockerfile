@@ -30,7 +30,7 @@ RUN mkdir /frontend
 COPY ./config/dockerStartScript.sh .
 RUN chmod +x /dockerStartScript.sh
 
-CMD ["/startDocker.sh"]
+CMD ["/dockerStartScript.sh"]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
 ## https://www.youtube.com/watch?v=SnSH8Ht3MIc
