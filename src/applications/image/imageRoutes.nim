@@ -10,7 +10,7 @@ import ../genericArticleRepository
 
 proc addImageRoutes*(app: Prologue) =
     app.addRoute(
-        re"/image/", 
+        re"/image/upload/", 
         handler = imageControllers.createImageView,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
