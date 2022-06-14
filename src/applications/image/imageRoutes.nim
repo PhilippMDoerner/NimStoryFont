@@ -24,7 +24,7 @@ proc addImageRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/image/pk/{ID_PATTERN}/",
+        re fmt"/image/pk/{ID_PATTERN}",
         handler = createDeleteByIdHandler[DeleteParams, Image](),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
