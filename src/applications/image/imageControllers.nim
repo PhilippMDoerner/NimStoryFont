@@ -63,7 +63,9 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.} =
         
     respondBadRequestOnDbError():
         let updatedImageEntry: Image = updateImageFileOrName(imageToUpdateId, imageFormData)
-        resp jsonyResponse[Image](ctx , updatedImageEntry)
+        let imageSerializable: ImageSerializable = updatedImageEntry.serializeImage()
+
+        resp jsonyResponse(ctx , imageSerializable)
 
 
 proc deleteImageView*(ctx: Context) {.async, gcsafe.} =
