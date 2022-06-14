@@ -18,7 +18,7 @@ proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLo
   else:
       result = none(UpLoadFile)
 
-proc createSessionAudioControlloer*(ctx: Context) {.async, gcsafe.}=
+proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
 
     let campaignId: int64 = ctx.getFormParamsOption("campaign").get().parseInt().int64
