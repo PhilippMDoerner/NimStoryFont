@@ -1,5 +1,6 @@
 import imageService
 import imageModel
+import imageSerialization
 import prologue
 import std/[strutils, options, json, strformat]
 import ../../utils/[jwtContext, customResponses, errorResponses]
@@ -43,7 +44,8 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
     respondBadRequestOnDbError():
         let newImageEntry: Option[Image] = createImage(imageFormData)
         if newImageEntry.isSome():
-            resp jsonyResponse[Image](ctx, newImageEntry.get())
+            let imageSerializable: ImageSerializable = newImageEntry.get().serializeImage()
+            resp jsonyResponse(ctx, imageSerializable)
         else:
             resp get400BadRequestResponse("The sent image could not be saved, because there was no image file in the sent form under the 'image' key.")
 
