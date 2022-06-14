@@ -13,7 +13,7 @@ import sessionaudioControllers
 proc addSessionAudioRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/sessionaudio/",
-        handler = createSessionAudioControlloer,
+        handler = createSessionAudioController,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
