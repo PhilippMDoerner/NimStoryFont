@@ -2,8 +2,7 @@ FROM frolvlad/alpine-glibc
 
 # Install dependencies
 RUN apk update
-RUN apk add --no-cache nginx openrc
-RUN apk add --no-cache sqlite-libs
+RUN apk add --no-cache openrc nginx sqlite-libs
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
@@ -12,8 +11,8 @@ RUN apk add --no-cache sqlite-libs
 
 # Copy necessary files
 COPY ./nimstoryfont .
-COPY ./config/nginx.conf /etc/nginx/nginx.conf
-COPY ./config/dockerSettings.json /settings.json
+COPY ./buildFiles/config/nginx.conf /etc/nginx/nginx.conf
+COPY ./buildFiles/config/dockerSettings.json /settings.json
 RUN chmod 777 /settings.json
 
 # Setup necessary directories
@@ -27,10 +26,10 @@ RUN mkdir /frontend
 # Mount external directories
 
 #Startup command
-COPY ./config/dockerStartScript.sh .
+COPY ./buildFiles/config/dockerStartScript.sh .
 RUN chmod +x /dockerStartScript.sh
 
-CMD ["/dockerStartScript.sh"]
+# CMD ["/dockerStartScript.sh"]
 
 ## https://www.tutorialspoint.com/how-do-i-get-into-a-docker-container-s-shell
 ## https://www.youtube.com/watch?v=SnSH8Ht3MIc
