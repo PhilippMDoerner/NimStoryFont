@@ -16,5 +16,7 @@
     "baseDir": "/home",
     "imageDir": "/home",
     "audioDir": "/home",
+    "audioUploadDir": "/home/extended",
+    "audioUrlPrefix": "session_audio/extended",
     "pageSize": 24
 }
