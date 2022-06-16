@@ -25,11 +25,13 @@ proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     checkCreatePermission(ctx, campaignId)
 
     let sessionId: int64 = ctx.getFormParamsOption("session").get().parseInt().int64
-    let audioDirectory: string = ctx.getSettings("audioDir").getStr()
+    let audioDirectory: string = ctx.getSettings("audioUploadDir").getStr()
+    let audioPathPrefix: string = ctx.getSettings("audioUrlPrefix").getStr()
 
     var sessionaudioFormData = SessionAudioDTO(
         sessionaudioFile: ctx.extractFileFromContext("audio_file"),
         audioDirectory: audioDirectory,
+        audioPathPrefix: audioPathPrefix,
         sessionId: some(sessionId),
         entryId: none(int64)
     )

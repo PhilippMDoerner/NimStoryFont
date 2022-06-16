@@ -6,7 +6,7 @@ import prologue
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../allUrlParams
 import ../../utils/[fileUpload, databaseUtils]
-import std/options
+import std/[strformat, options, logging]
 
 export sessionaudioModel
 
@@ -14,6 +14,7 @@ type SessionAudioDTO* = object
     sessionId*: Option[int64]
     sessionaudioFile*: Option[UpLoadFile]
     audioDirectory*: string
+    audioPathPrefix*: string
     entryId*: Option[int64]
 
 
@@ -23,8 +24,8 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
 
     let creationTime: DjangoDateTime = djangoDateTimeType.now();
     let absoluteFilePath: string = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
-    let pathInDatabase: string = absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)
     
+    var pathInDatabase: string = fmt"{requestParams.audioPathPrefix}/{absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)}"
     var newEntry = SessionAudio(
         audio_file: pathInDatabase,
         creation_datetime: creationTime,
@@ -45,7 +46,7 @@ proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, 
     var absoluteFilePath: string = ""
     if requestParams.sessionaudioFile.isSome():
         absoluteFilePath = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
-        let pathInDatabase: string = absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)
+        var pathInDatabase: string = fmt"{requestParams.audioPathPrefix}/{absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)}"
         entry.audio_file = pathInDatabase
     
     if requestParams.sessionId.isSome():
