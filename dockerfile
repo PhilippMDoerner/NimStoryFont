@@ -20,6 +20,7 @@ RUN mkdir -p /run/nginx
 RUN mkdir /certificates
 RUN mkdir /database
 RUN mkdir /imagemedia
+        # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN mkdir /audiomedia
 RUN mkdir /frontend
 
