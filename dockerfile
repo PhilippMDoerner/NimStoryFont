@@ -2,7 +2,8 @@ FROM frolvlad/alpine-glibc
 
 # Install dependencies
 RUN apk update
-RUN apk add --no-cache openrc nginx sqlite-libs nginx-mod-http-upload-progress
+RUN apk add --no-cache openrc nginx sqlite-libs nginx-mod-http-upload-progress python3 py-pip
+RUN pip install django
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
@@ -30,4 +31,4 @@ RUN mkdir /frontend
 COPY ./buildFiles/config/dockerStartScript.sh .
 RUN chmod +x /dockerStartScript.sh
 
-CMD ["/dockerStartScript.sh"]
+#CMD ["/dockerStartScript.sh"]
