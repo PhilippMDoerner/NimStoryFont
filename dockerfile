@@ -14,7 +14,7 @@ COPY ./nimstoryfont .
 COPY ./buildFiles/config/nginx.conf /etc/nginx/nginx.conf
 COPY ./buildFiles/config/dockerSettings.json /settings.json
 RUN chmod 777 /settings.json
-
+COPY ./buildFiles/config/50x.html /usr/share/nginx/html/50x.html
 # Setup necessary directories
 RUN mkdir -p /run/nginx
 RUN mkdir /certificates
