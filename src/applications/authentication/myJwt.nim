@@ -3,6 +3,7 @@ import jwt
 import std/[options, logging, json, tables, random, times, strutils, strformat]
 import authenticationModels
 import tokenTypes 
+import ../../utils/myStrutils
 
 export jwt
 export tokenTypes
@@ -106,12 +107,6 @@ proc extractTokenData*(token: JWT): TokenData =
         userName: userName
     )
 
-
-proc randomString(length: int): string =
-    for _ in 0..length:
-        add(result, char(rand(int('A') .. int('z'))))
-
-
 type JWTType* = enum
     REFRESH = "refresh",
     ACCESS = "access"
@@ -150,6 +145,6 @@ proc createToken*(userContainer: UserContainer, tokenType: JWTType, tokenLifetim
             "campaign_memberships": userContainer.campaignMemberships.toJson(),
             "exp": expirationTimestamp,
             "token_type": tokenType,
-            "jti": randomString(50)
+            "jti": myStrutils.randomString(50)
         }
     })

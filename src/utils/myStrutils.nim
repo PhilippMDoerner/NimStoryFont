@@ -1,4 +1,4 @@
-import std/[strutils, htmlparser, xmltree, algorithm]
+import std/[strutils, htmlparser, xmltree, algorithm, random]
 import ../applicationConstants
 
 proc reverseString*(s: string): string =
@@ -15,3 +15,8 @@ proc truncate*(text: string): string =
   else:
     result.add(splitString[0..SHORT_DESCRIPTION_WORD_COUNT-1].join(" "))
     result.add("...")
+  
+proc randomString*(length: int): string =
+    for _ in 0..length:
+        add(result, char(rand(int('A') .. int('z'))))
+
