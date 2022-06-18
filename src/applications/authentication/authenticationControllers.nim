@@ -78,15 +78,15 @@ proc login*(ctx: Context) {.async.} =
 
     resp jsonResponse(%*{"refresh": newRefreshToken, "access": newAccessToken})
 
-proc resetPassword*(ctx: Context) {.async.} =
+proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
-    let requestParams = ReadWithoutParams(userToken: ctx.tokenData)
+    let requestBody: JsonNode = ctx.request.body().parseJson()
+    let userName = requestBody["username"].getStr()
+
     let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
     let settings = ctx.gScope.settings
     withDbConn(connection):
-      let updatedUser = connection.updatePassword(requestParams, newPassword)
+      let updatedUser = connection.updatePassword(userName, newPassword)
       sendPasswordResetEmail(updatedUser, newPassword, settings)
-    # Get random password from place 1
-    # Update user with random password    
 
     respDefault(Http204)
