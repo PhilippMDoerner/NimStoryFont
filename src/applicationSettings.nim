@@ -7,6 +7,10 @@ const MEDIA_URL* = "/media/"
 let settings*: Settings = loadSettings("./settings.json")
 const AUTHORIZATION_HEADER*: string = "Authorization"
 
+#Hashing Settings
+const DEFAULT_HASH_ITERATIONS* = 180000
+const DEFAULT_SALT_LENGTH* = 12
+const DEFAULT_RESET_PASSWORD_LENGTH* = 20
 
 #Constants
 const PRIMARY_DB_TIME_FORMAT* = "yyyy-MM-dd HH:mm:ss'.'ffffff" #Datetime format as Django stores it in DB

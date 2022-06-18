@@ -1,10 +1,15 @@
+import prologue except Group
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService]
 import authenticationModels
+import authenticationUtils
+import authenticationEmailText
 import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model
 import ../allUrlParams
 import ../user/userService
+import djangoEncryption
+import ../../utils/[emailUtils, myStrutils]
 
 export authenticationModels
 
@@ -84,3 +89,17 @@ proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission
 
 proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[Group] =
   result = connection.getList(Group)
+
+proc updatePassword*(connection: DbConn, requestParams: ReadWithoutParams, newPassword: string): User =
+  let userId = requestParams.userToken.userId
+  var user: User = connection.getEntryById(userId, User)
+  
+  let hashRepresentation = createPasswordDatabaseRepresentation(newPassword, "")
+  user.password = hashRepresentation
+
+  result = connection.updateEntryInTransaction(user)
+
+proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
+    let subject = getPasswordResetMailSubject()
+    let body = getPasswordResetMailBody(newPassword)
+    sendSystemEmail(subject, body, user.email, settings)
