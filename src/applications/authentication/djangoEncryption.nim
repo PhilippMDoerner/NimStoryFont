@@ -1,8 +1,8 @@
-import nimcrypto
-import nimcrypto/pbkdf2
-import std/[base64, strutils,]
+import std/[base64, strutils]
 
 ### nimcrypto based pbkdf2
+import nimcrypto
+import nimcrypto/pbkdf2
 proc calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string =
   var hctx: HMAC[sha256]
   hctx.init(secretKey)
@@ -28,10 +28,49 @@ proc python_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterati
     let string_hash = pyBase64.b64encode(hash).decode("ascii").strip()
     return $string_hash
 
+### C openssl based pbkdf2
+import std/base64
+from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, EVP_MD_size, DLLUtilName
+
+
+proc PKCS5_PBKDF2_HMAC(
+  pass: cstring,
+  passLen: cint,
+  salt: cstring,
+  saltLen: cint,
+  iter: cint,
+  digest: EVP_MD,
+  keylen: cint,
+  output: cstring
+): cint {.cdecl, dynlib: DLLSSLName, importc: "PKCS5_PBKDF2_HMAC".}
+
+proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_size".}
+proc EVP_sha256_fixed*(): EVP_MD    {.cdecl, dynlib: DLLUtilName, importc: "EVP_sha256".}
+
+proc openssl_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
+  if iterations > cint.high: raise newException(ValueError, "iterations too high")
+  let
+    digest: EVP_MD = EVP_sha256_fixed()
+    keylen: cint = EVP_MD_size_fixed(digest)
+    output = newString(keylen)
+
+    retVal = PKCS5_PBKDF2_HMAC(
+      password.cstring,
+      -1,
+      salt.cstring,
+      len(salt).cint,
+      iterations.cint,
+      digest,
+      keylen,
+      output[0].unsafeAddr
+    )
+
+  doAssert retVal == 1
+  result = encode(output)
 
 ### pbkdf2 usage
 proc calcPasswordHash*(password: string, salt: string, iterations: int, secretKey: string): string =
-  python_calculate_SHA256_pbkdf2_hash(password, salt, iterations, secretKey)
+  openssl_calculate_SHA256_pbkdf2_hash(password, salt, iterations, secretKey)
 
 proc isValidPassword*(password: string, databaseHash: string, secretKey: string): bool =
   let storedPasswordPieces: seq[string] = databaseHash.split('$')
