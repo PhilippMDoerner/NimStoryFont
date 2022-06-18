@@ -31,4 +31,4 @@ RUN mkdir /frontend
 COPY ./buildFiles/config/dockerStartScript.sh .
 RUN chmod +x /dockerStartScript.sh
 
-#CMD ["/dockerStartScript.sh"]
+CMD ["/dockerStartScript.sh"]
