@@ -18,5 +18,8 @@
     "audioDir": "/home",
     "audioUploadDir": "/home/extended",
     "audioUrlPrefix": "session_audio/extended",
-    "pageSize": 24
+    "pageSize": 24,
+    "smtp": "smtp.gmail.com",
+    "emailName": "username",
+    "emailPassword": "password"
 }
