@@ -1,10 +1,28 @@
 import prologue
 
+#Prologue Settings
+type SettingName* = enum
+    snSettingSetName = "name",
+    snSecretKey = "secretKey",
+    snAccesTokenLifetime = "accessTokenLifetimeInDays",
+    snRefreshTokenLifetime ="refreshTokenLifetimeInDays",
+    snConnectionLimit = "databaseConnectionLimit",
+    snDatabasePath = "databasePath",
+    snBaseDir = "baseDir",
+    snImageDir = "imageDir",
+    snAudioDir = "audioDir",
+    snAudioUploadDir = "audioUploadDir",
+    snAudioUrlPrefix = "audioUrlPrefix",
+    snPageSize = "pageSize",
+    snSmtpName = "smtp",
+    snEmailName = "emailName",
+    snEmailPassword = "emailPassword"
+
+let settings*: Settings = loadSettings("./settings.json")
+proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
+
 #Custom Settings
 const MEDIA_URL* = "/media/"
-
-#Prologue Settings
-let settings*: Settings = loadSettings("./settings.json")
 const AUTHORIZATION_HEADER*: string = "Authorization"
 
 #Hashing Settings

@@ -22,18 +22,18 @@ proc getRefreshToken(ctx: Context): Option[JWT] =
 
 
 proc getTokenLifetime(ctx: Context, tokenType: JWTType): TimeInterval =
-    var lifetimeKey: string
+    var lifetimeKey: SettingName
     case tokenType:
       of JWTType.ACCESS:
-        lifetimeKey = "accessTokenLifetimeInDays"
+        lifetimeKey = SettingName.snAccesTokenLifetime
       of JWTType.REFRESH:
-        lifetimeKey = "refreshTokenLifetimeInDays"
+        lifetimeKey = SettingName.snRefreshTokenLifetime
     
-    let lifetimeDays = ctx.getSettings(lifetimeKey).getInt()
+    let lifetimeDays = ctx.getSetting(lifetimeKey).getInt()
     result = days(lifetimeDays)
 
 proc createNextToken(user: User, tokenType: JWTType, ctx: Context): JWT =
-    let secretKey: string = ctx.getSettings( "secretKey").getStr()
+    let secretKey: string = ctx.getSetting(SettingName.snSecretKey).getStr()
     let lifetime: TimeInterval = ctx.getTokenLifetime(tokenType)
 
     let userContainer: UserContainer = getUserContainer(user)
@@ -68,7 +68,7 @@ proc login*(ctx: Context) {.async.} =
     let user: User = getUserByName(userName)
 
     let plainPassword: string = requestBody.fields["password"].getStr()
-    let secretKey = ctx.getSettings("secretKey").getStr()
+    let secretKey = ctx.getSetting(SettingName.snSecretKey).getStr()
     if not plainPassword.isValidPassword(user.password, secretKey):
         resp get401UnauthorizedResponse(ctx)
         return
