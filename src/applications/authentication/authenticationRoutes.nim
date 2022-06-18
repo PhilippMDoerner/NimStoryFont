@@ -30,4 +30,9 @@ proc addAuthenticationRoutes*(app: Prologue) =
         httpMethod = HttpGet
     )
 
+    app.addRoute(
+        "/reset/",
+        resetPassword,
+        httpMethod = HttpPost
+    )
     

@@ -90,14 +90,14 @@ proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission
 proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[Group] =
   result = connection.getList(Group)
 
-proc updatePassword*(connection: DbConn, requestParams: ReadWithoutParams, newPassword: string): User =
-  let userId = requestParams.userToken.userId
-  var user: User = connection.getEntryById(userId, User)
+proc updatePassword*(connection: DbConn, username: string, newPassword: string): User =
+  var user: User = connection.getEntryByField(username, "username", User)
   
   let hashRepresentation = createPasswordDatabaseRepresentation(newPassword, "")
   user.password = hashRepresentation
-
-  result = connection.updateEntryInTransaction(user)
+  
+  {.cast(gcsafe).}:
+    result = connection.updateEntryInTransaction(user)
 
 proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
     let subject = getPasswordResetMailSubject()
