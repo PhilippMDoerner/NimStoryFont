@@ -2,7 +2,7 @@
 sudo docker container stop test
 sudo docker container rm test
 
-nim c -f -d:normDebug -d:enableTinyPoolLogging --threads:on ./src/nimstoryfont.nim
+nim c -f -d:normDebug -d:ssl --stackTrace:on --lineTrace:on -d:enableTinyPoolLogging --threads:on ./src/nimstoryfont.nim
 cp ./src/nimstoryfont ./nimstoryfont
 
 sudo docker build -t nsi .
