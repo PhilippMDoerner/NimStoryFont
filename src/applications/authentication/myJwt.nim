@@ -4,6 +4,7 @@ import std/[options, logging, json, tables, random, times, strutils, strformat]
 import authenticationModels
 import tokenTypes 
 import ../../utils/myStrutils
+import ../../applicationSettings
 
 export jwt
 export tokenTypes
@@ -45,7 +46,7 @@ proc isRefreshToken(token: JWT): bool =
 
 
 proc hasVerifiedTokenSecret(ctx: Context, token: JWT): bool =
-    token.verify(ctx.getSettings("secretKey").getStr(), SignatureAlgorithm.HS256)
+    token.verify(ctx.getSetting(SettingName.snSecretKey).getStr(), SignatureAlgorithm.HS256)
 
 
 #[ Checks whether the given access token is valid ]#

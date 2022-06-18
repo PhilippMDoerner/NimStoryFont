@@ -3,13 +3,13 @@ import sessionAudioSerialization
 import sessionaudioUtils
 import prologue
 import std/[strutils, options, json, strformat]
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
-import jsony
 import ../authentication/authenticationUtils
 import ../controllerTemplates
-import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../genericArticleRepository
-
+import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
+import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../../applicationSettings
+import jsony
 
 proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLoadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
@@ -25,8 +25,8 @@ proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     checkCreatePermission(ctx, campaignId)
 
     let sessionId: int64 = ctx.getFormParamsOption("session").get().parseInt().int64
-    let audioDirectory: string = ctx.getSettings("audioUploadDir").getStr()
-    let audioPathPrefix: string = ctx.getSettings("audioUrlPrefix").getStr()
+    let audioDirectory: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
+    let audioPathPrefix: string = ctx.getSetting(SettingName.snAudioUrlPrefix).getStr()
 
     var sessionaudioFormData = SessionAudioDTO(
         sessionaudioFile: ctx.extractFileFromContext("audio_file"),
@@ -57,7 +57,7 @@ proc parseJSONPatchBody(ctx: JWTContext): SessionAudioDTO =
 
   result = SessionAudioDTO(
       sessionaudioFile: none(UpLoadFile),
-      audioDirectory: ctx.getSettings("audioDir").getStr(),
+      audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
       sessionId: some(newSessionId),
       entryId: some(parsedBody.pk)
   )
@@ -68,7 +68,7 @@ proc parseFormPatchBody(ctx: JWTContext): SessionAudioDTO =
   
   result = SessionAudioDTO(
       sessionaudioFile: ctx.extractFileFromContext("audio_file"),
-      audioDirectory: ctx.getSettings("audioDir").getStr(),
+      audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
       sessionId: some(sessionId),
       entryId: some(entryId)
   )
