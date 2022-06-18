@@ -31,7 +31,7 @@ proc addAuthenticationRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        "/reset/",
+        "/mail/reset/",
         resetPassword,
         httpMethod = HttpPost
     )
