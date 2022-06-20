@@ -1,6 +1,9 @@
 import prologue
+import std/strformat
 
 #Prologue Settings
+const SETTINGS_FILE_PATH = "./settings.json"
+type SettingsFileError* = object of CatchableError
 type SettingName* = enum
     snSettingSetName = "name",
     snSecretKey = "secretKey",
@@ -19,8 +22,23 @@ type SettingName* = enum
     snEmailName = "emailName",
     snEmailPassword = "emailPassword"
 
-let settings*: Settings = loadSettings("./settings.json")
+type CoreSettingName* = enum
+    csnSecretKey = "secretKey"
+
+let settings*: Settings = loadSettings(SETTINGS_FILE_PATH)
 proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
+proc getCoreSetting(settings: Settings, setting: CoreSettingName): JsonNode = settings.getOrDefault("prologue")[$setting]
+proc getSetting*(settings: Settings, setting: SettingName): JsonNode =
+    case setting:
+    of snSecretKey:
+        return settings.getCoreSetting(csnSecretKey)
+    else:
+        return settings.getOrDefault($setting)
+
+proc validateSettings*(settings: Settings) =
+  for setting in SettingName:
+    if settings.getSetting(setting) == nil:
+        raise newException(SettingsFileError, fmt"The loaded settings file at '{SETTINGS_FILE_PATH}' is missing a value for the setting '{setting}'!")
 
 #Custom Settings
 const MEDIA_URL* = "/media/"
