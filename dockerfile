@@ -2,7 +2,7 @@ FROM frolvlad/alpine-glibc
 
 # Install dependencies
 RUN apk update
-RUN apk add --no-cache openrc nginx sqlite-libs nginx-mod-http-upload-progress
+RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
