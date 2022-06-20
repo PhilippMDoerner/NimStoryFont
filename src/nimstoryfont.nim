@@ -36,7 +36,6 @@ proc initializeMediaDirectories(settings: Settings) =
     settings.getSetting(SettingName.snAudioDir).getStr().initializeDirectory()
 
 proc main() =
-    validateSettings(settings)
     let connectionPoolSize: int = settings.getSetting(SettingName.snConnectionLimit).getInt()
     let databasePath: string = settings.getSetting(SettingName.snDatabasePath).getStr()
     initConnectionPool(databasePath, connectionPoolSize)
