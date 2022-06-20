@@ -1,8 +1,10 @@
 import prologue
-import std/strformat
+import std/[os, strformat]
 
 #Prologue Settings
-const SETTINGS_FILE_PATH = "./settings.json"
+const DEFAULT_SETTINGS_FILE_PATH = "./settings.json"
+const SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE = "nimstoryfontsettings"
+
 type SettingsFileError* = object of CatchableError
 type SettingName* = enum
     snSettingSetName = "name",
@@ -25,7 +27,6 @@ type SettingName* = enum
 type CoreSettingName* = enum
     csnSecretKey = "secretKey"
 
-let settings*: Settings = loadSettings(SETTINGS_FILE_PATH)
 proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
 proc getCoreSetting(settings: Settings, setting: CoreSettingName): JsonNode = settings.getOrDefault("prologue")[$setting]
 proc getSetting*(settings: Settings, setting: SettingName): JsonNode =
@@ -38,7 +39,27 @@ proc getSetting*(settings: Settings, setting: SettingName): JsonNode =
 proc validateSettings*(settings: Settings) =
   for setting in SettingName:
     if settings.getSetting(setting) == nil:
-        raise newException(SettingsFileError, fmt"The loaded settings file at '{SETTINGS_FILE_PATH}' is missing a value for the setting '{setting}'!")
+        raise newException(SettingsFileError, fmt"The loaded settings file at '{DEFAULT_SETTINGS_FILE_PATH}' is missing a value for the setting '{setting}'!")
+
+proc getSettingsFilepath(): string =
+    if existsEnv(SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE):
+        let filePath = getEnv(SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE)
+        if filepath == "":
+            raise newException(ValueError, fmt"The environment variable '{SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE}' denotes the location of the settings file for nimstoryfont. It can not be an empty string. Either delete it to use the default location '{DEFAULT_SETTINGS_FILE_PATH}' or provide a valid path to a nimstoryfont settings file.")
+        
+        if not fileExists(filepath):
+            raise newException(ValueError, fmt"The settings file '{filepath}' does not exist. It was provided by the environment variable '{SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE}'.")
+        
+        result = filepath
+    else:
+        result = DEFAULT_SETTINGS_FILE_PATH
+
+proc loadNimstoryfontSettings(): Settings =
+    let settings = loadSettings(getSettingsFilepath())
+    settings.validateSettings()
+    result = settings
+
+let settings*: Settings = loadNimstoryfontSettings()
 
 #Custom Settings
 const MEDIA_URL* = "/media/"
