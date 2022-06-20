@@ -17,9 +17,10 @@ requires "jsony >= 1.1.2"
 requires "constructor >= 1.0.3"
 requires "tinypool >= 0.3.1"
 requires "jwt >= 0.2.0"
-requires "nimcrypto >= 0.5.4"
 requires "zippy >= 0.9.7"
-requires "nimpy >= 0.2.0"
+#requires "nimpy >= 0.2.0" only necessary when using nimpy in djangoencryption.nim
+#requires "nimcrypto >= 0.5.4" only necessary when using nimcrypto in djangoencryption.nim
+
 
 # Tasks
 task release, "Build a production release":
