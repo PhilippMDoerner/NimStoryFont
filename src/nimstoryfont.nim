@@ -32,14 +32,14 @@ proc initializeDirectory(directoryPath: string) =
         createDir(directoryPath)
 
 proc initializeMediaDirectories(settings: Settings) =
-    settings.getOrDefault("imageDir").getStr().initializeDirectory()
-    settings.getOrDefault("audioDir").getStr().initializeDirectory()
+    settings.getSetting(SettingName.snImageDir).getStr().initializeDirectory()
+    settings.getSetting(SettingName.snAudioDir).getStr().initializeDirectory()
 
 proc main() =
-    let connectionPoolSize: int = settings.getOrDefault("databaseConnectionLimit").getInt()
-    let databasePath: string = settings.getOrDefault("databasePath").getStr()
+    let connectionPoolSize: int = settings.getSetting(SettingName.snConnectionLimit).getInt()
+    let databasePath: string = settings.getSetting(SettingName.snDatabasePath).getStr()
     initConnectionPool(databasePath, connectionPoolSize)
-
+    
     initializeMediaDirectories(settings)
 
     var app: Prologue = newApp(
