@@ -20,6 +20,7 @@
     "audioUrlPrefix": "session_audio/extended",
     "pageSize": 24,
     "smtp": "smtp.gmail.com",
+    "smtpPort": 587,
     "emailName": "username",
     "emailPassword": "password"
 }
