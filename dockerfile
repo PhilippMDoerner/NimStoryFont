@@ -2,8 +2,7 @@ FROM frolvlad/alpine-glibc
 
 # Install dependencies
 RUN apk update
-RUN apk add --no-cache openrc nginx sqlite-libs nginx-mod-http-upload-progress python3 py-pip
-RUN pip install django
+RUN apk add --no-cache openrc nginx sqlite-libs nginx-mod-http-upload-progress
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
