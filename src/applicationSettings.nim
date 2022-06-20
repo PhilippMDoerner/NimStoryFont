@@ -15,6 +15,7 @@ type SettingName* = enum
     snAudioUrlPrefix = "audioUrlPrefix",
     snPageSize = "pageSize",
     snSmtpName = "smtp",
+    snSmtpPort = "smtpPort",
     snEmailName = "emailName",
     snEmailPassword = "emailPassword"
 
