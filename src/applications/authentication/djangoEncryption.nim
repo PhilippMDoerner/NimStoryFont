@@ -15,21 +15,21 @@ proc calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: in
 
 
 ### python based pbkdf2 
-import nimpy
+## IF YOU ENABLE THIS, YOU MUST ADJUST THE DOCKERFILE TO INSTALL `python3 py-pip` AND RUN `RUN pip install django`
+# import nimpy
 
-proc python_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
-    let hashlib = pyImport("hashlib")
-    let pyBase64 = pyImport("base64")
-    let djangoEncodingUtils = pyImport("django.utils.encoding")
+# proc python_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
+#     let hashlib = pyImport("hashlib")
+#     let pyBase64 = pyImport("base64")
+#     let djangoEncodingUtils = pyImport("django.utils.encoding")
 
-    let password = djangoEncodingUtils.force_bytes(password)
-    let salt = djangoEncodingUtils.force_bytes(salt)
-    let hash = hashlib.pbkdf2_hmac("sha256", password, salt, iterations)
-    let string_hash = pyBase64.b64encode(hash).decode("ascii").strip()
-    return $string_hash
+#     let password = djangoEncodingUtils.force_bytes(password)
+#     let salt = djangoEncodingUtils.force_bytes(salt)
+#     let hash = hashlib.pbkdf2_hmac("sha256", password, salt, iterations)
+#     let string_hash = pyBase64.b64encode(hash).decode("ascii").strip()
+#     return $string_hash
 
 ### C openssl based pbkdf2
-import std/base64
 from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, EVP_MD_size, DLLUtilName
 
 
