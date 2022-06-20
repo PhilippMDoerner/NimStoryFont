@@ -8,8 +8,7 @@ import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model
 import ../allUrlParams
 import ../user/userService
-import djangoEncryption
-import ../../utils/[emailUtils, myStrutils]
+import ../../utils/[emailUtils]
 
 export authenticationModels
 
@@ -91,7 +90,7 @@ proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[
   result = connection.getList(Group)
 
 proc updatePassword*(connection: DbConn, username: string, newPassword: string): User =
-  var user: User = connection.getEntryByField(username, "username", User)
+  var user: User = connection.getEntryByField("username", username, User)
   
   let hashRepresentation = createPasswordDatabaseRepresentation(newPassword, "")
   user.password = hashRepresentation
@@ -100,6 +99,6 @@ proc updatePassword*(connection: DbConn, username: string, newPassword: string):
     result = connection.updateEntryInTransaction(user)
 
 proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
-    let subject = getPasswordResetMailSubject()
+    let subject = getPasswordResetMailSubject(user.username)
     let body = getPasswordResetMailBody(newPassword)
     sendSystemEmail(subject, body, user.email, settings)
