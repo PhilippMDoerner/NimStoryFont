@@ -1,5 +1,5 @@
 import prologue
-import std/[os, strformat]
+import std/[os, strformat, sets]
 
 #Prologue Settings
 const DEFAULT_SETTINGS_FILE_PATH = "./settings.json"
@@ -27,6 +27,10 @@ type SettingName* = enum
 type CoreSettingName* = enum
     csnSecretKey = "secretKey"
 
+
+const INT_SETTINGS = [snAccesTokenLifetime, snRefreshTokenLifetime, snConnectionLimit, snPageSize, snSmtpPort].toHashSet
+const STRING_SETTINGS = [snSettingSetName, snSecretKey, snDatabasePath, snBaseDir, snImageDir, snAudioDir, snAudioUploadDir, snAudioUrlPrefix, snSmtpName, snEmailName, snEmailPassword].toHashSet()
+
 proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
 proc getCoreSetting(settings: Settings, setting: CoreSettingName): JsonNode = settings.getOrDefault("prologue")[$setting]
 proc getSetting*(settings: Settings, setting: SettingName): JsonNode =
@@ -36,10 +40,25 @@ proc getSetting*(settings: Settings, setting: SettingName): JsonNode =
     else:
         return settings.getOrDefault($setting)
 
+proc validateSettingValue*(settingName: SettingName, settingValue: JsonNode) =
+    if INT_SETTINGS.contains(settingName):
+        if settingValue.kind != JInt:
+            raise newException(ValueError, fmt"Setting '{settingName}' with value '{settingValue}' was expected to be an integer, but was of type '{settingValue.kind}'!")
+    
+    elif STRING_SETTINGS.contains(settingName):
+        if settingValue.kind != JString:
+            raise newException(ValueError, fmt"Setting '{settingName}' with value '{settingValue}' was expected to be a string, but was of type '{settingValue.kind}'!")
+
+    else:
+        raise newException(ValueError, fmt"Type of setting '{settingName}' has not been defined! A setting with this name might not exist.")
+
 proc validateSettings*(settings: Settings) =
   for setting in SettingName:
-    if settings.getSetting(setting) == nil:
+    let settingValue = settings.getSetting(setting)
+    if settingValue == nil:
         raise newException(SettingsFileError, fmt"The loaded settings file at '{DEFAULT_SETTINGS_FILE_PATH}' is missing a value for the setting '{setting}'!")
+    
+    validateSettingValue(setting, settingValue)
 
 proc getSettingsFilepath(): string =
     if existsEnv(SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE):
