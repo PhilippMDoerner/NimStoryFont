@@ -22,6 +22,7 @@ RUN mkdir /database
 RUN mkdir /imagemedia
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN mkdir /audiomedia
+RUN ln -s /audiomedia /audiodownloads
 RUN mkdir /frontend
 
 # Mount external directories
