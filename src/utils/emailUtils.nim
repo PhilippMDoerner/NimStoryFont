@@ -11,16 +11,18 @@ type EmailDTO* = object
 
 
 
-proc sendSystemEmail*(subject: string, body: string, target: string, settings: Settings) =
-  var msg = createMessage(subject, body, @[target])
-  let smtpConn = newSmtp(useSsl = true, debug=true)
-  
+proc sendSystemEmail*(subject: string, body: string, target: string, settings: Settings) =  
+
+  let smtpConn = newSmtp()
   let smtpServerName = settings.getSetting(SettingName.snSmtpName).getStr()
   let smtpPort: Port = Port settings.getSetting(SettingName.snSmtpPort).getInt()
-  smtpConn.connect(smtpServerName, Port 465)
+  smtpConn.connect(smtpServerName, smtpPort)
+  
+  smtpConn.startTls()
 
   let emailUserName = settings.getSetting(SettingName.snEmailName).getStr()
   let emailPassword = settings.getSetting(SettingName.snEmailPassword).getStr()
   smtpConn.auth(emailUserName, emailPassword)
 
+  var msg = createMessage(subject, body, @[target])
   smtpConn.sendmail(emailUserName, @[target], $msg)
