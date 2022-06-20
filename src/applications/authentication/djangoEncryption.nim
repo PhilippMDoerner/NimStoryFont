@@ -1,17 +1,17 @@
 import std/[base64, strutils]
 
 ### nimcrypto based pbkdf2
-import nimcrypto
-import nimcrypto/pbkdf2
-proc calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string =
-  var hctx: HMAC[sha256]
-  hctx.init(secretKey)
+# import nimcrypto
+# import nimcrypto/pbkdf2
+# proc calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string =
+#   var hctx: HMAC[sha256]
+#   hctx.init(secretKey)
 
-  var output: array[32, byte] # Stores the actual hash somehow that you need to encode in b64 ?
-  discard pbkdf2(hctx, password, salt, iterations, output)
+#   var output: array[32, byte] # Stores the actual hash somehow that you need to encode in b64 ?
+#   discard pbkdf2(hctx, password, salt, iterations, output)
   
-  let base64Hash = encode(output)
-  result = base64Hash
+#   let base64Hash = encode(output)
+#   result = base64Hash
 
 
 ### python based pbkdf2 
