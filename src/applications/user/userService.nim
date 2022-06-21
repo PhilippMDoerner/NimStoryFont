@@ -66,6 +66,18 @@ proc updateUserGroups*(connection: DbConn, requestData: UpdateParams, entry: Use
       
   result = connection.getEntryById(entry.id, User)
 
+proc updateUserPassword*(connection: DbConn, user: var User, newPassword: string): User =
+  
+  let hashRepresentation = createPasswordDatabaseRepresentation(newPassword, "")
+  user.password = hashRepresentation
+  
+  {.cast(gcsafe).}:
+    result = connection.updateEntryInTransaction(user)
+
+proc updateUserPassword*(connection: DbConn, username: string, newPassword: string): User =
+  var user: User = connection.getEntryByField("username", username, User)
+  connection.updateUserPassword(user, newPassword)
+
 proc patchUser*(connection: Dbconn, requestData: UpdateParams, entry: User): User =
   assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
   let isGroupUpdatePatch = requestData.body.parseJson().hasKey("groups")
