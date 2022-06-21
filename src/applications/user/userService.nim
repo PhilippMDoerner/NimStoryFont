@@ -4,7 +4,7 @@ import ../../utils/databaseUtils
 import userModel
 import userRequestParams
 import userRepository
-import std/[options, tables, strutils, strformat, sugar]
+import std/[options, tables, strutils, strformat, sugar, json, sequtils, sets]
 import norm/model
 import ../../utils/[macroUtils, djangoDateTime/djangoDateTimeType]
 import ../../applicationConstants
@@ -45,10 +45,35 @@ proc updateUser*(connection: Dbconn, requestData: UpdateParams): User =
 
   result = connection.updateEntryInTransaction(entry)
 
+proc updateUserGroups*(connection: DbConn, requestData: UpdateParams, entry: User): User =
+  let parsedBody = requestData.body.parseJson()
+
+  let newGroupIds: seq[int64] = parsedBody["groups"].elems.map(idNode => idNode.getInt().int64)
+  let oldUserGroups: seq[UserGroup] = connection.getManyFromOne(entry, UserGroup)
+  let oldGroupIds: HashSet[int64] = oldUserGroups.map(userGroup => userGroup.group_id.id).toHashSet()
+
+  for newGroupId in newGroupIds:
+    if not oldGroupIds.contains(newGroupId):
+      let group = connection.getEntryById(newGroupId, Group)
+      var newUserGroup = UserGroup(user_id: entry, group_id: group)
+      discard connection.createEntryInTransaction(newUserGroup)
+    
+  for oldUserGroup in oldUserGroups:
+    if not newGroupIds.contains(oldUserGroup.group_id.id):
+      echo fmt"{newGroupids} does not contain {oldUserGroup.id}"
+      var entryToDelete = oldUserGroup
+      connection.deleteEntryInTransaction(entryToDelete)
+      
+  result = connection.getEntryById(entry.id, User)
+
 proc patchUser*(connection: Dbconn, requestData: UpdateParams, entry: User): User =
   assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
+  let isGroupUpdatePatch = requestData.body.parseJson().hasKey("groups")
+  if isGroupUpdatePatch:
+    result = connection.updateUserGroups(requestData, entry)
 
-  result = connection.patchEntry(requestData, entry)
+  else:
+    result = connection.patchEntry(requestData, entry)
 
 
 proc deleteUser*(connection: DbConn, userToDelete: var User) =
