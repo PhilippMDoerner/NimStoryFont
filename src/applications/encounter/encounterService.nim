@@ -1,7 +1,7 @@
 import encounterModel
 import encounterRepository
-import tinypool
-import norm/[model, sqlite]
+import tinypool/sqlitePool except DbConn
+import norm/model
 import ../diaryentry/diaryEntryModel
 import ../genericArticleRepository
 import ../genericArticleService

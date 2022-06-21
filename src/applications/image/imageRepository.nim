@@ -3,7 +3,7 @@ import ../genericArticleRepository
 import norm/[model, sqlite]
 import imageModel
 import ../../utils/[databaseUtils]
-import tinypool
+import tinypool/sqlitePool
 
 
 proc getImagesForArticle*(articleType: ImageType, articleId: int64): seq[Image] =

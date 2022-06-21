@@ -15,7 +15,7 @@ import rules/[ruleSerialization, ruleService]
 import std/json
 import ../utils/djangoDateTime/[serialization]
 import genericArticleRepository
-import tinypool
+import tinypool/sqlitePool
 
 
 #TODO: Refactor this into custom procs that only contain search specific data

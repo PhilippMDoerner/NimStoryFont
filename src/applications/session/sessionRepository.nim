@@ -1,6 +1,6 @@
 import norm/sqlite
 import sessionModel
-import tinypool
+import tinypool/sqlitePool except DbConn
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
 
 

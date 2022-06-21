@@ -3,7 +3,7 @@ import std/[db_sqlite, strformat]
 import ../campaign/campaignService
 import ../../applicationSettings
 import ../../utils/nisane/nisane
-import tinypool
+import tinypool/sqlitePool
 import contentUpdateModel
 
 

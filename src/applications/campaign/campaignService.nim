@@ -3,9 +3,9 @@ import ../genericArticleService
 import campaignModel
 import campaignRepository
 import campaignUtils
-import norm/[sqlite, model]
+import norm/[model, sqlite]
 import std/[options, sets, tables, strformat]
-import tinypool
+import tinypool/sqlitePool except DbConn
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../user/userModel

@@ -3,7 +3,7 @@ import applicationSettings
 import applicationEvents
 import utils/jwtContext
 import std/[os, logging, strformat]
-import tinypool
+import tinypool/sqlitePool
 import applications/allSignals #Necessary so that signals get loaded
 import routes
 import prologue/middlewares/[staticfile, cors]

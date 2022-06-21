@@ -9,7 +9,7 @@ import djangoEncryption
 import ../../applicationSettings
 import ../genericArticleRepository
 import jwt
-import tinypool
+import tinypool/sqlitePool
 import ../allUrlParams
 
 

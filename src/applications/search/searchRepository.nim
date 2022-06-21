@@ -5,7 +5,7 @@ import ../campaign/campaignService
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
 import ../../utils/myStrutils
-import tinypool
+import tinypool/sqlitePool
 import jsony
 
 #TODO Replace the hard coded table here with an insert

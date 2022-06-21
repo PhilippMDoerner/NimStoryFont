@@ -5,7 +5,7 @@ import std/[strutils, options, strformat]
 import ../genericArticleRepository
 import ../../utils/[fileUpload, databaseUtils]
 import norm/[model, sqlite]
-import tinypool
+import tinypool/sqlitePool except DbConn
 import ../../applicationConstants
 import ../allUrlParams
 import imageRepository
