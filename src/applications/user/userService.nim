@@ -3,6 +3,7 @@ import ../genericArticleService
 import ../../utils/databaseUtils
 import userModel
 import userRequestParams
+import userUtils
 import userRepository
 import std/[options, tables, strutils, strformat, sugar, json, sequtils, sets]
 import norm/model
@@ -80,13 +81,20 @@ proc updateUserPassword*(connection: DbConn, username: string, newPassword: stri
 
 proc patchUser*(connection: Dbconn, requestData: UpdateParams, entry: User): User =
   assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
+  
   let isGroupUpdatePatch = requestData.body.parseJson().hasKey("groups")
+  let isPasswordUpdatePatch = requestData.body.parseJson().hasKey("password")
+  
   if isGroupUpdatePatch:
     result = connection.updateUserGroups(requestData, entry)
+  
+  elif isPasswordUpdatePatch:
+    var user = entry
+    let newPassword: string = requestData.body.parseJson()["password"].getStr()
+    result = connection.updateUserPassword(user, newPassword)
 
   else:
     result = connection.patchEntry(requestData, entry)
-
 
 proc deleteUser*(connection: DbConn, userToDelete: var User) =
   connection.deleteEntryInTransaction(userToDelete)

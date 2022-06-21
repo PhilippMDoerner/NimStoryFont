@@ -86,7 +86,7 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
     let settings = ctx.gScope.settings
     withDbConn(connection):
-      let updatedUser = connection.updatePassword(userName, newPassword)
+      let updatedUser = connection.updateUserPassword(userName, newPassword)
       sendPasswordResetEmail(updatedUser, newPassword, settings)
 
     respDefault(Http204)
