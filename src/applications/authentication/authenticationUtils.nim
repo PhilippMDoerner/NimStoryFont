@@ -3,11 +3,10 @@ import norm/model
 import prologue
 import ../genericArticleRepository
 import std/[options, tables, strformat]
-import ../../utils/[myStrutils, jwtContext]
+import ../../utils/[jwtContext]
 import ../allUrlParams
 import ../campaign/campaignModel
 import ../../applicationSettings
-import djangoEncryption
 
 type CampaignPermissionError* = object of CatchableError
 type AdminPermissionError* = object of CatchableError
@@ -103,10 +102,3 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
 
 proc checkNoPermission*(ctx: JWTContext, entries: seq[authenticationModels.Group]) = 
   return
-
-
-proc createPasswordDatabaseRepresentation*(password: string, secretKey: string): string =
-  let salt: string = myStrutils.randomString(DEFAULT_SALT_LENGTH)
-  let hash: string = calcPasswordHash(password, salt, DEFAULT_HASH_ITERATIONS, secretKey)
-  const hashAlgorithm: string = "pbkdf2_sha256"
-  result = fmt"{hashAlgorithm}${DEFAULT_HASH_ITERATIONS}${salt}${hash}"

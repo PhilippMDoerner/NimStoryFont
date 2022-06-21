@@ -1,6 +1,8 @@
 import userModel
-import ../../utils/jwtContext
-import ../authentication/authenticationUtils
+import ../../applicationSettings
+import ../../utils/[myStrutils, jwtContext]
+import ../authentication/[djangoEncryption, authenticationUtils]
+import std/[strformat]
 
 proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
   let isSelfDelete = ctx.tokenData.userId == entry.id
@@ -18,3 +20,9 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
 
 proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
   return
+
+proc createPasswordDatabaseRepresentation*(password: string, secretKey: string): string =
+  let salt: string = myStrutils.randomString(DEFAULT_SALT_LENGTH)
+  let hash: string = calcPasswordHash(password, salt, DEFAULT_HASH_ITERATIONS, secretKey)
+  const hashAlgorithm: string = "pbkdf2_sha256"
+  result = fmt"{hashAlgorithm}${DEFAULT_HASH_ITERATIONS}${salt}${hash}"
