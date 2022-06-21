@@ -4,7 +4,7 @@ import ../../applicationSettings
 import ../../applicationConstants
 import norm/model
 import std/[options, strformat, algorithm, strutils]
-import tinypool
+import tinypool/sqlitePool except DbConn
 import ../allUrlParams
 import locationRepository
 

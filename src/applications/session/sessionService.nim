@@ -1,6 +1,6 @@
 import sessionModel
 import ../genericArticleRepository
-import tinypool
+import tinypool/sqlitePool except DbConn
 import sessionRepository
 import ../allUrlParams
 

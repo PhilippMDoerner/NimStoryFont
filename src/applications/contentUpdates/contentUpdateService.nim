@@ -2,7 +2,7 @@ import ../articleUtils
 import ../articleModel
 import contentUpdateModel
 import contentUpdateRepository
-import tinypool
+import tinypool/sqlitePool
 import std/[json, strutils]
 
 proc getRecentlyUpdatedArticles*(campaignName: string, pageNumber: int, pageSize: int): seq[ContentUpdateSerializable] =

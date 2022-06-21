@@ -1,7 +1,7 @@
 import prologue
 import std/[strutils, sequtils, sugar, uri]
 import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
-import tinypool
+import tinypool/sqlitePool except DbConn
 import controllerTemplates
 import genericArticleService
 import genericArticleRepository
