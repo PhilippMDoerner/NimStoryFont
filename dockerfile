@@ -17,8 +17,9 @@ RUN chmod 777 /settings.json
 COPY ./buildFiles/config/50x.html /usr/share/nginx/html/50x.html
 # Setup necessary directories
 RUN mkdir -p /run/nginx
-RUN mkdir /certificates
 RUN mkdir /database
+RUN mkdir -p /cert/live/www.aldrune.com
+RUN mkdir -p /cert/archive/www.aldrune.com
 RUN mkdir /imagemedia
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN mkdir /audiomedia
