@@ -9,7 +9,7 @@ import ../session/[sessionSerialization, sessionModel]
 import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
-import std/[sugar, options, strutils, strformat, sequtils, tables]
+import std/[sugar, options, strutils, strformat, sequtils, tables, algorithm]
 import norm/[model, sqlite]
 import ../articleModel
 
@@ -50,7 +50,9 @@ proc serializeToDiaryEntryStub(connection: DbConn, entry: DiaryEntryRead): Diary
     )
 
 proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): AdjacentDiaryEntries =
-    let diaryentries: seq[DiaryEntryRead] = connection.getDiaryEntriesForCampaign(entry.session_id.campaign_id.name)
+    # Keep in mind diaryentries are ordered most current diaryentry first, later ones last.
+    # So the next diaryentry is at i-1, the prior one at i+1
+    var diaryentries: seq[DiaryEntryRead] = connection.getDiaryEntriesForCampaign(entry.session_id.campaign_id.name)
     if diaryentries.len() == 0:
         return AdjacentDiaryEntries(prior_diaryentry: none(DiaryEntryStub), next_diaryentry: none(DiaryEntryStub))
     
@@ -63,17 +65,17 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
     var nextDiaryEntry = none(DiaryEntryRead)
     var priorDiaryEntry = none(DiaryEntryRead)
     if entryIndex == diaryentries.len()-1:
-        priorDiaryEntry = some(diaryentries[entryIndex - 1])
+        priorDiaryEntry = some(diaryentries[entryIndex + 1])
 
     elif entryIndex == 0:
-        nextDiaryEntry = some(diaryentries[entryIndex + 1])
+        nextDiaryEntry = some(diaryentries[entryIndex - 1])
 
     elif entryIndex == -1:
         raise newException(ValueError, fmt"The entry with id {entry.id} was not in a list of diaryentries for campaign {entry.session_id.campaign_id.name}.")
     
     else:
-        priorDiaryEntry = some(diaryentries[entryIndex - 1])
-        nextDiaryEntry = some(diaryentries[entryIndex + 1])
+        priorDiaryEntry = some(diaryentries[entryIndex + 1])
+        nextDiaryEntry = some(diaryentries[entryIndex - 1])
 
     result = AdjacentDiaryEntries(
         prior_diaryentry: priorDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry)), 
