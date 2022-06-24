@@ -1,7 +1,7 @@
 #!/bin/bash
 sudo docker container stop test
 sudo docker container rm test
-sudo docker build -t nsi_debug .
+sudo docker build -t nsi_prod .
 
 echo "Run new container"
 sudo docker run -it -p 80:80 -p 443:443 \
@@ -12,4 +12,4 @@ sudo docker run -it -p 80:80 -p 443:443 \
 -v $HOME/Music/session_audio_backup:/audiomedia \
 -v $HOME/Music/session_audio_backup/extended:/audiomedia/extended \
 -v $HOME/dev/aldrunewikifrontend/dist/frontend:/frontend \
--v /tmp:/var/log/nginx --name test nsi_debug
+-v /tmp:/var/log/nginx --name test nsi_prod
