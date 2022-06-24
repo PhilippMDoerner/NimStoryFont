@@ -4,8 +4,6 @@ import characterSerialization
 import characterEncounterModel
 import std/[strutils]
 import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
-import ../../utils/djangoDateTime/serialization
-import norm/model
 import jsony
 import ../controllerTemplates
 import ../genericArticleRepository

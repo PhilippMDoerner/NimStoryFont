@@ -2,7 +2,7 @@ import sessionaudioModel
 import norm/sqlite
 import ../genericArticleRepository
 import ../session/[sessionModel, sessionSerialization]
-import std/[options, strformat, os, sequtils, strutils, sugar]
+import std/[options, strformat, sequtils, strutils, sugar]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import sessionaudioRepository
 import ../campaign/campaignModel

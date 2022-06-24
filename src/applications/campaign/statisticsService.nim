@@ -2,7 +2,6 @@ import statisticsRepository
 import norm/[model, sqlite]
 import ../genericArticleRepository
 import campaignModel
-import campaignRepository
 import ../character/characterModel
 import ../creature/creatureModel
 import ../diaryentry/diaryEntryModel

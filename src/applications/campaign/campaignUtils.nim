@@ -1,5 +1,5 @@
 import campaignModel
-import std/[options, strformat, tables]
+import std/[options, strformat]
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../authentication/authenticationUtils

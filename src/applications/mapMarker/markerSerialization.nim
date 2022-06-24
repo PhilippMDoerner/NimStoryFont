@@ -1,5 +1,5 @@
 import markerModel
-import ../mapMarkerType/[markerTypeModel, markerTypeSerialization]
+import ../mapMarkerType/[markerTypeSerialization]
 import norm/sqlite
 import ../location/[locationModel, locationRepository]
 import ../genericArticleRepository

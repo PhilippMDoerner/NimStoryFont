@@ -9,7 +9,7 @@ import ../session/[sessionSerialization, sessionModel]
 import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
-import std/[sugar, options, strutils, strformat, sequtils, tables, algorithm]
+import std/[sugar, options, strutils, strformat, sequtils, tables]
 import norm/[model, sqlite]
 import ../articleModel
 

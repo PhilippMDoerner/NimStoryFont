@@ -1,9 +1,8 @@
 import ../core/signalSystem
 import ../../applicationSettings
 import ../../utils/fileUpload
-import std/[os, db_sqlite, strutils, json]
+import std/[db_sqlite, json]
 import imageModel
-import imageUtils
 import prologue
 
 proc deleteImageFile(connection: DbConn, modelInstance: Image) =

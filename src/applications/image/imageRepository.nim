@@ -1,6 +1,6 @@
 import std/[options, strformat]
 import ../genericArticleRepository
-import norm/[model, sqlite]
+import norm/[sqlite]
 import imageModel
 import ../../utils/[databaseUtils]
 import tinypool/sqlitePool

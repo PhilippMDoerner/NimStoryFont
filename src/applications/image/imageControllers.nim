@@ -2,7 +2,7 @@ import imageService
 import imageModel
 import imageSerialization
 import prologue
-import std/[strutils, options, json, strformat]
+import std/[strutils, options, json]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../applicationSettings
 import jsony

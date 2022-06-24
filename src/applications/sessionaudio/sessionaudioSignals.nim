@@ -1,7 +1,7 @@
 import ../core/signalSystem
 import ../../applicationSettings
 import ../../utils/fileUpload
-import std/[os, json, strformat]
+import std/[json]
 import norm/sqlite
 import sessionaudioModel
 import prologue
