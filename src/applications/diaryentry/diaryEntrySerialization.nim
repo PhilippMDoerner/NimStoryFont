@@ -64,18 +64,18 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
     
     var nextDiaryEntry = none(DiaryEntryRead)
     var priorDiaryEntry = none(DiaryEntryRead)
-    if entryIndex == diaryentries.len()-1:
+
+    if entryIndex == 0:
         priorDiaryEntry = some(diaryentries[entryIndex + 1])
-
-    elif entryIndex == 0:
+    elif entryIndex > 0 and entryIndex < diaryentries.len() - 1:
+        priorDiaryEntry = some(diaryentries[entryIndex + 1])
         nextDiaryEntry = some(diaryentries[entryIndex - 1])
-
-    elif entryIndex == -1:
-        raise newException(ValueError, fmt"The entry with id {entry.id} was not in a list of diaryentries for campaign {entry.session_id.campaign_id.name}.")
-    
+    elif entryIndex == diaryentries.len()-1:
+        nextDiaryEntry = some(diaryentries[entryIndex - 1])
     else:
-        priorDiaryEntry = some(diaryentries[entryIndex + 1])
-        nextDiaryEntry = some(diaryentries[entryIndex - 1])
+       raise newException(ValueError, fmt"The entry with id {entry.id} was not in a list of diaryentries for campaign {entry.session_id.campaign_id.name}.")
+    
+
 
     result = AdjacentDiaryEntries(
         prior_diaryentry: priorDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry)), 
