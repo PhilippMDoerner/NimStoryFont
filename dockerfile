@@ -11,7 +11,7 @@ RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl
 
 # Copy necessary files
 COPY ./nimstoryfont .
-COPY ./buildFiles/config/nginx_dev.conf /etc/nginx/nginx.conf
+COPY ./buildFiles/config/nginx_prod.conf /etc/nginx/nginx.conf
 COPY ./buildFiles/config/dockerSettings.json /settings.json
 RUN chmod 777 /settings.json
 COPY ./buildFiles/config/50x.html /usr/share/nginx/html/50x.html
