@@ -86,9 +86,7 @@ type SessionAudioOverviewSerializable* = object
     download_url: string
 
 proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAudioOverviewSerializable =
-    let (directory, fileName, fileExtension) = entry.audio_file.splitFile()
     let timestampNames = connection.getManyFromOne(entry, Timestamp).map(timestamp => timestamp.name)
-
     result = SessionAudioOverviewSerializable(
         article_type: ArticleType.atSessionAudio,
         description: timestampNames.join(" - "),
@@ -99,5 +97,5 @@ proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAud
         update_datetime: entry.update_datetime,
         session_details: serializeSessionAudioSession(entry.session_id),
         audio_url: entry.audio_file,
-        download_url: fmt"/downloads/{fileName}{fileExtension}"
+        download_url: entry.audio_file.getDownloadUrl()
     )

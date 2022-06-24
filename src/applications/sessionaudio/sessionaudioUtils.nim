@@ -1,7 +1,7 @@
 import ../session/[sessionModel]
 import sessionaudioModel
 import ../genericArticleRepository
-import std/[strformat]
+import std/[strformat, strutils]
 import ../../utils/jwtContext
 import ../authentication/authenticationUtils
 
@@ -21,3 +21,8 @@ proc campaign_id*(sessionaudio: SessionAudioRead): int64 =
 
 proc checkSessionAudioReadListPermission*(ctx: JWTContext, entries: seq[SessionAudioRead | SessionAudio]) =
   checkCampaignReadListPermission(ctx, entries)
+
+proc getDownloadUrl*(audioFilePath: string): string =
+  var url = audioFilePath
+  url.removePrefix("session_audio/")
+  result = fmt"downloads/{url}"
