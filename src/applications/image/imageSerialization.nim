@@ -1,6 +1,6 @@
 import imageModel
 import imageUtils
-import std/[options, strformat]
+import std/[options]
 
 type ImageSerializable* = object
   pk: int64

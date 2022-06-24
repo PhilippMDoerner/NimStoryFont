@@ -1,6 +1,5 @@
 import locationModel
 import ../genericArticleRepository
-import ../../applicationSettings
 import ../../applicationConstants
 import norm/model
 import std/[options, strformat, algorithm, strutils]

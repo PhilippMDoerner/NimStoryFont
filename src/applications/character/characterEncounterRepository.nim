@@ -1,6 +1,5 @@
 import norm/[model, sqlite]
 import characterEncounterModel
-import ../../utils/djangoDateTime/[normConversion]
 import std/[sugar, sequtils, tables, strutils, strformat]
 import ../genericArticleRepository
 

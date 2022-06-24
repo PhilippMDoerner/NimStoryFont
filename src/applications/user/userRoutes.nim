@@ -5,7 +5,6 @@ import std/strformat
 import ../genericArticleControllers
 import userRequestParams
 import userSerialization
-import userDeserialization
 import userUtils
 import ../authentication/authenticationUtils
 

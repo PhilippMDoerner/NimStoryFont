@@ -2,7 +2,7 @@ import creatureModel
 import norm/sqlite
 import ../genericArticleRepository
 import ../image/imageModel
-import std/[options, sequtils, strformat, sugar]
+import std/[options, strformat, sugar]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../campaign/campaignModel
 import ../articleModel

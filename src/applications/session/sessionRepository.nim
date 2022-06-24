@@ -1,7 +1,7 @@
 import norm/sqlite
 import sessionModel
 import tinypool/sqlitePool except DbConn
-import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
+import ../../utils/djangoDateTime/[normConversion]
 
 
 proc getSession*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionRead =

@@ -3,9 +3,9 @@ import locationModel
 import locationUtils
 import locationRepository
 import ../articleModel
-import ../image/[imageUtils, imageModel, imageSerialization]
-import ../mapMarker/[markerModel, markerSerialization]
-import ../character/[characterModel, characterSerialization, characterUtils]
+import ../image/[imageModel, imageSerialization]
+import ../mapMarker/[markerModel]
+import ../character/[characterModel, characterUtils]
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]

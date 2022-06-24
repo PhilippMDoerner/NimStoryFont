@@ -1,8 +1,6 @@
 import zippy
 import prologue
-import std/[strformat, strutils]
-import jsony
-
+import std/[strutils]
 
 proc responseCompressionMiddleware*(): HandlerAsync =
   ## Compresses the response

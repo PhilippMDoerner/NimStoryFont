@@ -86,7 +86,7 @@ proc createReadByIdHandler*[P: object, E: Model, S: object | ref object](seriali
 proc createReadByNameHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   const readProc: ReadProc[P, E] = readArticleByName[P, E]
   const checkPermissionProc: CheckPermissionProc[E] = checkReadPermission[E]
-  result = createReadHandler[P, E, S](readProc, checkReadPermission, serialize)
+  result = createReadHandler[P, E, S](readProc, checkPermissionProc, serialize)
 
 
 
@@ -152,7 +152,7 @@ proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](
   const readProc: ReadProc[P, E] = readArticleById[P, E]
   const patchProc: PatchProc[P, E] = patchArticle[P, E]
   const checkPermissionProc: CheckPermissionProc[E] = checkUpdatePermission[E]
-  result = createPatchHandler[P, E, S](readProc, checkPermissionProc, patchArticle, serialize)
+  result = createPatchHandler[P, E, S](readProc, checkPermissionProc, patchProc, serialize)
 
 
 

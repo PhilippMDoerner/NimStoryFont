@@ -1,6 +1,5 @@
 import norm/sqlite
 import markerModel
-import ../../utils/djangoDateTime/[normConversion]
 import std/[strutils, strformat]
 import ../../applicationConstants
 import ../genericArticleRepository

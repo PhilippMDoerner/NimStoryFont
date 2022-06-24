@@ -6,7 +6,7 @@ import prologue
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../allUrlParams
 import ../../utils/[fileUpload, databaseUtils]
-import std/[strformat, options, logging]
+import std/[strformat, options]
 
 export sessionaudioModel
 

@@ -1,6 +1,6 @@
 import prologue
 import jwt
-import std/[options, logging, json, tables, random, times, strutils, strformat]
+import std/[options, logging, json, tables, times, strutils, strformat]
 import authenticationModels
 import tokenTypes 
 import ../../utils/myStrutils

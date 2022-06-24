@@ -1,7 +1,6 @@
 import userModel
 import norm/[sqlite]
 import std/[strformat, sequtils, sugar, strutils]
-import ../../utils/nisane/nisane
 
 proc getCampaignMemberIds(connection: DbConn, campaignName: string): seq[int64] =
   const campaignUserQuery = sql """

@@ -2,10 +2,9 @@ import prologue
 import quoteService
 import quoteUtils
 import quoteSerialization
-import std/[strutils, options, uri, sugar]
+import std/[strutils, options, sugar]
 import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import ../../utils/djangoDateTime/serialization
-import norm/model
 import jsony
 import ../controllerTemplates
 import ../genericArticleRepository

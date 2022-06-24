@@ -3,8 +3,6 @@ import searchUtils
 import searchRepository
 import norm/model
 import std/[db_sqlite, strutils, json]
-import jsony
-#import ../../applicationSettings
 import tinypool/sqlitePool
 import articleToStringUtils
 import ../articleModel

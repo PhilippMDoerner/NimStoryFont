@@ -4,8 +4,6 @@ import authenticationService
 import authenticationUtils
 import authenticationSerialization
 import ../genericArticleControllers
-import ../allUrlParams
-import ../user/[userSerialization, userService]
 
 proc addAuthenticationRoutes*(app: Prologue) =
     app.addRoute(

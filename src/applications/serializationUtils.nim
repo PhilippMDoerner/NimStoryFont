@@ -1,6 +1,6 @@
 import norm/model
 import std/sets
-import ../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../utils/macroUtils
 
 ##This is the global module for all jsony hook procs

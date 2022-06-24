@@ -1,8 +1,6 @@
 import prologue except Group
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService]
-import authenticationModels
-import authenticationUtils
 import authenticationEmailText
 import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model

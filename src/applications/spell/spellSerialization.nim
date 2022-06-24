@@ -2,7 +2,7 @@ import spellModel
 import spellUtils
 import norm/sqlite
 import ../genericArticleRepository
-import ../playerclass/[playerClassModel, playerClassSerialization]
+import ../playerclass/[playerClassSerialization]
 import std/[options, sugar, sequtils]
 import ../campaign/campaignModel
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
