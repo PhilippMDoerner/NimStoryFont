@@ -1,8 +1,8 @@
 import sessionaudioModel
-import norm/sqlite
+import norm/[model, sqlite]
 import ../genericArticleRepository
 import ../session/[sessionModel, sessionSerialization]
-import std/[options, strformat, sequtils, strutils, sugar]
+import std/[options, strformat, sequtils, strutils, sugar, tables]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import sessionaudioRepository
 import ../campaign/campaignModel
@@ -85,8 +85,9 @@ type SessionAudioOverviewSerializable* = object
     audio_url: string
     download_url: string
 
-proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAudioOverviewSerializable =
-    let timestampNames = connection.getManyFromOne(entry, Timestamp).map(timestamp => timestamp.name)
+
+proc overviewSerialize(entry: SessionAudioRead, timestamps: seq[Timestamp]): SessionAudioOverviewSerializable =
+    let timestampNames = timestamps.map(timestamp => timestamp.name)
     result = SessionAudioOverviewSerializable(
         article_type: ArticleType.atSessionAudio,
         description: timestampNames.join(" - "),
@@ -99,3 +100,14 @@ proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAud
         audio_url: entry.audio_file,
         download_url: entry.audio_file.getDownloadUrl()
     )
+
+proc overviewSerialize*(connection: DbConn, entry: SessionAudioRead): SessionAudioOverviewSerializable =
+    let timestamps: seq[Timestamp] = connection.getManyFromOne(entry, Timestamp)
+    result = overviewSerialize(entry, timestamps)
+    
+proc overviewSerialize*(connection: DbConn, entries: seq[SessionAudioRead]): seq[SessionAudioOverviewSerializable] =
+    let allTimestamps: Table[int64, seq[Timestamp]] = connection.getManyFromOne(entries, Timestamp, "session_audio_id")
+    
+    for entry in entries:
+        let serializedEntry = overviewSerialize(entry, allTimestamps[entry.id])
+        result.add(serializedEntry)
