@@ -12,4 +12,6 @@ sudo docker run -it -p 80:80 -p 443:443 \
 -v $HOME/Music/session_audio_backup:/audiomedia \
 -v $HOME/Music/session_audio_backup/extended:/audiomedia/extended \
 -v $HOME/dev/aldrunewikifrontend/dist/frontend:/frontend \
--v /tmp:/var/log/nginx --name test nsi_prod
+-v /tmp:/var/log/nginx \
+-v /tmp:/tmpfiles \
+--name test nsi_prod
