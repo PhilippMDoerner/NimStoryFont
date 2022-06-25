@@ -2,10 +2,11 @@ import sessionaudioService
 import sessionAudioSerialization
 import sessionaudioUtils
 import prologue
-import std/[strutils, options, json]
+import std/[strutils, options, json, strformat]
 import ../authentication/authenticationUtils
 import ../controllerTemplates
 import ../genericArticleRepository
+import ../allUrlParams
 import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../applicationSettings
@@ -20,16 +21,18 @@ proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLo
 
 proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
-
-    let campaignId: int64 = ctx.getFormParamsOption("campaign").get().parseInt().int64
+    let jsonBody = ctx.request.body().parseJson()
+    let campaignId: int64 = jsonBody["campaign"].getInt().int64
     checkCreatePermission(ctx, campaignId)
 
-    let sessionId: int64 = ctx.getFormParamsOption("session").get().parseInt().int64
+    let sessionId: int64 = jsonBody["session"].getInt().int64
     let audioDirectory: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
     let audioPathPrefix: string = ctx.getSetting(SettingName.snAudioUrlPrefix).getStr()
 
+    let audioFile: string = jsonBody["audio_file"].getStr()
+
     var sessionaudioFormData = SessionAudioDTO(
-        sessionaudioFile: ctx.extractFileFromContext("audio_file"),
+        sessionaudioFileName: some(audioFile),
         audioDirectory: audioDirectory,
         audioPathPrefix: audioPathPrefix,
         sessionId: some(sessionId),
@@ -56,7 +59,7 @@ proc parseJSONPatchBody(ctx: JWTContext): SessionAudioDTO =
   let newSessionId: int64 = parsedBody.session
 
   result = SessionAudioDTO(
-      sessionaudioFile: none(UpLoadFile),
+      sessionaudioFileName: none(string),
       audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
       sessionId: some(newSessionId),
       entryId: some(parsedBody.pk)
@@ -67,7 +70,7 @@ proc parseFormPatchBody(ctx: JWTContext): SessionAudioDTO =
   let entryId: int64 = ctx.getFormParamsOption("sessionaudio").get().parseInt().int64
   
   result = SessionAudioDTO(
-      sessionaudioFile: ctx.extractFileFromContext("audio_file"),
+      sessionaudioFileName: some(""),
       audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
       sessionId: some(sessionId),
       entryId: some(entryId)

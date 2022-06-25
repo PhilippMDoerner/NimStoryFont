@@ -9,29 +9,42 @@ proc randomString(length: int): string =
     for _ in 0..length:
         add(result, char(rand(int('A') .. int('z'))))
 
-proc renameFile(file: var UpLoadFile) =
-  let (directory, name, extension) = file.filename.splitFile()
-  let newFileName = fmt "{name}_{randomString(10)}{extension}"
-  file.filename = newFileName
+proc renameFile(fileName: string): string =
+  let (directory, name, extension) = fileName.splitFile()
+  result = fmt "{name}_{randomString(10)}{extension}"
 
 proc saveFile*(file: var UpLoadFile, uploadDirectory: string): string =
   if not dirExists(uploadDirectory):
-    raise newException(FileNotFoundError, fmt "The media directory '{uploadDirectory}' does not exist")
+    raise newException(FileNotFoundError, fmt "The directory '{uploadDirectory}' does not exist")
   
   var filePath = fmt "{uploadDirectory}/{file.filename}"
   while fileExists(filePath):
-    file.renameFile()
-    filePath = fmt "{uploadDirectory}/{file.filename}" # TODO: Contemplate turning this into a while loop
+    file.filename = file.filename.renameFile()
+    filePath = fmt "{uploadDirectory}/{file.filename}" 
 
   file.save(uploadDirectory)
   
-  result = filePath
+proc buildUniqueFilepath*(startFileName: string, targetDirectory: string): string =
+  ## Simply manipulates the filename over and over until a path is found that has no existing file
+  var filePath = fmt "{targetDirectory}/{startFileName}"
+  var fileName = startFileName
+  const maxRenameAttempts = 10
+
+  for i in 0..maxRenameAttempts:
+    if not fileExists(filePath): 
+      return filePath
+    else:
+      fileName = fileName.renameFile()
+      filePath = fmt "{targetDirectory}/{fileName}" 
+  
+  raise newException(ValueError, fmt"Was unable to build a unqiue filepath for '{startFileName}' in '{targetDirectory}' within {maxRenameAttempts} attempts!")
+ 
 
 proc deleteFile*(absoluteFilePath: string) =
   if fileExists(absoluteFilePath):
     removeFile(absoluteFilePath)
 
-proc deleteFile*(relativeFilePath: string, mediaDirectory: string) = deleteFile(fmt"{mediaDirectory}/{relativeFilePath}")
+proc deleteFile*(relativeFilePath: string, containingDirectory: string) = deleteFile(fmt"{containingDirectory}/{relativeFilePath}")
 
-proc getRelativeFilepathTo*(absoluteFilepath: string, mediaDirectory: string): string =
-  result = absoluteFilepath.substr(mediaDirectory.len + 1)
+proc getRelativeFilepathTo*(absoluteFilepath: string, containingDirectory: string): string =
+  result = absoluteFilepath.substr(containingDirectory.len + 1)

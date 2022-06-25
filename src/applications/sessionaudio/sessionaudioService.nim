@@ -6,48 +6,48 @@ import prologue
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../allUrlParams
 import ../../utils/[fileUpload, databaseUtils]
-import std/[strformat, options]
+import std/[strformat, options, os]
 
 export sessionaudioModel
 
 type SessionAudioDTO* = object
     sessionId*: Option[int64]
-    sessionaudioFile*: Option[UpLoadFile]
+    sessionaudioFileName*: Option[string]
     audioDirectory*: string
     audioPathPrefix*: string
     entryId*: Option[int64]
 
 
 proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO): Option[SessionAudioRead] =
-    if requestParams.sessionaudioFile.isNone() or requestParams.sessionId.isNone():
+    if requestParams.sessionaudioFileName.isNone() or requestParams.sessionId.isNone():
         return none(SessionAudioRead)
-
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
-    let absoluteFilePath: string = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
     
-    var pathInDatabase: string = fmt"{requestParams.audioPathPrefix}/{absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)}"
+    let sessionId = requestParams.sessionId.get()
+    let relativeFilePath = requestParams.sessionaudioFileName.get()
+    
+    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    
     var newEntry = SessionAudio(
-        audio_file: pathInDatabase,
+        audio_file: relativeFilePath,
         creation_datetime: creationTime,
         update_datetime: creationTime,
-        session_id: requestParams.sessionId.get(),
+        session_id: sessionId,
     )
     
     try:
         let createdEntry = connection.createEntryInTransaction(newEntry)
         result = some(connection.getEntryById(createdEntry.id, SessionAudioRead))
     except Exception:
-        deleteFile(absoluteFilePath)
+        #TODO: implement: Delete the file if its there, if it isn't do nothing
+        deleteFile(relativeFilePath)
         raise
 
 proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, entry: var SessionAudio): SessionAudio =
     entry.update_datetime = djangoDateTimeType.now()
 
     var absoluteFilePath: string = ""
-    if requestParams.sessionaudioFile.isSome():
-        absoluteFilePath = saveFile(requestParams.sessionaudioFile.get(), requestParams.audioDirectory)
-        var pathInDatabase: string = fmt"{requestParams.audioPathPrefix}/{absoluteFilePath.getRelativeFilepathTo(requestParams.audioDirectory)}"
-        entry.audio_file = pathInDatabase
+    if requestParams.sessionaudioFileName.isSome():
+        raise newException(ValueError, "Updating an audio file is not implemented yet")
     
     if requestParams.sessionId.isSome():
         entry.session_id = requestParams.sessionId.get()
@@ -64,3 +64,15 @@ proc getSessionAudioByParams*(connection: DbConn, requestParams: ReadSessionAudi
 
 proc getCampaignSessionAudio*(connection: DbConn, requestParams: ReadListParams): seq[SessionAudioRead] =
   result = connection.getSessionAudioForCampaign(requestParams.campaignName)
+    
+proc moveAudioFile*(tmpFilePath: string, targetFileName: string, audioDirectory: string): string =
+  if not dirExists(audioDirectory):
+    raise newException(FileNotFoundError, fmt"The media directory '{audioDirectory}' does not exist")
+  
+  if not fileExists(tmpFilePath):
+    raise newException(FileNotFoundError, fmt"The temporary audio file '{tmpFilePath}' could not be found! This is a technical error, it must be in the temporary file directory!")
+
+  var targetFilePath = buildUniqueFilepath(targetFileName, audioDirectory)
+  moveFile(tmpFilePath, targetFilePath)  
+  
+  result = targetFilePath
