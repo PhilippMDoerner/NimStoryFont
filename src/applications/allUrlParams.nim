@@ -32,11 +32,11 @@ const SESSION_NUMBER_PATTERN* = fmt r"(?P<{SESSION_NUMBER_PARAM}>[\d]+)"
 const SESSION_IS_MAIN_SESSION_PARAM* = "isMainSession"
 const SESSION_IS_MAIN_SESSION_PATTERN* = fmt r"(?P<{SESSION_IS_MAIN_SESSION_PARAM}>[\d]+)"
 
-
 const USERNAME_PARAM* = "userName"
 const USERNAME_PATTERN* = fmt r"(?P<{USERNAME_PARAM}>[^/]+)"
 
-
+const FILE_NAME_PARAM* = "fileName"
+const FILE_NAME_PATTERN* = fmt r"(?P<{FILE_NAME_PARAM}>[^/]+)"
 
 type ReadByIdParams* {.defaults.} = object
   id*: int64 = MODEL_INIT_ID

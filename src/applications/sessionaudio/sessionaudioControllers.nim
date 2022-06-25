@@ -90,3 +90,15 @@ proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.}=
         let updatedEntry = connection.patchSessionAudio(sessionaudioUpdateParams, oldEntry)
         let data = connection.serializeSessionAudio(updatedEntry)
         resp jsonyResponse(ctx, data)
+
+proc moveAudioFileAfterUpload*(ctx: Context) {.async, gcsafe.} = 
+  let tmpFilePath: string = ctx.request.getHeader("x-file-name")[0]
+
+  let audioUploadDir: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
+  let targetFileName: string = ctx.getPathParamsOption(FILE_NAME_PARAM).get()
+
+  let finalAudioFilePath = moveAudioFile(tmpFilePath, targetFileName, audioUploadDir)
+  let finalAudioName = finalAudioFilePath.split("/")[^1]
+  let urlPrefix: string = ctx.getSetting(SettingName.snAudioUrlPrefix).getStr()
+
+  resp jsonResponse(%* fmt"{urlPrefix}/{finalAudioName}")
