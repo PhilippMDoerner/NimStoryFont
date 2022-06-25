@@ -175,7 +175,10 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O
 
     for entryId in entryIds:
         let id = entryId
-        result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName).id == id)
+        when M.getField(manyTypeforeignKeyFieldName) is int64:
+            result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName) == id)
+        else:
+            result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName).id == id)
 
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
