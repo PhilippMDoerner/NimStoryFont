@@ -8,6 +8,7 @@ import sessionAudioSerialization
 import sessionaudioModel
 import sessionaudioUtils
 import sessionaudioControllers
+import jsony
 
 
 proc addSessionAudioRoutes*(app: Prologue) =
@@ -67,4 +68,9 @@ proc addSessionAudioRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
-   
+
+    app.addRoute(
+        re fmt"/file/{FILE_NAME_PATTERN}",
+        handler = moveAudioFileAfterUpload,
+        httpMethod = HttpPost
+    )
