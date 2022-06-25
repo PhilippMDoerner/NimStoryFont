@@ -14,7 +14,6 @@ type SessionAudioDTO* = object
     sessionId*: Option[int64]
     sessionaudioFileName*: Option[string]
     audioDirectory*: string
-    audioPathPrefix*: string
     entryId*: Option[int64]
 
 

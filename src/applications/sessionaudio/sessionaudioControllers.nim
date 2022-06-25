@@ -27,14 +27,12 @@ proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
 
     let sessionId: int64 = jsonBody["session"].getInt().int64
     let audioDirectory: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
-    let audioPathPrefix: string = ctx.getSetting(SettingName.snAudioUrlPrefix).getStr()
 
     let audioFile: string = jsonBody["audio_file"].getStr()
 
     var sessionaudioFormData = SessionAudioDTO(
         sessionaudioFileName: some(audioFile),
         audioDirectory: audioDirectory,
-        audioPathPrefix: audioPathPrefix,
         sessionId: some(sessionId),
         entryId: none(int64)
     )
@@ -92,13 +90,11 @@ proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.}=
         resp jsonyResponse(ctx, data)
 
 proc moveAudioFileAfterUpload*(ctx: Context) {.async, gcsafe.} = 
-  let tmpFilePath: string = ctx.request.getHeader("x-file-name")[0]
+  let tmpFilePath: string = ctx.request.getHeader(TEMPORARY_FILENAME_HEADER)[0]
 
   let audioUploadDir: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
   let targetFileName: string = ctx.getPathParamsOption(FILE_NAME_PARAM).get()
 
   let finalAudioFilePath = moveAudioFile(tmpFilePath, targetFileName, audioUploadDir)
-  let finalAudioName = finalAudioFilePath.split("/")[^1]
-  let urlPrefix: string = ctx.getSetting(SettingName.snAudioUrlPrefix).getStr()
 
-  resp jsonResponse(%* fmt"{urlPrefix}/{finalAudioName}")
+  resp jsonResponse(%* finalAudioFilePath)
