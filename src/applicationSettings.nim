@@ -17,7 +17,6 @@ type SettingName* = enum
     snImageDir = "imageDir", # Directory containing all images to upload images to 
     snAudioDir = "audioDir", # Directory containing all audio files
     snAudioUploadDir = "audioUploadDir", # Sub-Folder of snAudioDir. Directory that newly uploaded audio files shall be moved to
-    snAudioUrlPrefix = "audioUrlPrefix", # TODO: Check if this is actually still needed
     snPageSize = "pageSize", # The amount of entries to send to the frontend as one "page" if number of entries sent must be limited
     snSmtpName = "smtp",
     snSmtpPort = "smtpPort",
@@ -29,7 +28,7 @@ type CoreSettingName* = enum
 
 
 const INT_SETTINGS = [snAccesTokenLifetime, snRefreshTokenLifetime, snConnectionLimit, snPageSize, snSmtpPort].toHashSet
-const STRING_SETTINGS = [snSettingSetName, snSecretKey, snDatabasePath, snBaseDir, snImageDir, snAudioDir, snAudioUploadDir, snAudioUrlPrefix, snSmtpName, snEmailName, snEmailPassword].toHashSet()
+const STRING_SETTINGS = [snSettingSetName, snSecretKey, snDatabasePath, snBaseDir, snImageDir, snAudioDir, snAudioUploadDir, snSmtpName, snEmailName, snEmailPassword].toHashSet()
 
 proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
 proc getCoreSetting(settings: Settings, setting: CoreSettingName): JsonNode = settings.getOrDefault("prologue")[$setting]
@@ -83,7 +82,7 @@ let settings*: Settings = loadNimstoryfontSettings()
 #Custom Settings
 const MEDIA_URL* = "/media/"
 const AUTHORIZATION_HEADER*: string = "Authorization"
-
+const TEMPORARY_FILENAME_HEADER*: string = "x-file-name"
 #Hashing Settings
 const DEFAULT_HASH_ITERATIONS* = 180000
 const DEFAULT_SALT_LENGTH* = 12
