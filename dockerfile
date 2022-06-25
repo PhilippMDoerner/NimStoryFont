@@ -21,6 +21,7 @@ RUN mkdir /database
 RUN mkdir -p /cert/live/www.aldrune.com
 RUN mkdir -p /cert/archive/www.aldrune.com
 RUN mkdir /imagemedia
+RUN mkdir /tmpfiles
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN mkdir /audiomedia
 RUN ln -s /audiomedia /audiodownloads
