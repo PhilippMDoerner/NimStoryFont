@@ -4,6 +4,9 @@ import norm/model
 macro getField*(obj: Model, fieldName: static string): untyped =
   nnkDotExpr.newTree(obj, ident(fieldName))
 
+macro getField*[T](someType: typedesc[T], fieldName: static string): untyped =
+  nnkDotExpr.newTree(someType, ident(fieldName))
+
 template setField*(obj: var Model, fieldName: static string, value: untyped) =
   obj.getField(fieldName) = value
 
