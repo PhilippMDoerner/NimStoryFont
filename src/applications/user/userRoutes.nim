@@ -63,7 +63,7 @@ proc addUserRoutes*(app: Prologue) =
         handler = createReadListHandler[ReadListParams, User, UserSerializable](
             getCampaignUserListOverview, 
             checkCampaignReadListPermission, 
-            serializeUser
+            serializeUsers
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
@@ -74,7 +74,7 @@ proc addUserRoutes*(app: Prologue) =
         handler = createReadListHandler(
             readListProc = getUsers,
             checkPermission = checkNoUserPermission,
-            serialize = serializeUser
+            serialize = serializeUsers
         ),
         httpMethod = HttpGet
     )
