@@ -52,7 +52,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         handler = createReadListHandler(
             readListProc = getMarkerTypes, 
             checkPermission = checkReadMarkerTypeListPermission, 
-            serialize = serializeMarkerType
+            serialize = serializeMarkerTypes
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
@@ -64,7 +64,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         handler = createReadListHandler(
             readListProc = getMarkerTypes, 
             checkPermission = checkReadMarkerTypeListPermission, 
-            serialize = serializeMarkerType
+            serialize = serializeMarkerTypes
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

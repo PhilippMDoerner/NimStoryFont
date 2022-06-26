@@ -60,3 +60,8 @@ proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializ
         icon: entry.icon.map(getImagePath),
         update_datetime: entry.update_datetime
     )
+
+
+proc overviewSerialize*(connection: DbConn, entries: seq[MapRead]): seq[MapOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
