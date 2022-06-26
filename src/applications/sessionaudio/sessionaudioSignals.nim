@@ -1,10 +1,8 @@
 import ../core/signalSystem
-import ../../applicationSettings
 import ../../utils/fileUpload
-import std/[json, strformat]
+import std/[strformat]
 import norm/sqlite
 import sessionaudioModel
-import prologue
 
 proc deleteSessionAudioFile(connection: DbConn, modelInstance: SessionAudio) =
   ## Deletes an sessionAudio file off the harddrive if the corresponding sessionAudio entry
