@@ -122,3 +122,8 @@ proc updateEncounterOrderAfterBackwardsInsert*(connection: DbConn, affectedEncou
 proc getCampaignEncounters*(connection: DbConn, campaignName: string): seq[EncounterRead] =
   const condition: string = """diaryentry_id_session_id_campaign_id.name LIKE ?"""
   result = connection.getList(EncounterRead, condition, campaignName.dbValue())
+
+
+proc getEncountersOfDiaryentry*(connection: DbConn, diaryentryId: int64): seq[EncounterRead] =
+    const condition: string = """diaryentry_id = ?"""
+    result = connection.getList(EncounterRead, condition, diaryentryId.dbValue())

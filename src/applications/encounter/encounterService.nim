@@ -87,3 +87,6 @@ proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: 
 
 proc readCampaignEncounters*(connection: DbConn, requestParams: ReadListParams): seq[EncounterRead] =
     result = connection.getCampaignEncounters(requestParams.campaignName)
+
+proc readDiaryEntryEncounters*(connection: DbConn, diaryentryId: int64): seq[EncounterRead] =
+    result = connection.getEncountersOfDiaryentry(diaryentryId)
