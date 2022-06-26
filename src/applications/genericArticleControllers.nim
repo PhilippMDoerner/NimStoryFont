@@ -56,6 +56,7 @@ type PatchProc*[REQUESTPARAMS: object, ENTRY: Model] = proc(connection: DbConn, 
 type DeleteProc*[ENTRY: Model] = proc(connection: DbConn, deleteEntry: var ENTRY)
 
 type SerializeProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entry: ENTRY): SERIALIZATION
+type SerializeManyProc*[ENTRY: Model, SERIALIZATION: object | ref object] = proc(connection: DbConn, entries: seq[ENTRY]): seq[SERIALIZATION]
 type CheckPermissionProc*[ENTRY: Model] = proc(ctx: JWTContext, entry: ENTRY)
 type CheckListPermissionProc*[ENTRY: Model] = proc(ctx: JWTContext, entries: seq[ENTRY])
 
@@ -186,7 +187,7 @@ proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](se
 proc createReadListHandler*[P: ReadListParams, E: Model, S: object | ref object](
   readListProc: ReadListProc[P, E],
   checkPermission: CheckListPermissionProc[E],
-  serialize: SerializeProc[E, S]
+  serialize: SerializeManyProc[E, S]
 ): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -197,12 +198,12 @@ proc createReadListHandler*[P: ReadListParams, E: Model, S: object | ref object]
       withDbConn(connection):
         let entries: seq[E] = readListProc(connection, params)
         checkPermission(ctx, entries)
-        let data: seq[S] = entries.map(entry => connection.serialize(entry))
+        let data: seq[S] = connection.serialize(entries)
 
         resp jsonyResponse(ctx, data)
 
 proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref object](
-  serialize: SerializeProc[E, S]
+  serialize: SerializeManyProc[E, S]
 ): HandlerAsync =
   result = proc(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -213,7 +214,7 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
     respondBadRequestOnDbError():
       withDbConn(connection):
         let entries: seq[E] = readCampaignArticleList[P, E](connection, params)
-        let data: seq[S] = entries.map(entry => connection.serialize(entry))
+        let data: seq[S] = connection.serialize(entries)
 
         resp jsonyResponse(ctx, data)
 
