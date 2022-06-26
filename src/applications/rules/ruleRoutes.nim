@@ -45,14 +45,14 @@ proc addRuleRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/rule/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, RuleRead, RuleSerializable](serializeRuleRead),
+        handler = createReadCampaignListHandler[ReadListParams, RuleRead, RuleSerializable](serializeRuleReads),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/rule/{CAMPAIGN_NAME_PATTERN}/", 
-        handler = createReadCampaignListHandler[ReadListParams, RuleRead, RuleSerializable](serializeRuleRead),
+        handler = createReadCampaignListHandler[ReadListParams, RuleRead, RuleSerializable](serializeRuleReads),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )

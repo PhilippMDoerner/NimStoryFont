@@ -30,6 +30,10 @@ proc serializeRuleRead*(connection: DbConn, entry: RuleRead): RuleSerializable =
         campaign_details: entry.campaign_id
     )
 
+proc serializeRuleReads*(connection: DbConn, entries: seq[RuleRead]): seq[RuleSerializable] =
+    for entry in entries:
+        result.add(connection.serializeRuleRead(entry)) 
+
 proc serializeRule*(connection: DbConn, entry: Rule): RuleSerializable =
     let fullEntry = connection.getEntryById(entry.id, RuleRead)
     result = connection.serializeRuleRead(fullEntry)
@@ -55,3 +59,8 @@ proc overviewSerialize*(connection: DbConn, entry: RuleRead): RuleOverviewSerial
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime
     )
+
+
+proc overviewSerialize*(connection: DbConn, entries: seq[RuleRead]): seq[RuleOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
