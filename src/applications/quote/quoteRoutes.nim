@@ -49,7 +49,7 @@ proc addQuoteRoutes*(app: Prologue) =
         handler = createReadListHandler(
           getCharacterQuotes,
           checkQuoteListPermission,
-          serializeQuoteRead
+          serializeQuoteReads
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

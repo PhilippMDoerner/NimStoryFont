@@ -43,12 +43,7 @@ type QuoteSerializable* = object
     encounter: Option[int64]
     connections: seq[QuoteConnectionSerializable]
 
-
-
-proc serializeQuoteRead*(connection: DbConn, entry: QuoteRead): QuoteSerializable =
-    let session = connection.getEntryById(entry.session_id.id, SessionRead)
-    let quoteConnections = connection.getManyFromOne(entry, QuoteConnectionRead)
-
+proc serializeQuoteRead*(entry: QuoteRead, serializedSession: SessionSerializable, quoteConnections: seq[QuoteConnectionRead]): QuoteSerializable =
     result = QuoteSerializable(
         pk: entry.id,
         quote: entry.quote,
@@ -56,10 +51,20 @@ proc serializeQuoteRead*(connection: DbConn, entry: QuoteRead): QuoteSerializabl
         creation_datetime: entry.creation_datetime,
         update_datetime: entry.update_datetime,
         session: entry.session_id.id,
-        session_details: connection.serializeSessionRead(session),
+        session_details: serializedSession,
         encounter: entry.encounter_id.map(enc => enc.id),
         connections: quoteConnections.map(serializeQuoteConnectionRead)
     )
+
+proc serializeQuoteRead*(connection: DbConn, entry: QuoteRead): QuoteSerializable =
+    let session = connection.getEntryById(entry.session_id.id, SessionRead)
+    let serializedSession = connection.serializeSessionRead(session)
+    let quoteConnections = connection.getManyFromOne(entry, QuoteConnectionRead)
+    result = serializeQuoteRead(entry, serializedSession, quoteConnections)
+
+proc serializeQuoteReads*(connection: DbConn, entries: seq[QuoteRead]): seq[QuoteSerializable] =
+    #TODO: do multi queries for quotes to cut down on total query count
+    result = entries.map(entry => connection.serializeQuoteRead(entry))
 
 proc serializeQuote*(connection: DbConn, entry: Quote): QuoteSerializable =
     let fullEntry = connection.getEntryById(entry.id, QuoteRead)
