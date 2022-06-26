@@ -1,11 +1,16 @@
 import prologue
 import encounterService
 import encounterModel
+import encounterUtils
+import encounterSerialization
 import std/[json, strutils]
-import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../utils/[databaseUtils, jwtContext, customResponses, errorResponses]
 import jsony
 import ../controllerTemplates
-import ../../utils/djangoDateTime/[serialization]
+import ../../utils/djangoDateTime/serialization
+import ../allUrlParams
+import ../genericArticleControllers
+import ../authentication/authenticationUtils
 
 
 
@@ -31,3 +36,19 @@ proc cutInsertEncounter*(ctx: Context) {.async, gcsafe.} =
     respondBadRequestOnDbError():
         let diaryentryEncounters: seq[EncounterRead] = cutInsertEncounter(cutEncounterId, oldOrderIndex, newOrderIndex)
         resp jsonyResponse(ctx, diaryentryEncounters)
+
+proc createEncounterInDiaryentry*(ctx: Context) {.async, gcsafe.} =
+    let ctx = JWTContext(ctx)
+
+    let params: CreateParams = ctx.extractQueryParams(CreateParams)
+
+    var newEntry: Encounter = params.body.fromJson(Encounter)
+    checkCreatePermission(ctx, newEntry)
+
+    respondBadRequestOnDbError():
+      withDbTransaction(connection):
+        let createdEntry: Encounter = connection.createEncounter(params, newEntry)
+        let diaryentryEncounters: seq[EncounterRead] = connection.readDiaryEntryEncounters(createdEntry.diaryentry_id)
+        let data: seq[EncounterSerializable] = connection.serializeEncounterReads(diaryentryEncounters)
+
+        resp jsonyResponse(ctx, data)

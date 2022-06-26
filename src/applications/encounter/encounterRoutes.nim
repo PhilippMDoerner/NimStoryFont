@@ -18,7 +18,7 @@ proc addEncounterRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/encounter/",
-        handler = createCreateHandler[CreateParams, Encounter, EncounterSerializable](checkCreatePermission, createEncounter, serializeEncounter),
+        handler = encounterControllers.createEncounterInDiaryentry,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
