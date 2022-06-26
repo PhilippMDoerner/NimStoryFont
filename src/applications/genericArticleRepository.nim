@@ -222,7 +222,9 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
     for entryId in queryStartEntryIds:
         let id = entryId
-        result[entryId] = joinModelEntries.filter(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd).id == id)
+        result[entryId] = joinModelEntries
+            .filter(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd).id == id)
+            .map(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd))
 
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
