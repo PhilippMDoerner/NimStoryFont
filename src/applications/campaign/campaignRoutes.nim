@@ -62,7 +62,7 @@ proc addCampaignRoutes*(app: Prologue) =
         handler = createReadListHandler(
           getAllCampaignReads,
           noCampaignListPermissionCheck,
-          serializeCampaignRead
+          serializeCampaignReads
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

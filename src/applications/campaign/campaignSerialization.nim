@@ -3,7 +3,7 @@ import norm/[model, sqlite]
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../user/userSerialization
 import ../genericArticleRepository
-import std/[sugar, sequtils, options, algorithm, strformat]
+import std/[sugar, sequtils, options, algorithm, strformat, tables]
 import campaignService
 import ../session/sessionModel
 import ../image/imageUtils
@@ -47,8 +47,6 @@ type CampaignOverviewSerializable* = object
 type MembershipSerializable* = UserGroup
 
 
-
-
 proc serializeCampaignRead*(connection: DbConn, entry: CampaignRead): CampaignSerializable =
     let campaignEmptySearchResponses: seq[EmptySearchResponse] = connection.getManyFromOne(entry, EmptySearchResponse)
     let default_map_id: Option[int64] = if entry.default_map_id.isSome(): some(entry.default_map_id.get().id) else: none(int64)
@@ -84,14 +82,17 @@ proc serializeCampaignRead*(connection: DbConn, entry: CampaignRead): CampaignSe
         guest_group_name: entry.guest_group_id.get().name
     )
 
+proc serializeCampaignReads*(connection: DbConn, entries: seq[CampaignRead]): seq[CampaignSerializable] =
+    for entry in entries:
+        result.add(connection.serializeCampaignRead(entry))
+
 proc serializeCampaign*(connection: DbConn, entry: Campaign): CampaignSerializable =
     let fullEntry = connection.getEntryById(entry.id, CampaignRead)
     result = connection.serializeCampaignRead(fullEntry)
 
-proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOverviewSerializable =
+proc overviewSerialize*(entry: CampaignRead, campaignSessions: var seq[Session]): CampaignOverviewSerializable =
     let default_map_id: Option[int64] = if entry.default_map_id.isSome(): some(entry.default_map_id.get().id) else: none(int64)
     
-    var campaignSessions: seq[Session] = connection.getManyFromOne(entry, Session)
     var campaignDuration: CampaignDuration
     if campaignSessions.len() > 0:
         campaignSessions.sort((x, y: Session) => x.session_number - y.session_number)
@@ -114,6 +115,17 @@ proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOvervi
         default_map_details: entry.default_map_id,
         duration: campaignDuration
     )
+
+proc overviewSerialize*(connection: DbConn, entry: CampaignRead): CampaignOverviewSerializable =
+    var campaignSessions: seq[Session] = connection.getManyFromOne(entry, Session)
+    result = overviewSerialize(entry, campaignSessions)
+
+proc overviewSerialize*(connection: DbConn, entries: seq[CampaignRead]): seq[CampaignOverviewSerializable] =
+    var allCampaignSessions: Table[int64, seq[Session]] = connection.getManyFromOne(entries, Session, "campaign_id")
+
+    for entry in entries:
+        let serializedEntry: CampaignOverviewSerializable = overviewSerialize(entry, allCampaignSessions[entry.id])
+        result.add(serializedEntry)
 
 #TODO: Double check that if this is used during "change member" etc. provides correct data amounts
 proc serializeMembership*(connection: DbConn, entry: UserGroup): UserSerializable = 
