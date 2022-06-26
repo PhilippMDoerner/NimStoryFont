@@ -173,3 +173,7 @@ proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOvervi
         update_datetime: entry.update_datetime,
         parent_location_details: entry.parent_location_id.serializeParentLocation()
     )
+
+proc overviewSerialize*(connection: DbConn, entries: seq[LocationRead]): seq[LocationOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
