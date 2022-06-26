@@ -15,3 +15,7 @@ proc serializeGroup*(connection: DbConn, entry: Group): GroupSerializable =
     name: entry.name,
     permissions: groupPermissionIds
   )
+
+proc serializeGroups*(connection: DbConn, entries: seq[Group]): seq[GroupSerializable] =
+  for entry in entries:
+    result.add(connection.serializeGroup(entry))
