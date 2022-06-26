@@ -48,7 +48,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
         handler = createReadListHandler[ReadListParams, PlayerClass, PlayerClassSerializable](
           getPlayerClasses,
           checkPlayerClassPermission,
-          serializePlayerClass
+          serializePlayerClasses
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
@@ -59,7 +59,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
         handler = createReadListHandler[ReadListParams, PlayerClass, PlayerClassSerializable](
           getPlayerClasses,
           checkPlayerClassPermission,
-          serializePlayerClass
+          serializePlayerClasses
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
