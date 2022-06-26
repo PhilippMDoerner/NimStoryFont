@@ -56,3 +56,7 @@ proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOv
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime
     )
+
+proc overviewSerialize*(connection: DbConn, entries: seq[CreatureOverview]): seq[CreatureOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
