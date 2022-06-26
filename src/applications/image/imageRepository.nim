@@ -1,28 +1,29 @@
-import std/[options, tables, strformat, strutils]
+import std/[options, tables, strformat, strutils, sequtils]
 import ../genericArticleRepository
 import norm/[sqlite]
 import imageModel
-import ../../utils/[databaseUtils]
+import ../../utils/[databaseUtils, macroUtils]
 import tinypool/sqlitePool
 
 
-proc getImagesForArticle*(articleType: ImageType, articleId: int64): seq[Image] =
+proc queryImagesForArticle*(articleType: ImageType, articleId: int64): seq[Image] =
   let condition: string = fmt "{$articleType}_article_id = ?"
 
   withDbConn(connection):
     result = connection.getList(Image, condition, articleId.dbValue())
 
-proc getImagesForArticles*(connection: MyDbConn, articleType: static ImageType, articleIds: seq[int64]): Table[int64, seq[Image]] =
+proc queryImagesForArticles*(connection: MyDbConn, articleType: static ImageType, articleIds: seq[int64]): Table[int64, seq[Image]] =
   const articleFkFieldname = fmt"{$articleType}_article_id"
-  let condition: string = fmt"""{articleFkFieldname} IN {articleIds.join(",")}"""
+  let articleIdStr: string = articleIds.join(",")
+  let condition: string = fmt """{articleFkFieldname} IN ({articleIdStr})"""
 
   let articleImages = connection.getList(Image, condition)
 
   for id in articleIds:
-    result[id] = seq[]
+    result[id] = @[]
   
   for image in articleImages:
-    let articleId = image.getField(articleFkFieldname)
+    let articleId: int64 = image.getField(articleFkFieldname).get()
     result[articleId].add(image)
 
 
