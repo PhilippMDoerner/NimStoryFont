@@ -162,18 +162,29 @@ type LocationOverviewSerializable* = object
     update_datetime: DjangoDateTime
     parent_location_details: ParentLocationSerializable
 
-proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOverviewSerializable =
+proc overviewSerialize(entry: LocationRead, campaignLocations: seq[LocationRead]): LocationOverviewSerializable =
+    let fullLocationName = stringifyLocation(entry, campaignLocations)
     result = LocationOverviewSerializable(
         article_type: ArticleType.atLocation,
         description: entry.description.map(truncate),
         pk: entry.id,
-        name_full: entry.name,
+        name_full: fullLocationName,
         name: entry.name,
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime,
         parent_location_details: entry.parent_location_id.serializeParentLocation()
     )
 
+proc overviewSerialize*(connection: DbConn, entry: LocationRead): LocationOverviewSerializable =
+    let campaignName = entry.campaign_id.name
+    let campaignLocations = connection.getCampaignList(campaignName, LocationRead)
+    result = overviewSerialize(entry, campaignLocations)
+
 proc overviewSerialize*(connection: DbConn, entries: seq[LocationRead]): seq[LocationOverviewSerializable] =
+    if entries.len == 0: return @[]
+
+    let campaignName = entries[0].campaign_id.name
+    let campaignLocations = connection.getCampaignList(campaignName, LocationRead)
+    
     for entry in entries:
-        result.add(connection.overviewSerialize(entry))
+        result.add(overviewSerialize(entry, campaignLocations))
