@@ -40,7 +40,7 @@ proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue:
   else:
     assert(false, fmt"Tried extracting query parameter {fieldName} which was neither an int, string or bool or an Option of those types") 
 
-proc extractQueryParams[Q: object](ctx: JWTContext, dataContainerType: typedesc[Q]): Q =
+proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc[Q]): Q =
   mixin init
 
   result = init(Q)
