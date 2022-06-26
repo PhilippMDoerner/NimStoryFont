@@ -1,4 +1,4 @@
-import std/[options, tables, strformat, strutils, sequtils]
+import std/[options, tables, strformat, strutils]
 import ../genericArticleRepository
 import norm/[sqlite]
 import imageModel

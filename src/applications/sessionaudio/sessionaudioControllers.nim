@@ -2,7 +2,7 @@ import sessionaudioService
 import sessionAudioSerialization
 import sessionaudioUtils
 import prologue
-import std/[strutils, options, json, strformat]
+import std/[strutils, options, json]
 import ../authentication/authenticationUtils
 import ../controllerTemplates
 import ../genericArticleRepository
