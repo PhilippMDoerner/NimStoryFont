@@ -27,34 +27,33 @@ proc getEncountersBetweenOrderIndices*(connection: DbConn, diaryentryId: int64, 
 
 proc getNextEncounter*(connection: DbConn, encounter: Encounter): Option[Encounter] =
     const condition = """
-        WHERE order_index > ? AND diaryentry_id = ?
+        order_index > ? AND diaryentry_id = ?
         ORDER BY order_index ASC
         LIMIT 1
     """
 
     var encounter = newModel(Encounter)
-    connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
-    
-    if encounter.id == MODEL_INIT_ID:
-        result = none(Encounter)
-    else:
+    try:
+        connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
         result = some(encounter)
+    except NotFoundError:
+        result = none(Encounter)
+        
 
 
 proc getPriorEncounter*(connection: DbConn, encounter: Encounter): Option[Encounter] =
     const condition = """
-        WHERE order_index < ? AND diaryentry_id = ?
+        order_index < ? AND diaryentry_id = ?
         ORDER BY order_index DESC
         LIMIT 1
     """
 
     var encounter = newModel(Encounter)
-    connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
-    
-    if encounter.id == MODEL_INIT_ID:
-        result = none(Encounter)
-    else:
+    try:
+        connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
         result = some(encounter)
+    except NotFoundError:
+        result = none(Encounter)
 
 
 proc getNextOrderIndex*(connection: DbConn, encounter: Encounter): int =
