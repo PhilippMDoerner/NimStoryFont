@@ -126,3 +126,8 @@ proc overviewSerialize*(connection: DbConn, entry: QuestRead): QuestOverviewSeri
         abstract: entry.abstract,
         status: entry.status
     )
+
+
+proc overviewSerialize*(connection: DbConn, entries: seq[QuestRead]): seq[QuestOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
