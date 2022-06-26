@@ -69,3 +69,7 @@ proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerial
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime
     )
+
+proc overviewSerialize*(connection: DbConn, entries: seq[ItemRead]): seq[ItemOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
