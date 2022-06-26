@@ -46,14 +46,14 @@ proc addSpellRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/spell/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, SpellRead, SpellSerializable](serializeSpellRead),
+        handler = createReadCampaignListHandler[ReadListParams, SpellRead, SpellSerializable](serializeSpellReads),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/spell/{CAMPAIGN_NAME_PATTERN}/", 
-        handler = createReadCampaignListHandler[ReadListParams, SpellRead, SpellSerializable](serializeSpellRead),
+        handler = createReadCampaignListHandler[ReadListParams, SpellRead, SpellSerializable](serializeSpellReads),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
