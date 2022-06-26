@@ -16,7 +16,7 @@ proc serializeSessionDiaryentry(entry: DiaryEntryRead): SessionDiaryEntrySeriali
     var diaryEntryName: string = ""
     diaryEntryName.add(fmt"Diary Entry #{entry.session_id.session_number}")
     if entry.title.isSome():
-        diaryEntryName.add(fmt" - {entry.title}")
+        diaryEntryName.add(fmt" - {entry.title.get()}")
 
     result = SessionDiaryEntrySerializable(
         author_name: entry.author_id.username,
