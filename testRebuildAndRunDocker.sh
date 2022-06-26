@@ -3,7 +3,6 @@ sudo docker container stop test
 sudo docker container rm test
 
 nimble debug
-cp ./src/nimstoryfont ./nimstoryfont
 
 sudo docker build -t nsi_prod .
 
