@@ -1,12 +1,12 @@
 import sessionModel
-import norm/sqlite
+import norm/[model, sqlite]
 import ../campaign/campaignModel
 import ../diaryentry/[diaryEntryModel]
 import ../sessionaudio/sessionaudioModel
 import ../genericArticleRepository
 import sessionUtils
 import ../../utils/djangoDateTime/[djangoDateTimeType]
-import std/[options, sequtils, strformat, sugar]
+import std/[options, sequtils, strformat, sugar, tables]
 
 type SessionDiaryEntrySerializable* = object
     author_name: string
@@ -40,10 +40,8 @@ type SessionSerializable* = object
     diaryentries: seq[SessionDiaryEntrySerializable]
     has_recording: bool
 
-proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSerializable =
-    let diaryentries = connection.getManyFromOne(entry, DiaryEntryRead)
-        .map(serializeSessionDiaryentry)
-    
+proc serializeSessionRead(entry: SessionRead, diaryentries: seq[DiaryEntryRead]): SessionSerializable =
+    let serializedDiaryentries = diaryentries.map(serializeSessionDiaryentry)
     let sessionString = $entry
 
     result = SessionSerializable(
@@ -60,8 +58,20 @@ proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSeria
         creation_datetime: entry.creation_datetime,
         campaign: entry.campaign_id.id,
         campaign_details: entry.campaign_id,
-        diaryentries: diaryentries
+        diaryentries: serializedDiaryentries
     )
+
+
+proc serializeSessionRead*(connection: DbConn, entry: SessionRead): SessionSerializable =
+    let diaryentries = connection.getManyFromOne(entry, DiaryEntryRead)
+    result = serializeSessionRead(entry, diaryentries)
+
+
+proc serializeSessionReads*(connection: DbConn, entries: seq[SessionRead]): seq[SessionSerializable] =
+    let allDiaryEntries: Table[int64, seq[DiaryEntryRead]] = connection.getManyFromOne(entries, DiaryEntryRead, "session_id")
+    for entry in entries:
+        let serializedEntry = serializeSessionRead(entry, allDiaryEntries[entry.id])
+        result.add(serializedEntry)
 
 proc serializeSession*(connection: DbConn, entry: Session): SessionSerializable =
     let fullEntry = connection.getEntryById(entry.id, SessionRead)
@@ -84,12 +94,10 @@ type SessionOverviewSerializable* = object
     is_main_session_int: 0..1
     session_date: DjangoDateTime
 
-proc overviewSerialize*(connection: DbConn, entry: SessionRead): SessionOverviewSerializable =
+proc overviewSerialize*(entry: SessionRead, sessionAudios: seq[SessionAudio], diaryentries: seq[DiaryEntry]): SessionOverviewSerializable =
     let entryString = $entry
-    let hasRecording: bool = connection.getManyFromOne(entry, SessionAudio).len > 0
-    let authorIds = connection.getManyFromOne(entry, DiaryEntry)
-        .map(diaryentry => diaryentry.author_id)
-
+    let hasRecording = sessionAudios.len > 0
+    let authorIds = diaryentries.map(diaryentry => diaryentry.author_id)
     result = SessionOverviewSerializable(
         article_type: "session",
         pk: entry.id,
@@ -106,3 +114,17 @@ proc overviewSerialize*(connection: DbConn, entry: SessionRead): SessionOverview
         is_main_session_int: entry.is_main_session.int,
         session_date: entry.session_date
     )
+
+proc overviewSerialize*(connection: DbConn, entry: SessionRead): SessionOverviewSerializable =
+    let sessionAudios = connection.getManyFromOne(entry, SessionAudio)
+    let diaryentries = connection.getManyFromOne(entry, DiaryEntry)
+
+    result = overviewSerialize(entry, sessionAudios, diaryentries)    
+
+proc overviewSerialize*(connection: DbConn, entries: seq[SessionRead]): seq[SessionOverviewSerializable] =
+    let allDiaryEntries: Table[int64, seq[DiaryEntry]] = connection.getManyFromOne(entries, DiaryEntry, "session_id")
+    let allSessionAudios: Table[int64, seq[SessionAudio]] = connection.getManyFromOne(entries, SessionAudio, "session_id")
+    for entry in entries:
+        let diaryentries = allDiaryEntries[entry.id]
+        let sessionAudios = allSessionAudios[entry.id]
+        result.add(overviewSerialize(entry, sessionAudios, diaryentries))
