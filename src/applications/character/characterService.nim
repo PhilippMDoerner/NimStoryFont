@@ -1,9 +1,11 @@
 import ../genericArticleRepository
 import characterModel
 import characterEncounterModel
+import ../image/[imageService]
 import norm/[model, sqlite]
 import characterRepository
 import ../allUrlParams
+import std/tables
 
 export characterEncounterModel
 export characterModel
@@ -18,3 +20,6 @@ proc getNonPlayerCharacters*(connection: DbConn, requestParams: ReadListParams):
 
 proc getPlayerCharacters*(connection: DbConn, requestParams: ReadListParams): seq[CharacterOverview] =
   result = connection.getPlayerCharacters(requestParams.campaignName)
+
+proc getCharacterImages*(connection: DbConn, characterIds: seq[int64]): Table[int64, seq[Image]] =
+  result = connection.getImagesForArticles(ImageType.CHARACTERTYPE, characterIds)

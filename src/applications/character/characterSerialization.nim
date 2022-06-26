@@ -6,13 +6,14 @@ import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, strutils, strformat, algorithm]
+import std/[sugar, sequtils, options, strutils, strformat, algorithm, tables]
 import ../genericArticleRepository
 import ../../utils/[myStrutils, databaseUtils]
 import norm/sqlite
 import ../articleModel
 import ../playerclass/[playerClassSerialization, playerClassModel]
 import characterEncounterModel
+import characterService
 import characterUtils
 
 type CharacterLocationSerializable* = object
@@ -130,9 +131,9 @@ type CharacterOverviewSerializable* = object
     alive*: bool
     images*: seq[string]
 
-proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
-    let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
-    let imagePaths = images.map(getImagePath)
+
+proc overviewSerialize*(entry: CharacterOverview, entryImages: seq[Image]): CharacterOverviewSerializable =
+    let imagePaths = entryImages.map(getImagePath)
 
     result = CharacterOverviewSerializable(
         article_type: ArticleType.atCharacter,
@@ -146,6 +147,18 @@ proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): Character
         alive: entry.alive,
         images: imagePaths
     )
+
+proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): CharacterOverviewSerializable =
+    let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
+    result = overviewSerialize(entry, images)
+
+proc overviewSerialize*(connection: DbConn, entries: seq[CharacterOverview]): seq[CharacterOverviewSerializable] =
+    let playerCharacterIds: seq[int64] = entries.filter(entry => entry.player_character).map(entry => entry.id)
+    let allImages: Table[int64, seq[Image]] = connection.getCharacterImages(playerCharacterIds)
+
+    for entry in entries:
+        let serializedEntry = overviewSerialize(entry, allImages[entry.id])
+        result.add(serializedEntry)
 
 
 type ConnectionDetailsSerializable* = object

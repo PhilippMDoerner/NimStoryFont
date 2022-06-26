@@ -15,6 +15,9 @@ export imageModel
 proc getArticleImage*(articleType: ImageType, articleId: int64): seq[Image] = 
   result = getImagesForArticle(articleType, articleId)#
 
+proc getImagesForArticles*(connection: DbConn, articleType: ImageType, articleIds: seq[int64]): Table[int64, seq[Image]] =
+  result = connection.getImagesForArticles(articleType, articleIds)
+
 proc getImageById*(connection: DbConn, requestParams: DeleteParams): Image =
   result = connection.getEntryById(requestParams.id, Image)
 
