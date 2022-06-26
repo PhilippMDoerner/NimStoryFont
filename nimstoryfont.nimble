@@ -37,3 +37,18 @@ task release, "Build a production release":
   --hints:off
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
+
+
+task debug, "Build a release for debugging":
+  --verbose
+  --stackTrace:on 
+  --lineTrace:on 
+  --forceBuild:on
+  --threads:on
+  --mm:orc
+  --deepcopy:on
+  --define:ssl
+  --define:enableTinyPoolLogging
+  --define:normDebug
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
