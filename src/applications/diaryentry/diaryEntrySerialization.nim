@@ -175,3 +175,7 @@ proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOv
             name: entry.author_id.username
         )
     )
+
+proc overviewSerialize*(connection: DbConn, entries: seq[DiaryEntryRead]): seq[DiaryEntryOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
