@@ -74,6 +74,7 @@ proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[Cha
     var name = fmt"{entry.diaryentry_id.session_id.session_number}"
     if entry.location_id.isSome():
         name.add(fmt" - {entry.location_id.get().name}")
+    
     result = EncounterSerializable(
         pk: entry.id,
         description: entry.description,
@@ -97,6 +98,10 @@ proc serializeEncounterRead*(connection: DbConn, entry: EncounterRead): Encounte
 
     result = serializeEncounterRead(entry, encounterConnections, encounterLocationParents)
 
+proc serializeEncounterReads*(connection: DbConn, entries: seq[EncounterRead]): seq[EncounterSerializable] =
+    for entry in entries:
+        let serializedEntry = connection.serializeEncounterRead(entry)
+        result.add(serializedEntry)
 
 proc serializeEncounter*(connection: DbConn, entry: Encounter): EncounterSerializable =
     let entryRead = connection.getEntryById(entry.id, EncounterRead)
