@@ -1,9 +1,9 @@
 import spellModel
 import spellUtils
-import norm/sqlite
+import norm/[model, sqlite]
 import ../genericArticleRepository
 import ../playerclass/[playerClassSerialization]
-import std/[options, sugar, sequtils]
+import std/[options, sugar, sequtils, tables]
 import ../campaign/campaignModel
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../articleModel
@@ -50,9 +50,8 @@ type SpellSerializable* = object
     campaign: int64
     campaign_details: MinimumCampaignOverview
 
-proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializable =
-    let serializedSpellConnections = connection.getManyFromOne(entry, SpellConnectionRead)
-        .map(serializeSpellConnectionRead)
+proc serializeSpellRead*(entry: SpellRead, spellConnections: seq[SpellConnectionRead]): SpellSerializable =
+    let serializedSpellConnections = spellConnections.map(serializeSpellConnectionRead)
     
     result = SpellSerializable(
         article_type: ArticleType.atSpell,
@@ -75,6 +74,15 @@ proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializabl
         campaign_details: entry.campaign_id,
         player_class_connections: serializedSpellConnections
     )
+
+proc serializeSpellRead*(connection: DbConn, entry: SpellRead): SpellSerializable =
+    let spellConnections = connection.getManyFromOne(entry, SpellConnectionRead)
+    result = serializeSpellRead(entry, spellConnections)
+
+proc serializeSpellReads*(connection: DbConn, entries: seq[SpellRead]): seq[SpellSerializable] =
+    let allSpellConnections: Table[int64, seq[SpellConnectionRead]] = connection.getManyFromOne(entries, SpellConnectionRead, "spell_id")
+    for entry in entries:
+        let serializedSpell = serializeSpellRead(entry, allSpellConnections[entry.id])
 
 proc serializeSpell*(connection: DbConn, entry: Spell): SpellSerializable =
     let fullEntry = connection.getEntryById(entry.id, SpellRead)
@@ -100,3 +108,7 @@ proc overviewSerialize*(connection: DbConn, entry: SpellRead): SpellOverviewSeri
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime
     )
+
+proc overviewSerialize*(connection: DbConn, entries: seq[SpellRead]): seq[SpellOverviewSerializable] =
+    for entry in entries:
+        result.add(connection.overviewSerialize(entry))
