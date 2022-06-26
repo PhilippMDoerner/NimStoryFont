@@ -23,7 +23,7 @@ proc addAuthenticationRoutes*(app: Prologue) =
         handler = createReadListHandler(
             readListProc = readGroups,
             checkPermission = checkNoPermission,
-            serialize = serializeGroup,
+            serialize = serializeGroups,
         ),
         httpMethod = HttpGet
     )
