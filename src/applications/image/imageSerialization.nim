@@ -1,6 +1,7 @@
 import imageModel
 import imageUtils
 import std/[options]
+import tinypool/sqlitePool
 
 type ImageSerializable* = object
   pk: int64
@@ -23,3 +24,6 @@ proc serializeImage*(entry: Image): ImageSerializable =
     location_article: entry.location_article_id,
     organization_article: entry.organization_article_id
   )
+
+proc serializeImage*(connection: DbConn, entry: Image): ImageSerializable =
+  result = entry.serializeImage()

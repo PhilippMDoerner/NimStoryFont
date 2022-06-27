@@ -3,7 +3,7 @@ import imageModel
 import imageSerialization
 import prologue
 import std/[strutils, options, json]
-import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import ../../applicationSettings
 import jsony
 import ../controllerTemplates
@@ -29,11 +29,11 @@ proc extractFKIdFieldFromContext(ctx: JWTContext, fieldName: string): Option[int
 
 proc createImageView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
-    let mediaDirectory: string = ctx.getSetting(SettingName.snImageDir).getStr()
+    let imageDirectory: string = ctx.getSetting(SettingName.snImageDir).getStr()
 
     var imageFormData = ImageDTO(
         imageFile: ctx.extractFileFromContext("image"),
-        mediaDirectory: mediaDirectory,
+        mediaDirectory: imageDirectory,
         imageName: ctx.getFormParamsOption("name"),
         image_character_fk: ctx.extractFKIdFieldFromContext("character_article"),
         image_creature_fk: ctx.extractFKIdFieldFromContext("creature_article"),
@@ -43,9 +43,10 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
     )
 
     respondBadRequestOnDbError():
-        let newImageEntry: Option[Image] = createImage(imageFormData)
+      withDbConn(connection):
+        let newImageEntry: Option[Image] = connection.createImage(imageFormData)
         if newImageEntry.isSome():
-            let imageSerializable: ImageSerializable = newImageEntry.get().serializeImage()
+            let imageSerializable: ImageSerializable = connection.serializeImage(newImageEntry.get())
             resp jsonyResponse(ctx, imageSerializable)
         else:
             resp get400BadRequestResponse("The sent image could not be saved, because there was no image file in the sent form under the 'image' key.")
