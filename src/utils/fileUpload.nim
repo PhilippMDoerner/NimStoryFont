@@ -23,6 +23,7 @@ proc saveFile*(file: var UpLoadFile, uploadDirectory: string): string =
     filePath = fmt "{uploadDirectory}/{file.filename}" 
 
   file.save(uploadDirectory)
+  result = filePath
   
 proc buildUniqueFilepath*(startFileName: string, targetDirectory: string): string =
   ## Simply manipulates the filename over and over until a path is found that has no existing file
