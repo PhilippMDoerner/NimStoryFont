@@ -2,7 +2,7 @@ import norm/[sqlite, model]
 import std/[strformat, strutils, sequtils, sugar, options]
 import ../authentication/authenticationModels
 import campaignModel
-import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
+import ../../utils/djangoDateTime/[normConversion]
 import ../genericArticleRepository
 
 proc getGroupMembers*(connection: DbConn, groupIds: varargs[int64]): seq[UserGroup] =

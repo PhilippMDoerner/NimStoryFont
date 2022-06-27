@@ -2,7 +2,6 @@ import encounterModel
 import std/[options, strformat, algorithm]
 import norm/sqlite
 import ../../applicationSettings
-import ../../applicationConstants
 import ../../utils/djangoDateTime/[normConversion]
 import ../genericArticleRepository
 
