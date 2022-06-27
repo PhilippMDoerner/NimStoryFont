@@ -65,3 +65,22 @@ proc addPlayerClassRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
    
+
+    app.addRoute(
+        re fmt"/characterplayerclassconnection/",
+        handler = createCreateHandler[CreateParams, PlayerClassConnection, PlayerClassConnectionSerializable](
+            checkPlayerClassConnectionCreatePermission,
+            createPlayerClassConnection,
+            serializePlayerClassConnection
+        ),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+
+    app.addRoute(
+        re fmt"/characterplayerclassconnection/pk/{ID_PATTERN}/",
+        handler = createDeleteByIdHandler[DeleteParams, PlayerClassConnection](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
