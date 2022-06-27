@@ -10,5 +10,6 @@ proc deleteSessionAudioFile(connection: DbConn, modelInstance: SessionAudio) =
   let sessionAudioFilepath: string = modelInstance.audio_file
   deleteFile(fmt"/{sessionAudioFilepath}")
 
-connect(SignalType.stPreDelete, SessionAudio, deleteSessionAudioFile)
-connect(SignalType.stPostUpdate, SessionAudio, deleteSessionAudioFile)
+proc connectSessionAudioSignals*() =
+  connect(SignalType.stPreDelete, SessionAudio, deleteSessionAudioFile)
+  connect(SignalType.stPostUpdate, SessionAudio, deleteSessionAudioFile)

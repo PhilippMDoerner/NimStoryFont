@@ -12,7 +12,9 @@ proc deleteImageFile(connection: DbConn, modelInstance: Image) =
   let mediaDirectory: string = settings["imageDir"].getStr()
   deleteFile(imageFilepath, mediaDirectory)
 
-connect(SignalType.stPreDelete, Image, deleteImageFile)
+
+proc connectImageSignals*() =
+  connect(SignalType.stPreDelete, Image, deleteImageFile)
 
 
 #TODO: Finish webp conversion

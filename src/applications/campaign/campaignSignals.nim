@@ -69,9 +69,6 @@ proc createCampaignGroupsAndPermissions(connection: DbConn, modelInstance: Campa
   createMemberGroup(connection, modelInstance)
   createAdminGroup(connection, modelInstance)
   
-connect(SignalType.stPostCreate, Campaign, createCampaignGroupsAndPermissions)
-
-
 
 proc deleteCampaignPermissions(connection: DbConn, modelInstance: Campaign) =
   if modelInstance.guest_group_id.isSome():
@@ -92,4 +89,7 @@ proc deleteCampaignPermissions(connection: DbConn, modelInstance: Campaign) =
   if modelInstance.admin_permission_id.isSome():
     deleteEntry(modelInstance.admin_permission_id.get(), Permission)
 
-connect(SignalType.stPreDelete, Campaign, deleteCampaignPermissions)
+
+proc connectCampaignSignals*() =
+  connect(SignalType.stPostCreate, Campaign, createCampaignGroupsAndPermissions)
+  connect(SignalType.stPreDelete, Campaign, deleteCampaignPermissions)
