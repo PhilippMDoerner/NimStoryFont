@@ -36,6 +36,8 @@ proc initializeMediaDirectories(settings: Settings) =
     settings.getSetting(SettingName.snAudioDir).getStr().initializeDirectory()
 
 proc main() =
+    addLogger()
+
     let connectionPoolSize: int = settings.getSetting(SettingName.snConnectionLimit).getInt()
     let databasePath: string = settings.getSetting(SettingName.snDatabasePath).getStr()
     initConnectionPool(databasePath, connectionPoolSize)
@@ -50,6 +52,8 @@ proc main() =
     
     addGlobalMiddlewares(app)
     addApplicationRoutes(app)
+    connectAllSignals()
+
     app.run(JWTContext)
 
     destroyConnectionPool()

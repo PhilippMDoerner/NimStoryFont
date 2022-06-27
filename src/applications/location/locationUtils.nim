@@ -2,6 +2,8 @@ import locationService
 import std/[strformat, sequtils, sugar, options]
 import norm/sqlite
 import locationRepository
+import ../../utils/databaseUtils
+import jsony
 
 proc `$`*(model: Location | LocationRead): string = 
     var parentLocations: seq[Location] = readParentLocations(model)
@@ -52,3 +54,11 @@ proc stringifyLocation*(model: LocationRead, campaignLocations: seq[LocationRead
         fullLocationName = fmt"{parentLocation.name} - {fullLocationName}"
 
         location = parentLocation
+
+proc causesParentLocationCircle*(connection: DbConn, model: Location): bool =
+    if model.parent_location_id.isNone(): return false
+
+    let futureParentLocations = connection.getParentLocations(model.parent_location_id.get())
+    
+    let modelIsItsOwnParent = futureParentLocations.any(loc => loc.id == model.id)
+    result = modelIsItsOwnParent
