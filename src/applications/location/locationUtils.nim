@@ -3,7 +3,6 @@ import std/[strformat, sequtils, sugar, options]
 import norm/sqlite
 import locationRepository
 import ../../utils/databaseUtils
-import jsony
 
 proc `$`*(model: Location | LocationRead): string = 
     var parentLocations: seq[Location] = readParentLocations(model)
