@@ -2,6 +2,7 @@ import norm/[sqlite]
 import ../../utils/djangoDateTime/djangoDateTimeType
 import playerClassModel
 import std/[sugar, sequtils]
+import ../genericArticleRepository
 
 type PlayerClassSerializable* = object
   name*: string
@@ -20,3 +21,24 @@ proc serializePlayerClass*(connection: DbConn, entry: PlayerClass): PlayerClassS
 
 proc serializePlayerClasses*(connection: DbConn, entries: seq[PlayerClass]): seq[PlayerClassSerializable] =
   result = entries.map(entry => serializePlayerClass(entry))
+
+type PlayerClassConnectionSerializable* = object
+  pk*: int64
+  player_class*: int64
+  character*: int64
+  player_class_details*: PlayerClassSerializable
+
+proc serializePlayerClassConnectionRead(entry: PlayerClassConnectionRead): PlayerClassConnectionSerializable =
+  result = PlayerClassConnectionSerializable(
+    pk: entry.id,
+    player_class: entry.player_class_id.id,
+    character: entry.character_id,
+    player_class_details: serializePlayerClass(entry.player_class_id)
+  )
+
+proc serializePlayerClassConnectionRead*(connection: DbConn, entry: PlayerClassConnectionRead): PlayerClassConnectionSerializable =
+  result = serializePlayerClassConnectionRead(entry)
+
+proc serializePlayerClassConnection*(connection: DbConn, entry: PlayerClassConnection): PlayerClassConnectionSerializable =
+  let entry = connection.getEntryById(entry.id, PlayerClassConnectionRead)
+  result = connection.serializePlayerClassConnectionRead(entry)
