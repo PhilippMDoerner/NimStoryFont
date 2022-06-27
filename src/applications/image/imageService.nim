@@ -4,6 +4,7 @@ import prologue
 import std/[strutils, options, strformat]
 import ../genericArticleRepository
 import ../../utils/[fileUpload, databaseUtils]
+import ../../applicationSettings
 import norm/[model, sqlite]
 import tinypool/sqlitePool except DbConn
 import ../allUrlParams
@@ -26,14 +27,17 @@ proc deleteImage*(imageId: int64) = deleteEntry(imageId, Image)
 proc deleteImageEntry*(connection: DbConn, entry: var Image) =
   connection.deleteEntryInTransaction(entry)
 
-proc createImage*(imageDTO: var ImageDTO): Option[Image] =
+proc createImage*(connection: DbConn, imageDTO: var ImageDTO): Option[Image] =
   if imageDTO.imageFile.isNone():
     return none(Image)
+  
+  let imageDirectory = fmt"{imageDTO.mediaDirectory}/{ARTICLE_IMAGES_SUBDIR}"
+  let absoluteImagePath: string = saveFile(imageDTO.imageFile.get(), imageDirectory)
+  var relativeImagePath = absoluteImagePath.getRelativeFilepathTo(imageDTO.mediaDirectory)
+  relativeImagePath.removePrefix("/")
 
-  let absoluteImagePath: string = saveFile(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
-  let imagePathInDatabase = absoluteImagePath.getRelativeFilepathTo(imageDTO.mediaDirectory)
   var image: Image = Image(
-    image: imagePathInDatabase,
+    image: relativeImagePath,
     character_article_id: imageDTO.image_character_fk,
     creature_article_id: imageDTO.image_creature_fk,
     location_article_id: imageDTO.image_location_fk,
