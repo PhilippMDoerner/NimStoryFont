@@ -6,9 +6,9 @@ proc addLogger*() =
     when defined(normdebug):
         addHandler(newConsoleLogger(levelThreshold = lvlDebug))
         logging.setLogFilter(lvlDebug)
-    else:
-        addHandler(newRollingFileLogger(filename = LOGGER_FILEPATH))
-        logging.setLogFilter(lvlWarn)
+    # else:
+    #     addHandler(newRollingFileLogger(filename = LOGGER_FILEPATH))
+    #     logging.setLogFilter(lvlWarn)
 
 proc getStartUpEvents*(): seq[Event] =
     result.add(initEvent(addLogger))
