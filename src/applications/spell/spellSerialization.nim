@@ -83,6 +83,7 @@ proc serializeSpellReads*(connection: DbConn, entries: seq[SpellRead]): seq[Spel
     let allSpellConnections: Table[int64, seq[SpellConnectionRead]] = connection.getManyFromOne(entries, SpellConnectionRead, "spell_id")
     for entry in entries:
         let serializedSpell = serializeSpellRead(entry, allSpellConnections[entry.id])
+        result.add(serializedSpell)
 
 proc serializeSpell*(connection: DbConn, entry: Spell): SpellSerializable =
     let fullEntry = connection.getEntryById(entry.id, SpellRead)
