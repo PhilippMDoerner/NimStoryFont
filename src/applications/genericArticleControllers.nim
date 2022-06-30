@@ -1,5 +1,4 @@
 import prologue
-import std/[strutils, uri]
 import ../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import tinypool/sqlitePool except DbConn
 import controllerTemplates
