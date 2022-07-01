@@ -43,7 +43,6 @@ task debug, "Build a release for debugging":
   --verbose
   --stackTrace:on 
   --lineTrace:on 
-  --forceBuild:on
   --threads:on
   --mm:orc
   --deepcopy:on
