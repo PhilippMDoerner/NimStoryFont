@@ -1,17 +1,19 @@
-import std/logging
-import applicationConstants
+import std/[logging, os, strformat, sugar]
 import prologue
 
-proc addLogger*() =
+proc addLogger*(logFilePath: string) =
     when defined(normdebug):
         addHandler(newConsoleLogger(levelThreshold = lvlDebug))
+        addHandler(newRollingFileLogger(filename = logFilePath))
         logging.setLogFilter(lvlDebug)
-    # else:
-    #     addHandler(newRollingFileLogger(filename = LOGGER_FILEPATH))
-    #     logging.setLogFilter(lvlWarn)
+    else:
+        addHandler(newRollingFileLogger(filename = logFilePath))
+        logging.setLogFilter(lvlInfo)
 
-proc getStartUpEvents*(): seq[Event] =
-    result.add(initEvent(addLogger))
+
+
+proc getStartUpEvents*(logFilePath: string): seq[Event] =
+    result.add(initEvent(() => addLogger(logFilePath)))
 
 proc getShutDownEvents*(): seq[Event] =
     result = @[]
