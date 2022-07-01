@@ -1,5 +1,6 @@
 import prologue
 import applicationSettings
+import applicationConstants
 import applicationEvents
 import utils/jwtContext
 import std/[os, logging, strformat]
@@ -8,7 +9,6 @@ import applications/allSignals #Necessary so that signals get loaded
 import routes
 import prologue/middlewares/[staticfile, cors]
 import middleware/compressionMiddleware
-
 
 proc addGlobalMiddlewares(app: var Prologue) =
     when not defined(release):
@@ -26,6 +26,14 @@ proc addGlobalMiddlewares(app: var Prologue) =
         )
     )
 
+proc getLogFilePath*(): string =
+    var i = 0
+
+    result = fmt"{LOGGER_DIRECTORY}/prologue_{i}.log"
+    while fileExists(result):
+        i += 1
+        result = fmt"{LOGGER_DIRECTORY}/prologue_{i}.log"
+
 proc initializeDirectory(directoryPath: string) =
     if not dirExists(directoryPath):
         log(lvlInfo, fmt"The directory '{directoryPath}' does not exist. It was created")
@@ -36,7 +44,8 @@ proc initializeMediaDirectories(settings: Settings) =
     settings.getSetting(SettingName.snAudioDir).getStr().initializeDirectory()
 
 proc main() =
-    addLogger()
+    let logFilePath = getLogFilePath()
+    addLogger(logFilePath)
 
     let connectionPoolSize: int = settings.getSetting(SettingName.snConnectionLimit).getInt()
     let databasePath: string = settings.getSetting(SettingName.snDatabasePath).getStr()
@@ -46,7 +55,7 @@ proc main() =
 
     var app: Prologue = newApp(
         settings, 
-        startup = getStartUpEvents(), 
+        startup = getStartUpEvents(logFilePath), 
         shutdown = getShutDownEvents()
     )
     
