@@ -1,4 +1,4 @@
-import std/[logging, os, strformat, sugar]
+import std/[logging, sugar]
 import prologue
 
 proc addLogger*(logFilePath: string) =
