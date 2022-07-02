@@ -8,7 +8,7 @@ import tinypool/sqlitePool
 import applications/allSignals #Necessary so that signals get loaded
 import routes
 import prologue/middlewares/[staticfile, cors]
-import middleware/compressionMiddleware
+import middleware/[timingMiddleware, compressionMiddleware]
 
 proc addGlobalMiddlewares(app: var Prologue) =
     when not defined(release):
@@ -16,6 +16,7 @@ proc addGlobalMiddlewares(app: var Prologue) =
 
     app.use(
         responseCompressionMiddleware(),
+        timingMiddleware(),
         CorsMiddleware(
             allowOrigins = @["*"],
             allowMethods = @["*"],
