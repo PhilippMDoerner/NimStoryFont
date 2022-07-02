@@ -38,6 +38,20 @@ task release, "Build a production release":
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
 
+task flamegraph, "Build a binary for flamegraph analysis":
+  --verbose
+  --forceBuild:on
+  --define:release
+  --threads:on
+  --mm:orc
+  --deepcopy:on
+  #--define:lto
+  --define:ssl
+  --debugger:native
+  #--define:usestd  # stdlib asynchttpserver
+  --hints:off
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
 
 task debug, "Build a release for debugging":
   --verbose

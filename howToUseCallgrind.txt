@@ -1,0 +1,33 @@
+Mini Guide for myself on doing performance analytics
+
+# Start the server with valgrind
+valgrind --tool=callgrind ./nimstoryfont
+## Do a couble things, end it with Ctrl + C to write data
+# start KCachegrind and open the corresponding file
+
+## Some other visualizations as suggested by SO:
+./gprof2dot.py --format=callgrind --output=out.dot /path/to/callgrind.out
+dot -Tpng out.dot -o graph.png
+
+
+
+## For Flamegraphs
+# Do a prod compile
+nimble release
+# Start a process
+./nimstoryfont
+# The second number is the PID, that's what you want
+ps aux | grep ./nimstoryfont
+# Record the data
+sudo perf record -a -F 99 -g -p <PID>
+## Do a thing that gets recorded, then do CTRL+C to stop
+## Wait for perf to write its output in perf.data
+
+# Turn the binary data in perf.data into "readable" data via perf.script
+# Turn that into a flamegraph via the flamegraph gitrepo
+sudo perf script | \
+~/dev/FlameGraph/stackcollapse-perf.pl perf.script | \
+~/dev/FlameGraph/flamegraph.pl > flamegraph.svg
+
+TODO: This creates a so far useless flamegraph for the most part.
+See how to make that useful
