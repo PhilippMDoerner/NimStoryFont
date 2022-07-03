@@ -18,14 +18,16 @@ proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue:
     fieldValue = ctx.tokenData
   elif fieldValue is Option:
     fieldValue = extractQueryParam(ctx, fieldName, fieldValue)
-  elif fieldValue is int or fieldValue is int64:
+  elif fieldValue is int:
     fieldValue = parseInt(ctx.getPathParams(fieldName))
+  elif fieldValue is int64:
+    fieldValue = parseInt(ctx.getPathParams(fieldName)).int64
   elif fieldValue is string:
     fieldValue = ctx.getPathParams(fieldName)
   elif fieldValue is bool:
     fieldValue = parseBool(ctx.getPathParams(fieldName))
   else:
-    assert(false, fmt"Tried extracting query parameter {fieldName} which was neither an int, string or bool or an Option of those types") 
+    assert(false, fmt"Tried extracting query parameter '{fieldName}' of not understood type. Currently can only extract the request body and parameters of type int, int64, string, bool or an option of those types") 
 
 proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc[Q]): Q =
   mixin init
