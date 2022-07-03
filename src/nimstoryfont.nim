@@ -15,8 +15,8 @@ proc addGlobalMiddlewares(app: var Prologue) =
       app.use(staticFileMiddleware("media", "static"))
 
     app.use(
-        responseCompressionMiddleware(),
         timingMiddleware(),
+        responseCompressionMiddleware(),
         CorsMiddleware(
             allowOrigins = @["*"],
             allowMethods = @["*"],
