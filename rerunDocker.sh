@@ -4,7 +4,7 @@ sudo docker container rm test
 sudo docker build -t nsi_prod .
 
 echo "Run new container"
-sudo docker run -it -p 80:80 -p 443:443 \
+sudo docker run -p 80:80 -p 443:443 \
 -v /etc/nginx/certificates:/cert/live/www.aldrune.com:ro \
 -v /etc/nginx/certificates:/cert/archive/www.aldrune.com:ro \
 -v $HOME/dev/nimstoryfont/:/database \

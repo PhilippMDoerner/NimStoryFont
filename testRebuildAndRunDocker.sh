@@ -7,7 +7,7 @@ nimble debug
 sudo docker build -t nsi_prod .
 
 echo "Run new container"
-sudo docker run -it -p 80:80 -p 443:443 -p 8080:8080 \
+sudo docker run -p 80:80 -p 443:443 -p 8080:8080 \
 -v /etc/nginx/certificates:/cert/live/www.aldrune.com:ro \
 -v /etc/nginx/certificates:/cert/archive/www.aldrune.com:ro \
 -v $HOME/dev/nimstoryfont/:/database \

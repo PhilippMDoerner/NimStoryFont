@@ -5,11 +5,9 @@ sudo docker container rm test
 nimble release
 
 sudo docker build -t nsi_prod .
-sudo docker save -o image.tar nsi_prod
-sudo chmod 777 image.tar
 
 echo "Run new container"
-sudo docker run -it -p 80:80 -p 443:443 \
+sudo docker run -p 80:80 -p 443:443 \
 -v /etc/nginx/certificates:/cert/live/www.aldrune.com:ro \
 -v /etc/nginx/certificates:/cert/archive/www.aldrune.com:ro \
 -v $HOME/dev/nimstoryfont/:/database \
