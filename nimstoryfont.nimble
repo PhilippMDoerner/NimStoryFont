@@ -65,3 +65,17 @@ task debug, "Build a release for debugging":
   --define:normDebug
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
+
+task alpine, "Build an alpine release":
+  --verbose
+  --gcc.exe:"musl-gcc"
+  --gcc.linkerexe:"musl-gcc"
+  --forceBuild:on
+  --deepcopy:on
+  --opt:speed
+  --define:release
+  --define:lto
+  --mm:orc
+  --define:ssl
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
