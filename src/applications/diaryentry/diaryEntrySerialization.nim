@@ -154,18 +154,16 @@ type DiaryEntryOverviewSerializable* = object
     session_details*: DiaryEntrySessionSerializable
     author_details*: DiaryEntryAuthorSerializable
 
-proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
-    let title = entry.title.get("")
-    let encounters = connection.getManyFromOne(entry, EncounterRead)
+proc overviewSerialize*(entry: DiaryEntryRead, encounters: seq[EncounterRead]): DiaryEntryOverviewSerializable =
     let firstEncounter: Option[EncounterRead] = if encounters.len() > 0: some(encounters[0]) else: none(EncounterRead)
-    let firstEncounterText = if firstEncounter.isSome(): firstEncounter.get().description.map(truncate) else: none(string)
-
+    let firstEncounterText: Option[string] = firstEncounter.map(enc => enc.description).flatten()
+    
     result = DiaryEntryOverviewSerializable(
         article_type: ArticleType.atDiaryEntry,
-        description: firstEncounterText,
+        description: firstEncounterText.map(truncate),
         pk: entry.id,
         name_full: $entry,
-        name: title,
+        name: entry.title.get(""),
         campaign: entry.session_id.campaign_id.id,
         campaign_details: entry.session_id.campaign_id,
         update_datetime: entry.update_datetime,
@@ -176,6 +174,12 @@ proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOv
         )
     )
 
+proc overviewSerialize*(connection: DbConn, entry: DiaryEntryRead): DiaryEntryOverviewSerializable =
+    let encounters = connection.getManyFromOne(entry, EncounterRead)
+    result = overviewSerialize(entry, encounters)
+
 proc overviewSerialize*(connection: DbConn, entries: seq[DiaryEntryRead]): seq[DiaryEntryOverviewSerializable] =
+    let allEncounters: Table[int64, seq[EncounterRead]] = connection.getManyFromOne(entries, EncounterRead, "diaryentry_id")
     for entry in entries:
-        result.add(connection.overviewSerialize(entry))
+        let encounters = allEncounters[entry.id]
+        result.add(overviewSerialize(entry, encounters))
