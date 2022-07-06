@@ -1,8 +1,8 @@
-FROM frolvlad/alpine-glibc
+FROM alpine
 
 # Install dependencies
 RUN apk update
-RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl
+RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl bash
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
@@ -13,7 +13,6 @@ RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl
 COPY ./nimstoryfont .
 COPY ./buildFiles/config/nginx_prod.conf /etc/nginx/nginx.conf
 COPY ./buildFiles/config/dockerSettings.json /settings.json
-RUN chmod 777 /settings.json
 COPY ./buildFiles/config/50x.html /usr/share/nginx/html/50x.html
 # Setup necessary directories
 RUN mkdir -p /run/nginx

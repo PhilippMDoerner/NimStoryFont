@@ -1,4 +1,4 @@
-nimble release
+nimble alpine
 sudo docker build -t nsi_prod .
 
 sudo docker save -o image.tar nsi_prod
