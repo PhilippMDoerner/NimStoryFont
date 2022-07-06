@@ -2,7 +2,7 @@
 sudo docker container stop test
 sudo docker container rm test
 
-nimble debug
+nimble alpine_debug
 
 sudo docker build -t nsi_prod .
 
@@ -17,3 +17,4 @@ sudo docker run -p 80:80 -p 443:443 -p 8080:8080 \
 -v $HOME/dev/aldrunewikifrontend/dist/frontend:/frontend \
 -v /tmp:/var/log/nginx \
 --name test nsi_prod
+

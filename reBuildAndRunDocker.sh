@@ -2,7 +2,7 @@
 sudo docker container stop test
 sudo docker container rm test
 
-nimble release
+nimble alpine
 
 sudo docker build -t nsi_prod .
 
