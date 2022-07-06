@@ -72,10 +72,26 @@ task alpine, "Build an alpine release":
   --gcc.linkerexe:"musl-gcc"
   --forceBuild:on
   --deepcopy:on
+  --threads:on
   --opt:speed
   --define:release
   --define:lto
   --mm:orc
   --define:ssl
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
+
+task alpine_debug, "Build a release for debugging":
+  --verbose
+  --gcc.exe:"musl-gcc"
+  --gcc.linkerexe:"musl-gcc"
+  --stackTrace:on 
+  --lineTrace:on 
+  --threads:on
+  --mm:orc
+  --deepcopy:on
+  --define:ssl
+  --define:enableTinyPoolLogging
+  --define:normDebug
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
