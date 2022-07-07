@@ -149,6 +149,11 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
 
         resp jsonyResponse(ctx, data)
 
+proc createCreateEntryHandler*[P: object, E: Model, S: object](serialize: SerializeProc[E, S]): HandlerAsync =
+  const checkPermissionProc: CheckPermissionProc[E] = checkCreatePermission[E]
+  const createProc: CreateProc[P, E] = createEntry[P, E]
+  result = createCreateHandler[P, E, S](checkPermissionProc, createProc, serialize)
+
 proc createCreateArticleHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
   const checkPermissionProc: CheckPermissionProc[E] = checkCreatePermission[E]
   const createProc: CreateProc[P, E] = createArticle[P, E]

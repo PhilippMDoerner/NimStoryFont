@@ -30,6 +30,17 @@ proc createArticle*[T: Model](connection: DbConn, jsonData: string, modelType: t
     result = connection.createEntryInTransaction(entry)
 
 
+proc createArticle*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
+  ## A default implementation of creating the given article in the DB
+  let creationTime: DjangoDateTime = djangoDateTimeType.now();
+  entry.creation_datetime = creationTime
+  entry.update_datetime = creationTime
+
+  result = connection.createEntryInTransaction(entry)
+
+proc createEntry*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
+  result = connection.createEntryInTransaction(entry)
+
 ### LAST PARADIGM SHIFT, ONCE THIS IS USED EVERYWHERE YOU CAN REMOVE THE OTHER X-ARTICLE PROCS
 proc readArticleById*[P: object, E: Model](connection: DbConn, params: P): E =
   ## A default implementation of fetching an article from the DB using the article's id
@@ -69,10 +80,3 @@ proc patchEntry*[P: object, E: Model](connection: DbConn, params: P, entry: E): 
   var patchedEntry: E = updateEntryWithJson[E](jsonData, entry)
   
   result = connection.updateEntryInTransaction(patchedEntry)
-
-proc createArticle*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
-  ## A default implementation of creating the given article in the DB
-  let creationTime: DjangoDateTime = djangoDateTimeType.now();
-  entry.creation_datetime = creationTime
-  entry.update_datetime = creationTime
-  result = connection.createEntryInTransaction(entry)
