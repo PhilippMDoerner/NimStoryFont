@@ -1,6 +1,7 @@
 import characterModel
 import std/[options, strformat, sugar]
 import characterEncounterModel
+import characterOrganizationModel
 import ../genericArticleRepository
 import ../authentication/authenticationUtils
 import ../../utils/jwtContext
@@ -17,6 +18,8 @@ proc `$`*(character: CharacterRead | Character): string =
 proc campaign_id*(entry: CharacterEncounterConnection): int64 =
     result = getEntryById(entry.character_id, Character).campaign_id
 
+proc campaign_id*(entry: OrganizationMembership): int64 =
+    result = getEntryById(entry.member_id, Character).campaign_id
 
 proc checkCharacterReadListPermission*(ctx: JWTContext, entries: seq[CharacterOverview]) =
   checkCampaignReadListPermission(ctx, entries)

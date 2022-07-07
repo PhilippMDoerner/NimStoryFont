@@ -4,6 +4,7 @@ import ../genericArticleRepository
 import organizationService
 import ../image/[imageModel, imageService, imageSerialization]
 import ../campaign/campaignModel
+import ../character/characterService
 import std/[sugar, options, sequtils]
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
@@ -23,6 +24,14 @@ proc serializeHeadquarter(entry: OrganizationLocation): HeadquarterSerializable 
         pk: entry.id
     )
 
+
+type MemberSerializable* = object
+    pk: int64
+    name: string
+    alive: bool
+    organization_id: int64
+    role: Option[string]
+
 type OrganizationSerializable* = object
     pk: int64
     creation_datetime: DjangoDateTime
@@ -32,16 +41,27 @@ type OrganizationSerializable* = object
     headquarter: Option[int64]
     headquarter_details: Option[HeadquarterSerializable]
     description: Option[string]
-    members: seq[OrganizationCharacter]
+    members: seq[MemberSerializable]
     images: seq[ImageSerializable]
     campaign: int64
     campaign_details: MinimumCampaignOverview
+
+
+proc serializeMember(membership: OrganizationMemberRead): MemberSerializable =
+    result = MemberSerializable(
+        pk: membership.member_id.id,
+        alive: membership.member_id.alive,
+        name: membership.member_id.name,
+        organization_id: membership.member_id.organization_id.get(),
+        role: membership.role
+    )
 
 proc serializeOrganizationRead*(connection: DbConn, entry: OrganizationRead): OrganizationSerializable =
     let images = connection.getManyFromOne(entry, Image)
         .map(serializeImage)
     
-    let members = connection.getManyFromOne(entry, OrganizationCharacter)
+    let members: seq[MemberSerializable] = connection.getOrganizationMembers(entry.id)
+        .map(character => serializeMember(character))
 
     result = OrganizationSerializable(
         pk: entry.id,

@@ -117,6 +117,9 @@ proc serializeCharacter*(connection: DbConn, entry: Character): CharacterSeriali
     let entry = connection.getEntryById(entry.id, CharacterRead)
     result = connection.serializeCharacterRead(entry)
 
+proc serializeCharacter*(connection: DbConn, entry: OrganizationMembership): CharacterSerializable =
+    let entry = connection.getEntryById(entry.member_id, CharacterRead)
+    result = connection.serializeCharacterRead(entry)
 
 
 type CharacterOverviewSerializable* = object

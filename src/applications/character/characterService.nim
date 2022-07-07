@@ -1,13 +1,16 @@
 import ../genericArticleRepository
 import characterModel
 import characterEncounterModel
+import characterOrganizationModel
 import ../image/[imageService]
 import norm/[model, sqlite]
 import characterRepository
+import characterOrganizationRepository
 import ../allUrlParams
 import std/tables
 
 export characterEncounterModel
+export characterOrganizationModel
 export characterModel
 
 proc createCharacterEncounterConnection*(connection: DbConn, characterId: int64, encounterId: int64): CharacterEncounterRead =
@@ -23,3 +26,21 @@ proc getPlayerCharacters*(connection: DbConn, requestParams: ReadListParams): se
 
 proc getCharacterImages*(connection: DbConn, characterIds: seq[int64]): Table[int64, seq[Image]] =
   result = connection.getImagesForArticles(ImageType.CHARACTERTYPE, characterIds)
+
+proc getOrganizationMemberships*(connection: DbConn, characterId: int64): seq[OrganizationMembershipRead] =
+  var character = newModel(Character)
+  character.id = characterId
+
+  result = connection.getManyFromOne(
+    character, 
+    OrganizationMembershipRead
+  )
+
+proc getOrganizationMembers*(connection: DbConn, organizationId: int64): seq[OrganizationMemberRead] =
+  var organization = newModel(Organization)
+  organization.id = organizationId
+
+  result = connection.getManyFromOne(
+    organization, 
+    OrganizationMemberRead
+  )

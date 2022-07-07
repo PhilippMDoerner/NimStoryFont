@@ -94,3 +94,17 @@ proc addCharacterRoutes*(app: Prologue) =
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/character/organizationmemberships/{CAMPAIGN_NAME_PATTERN}/",
+        handler = createCreateEntryHandler[CreateParams, OrganizationMembership, CharacterSerializable](serializeCharacter),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/character/organizationmemberships/pk/{ID_PATTERN}/",
+        handler = createDeleteByIdHandler[DeleteParams, OrganizationMembership](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
