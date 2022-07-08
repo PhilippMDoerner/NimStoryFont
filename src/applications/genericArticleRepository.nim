@@ -165,21 +165,15 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
     mixin newModel
-    let entryIds: seq[int64] = oneEntries.map(entry => entry.id)
 
-    let idString = entryIds.map(id => id.int.intToStr()).join(",")
-    let condition = fmt"{relatedManyType.table()}.{manyTypeforeignKeyFieldName} IN ({idString})"
+    if oneEntries.len == 0: return result
 
-    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
-    connection.select(targetEntries, condition)
+    var relatedEntries: Table[int64, seq[M]]
+    relatedEntries[oneEntries[0].id] = @[newModel(M)]
 
-    for entryId in entryIds:
-        let id = entryId
-        when M.getField(manyTypeforeignKeyFieldName) is int64:
-            result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName) == id)
-        else:
-            result[entryId] = targetEntries.filter(target => target.getField(manyTypeforeignKeyFieldName).id == id)
+    connection.selectOneToMany(oneEntries, relatedEntries, manyTypeforeignKeyFieldName)
 
+    result = relatedEntries
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
@@ -209,23 +203,21 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     fkColumnFromJoinToManyEnd: static string
 ): Table[int64, seq[M2]] =
     mixin newModel
-    var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
-    var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
+    if queryStartEntries.len == 0: return result
 
-    let queryStartEntryIds: seq[int64] = queryStartEntries.map(entry => entry.id)
+    var joinModelEntries: seq[J] = @[newModel(J)]
+    var queryEndEntries: Table[int64, seq[M2]]
+    queryEndEntries[0] = @[newModel(M2)]
 
-    let idString = queryStartEntryIds.map(id => id.int.intToStr()).join(",")
-    const joinTableName = J.table()
-    let sqlCondition: string = fmt"{joinTableName}.{fkColumnFromJoinToManyStart} IN ({idString})"
-    
-    connection.select(joinModelEntries, sqlCondition)
+    connection.selectManyToMany(
+        queryStartEntries, 
+        joinModelEntries, 
+        queryEndEntries, 
+        fkColumnFromJoinToManyStart, 
+        fkColumnFromJoinToManyEnd
+    )
 
-    for entryId in queryStartEntryIds:
-        let id = entryId
-        result[entryId] = joinModelEntries
-            .filter(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd).id == id)
-            .map(joinEntry => joinEntry.getField(fkColumnFromJoinToManyEnd))
-
+    result = queryEndEntries
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
     connection: MyDbConn, 
