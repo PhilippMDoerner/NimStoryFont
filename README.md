@@ -17,8 +17,9 @@ The nim dependencies of this project are:
 Beyond that in terms of tooling this project uses:
 
 - Flyway - For database migrations using raw SQL
-- Docker - For containerization
+- Docker - For containerization with alpine
 - Nginx - As reverse proxy HTTP server
+- Musl - To link against instead of glibc for use with alpine
 
 ## Feature Scope
 Nimstoryfont is the backend of a CRUD heavy web application, previously called AldruneWiki. It is a wiki capable of hosting dnd campaigns, capable of highly performant processing of requests and pageloads.
