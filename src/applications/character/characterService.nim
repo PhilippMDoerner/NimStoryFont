@@ -5,7 +5,6 @@ import characterOrganizationModel
 import ../image/[imageService]
 import norm/[model, sqlite]
 import characterRepository
-import characterOrganizationRepository
 import ../allUrlParams
 import std/tables
 
