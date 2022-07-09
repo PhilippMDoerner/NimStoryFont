@@ -66,6 +66,13 @@ proc updateArticle*[P: object, E: Model](connection: DbConn, params: P): E =
 
   result = newEntry
 
+proc updateEntry*[P: object, E: Model](connection: DbConn, params: P): E =
+  ## A default implementation of updating the given entry in the DB
+  var entry: E = params.body.fromJson(E)
+  let newEntry = connection.updateEntryInTransaction(entry)
+
+  result = newEntry
+
 proc patchArticle*[P: object, E: Model](connection: DbConn, params: P, entry: E): E =
   ## A default implementation of patching the given article with inbdividually changed fields and persisting that to the DB
   let jsonData: JsonNode = params.body.parseJson()

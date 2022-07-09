@@ -91,6 +91,14 @@ proc createUpdateByIdHandler*[P: object, E: Model, S: object | ref object](seria
   const updateProc: UpdateProc[P, E] = updateArticle[P, E]
   result = createUpdateHandler[P, E, S](readProc, checkPermissionProc, updateProc, serialize)
 
+proc createUpdateEntryByIdHandler*[P: object, E: Model, S: object | ref object](serialize: SerializeProc[E, S]): HandlerAsync =
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const checkPermissionProc: CheckPermissionProc[E] = checkUpdatePermission[E]
+  const updateProc: UpdateProc[P, E] = updateEntry[P, E]
+  result = createUpdateHandler[P, E, S](readProc, checkPermissionProc, updateProc, serialize)
+
+
+
 proc createPatchHandler*[P: object, E: Model, S: object | ref object](
   readProc: ReadProc[P, E],
   checkPermission: CheckPermissionProc[E],
@@ -127,6 +135,13 @@ proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](
   const checkPermissionProc: CheckPermissionProc[E] = checkUpdatePermission[E]
   result = createPatchHandler[P, E, S](readProc, checkPermissionProc, patchProc, serialize)
 
+proc createPatchEntryByIdHandler*[P: object, E: Model, S: object | ref object](
+  serialize: SerializeProc[E, S]
+): HandlerAsync =
+  const readProc: ReadProc[P, E] = readArticleById[P, E]
+  const patchProc: PatchProc[P, E] = patchEntry[P, E]
+  const checkPermissionProc: CheckPermissionProc[E] = checkUpdatePermission[E]
+  result = createPatchHandler[P, E, S](readProc, checkPermissionProc, patchProc, serialize)
 
 
 proc createCreateHandler*[P: object, E: Model, S: object | ref object](
