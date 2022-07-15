@@ -17,41 +17,42 @@ import ../user/userService
 import ../genericArticleRepository
 import ../mapMarker/markerModel
 import std/[strformat, options]
+import ../../utils/databaseUtils
 
 
-proc getSearchBody*(modelInstance: Character): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Character): string =
   result.add(fmt """{modelInstance.name} """)
   result.add(fmt """{modelInstance.title.get(otherwise = "")} """)
-  result.add(fmt """{modelInstance.race} {modelInstance.gender}""")
+  result.add(fmt """{modelInstance.race} {modelInstance.gender} """)
   
-  if modelInstance.organization_id.isSome():
-    let organization: Organization = getEntryById(modelInstance.organization_id.get(), Organization)
-    result.add(fmt """{organization.name} """)
+  let memberships: seq[OrganizationMembershipRead] = connection.getOrganizationMemberships(modelInstance.id, OrganizationMembershipRead)
+  for membership in memberships:
+    result.add(fmt """{membership.organization_id.name} {membership.role.get("")} """)
   
   result.add(fmt """{modelInstance.description.get(otherwise = "")}""")
     
-proc getSearchTitle*(modelInstance: Character): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Character): string =
   return modelInstance.name
 
 
-proc getSearchBody*(modelInstance: Creature): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Creature): string =
   result.add(fmt """{modelInstance.name} """)
   result.add(fmt """{modelInstance.description.get(otherwise = "")}""")
 
-proc getSearchTitle*(modelInstance: Creature): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Creature): string =
   return modelInstance.name
 
 
 
-proc getSearchTitle*(modelInstance: DiaryEntry): string =
-  let session: Session = getEntryById(modelInstance.session_id, Session)
+proc getSearchTitle*(connection: DbConn, modelInstance: DiaryEntry): string =
+  let session: Session = connection.getEntryById(modelInstance.session_id, Session)
   
   let sessionType: string = if session.is_main_session: "Main " else: "Side "
   result.add(fmt """{sessionType} Diaryentry {session.session_number} """)
   result.add(fmt """ {modelInstance.title.get(otherwise = "")}""")
 
-proc getSearchBody*(modelInstance: DiaryEntry): string =
-  result.add(fmt """{getSearchTitle(modelInstance)} {modelInstance.title}""")
+proc getSearchBody*(connection: DbConn, modelInstance: DiaryEntry): string =
+  result.add(fmt """{getSearchTitle(connection, modelInstance)} {modelInstance.title}""")
 
   let author: User = getEntryById(modelInstance.author_id, User)
   result.add(fmt """{author.username} """)
@@ -62,8 +63,8 @@ proc getSearchBody*(modelInstance: DiaryEntry): string =
 
 
 
-proc getSearchBody*(modelInstance: Encounter): string =
-  let diaryentry: EncounterDiaryentry = getEntryById(modelInstance.diaryentry_id, EncounterDiaryentry)
+proc getSearchBody*(connection: DbConn, modelInstance: Encounter): string =
+  let diaryentry: EncounterDiaryentry = connection.getEntryById(modelInstance.diaryentry_id, EncounterDiaryentry)
   let sessionNumber: int64 = diaryentry.session_id.session_number
 
   result.add(fmt """Session {sessionNumber} """)
@@ -71,113 +72,117 @@ proc getSearchBody*(modelInstance: Encounter): string =
   result.add(fmt """{modelInstance.description.get(otherwise = "")}""")
 
   if modelInstance.location_id.isSome():
-    let location: EncounterLocation = getEntryById(modelInstance.location_id.get(), EncounterLocation)
+    let location: EncounterLocation = connection.getEntryById(modelInstance.location_id.get(), EncounterLocation)
     result.add(fmt """{location.name} """)
 
-proc getSearchTitle*(modelInstance: Encounter): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Encounter): string =
   return $modelInstance
 
 
 
-proc getSearchBody*(modelInstance: Item): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Item): string =
   result.add(fmt """{modelInstance.name} """)
   result.add(fmt """{modelInstance.description.get(otherwise = "")} """)
 
   if modelInstance.owner_id.isSome():
-    let owner: ItemOwner = getEntryById(modelInstance.owner_id.get(), ItemOwner)
+    let owner: ItemOwner = connection.getEntryById(modelInstance.owner_id.get(), ItemOwner)
     result.add(fmt """{owner.name} """)
 
-proc getSearchTitle*(modelInstance: Item): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Item): string =
   return modelInstance.name
 
 
 
-proc getSearchBody*(modelInstance: Location): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Location): string =
   result.add(fmt """{modelInstance.name} """)
   result.add(fmt """{modelInstance.description.get(otherwise = "")} """)
 
-  let parentLocations: seq[Location] = getParentLocations(modelInstance)
+  let parentLocations: seq[Location] = connection.getParentLocations(modelInstance)
   for location in parentLocations:
     result.add(fmt """{location.name} """)
 
-proc getSearchTitle*(modelInstance: Location): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Location): string =
   return modelInstance.name
 
 
 
-proc getSearchBody*(modelInstance: Map | MarkerMap): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Map | MarkerMap): string =
   result.add(fmt """{modelInstance.name} """)
 
-  let mapLocations: seq[LocationRead] = getManyToMany(modelInstance, MarkerRead, LocationRead)
+  let mapLocations: seq[LocationRead] = connection.getManyToMany(modelInstance, MarkerRead, LocationRead)
   for location in mapLocations:
     result.add(fmt """{location.name} """)
 
-proc getSearchTitle*(modelInstance: Map | MarkerMap): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Map | MarkerMap): string =
   return modelInstance.name
 
 
 
-proc getSearchBody*(modelInstance: Organization): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Organization | OrganizationRead): string =
   result.add(fmt """{modelInstance.name} """)  
   result.add(fmt """{modelInstance.description.get(otherwise = "")} """)
   result.add(fmt """{modelInstance.leader.get(otherwise = "")}  """)
 
   if modelInstance.headquarter_id.isSome():
-    let headquarterLocation = getEntryById(modelInstance.headquarter_id.get(), OrganizationLocation)
+    when modelInstance is Organization:
+      let headquarterLocation = connection.getEntryById(modelInstance.headquarter_id.get(), OrganizationLocation)
+    elif modelinstance is OrganizationRead:
+      let headquarterLocation = modelInstance.headquarter_id.get()
+
     result.add(fmt """{headquarterLocation.name} """)
   
-  let members: seq[OrganizationCharacter] = getManyFromOne(modelInstance, OrganizationCharacter)
+  let members: seq[OrganizationCharacter] = connection.getManyFromOne(modelInstance, OrganizationCharacter)
   for member in members:
     result.add(fmt """{member.name} """)
   
 
-proc getSearchTitle*(modelInstance: Organization): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Organization | OrganizationRead): string =
   return modelInstance.name
 
 
 
-proc getSearchBody*(modelInstance: Quest): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Quest): string =
   result.add(fmt """{modelInstance.name} """)
   result.add(fmt """{modelInstance.description.get(otherwise = "")}  """)
   result.add(fmt """{modelInstance.abstract.get(otherwise = "")}  """)
   result.add(fmt """{modelInstance.status} """)
 
   if modelInstance.giver_id.isSome():
-    let questGiver: QuestCharacter = getEntryById(modelInstance.giver_id.get(), QuestCharacter)
+    let questGiver: QuestCharacter = connection.getEntryById(modelInstance.giver_id.get(), QuestCharacter)
     result.add(fmt """{questGiver.name} """)
   
   if modelInstance.taker_id.isSome():
-    let questTaker: QuestCharacter = getEntryById(modelInstance.taker_id.get(), QuestCharacter)
+    let questTaker: QuestCharacter = connection.getEntryById(modelInstance.taker_id.get(), QuestCharacter)
     result.add(fmt """{questTaker.name}""")
   
-proc getSearchTitle*(modelInstance: Quest): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Quest): string =
   return modelInstance.name
 
 
-proc getSearchTitle*(modelInstance: SessionAudio): string =
-  let session: Session = getEntryById(modelInstance.session_id, Session)
+proc getSearchTitle*(connection: DbConn, modelInstance: SessionAudio): string =
+  let session: Session = connection.getEntryById(modelInstance.session_id, Session)
   result.add(fmt """Recording of session #{session.session_number}""")
 
-proc getSearchBody*(modelInstance: SessionAudio): string =
-  result.add(fmt """{getSearchTitle(modelInstance)} """)
+proc getSearchBody*(connection: DbConn, modelInstance: SessionAudio): string =
+  result.add(fmt """{getSearchTitle(connection, modelInstance)} """)
 
-  let timestamps: seq[Timestamp] = getManyFromOne(modelInstance, Timestamp)
+  let timestamps: seq[Timestamp] = connection.getManyFromOne(modelInstance, Timestamp)
   for timestamp in timestamps:
     result.add(fmt """{timestamp.name} """)
 
 
 
-proc getSearchBody*(modelInstance: Spell): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Spell): string =
   result.add(fmt """{modelInstance.name} {modelInstance.description}""")
 
-proc getSearchTitle*(modelInstance: Spell): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Spell): string =
   return modelInstance.name
 
 
 
-proc getSearchBody*(modelInstance: Rule): string =
+proc getSearchBody*(connection: DbConn, modelInstance: Rule): string =
   result.add(fmt """{modelInstance.name} {modelInstance.description.get(otherwise = "")}""")
 
-proc getSearchTitle*(modelInstance: Rule): string =
+proc getSearchTitle*(connection: DbConn, modelInstance: Rule): string =
   return modelInstance.name
 

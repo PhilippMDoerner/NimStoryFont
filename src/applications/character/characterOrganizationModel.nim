@@ -20,7 +20,7 @@ proc newTableModel*(T: typedesc[OrganizationMembership]): OrganizationMembership
     result = newOrganizationMembership()
 
 type OrganizationMembershipRead*  {.defaults, tableName: ORGANIZATION_CHARACTER_TABLE.} = ref object of Model
-    organization_id*: Organization = newModel(Organization)
+    organization_id*: OrganizationRead = newModel(OrganizationRead)
     member_id* {.fk: Character.}: int64 = MODEL_INIT_ID
     role*: Option[string] = some("")
 

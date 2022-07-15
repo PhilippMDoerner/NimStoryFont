@@ -26,7 +26,7 @@ type ArticleTable* = enum #TODO: Replace this with applicationSettings constants
   atbSPELL = "wikientries_spell"
   atbRULE = "wikientries_rules"
 
-type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap | Organization | Quest | SessionAudio | Spell | Rule
+type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap | Organization | OrganizationRead | Quest | SessionAudio | Spell | Rule
 type ArticleType* = enum
   atCharacter = "character"
   atCreature = "creature"

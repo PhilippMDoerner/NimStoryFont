@@ -52,7 +52,7 @@ proc serializeMember(membership: OrganizationMemberRead): MemberSerializable =
         pk: membership.member_id.id,
         alive: membership.member_id.alive,
         name: membership.member_id.name,
-        organization_id: membership.member_id.organization_id.get(),
+        organization_id: membership.organization_id,
         role: membership.role
     )
 

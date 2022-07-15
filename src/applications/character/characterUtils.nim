@@ -23,3 +23,7 @@ proc campaign_id*(entry: OrganizationMembership): int64 =
 
 proc checkCharacterReadListPermission*(ctx: JWTContext, entries: seq[CharacterOverview]) =
   checkCampaignReadListPermission(ctx, entries)
+
+proc checkOrganizationMembershipCreatePermission*(ctx: JWTContext, entry: OrganizationMembership) =
+  let organization: OrganizationRead = getEntryById(entry.organization_id, OrganizationRead)
+  checkCreatePermission(ctx, organization.campaign_id.id)

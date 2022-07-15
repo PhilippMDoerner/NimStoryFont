@@ -33,7 +33,6 @@ type Character* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID # The id of the campaign that this character occurred in
-    organization_id* {.fk: Organization.} : Option[int64] = some(MODEL_INIT_ID)
 
 implDefaults(Character)
 
@@ -79,7 +78,6 @@ type CharacterRead* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Mod
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
-    organization_id*: Option[OrganizationOverview] = some(newModel(OrganizationOverview))
 
 implDefaults(CharacterRead)
 ##[Enables generic instantiation of the model. This enable the use of 

@@ -37,6 +37,20 @@ proc serializePlayerClassConnection(entry: PlayerClassConnectionRead): Character
         player_class_details: entry.player_class_id.serializePlayerClass()
     )
 
+type OrganizationMembershipSerializable* = object
+    pk*: int64
+    organization_id*: int64
+    role*: Option[string]
+    name*: string
+
+proc serializeCharacterOrganization(entry: OrganizationMembershipRead): OrganizationMembershipSerializable =
+ result = OrganizationMembershipSerializable(
+    pk: entry.id,
+    organization_id: entry.organization_id.id,
+    role: entry.role,
+    name: entry.organization_id.name,
+ )
+
 type CharacterSerializable* = object
     pk*: int64
     player_character*: bool
@@ -53,8 +67,7 @@ type CharacterSerializable* = object
     update_datetime*: DjangoDateTime 
     campaign_id*: int64
     campaign_details*: MinimumCampaignOverview
-    organization*: Option[int64]
-    organization_details*: Option[OrganizationOverview]
+    organizations*: seq[OrganizationMembershipSerializable]
     items*: seq[ItemOverview]
     encounters*: seq[EncounterSerializable]
     images*: seq[ImageSerializable]
@@ -83,8 +96,10 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
     let characterLocationId: Option[int64] = characterLocation.map(charLoc => charLoc.pk)
     let items = connection.getManyFromOne(entry, ItemOverview)
     let characterClasses: seq[PlayerClassConnectionRead] = connection.getManyFromOne(entry, PlayerClassConnectionRead)
-    let organizationId: Option[int64] = entry.organization_id.map(org => org.id) 
     
+    let memberships: seq[OrganizationMembershipRead] = connection.getOrganizationMemberships(entry.id, OrganizationMembershipRead) 
+    let serializedMemberships = memberships.map(membership => serializeCharacterOrganization(membership))
+
     var encounters: seq[EncounterRead] = connection.getManyToMany(entry, CharacterEncounterRead, EncounterRead)
     encounters.sort((enc1, enc2) => enc2.diaryentry_id.session_id.session_number - enc1.diaryentry_id.session_id.session_number)
     
@@ -105,10 +120,9 @@ proc serializeCharacterRead*(connection: DbConn, entry: CharacterRead): Characte
         update_datetime: entry.update_datetime,
         campaign_id: entry.campaign_id.id,
         campaign_details: entry.campaign_id,
-        organization_details: entry.organization_id,
+        organizations: serializedMemberships,
         items: items,
         images: characterImages,
-        organization: organizationId,
         player_class_connections: characterClasses.map(serializePlayerClassConnection),
         encounters: serializedEncounters
     )

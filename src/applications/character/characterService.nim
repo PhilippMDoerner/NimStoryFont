@@ -26,13 +26,13 @@ proc getPlayerCharacters*(connection: DbConn, requestParams: ReadListParams): se
 proc getCharacterImages*(connection: DbConn, characterIds: seq[int64]): Table[int64, seq[Image]] =
   result = connection.getImagesForArticles(ImageType.CHARACTERTYPE, characterIds)
 
-proc getOrganizationMemberships*(connection: DbConn, characterId: int64): seq[OrganizationMembershipRead] =
+proc getOrganizationMemberships*[T: Model](connection: DbConn, characterId: int64, membershipModelType: typedesc[T]): seq[T] =
   var character = newModel(Character)
   character.id = characterId
 
   result = connection.getManyFromOne(
     character, 
-    OrganizationMembershipRead
+    T
   )
 
 proc getOrganizationMembers*(connection: DbConn, organizationId: int64): seq[OrganizationMemberRead] =
