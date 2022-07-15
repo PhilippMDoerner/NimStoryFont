@@ -96,8 +96,12 @@ proc addCharacterRoutes*(app: Prologue) =
     )
 
     app.addRoute(
-        re fmt"/character/organizationmemberships/{CAMPAIGN_NAME_PATTERN}/",
-        handler = createCreateEntryHandler[CreateParams, OrganizationMembership, CharacterSerializable](serializeCharacter),
+        re fmt"/character/organizationmemberships/",
+        handler = createCreateHandler[CreateParams, OrganizationMembership, CharacterSerializable](
+            checkOrganizationMembershipCreatePermission,
+            createEntry,
+            serializeCharacter
+        ),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )

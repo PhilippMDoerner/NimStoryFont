@@ -27,17 +27,19 @@ proc getLocationByName*(connection: DbConn, params: ReadLocationByNameParams): L
     result = entry 
 
 
-proc getParentLocations*(location: Location): seq[Location] =
+proc getParentLocations*(connection: DbConn, location: Location): seq[Location] =
     var currentLocation = location
 
-    withDbConn(connection):
-        while currentLocation.parent_location_id.isSome():
-            let parentLocation: Location = getEntryById(currentLocation.parent_location_id.get(), Location)
-            result.add(parentLocation)
-            currentLocation = parentLocation
+    while currentLocation.parent_location_id.isSome():
+        let parentLocation: Location = connection.getEntryById(currentLocation.parent_location_id.get(), Location)
+        result.add(parentLocation)
+        currentLocation = parentLocation
         
     result.reverse()
 
+proc getParentLocations*(location: Location): seq[Location] =
+    withDbConn(connection):
+        result = connection.getParentLocations(location)
 
 proc readParentLocations*(connection: DbConn, location: Location | LocationRead): seq[Location] =
     withDbConn(connection):

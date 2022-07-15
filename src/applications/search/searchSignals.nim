@@ -1,7 +1,7 @@
 import searchService
 import ../genericArticleRepository
 import ../core/[signalSystem]
-import ../character/characterModel
+import ../character/[characterService, characterModel, characterOrganizationModel]
 import ../creature/creatureModel
 import ../item/itemModel
 import ../diaryentry/[diaryEntryUtils, diaryEntryModel]
@@ -16,6 +16,7 @@ import ../spell/spellModel
 import ../rules/ruleModel
 import ../mapMarker/markerModel
 import std/[typetraits, strformat, options]
+import ../../utils/databaseUtils
 
 export encounterUtils #So that "addSearchEntry" can query campaign_id properly
 export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly
@@ -34,15 +35,16 @@ export sessionaudioUtils
 
 #CHARACTER Signals
 proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Character) =
-  if modelInstance.organization_id.isSome():
-    let organization = getEntryById(modelInstance.organization_id.get(), Organization)
+  let memberships: seq[OrganizationMembershipRead] = connection.getOrganizationMemberships(modelInstance.id, OrganizationMembershipRead)
+  for membership in memberships:
+    let organization: OrganizationRead = membership.organization_id
     updateSearchEntryContent(connection, organization)
 
-  let questsWhereCharacterIsGiver: seq[Quest] = getManyFromOne(modelInstance, Quest, "giver_id")
+  let questsWhereCharacterIsGiver: seq[Quest] = connection.getManyFromOne(modelInstance, Quest, "giver_id")
   for quest in questsWhereCharacterIsGiver:
     updateSearchEntryContent(connection, quest)
 
-  let questsWhereCharacterIsTaker: seq[Quest] = getManyFromOne(modelInstance, Quest, "taker_id")
+  let questsWhereCharacterIsTaker: seq[Quest] = connection.getManyFromOne(modelInstance, Quest, "taker_id")
   for quest in questsWhereCharacterIsTaker:
     updateSearchEntryContent(connection, quest)
 
@@ -62,8 +64,6 @@ proc connectCharacterSearchSignals() =
   connect(SignalType.stPostCreate, Character, characterCreateSignal)
   connect(SignalType.stPostUpdate, Character, characterUpdateSignal)
   connect(SignalType.stPreDelete, Character, characterDeleteSignal)
-
-
 
 #CREATURE
 proc creatureCreateSignal*(connection: DbConn, modelInstance: Creature) =
@@ -215,6 +215,19 @@ proc connectOrganizationSearchSignals() =
   connect(SignalType.stPostCreate, Organization, organizationCreateSignal)
 
 
+#CHARACTER ORGANIZATION MEMBERSHIP
+proc organizationMembershipSignal*(connection: DbConn, modelInstance: OrganizationMembership) =
+  let character = getEntryById(modelInstance.member_id, Character)
+  characterUpdateSignal(connection, character)
+
+  let organization = getEntryById(modelInstance.organization_id, Organization)
+  organizationUpdateSignal(connection, organization)
+
+proc connectOrganizationMembershipSignals() =
+  connect(SignalType.stPostCreate, OrganizationMembership, organizationMembershipSignal)
+  connect(SignalType.stPostUpdate, OrganizationMembership, organizationMembershipSignal)
+  connect(SignalType.stPreDelete, OrganizationMembership, organizationMembershipSignal)
+ 
 
 #QUEST
 proc questCreateSignal*(connection: DbConn, modelInstance: Quest) = 
@@ -296,6 +309,7 @@ proc connectRuleSearchSignals() =
 
 proc connectSearchSignals*() =
   connectCharacterSearchSignals()
+  connectOrganizationMembershipSignals()
   connectCreatureSearchSignals()
   connectDiaryEntrySearchSignals()
   connectEncounterSearchSignals()

@@ -13,15 +13,15 @@ proc deleteSearchEntry*(connection: DbConn, article: Article) =
 
 
 proc updateSearchEntryContent*(connection: DbConn, article: Article) =
-  let searchTitle: string = article.getSearchTitle()
-  let searchBody: string = article.getSearchBody()
+  let searchTitle: string = connection.getSearchTitle(article)
+  let searchBody: string = connection.getSearchBody(article)
   let guid = article.getSearchGuid()
   updateSearchEntryContent(connection, guid, searchTitle, searchBody)
 
 
 proc addSearchEntry*(connection: DbConn, article: Article) =
-  let searchTitle: string = article.getSearchTitle()
-  let searchBody: string = article.getSearchBody()
+  let searchTitle: string = connection.getSearchTitle(article)
+  let searchBody: string = connection.getSearchBody(article)
   var articleTable: string = article.type().table()
   articleTable.removeSuffix('"')
   articleTable.removePrefix('"')
