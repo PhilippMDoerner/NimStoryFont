@@ -40,14 +40,14 @@ proc serializePlayerClassConnection(entry: PlayerClassConnectionRead): Character
 type OrganizationMembershipSerializable* = object
     pk*: int64
     organization_id*: int64
-    role*: Option[string]
+    role*: string
     name*: string
 
 proc serializeCharacterOrganization(entry: OrganizationMembershipRead): OrganizationMembershipSerializable =
  result = OrganizationMembershipSerializable(
     pk: entry.id,
     organization_id: entry.organization_id.id,
-    role: entry.role,
+    role: entry.role.get("Member"),
     name: entry.organization_id.name,
  )
 

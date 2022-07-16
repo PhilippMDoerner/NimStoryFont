@@ -30,7 +30,7 @@ type MemberSerializable* = object
     name: string
     alive: bool
     organization_id: int64
-    role: Option[string]
+    role: string
 
 type OrganizationSerializable* = object
     pk: int64
@@ -53,7 +53,7 @@ proc serializeMember(membership: OrganizationMemberRead): MemberSerializable =
         alive: membership.member_id.alive,
         name: membership.member_id.name,
         organization_id: membership.organization_id,
-        role: membership.role
+        role: membership.role.get("Member")
     )
 
 proc serializeOrganizationRead*(connection: DbConn, entry: OrganizationRead): OrganizationSerializable =
