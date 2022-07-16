@@ -88,6 +88,9 @@ proc checkDeletePermission*(ctx: JWTContext, campaignId: int64) =
   checkCampaignWritePermission(ctx, campaignId)
 
 proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
+  if ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser:
+    return
+  
   let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)
   if campaignName.isNone():
     const campaignNameParam = CAMPAIGN_NAME_PARAM
