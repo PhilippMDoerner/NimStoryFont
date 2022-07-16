@@ -36,17 +36,17 @@ proc getCampaignIdMembershipTable(): Table[string, CampaignMemberships] =
     if campaign.guest_group_id.isSome():
         let guestGroupName: string = campaign.guest_group_id.get().name
         membershipTable.addCampaignGroup(guestGroupName, campaign.id, CampaignAccessLevel.GUEST)
-        membershipTable.addCampaignGroup(guestGroupName, campaign.name.toLower(), CampaignAccessLevel.GUEST)
+        membershipTable.addCampaignGroup(guestGroupName, campaign.name, CampaignAccessLevel.GUEST)
     
     if campaign.member_group_id.isSome():
         let memberGroupName: string = campaign.member_group_id.get().name
         membershipTable.addCampaignGroup(memberGroupName, campaign.id, CampaignAccessLevel.MEMBER)
-        membershipTable.addCampaignGroup(memberGroupName, campaign.name.toLower(), CampaignAccessLevel.MEMBER)
+        membershipTable.addCampaignGroup(memberGroupName, campaign.name, CampaignAccessLevel.MEMBER)
         
     if campaign.admin_group_id.isSome():
         let adminGroupName: string = campaign.admin_group_id.get().name
         membershipTable.addCampaignGroup(adminGroupName, campaign.id, CampaignAccessLevel.ADMIN)
-        membershipTable.addCampaignGroup(adminGroupName, campaign.name.toLower(), CampaignAccessLevel.ADMIN)
+        membershipTable.addCampaignGroup(adminGroupName, campaign.name, CampaignAccessLevel.ADMIN)
 
   result = membershipTable
 
