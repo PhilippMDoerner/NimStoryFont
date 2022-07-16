@@ -8,8 +8,7 @@ import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
 import ../allUrlParams
 import ../user/userService
 import std/[strformat, strutils, sequtils, sugar, options]
-import ../authentication/authenticationConstants
-import ../authentication/authenticationUtils
+import ../authentication/[authenticationUtils, authenticationService, authenticationConstants]
 import ../genericArticleRepository
 import statisticsService
 
