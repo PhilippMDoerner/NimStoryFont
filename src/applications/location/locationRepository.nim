@@ -103,7 +103,6 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
 
 proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
   let parentLocationIds: Option[string] = connection.getParentLocationIdString(locationId)
-  echo "How the fuck is this possible: ", parentLocationIds.toJson()
   if parentLocationIds.isNone():
     return @[]
 
