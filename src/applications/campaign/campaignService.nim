@@ -36,6 +36,9 @@ proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams):
 proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
   var campaignIdsOfUser: seq[int64] = @[]
 
+  if requestParams.userToken.isAdmin or requestParams.userToken.isSuperUser:
+    return connection.getList(CampaignRead)
+
   for campaignIdentifier in requestParams.userToken.campaignMemberships.keys:
     if campaignIdentifier.kind == CampaignIdType.citInt:
       campaignIdsOfUser.add(campaignIdentifier.id)
