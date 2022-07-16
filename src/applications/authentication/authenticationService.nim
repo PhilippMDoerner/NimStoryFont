@@ -1,7 +1,9 @@
 import prologue except Group
 import ../genericArticleRepository
-import ../campaign/[campaignModel, campaignService]
+import ../campaign/[campaignModel, campaignService, campaignUtils]
 import authenticationEmailText
+import authenticationRepository
+import authenticationConstants
 import std/[options, sequtils, tables, strutils, strformat, unicode]
 import norm/model
 import ../allUrlParams
@@ -87,7 +89,17 @@ proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission
 proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[Group] =
   result = connection.getList(Group)
 
+proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
+  authenticationRepository.deleteGroupMembership(connection, userId, groupId)
 
+proc addCampaignMember*(connection: DbConn, campaign: CampaignRead, role: CampaignRole, newMember: var User) =
+  let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
+  var newMembership = UserGroup(user_Id: newMember, group_id: campaignGroup)
+  discard connection.createEntryInTransaction(newMembership)
+
+proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: CampaignRole, member: var User) =
+  let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
+  connection.deleteGroupMembership(member.id, campaignGroup.id)
 
 
 proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
