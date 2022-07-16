@@ -48,17 +48,6 @@ proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutPara
 proc getCampaignMembers*(connection: DbConn, campaign: Campaign | CampaignRead): seq[UserGroup] =
   result = connection.readCampaignMembers(campaign)
 
-proc addCampaignMember*(connection: DbConn, campaign: CampaignRead, role: CampaignRole, newMember: var User) =
-  let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
-  var newMembership = UserGroup(user_Id: newMember, group_id: campaignGroup)
-  discard connection.createEntryInTransaction(newMembership)
-
-proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: CampaignRole, newMember: var User) =
-  let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
-  var membershipToRemove = UserGroup(user_Id: newMember, group_id: campaignGroup)
-  connection.deleteEntryInTransaction(membershipToRemove)
-
-
 proc deactivateCampaign*(connection: DbConn, campaign: var Campaign) =
   if campaign.is_deactivated:
     raise newException(InvalidDatabaseManipulation, fmt"Campaigns cannot be deleted, they only get deactivated. '{campaign.name}' is already deactivated.")
