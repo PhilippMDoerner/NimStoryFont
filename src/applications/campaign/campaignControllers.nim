@@ -46,7 +46,7 @@ proc changeMembership*(ctx: Context) {.async.} =
       of MembershipAction.REMOVE:
         connection.removeCampaignMember(campaign, role, selectedUser)
       
-      let campaignMemberships: seq[UserGroup] = connection.getCampaignMembers(campaign)
+      let campaignMemberships: seq[UserGroup] = connection.getCampaignMembersWithRole(campaign, role)
       let data = campaignMemberships.map(membership => connection.serializeMembership(membership))
       
       resp jsonyResponse(ctx, data)

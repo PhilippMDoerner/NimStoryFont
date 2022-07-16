@@ -4,7 +4,7 @@ import campaignModel
 import campaignRepository
 import campaignUtils
 import norm/[model, sqlite]
-import std/[options, sets, tables, strformat]
+import std/[options, sets, tables, strformat, sugar]
 import tinypool/sqlitePool except DbConn
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
@@ -47,6 +47,25 @@ proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutPara
 
 proc getCampaignMembers*(connection: DbConn, campaign: Campaign | CampaignRead): seq[UserGroup] =
   result = connection.readCampaignMembers(campaign)
+
+proc getCampaignMembersWithRole*(connection: DbConn, campaign: CampaignRead, role: CampaignRole): seq[UserGroup] =
+  let campaignGroup: Option[Group] = case role:
+  of CampaignRole.crADMIN:
+    campaign.admin_group_id
+  of CampaignRole.crMEMBER:
+    campaign.member_group_id
+  of CampaignRole.crGUEST:
+    campaign.guest_group_id
+
+  let campaignGroupId: Option[int64] = campaignGroup.map(group => group.id)
+  if campaignGroupId.isNone():
+    result = @[]
+
+  result = connection.getList(
+    UserGroup, 
+    "group_id = ?", 
+    campaignGroupId.get().dbValue(), 
+  )
 
 proc deactivateCampaign*(connection: DbConn, campaign: var Campaign) =
   if campaign.is_deactivated:
