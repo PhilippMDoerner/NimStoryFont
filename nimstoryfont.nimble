@@ -24,47 +24,6 @@ requires "nisane >= 0.2.0"
 
 
 # Tasks
-task release, "Build a production release":
-  --verbose
-  --forceBuild:on
-  --opt:speed
-  --define:release
-  --threads:on
-  --mm:orc
-  --deepcopy:on
-  --define:lto
-  --define:ssl
-  #--define:usestd  # stdlib asynchttpserver
-  --outdir:"."
-  setCommand "c", "src/nimstoryfont.nim"
-
-task flamegraph, "Build a binary for flamegraph analysis":
-  --verbose
-  --forceBuild:on
-  --define:release
-  --threads:on
-  --mm:orc
-  --deepcopy:on
-  #--define:lto
-  --define:ssl
-  --debugger:native
-  #--define:usestd  # stdlib asynchttpserver
-  --outdir:"."
-  setCommand "c", "src/nimstoryfont.nim"
-
-task debug, "Build a release for debugging":
-  --verbose
-  --stackTrace:on 
-  --lineTrace:on 
-  --threads:on
-  --mm:orc
-  --deepcopy:on
-  --define:ssl
-  --define:enableTinyPoolLogging
-  --define:normDebug
-  --outdir:"."
-  setCommand "c", "src/nimstoryfont.nim"
-
 task alpine, "Build an alpine release":
   --verbose
   --gcc.exe:"musl-gcc"
@@ -92,5 +51,6 @@ task alpine_debug, "Build a release for debugging":
   --define:ssl
   --define:enableTinyPoolLogging
   --define:normDebug
+  --debugger:native
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
