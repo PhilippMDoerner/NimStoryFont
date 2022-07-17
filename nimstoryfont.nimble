@@ -41,14 +41,19 @@ task alpine_debug, "Build a release for debugging":
   --verbose
   --gcc.exe:"musl-gcc"
   --gcc.linkerexe:"musl-gcc"
-  --stackTrace:on 
-  --lineTrace:on 
   --threads:on
   --mm:orc
   --deepcopy:on
   --define:ssl
   --define:enableTinyPoolLogging
   --define:normDebug
-  --debugger:native
+  --stackTrace:on 
+  --lineTrace:on 
+  --styleCheck:usages
+  --spellSuggest:50
+  --excessiveStackTrace:on
+  #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
+  #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
+  #--debugger:native
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
