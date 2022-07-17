@@ -1,4 +1,4 @@
-import std/times
+import std/[logging, times, strformat]
 import ../../applicationSettings
 
 #Create custom DateTime Datatype `DjangoDateTime`. 
@@ -25,8 +25,18 @@ proc parse*(
 proc parseDefault*(input: string): DjangoDateTime =
     try:
         result = djangoDateTimeType.parse(input, PRIMARY_DB_TIME_FORMAT, utc())
+    
     except TimeParseError:
+        log(lvlDebug, fmt"Failed parsing '{input}' to format {PRIMARY_DB_TIME_FORMAT}. Attempting parsing with '{SECONDARY_DB_TIME_FORMAT}'")
         try:
             result = djangoDateTimeType.parse(input, SECONDARY_DB_TIME_FORMAT, utc())
+        
         except TimeParseError:
-            result = djangoDateTimeType.parse(input, OUTPUT_TIME_FORMAT, utc())
+            log(lvlDebug, fmt"Failed parsing '{input}' to format {SECONDARY_DB_TIME_FORMAT}. Attempting parsing with '{OUTPUT_TIME_FORMAT}'")
+            
+            try:
+                result = djangoDateTimeType.parse(input, OUTPUT_TIME_FORMAT, utc())
+
+            except TimeParseError:
+                log(lvlDebug, fmt"Failed parsing '{input}' to format {OUTPUT_TIME_FORMAT}. Attempting parsing with '{SESSION_DATE_FORMAT}'")
+                result = djangoDateTimeType.parse(input, SESSION_DATE_FORMAT, utc())
