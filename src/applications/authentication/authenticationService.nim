@@ -86,7 +86,7 @@ proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission
 
   result = permissionEntries
 
-proc readGroups*(connection: Dbconn, requestParameters: ReadWithoutParams): seq[Group] =
+proc readGroups*(connection: DbConn, requestParameters: ReadWithoutParams): seq[Group] =
   result = connection.getList(Group)
 
 proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =

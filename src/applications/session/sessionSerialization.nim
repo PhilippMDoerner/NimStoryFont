@@ -106,7 +106,7 @@ proc overviewSerialize*(entry: SessionRead, sessionAudios: seq[SessionAudio], di
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime,
         has_recording: hasRecording,
-        author_ids: author_ids,
+        author_ids: authorIds,
         start_day: entry.start_day,
         end_day: entry.end_day,
         session_number: entry.session_number,

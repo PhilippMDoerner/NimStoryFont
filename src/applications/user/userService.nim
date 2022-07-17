@@ -36,7 +36,7 @@ proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var 
   result = connection.createEntryInTransaction(newEntry)
 
 
-proc updateUser*(connection: Dbconn, requestData: UpdateParams): User =
+proc updateUser*(connection: DbConn, requestData: UpdateParams): User =
   var entry = requestData.body.fromJson(User)
   
   if entry.id == MODEL_INIT_ID:
@@ -79,7 +79,7 @@ proc updateUserPassword*(connection: DbConn, username: string, newPassword: stri
   var user: User = connection.getEntryByField("username", username, User)
   connection.updateUserPassword(user, newPassword)
 
-proc patchUser*(connection: Dbconn, requestData: UpdateParams, entry: User): User =
+proc patchUser*(connection: DbConn, requestData: UpdateParams, entry: User): User =
   assert(entry.id == requestData.id, "Tried updating {modelType.name()} and change id from {entryId} to {entry.id}!")
   
   let isGroupUpdatePatch = requestData.body.parseJson().hasKey("groups")

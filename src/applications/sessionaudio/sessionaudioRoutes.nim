@@ -52,7 +52,7 @@ proc addSessionAudioRoutes*(app: Prologue) =
         handler = createReadListHandler[ReadListParams, SessionAudioRead, SessionAudioOverviewSerializable](
             getCampaignSessionAudio,
             checkSessionAudioReadListPermission,
-            overview_serialize
+            overviewSerialize
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

@@ -12,12 +12,12 @@ import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../applicationSettings
 import jsony
 
-proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLoadFile] =
+proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
   if hasFile:
       result = some(ctx.getUploadFile(fileFieldName))
   else:
-      result = none(UpLoadFile)
+      result = none(UploadFile)
 
 proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)

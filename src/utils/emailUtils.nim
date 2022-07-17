@@ -25,4 +25,4 @@ proc sendSystemEmail*(subject: string, body: string, target: string, settings: S
   smtpConn.auth(emailUserName, emailPassword)
 
   var msg = createMessage(subject, body, @[target])
-  smtpConn.sendmail(emailUserName, @[target], $msg)
+  smtpConn.sendMail(emailUserName, @[target], $msg)

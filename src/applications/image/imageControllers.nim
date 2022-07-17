@@ -11,12 +11,12 @@ import ../allUrlParams
 import imageDataTransferObjects
 
 
-proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UpLoadFile] =
+proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
   if hasFile:
       result = some(ctx.getUploadFile(fileFieldName))
   else:
-      result = none(UpLoadFile)
+      result = none(UploadFile)
 
 
 proc extractFKIdFieldFromContext(ctx: JWTContext, fieldName: string): Option[int64] =

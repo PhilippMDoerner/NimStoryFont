@@ -126,7 +126,7 @@ proc getSearchBody*(connection: DbConn, modelInstance: Organization | Organizati
   if modelInstance.headquarter_id.isSome():
     when modelInstance is Organization:
       let headquarterLocation = connection.getEntryById(modelInstance.headquarter_id.get(), OrganizationLocation)
-    elif modelinstance is OrganizationRead:
+    elif modelInstance is OrganizationRead:
       let headquarterLocation = modelInstance.headquarter_id.get()
 
     result.add(fmt """{headquarterLocation.name} """)
