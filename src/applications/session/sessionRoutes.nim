@@ -38,7 +38,11 @@ proc addSessionRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/session/{CAMPAIGN_NAME_PATTERN}/overview/", 
-        handler = createReadCampaignListHandler[ReadListParams, SessionRead, SessionOverviewSerializable](overviewSerialize),  
+        handler = createReadListHandler[ReadListParams, SessionRead, SessionOverviewSerializable](
+            getCampaignSessions,
+            checkCampaignReadListPermission,
+            overviewSerialize
+        ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
