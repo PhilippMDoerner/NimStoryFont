@@ -37,5 +37,5 @@ proc getDiaryEntryEncounterConnections*(connection: DbConn, encounters: seq[Enco
   let encounterIds: seq[int64] = encounters.map(enc => enc.id)
   result = connection.getEncounterConnectionsForEncounters(encounterIds)
 
-proc getCampaignDiaryEntries*(connection: DbConn, requestParams: ReadListParams): seq[DiaryentryRead] =
+proc getCampaignDiaryEntries*(connection: DbConn, requestParams: ReadListParams): seq[DiaryEntryRead] =
   result = connection.getDiaryEntriesForCampaign(requestParams.campaignName)

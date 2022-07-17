@@ -16,7 +16,7 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
   
   let isDeletingAdmin = entry.is_staff and not entry.is_superuser
   if isDeletingAdmin:
-    checkSuperuserPermission(ctx, entry)
+    checkSuperUserPermission(ctx, entry)
 
 proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
   return

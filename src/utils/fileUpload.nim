@@ -13,7 +13,7 @@ proc renameFile(fileName: string): string =
   let (_, name, extension) = fileName.splitFile()
   result = fmt "{name}_{randomString(10)}{extension}"
 
-proc saveFile*(file: var UpLoadFile, uploadDirectory: string): string =
+proc saveFile*(file: var UploadFile, uploadDirectory: string): string =
   if not dirExists(uploadDirectory):
     raise newException(FileNotFoundError, fmt "The directory '{uploadDirectory}' does not exist")
   

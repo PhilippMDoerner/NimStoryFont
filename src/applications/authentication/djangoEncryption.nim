@@ -47,7 +47,7 @@ proc PKCS5_PBKDF2_HMAC(
 proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_size".}
 proc EVP_sha256_fixed*(): EVP_MD    {.cdecl, dynlib: DLLUtilName, importc: "EVP_sha256".}
 
-proc openssl_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
+proc opensslCalculateSHA256Pbkdf2Hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
   if iterations > cint.high: raise newException(ValueError, "iterations too high")
   let
     digest: EVP_MD = EVP_sha256_fixed()
@@ -70,7 +70,7 @@ proc openssl_calculate_SHA256_pbkdf2_hash(password: string, salt: string, iterat
 
 ### pbkdf2 usage
 proc calcPasswordHash*(password: string, salt: string, iterations: int, secretKey: string): string =
-  openssl_calculate_SHA256_pbkdf2_hash(password, salt, iterations, secretKey)
+  opensslCalculateSHA256Pbkdf2Hash(password, salt, iterations, secretKey)
 
 proc isValidPassword*(password: string, databaseHash: string, secretKey: string): bool =
   let storedPasswordPieces: seq[string] = databaseHash.split('$')

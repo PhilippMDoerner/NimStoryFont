@@ -107,7 +107,7 @@ proc overviewSerialize*(entry: CampaignRead, campaignSessions: var seq[Session])
         pk: entry.id,
         name: entry.name,
         subtitle: entry.subtitle,
-        background_image: entry.backgroundImage.getImagePath(),
+        background_image: entry.background_image.getImagePath(),
         is_deactivated: entry.is_deactivated,
         has_audio_recording_permission: entry.has_audio_recording_permission,
         icon: entry.icon.map(getImagePath),

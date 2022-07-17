@@ -2,7 +2,7 @@ import std/options
 import prologue
 
 type ImageDTO* = object
-  imageFile*: Option[UpLoadFile]
+  imageFile*: Option[UploadFile]
   mediaDirectory*: string
   imageName*: Option[string]
   image_character_fk*: Option[int64]

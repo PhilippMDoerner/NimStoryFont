@@ -87,7 +87,7 @@ proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[Cha
         update_datetime: entry.update_datetime,
         diaryentry: entry.diaryentry_id.id,
         order_index: entry.order_index,
-        campaign_details: entry.diaryentry_id.session_id.campaign_Id
+        campaign_details: entry.diaryentry_id.session_id.campaign_id
     )
 
 proc serializeEncounterRead*(connection: DbConn, entry: EncounterRead): EncounterSerializable =
@@ -113,7 +113,7 @@ type EncounterDiaryentrySerializable* = object
     is_main_session: 0..1
 
 proc serializeDiaryEntry(entry: EncounterDiaryentry): EncounterDiaryentrySerializable =
-    result = EncounterDiaryEntrySerializable(
+    result = EncounterDiaryentrySerializable(
         session_number: entry.session_id.session_number,
         author_name: entry.author_id.username,
         is_main_session: entry.session_id.is_main_session.int

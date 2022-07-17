@@ -113,7 +113,7 @@ type JWTType* = enum
     ACCESS = "access"
 
 
-proc getExpirationTimestamp(tokenType: JWTTYPE, tokenLifetime: TimeInterval): int64 =
+proc getExpirationTimestamp(tokenType: JWTType, tokenLifetime: TimeInterval): int64 =
     let expirationTime: Time = getTime() + tokenLifetime
     result = expirationTime.toUnix()
 
