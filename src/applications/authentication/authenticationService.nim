@@ -4,7 +4,7 @@ import ../campaign/[campaignModel, campaignService, campaignUtils]
 import authenticationEmailText
 import authenticationRepository
 import authenticationConstants
-import std/[options, sequtils, tables, strutils, strformat, unicode]
+import std/[options, sequtils, tables, strutils, strformat]
 import norm/model
 import ../allUrlParams
 import ../user/userService

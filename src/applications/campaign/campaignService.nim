@@ -2,13 +2,11 @@ import ../genericArticleRepository
 import ../genericArticleService
 import campaignModel
 import campaignRepository
-import campaignUtils
 import norm/[model, sqlite]
 import std/[options, sets, tables, strformat, sugar]
 import tinypool/sqlitePool except DbConn
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
-import ../user/userModel
 import ../allUrlParams
 import ../../utils/jwtContext
 import ../authentication/myJwt

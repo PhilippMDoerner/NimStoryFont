@@ -1,7 +1,6 @@
 import norm/[model, pragmas]
 import std/[options]
 import ../campaign/campaignModel
-import ../organization/organizationModel
 import ../location/locationModel
 import ../../applicationSettings
 import ../../applicationConstants

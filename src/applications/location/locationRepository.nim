@@ -1,7 +1,6 @@
 import std/[strformat, strutils, sugar, options, sequtils, tables, sets]
 import ../genericArticleRepository
 import norm/[sqlite, model]
-import jsony
 import locationModel
 
 proc parseParentIdRow(value: DbValue): string =
