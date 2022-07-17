@@ -35,7 +35,6 @@ task release, "Build a production release":
   --define:lto
   --define:ssl
   #--define:usestd  # stdlib asynchttpserver
-  --hints:off
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
 
@@ -50,7 +49,6 @@ task flamegraph, "Build a binary for flamegraph analysis":
   --define:ssl
   --debugger:native
   #--define:usestd  # stdlib asynchttpserver
-  --hints:off
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
 
