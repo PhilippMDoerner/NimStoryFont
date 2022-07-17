@@ -5,6 +5,7 @@ import locationRepository
 import ../articleModel
 import ../image/[imageModel, imageSerialization]
 import ../mapMarker/[markerModel]
+import ../mapMarkerType/[markerTypeModel]
 import ../character/[characterModel, characterUtils]
 import ../campaign/campaignModel
 import ../genericArticleRepository
