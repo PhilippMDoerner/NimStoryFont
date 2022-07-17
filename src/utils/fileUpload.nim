@@ -10,8 +10,7 @@ proc randomString(length: int): string =
         add(result, char(rand(int('A') .. int('z'))))
 
 proc renameFile(fileName: string): string =
-  let (directory, name, extension) = fileName.splitFile()
-  discard directory
+  let (_, name, extension) = fileName.splitFile()
   result = fmt "{name}_{randomString(10)}{extension}"
 
 proc saveFile*(file: var UpLoadFile, uploadDirectory: string): string =
