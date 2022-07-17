@@ -3,7 +3,7 @@ import norm/model
 import std/[db_sqlite, strformat, unicode, strutils]
 import ../campaign/campaignService
 #import ../../applicationSettings
-import ../../utils/nisane/nisane
+import nisane
 import ../../utils/myStrutils
 import tinypool/sqlitePool
 
