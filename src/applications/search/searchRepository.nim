@@ -1,12 +1,15 @@
 import searchModel
 import norm/model
-import std/[db_sqlite, strformat, unicode, strutils, logging]
+import std/[db_sqlite, strformat, unicode, strutils]
 import ../campaign/campaignService
 #import ../../applicationSettings
 import ../../utils/nisane/nisane
 import ../../utils/myStrutils
 import tinypool/sqlitePool
-import jsony
+
+when defined(normDebug):
+  import std/logging
+  import jsony
 
 #TODO Replace the hard coded table here with an insert
 proc toTitleQueryParam(tokens: seq[string]): string = 

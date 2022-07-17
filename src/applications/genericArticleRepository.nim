@@ -2,7 +2,7 @@ import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serializatio
 import ../utils/[macroUtils, databaseUtils]
 import norm/[model, sqlite]
 import jsony
-import std/[options, strformat, sequtils, sugar, strutils, tables]
+import std/[options, strformat, sequtils, strutils, tables]
 import core/[signalSystem]
 
 export sqlite

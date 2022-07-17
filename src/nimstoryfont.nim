@@ -7,8 +7,11 @@ import std/[os, logging, strformat]
 import tinypool/sqlitePool
 import applications/allSignals #Necessary so that signals get loaded
 import routes
-import prologue/middlewares/[staticfile, cors]
+import prologue/middlewares/[cors]
 import middleware/[timingMiddleware, compressionMiddleware]
+
+when not defined(release):
+  import prologue/middlewares/staticfile
 
 proc addGlobalMiddlewares(app: var Prologue) =
     when not defined(release):
