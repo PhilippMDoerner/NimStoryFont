@@ -15,33 +15,33 @@ type Creature* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-implDefaults(Creature)
-proc newModel*(T: typedesc[Creature]): Creature = newCreature()
-proc newTableModel*(T: typedesc[Creature]): Creature = newCreature()
+implDefaults(Creature, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-type CreatureRead* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
+
+
+type CreatureRead* {.defaults, readOnly, tableName: CREATURE_TABLE.} = ref object of Model
     ##[An extended Model of a creatures. Instead of the foreign-key ids it contains
     direct (reduced) representations of the datasets that the foreign-keys link to. ]##
     name*: string = ""
     description*: Option[string] = none(string) # A description of the character
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(CreatureRead)
-proc newModel*(T: typedesc[CreatureRead]): CreatureRead = newCreatureRead()
-
+implDefaults(CreatureRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type CreatureOverview* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
+
+
+type CreatureOverview* {.defaults, readOnly, tableName: CREATURE_TABLE.} = ref object of Model
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
     make a list of characters with necessary meta data ]##
     name*: string = ""
     description*: Option[string] = some("")
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(CreatureOverview)
-proc newModel*(T: typedesc[CreatureOverview]): CreatureOverview = newCreatureOverview()
+implDefaults(CreatureOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

@@ -20,28 +20,28 @@ type Marker* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   color*: Option[string] = some("")
 
-implDefaults(Marker)
-proc newModel*(T: typedesc[Marker]): Marker = newMarker()
+implDefaults(Marker, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type MarkerMap* {.defaults, tableName: MAP_TABLE.} = ref object of Model
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+
+type MarkerMap* {.defaults, readOnly, tableName: MAP_TABLE.} = ref object of Model
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
   icon*: Option[string] = some("")
   name*: string = ""
 
-implDefaults(MarkerMap)
-proc newModel*(T: typedesc[MarkerMap]): MarkerMap = newMarkerMap()
+implDefaults(MarkerMap, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type MarkerRead* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
+
+type MarkerRead* {.defaults, readOnly, tableName: MARKER_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
   longitude*: int = 0
   latitude*: int = 0
-  map_id*: MarkerMap = newModel(MarkerMap)
-  location_id*: LocationRead = newModel(LocationRead)
-  type_id*: Option[MarkerType] = some(newModel(MarkerType))
+  map_id*: MarkerMap = new(MarkerMap)
+  location_id*: LocationRead = new(LocationRead)
+  type_id*: Option[MarkerType] = some(new(MarkerType))
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   color*: Option[string] = some("")
 
-implDefaults(MarkerRead)
-proc newModel*(T: typedesc[MarkerRead]): MarkerRead = newMarkerRead()
+implDefaults(MarkerRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

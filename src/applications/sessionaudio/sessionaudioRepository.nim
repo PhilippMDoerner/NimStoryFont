@@ -6,7 +6,7 @@ import ../genericArticleRepository
 
 
 proc getSessionAudio*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionAudioRead =
-  var entry = newModel(SessionAudioRead)
+  var entry = new(SessionAudioRead)
 
   const condition = """
     session_id_campaign_id.name LIKE ? 

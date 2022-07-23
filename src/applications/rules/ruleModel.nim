@@ -13,17 +13,17 @@ type Rule* {.defaults, tableName: RULES_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID 
 
-implDefaults(Rule)
+implDefaults(Rule, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[Rule]): Rule = newRule()
 
-type RuleRead* {.defaults, tableName: RULES_TABLE.} = ref object of Model
+
+type RuleRead* {.defaults, readOnly, tableName: RULES_TABLE.} = ref object of Model
     name*: string = ""
     description*: Option[string] = none(string) # A description of the character
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(RuleRead)
+implDefaults(RuleRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[RuleRead]): RuleRead = newRuleRead()
+

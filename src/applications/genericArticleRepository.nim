@@ -20,10 +20,9 @@ export jsony
 # SELECT PROCS
 proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M]): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
-    mixin newModel
 
     var entryList: seq[M] = @[]
-    entryList.add(newModel(M))
+    entryList.add(new(M))
 
     connection.selectAll(entryList)
 
@@ -35,10 +34,8 @@ proc getList*[M: Model]( modelType: typedesc[M]): seq[M] =
         result = getList[M](connection, modelType)
 
 proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M], condition: string, queryParams: varargs[DbValue]): seq[M] =
-    mixin newModel
-
     var entryList: seq[M] = @[]
-    entryList.add(newModel(M))
+    entryList.add(new(M))
 
     connection.select(entryList, condition, queryParams)
 
@@ -61,9 +58,9 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, mode
     
 #     ``campaignName`` must be exactly equal to the name of the targetted campaign,
 #     the comparison is case-sensitive.]##
-#     mixin newModel
+#     
 
-#     var entries: seq[M] = @[newModel(M)]
+#     var entries: seq[M] = @[new(M)]
     
 #     var condition = "campaign_id.name LIKE ?"
 #     when M.hasField("name"):
@@ -90,9 +87,9 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
     the comparison is case-sensitive.
     ``entryName`` must be exactly equal to the name of the targetted entry,
     the comparison is case-sensitive.]##
-    mixin newModel
     
-    var entry: M = newModel(M)
+    
+    var entry: M = new(M)
     
     const modelTableName: string = M.table()
     var sqlCondition: string = fmt "{modelTableName}.name LIKE ? AND campaign_id.name LIKE ?"
@@ -116,9 +113,9 @@ proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fiel
     the comparison is case-sensitive.
     ``entryName`` must be exactly equal to the name of the targetted entry,
     the comparison is case-sensitive.]##
-    mixin newModel
     
-    var entry: M = newModel(M)
+    
+    var entry: M = new(M)
     const modelTableName: string = M.table()
     var sqlCondition: string = fmt "{modelTableName}.{fieldName} = ?"
 
@@ -136,9 +133,9 @@ proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T, modelType: 
 #TODO: Make it so entryId does not have to be inserted via formatting
 proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
-    mixin newModel
+    
 
-    var targetEntry: M = newModel(M)
+    var targetEntry: M = new(M)
     const modelTableName: string = M.table()
     var sqlCondition: string = fmt"{modelTableName}.id = ?"
 
@@ -156,20 +153,20 @@ proc getEntryById*[M: Model](entryId: int64, modelType: typedesc[M]): M =
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
     ## manyTypeforeignKeyFieldName = Name of the foreign key field on the Many Type
-    mixin newModel
-    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
+    
+    var targetEntries: seq[relatedManyType] = @[new(relatedManyType)]
 
     connection.selectOneToMany(oneEntry, targetEntries, manyTypeforeignKeyFieldName)
 
     result = targetEntries
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
-    mixin newModel
+    
 
     if oneEntries.len == 0: return result
 
     var relatedEntries: Table[int64, seq[M]]
-    relatedEntries[oneEntries[0].id] = @[newModel(M)]
+    relatedEntries[oneEntries[0].id] = @[new(M)]
 
     connection.selectOneToMany(oneEntries, relatedEntries, manyTypeforeignKeyFieldName)
 
@@ -177,8 +174,8 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
-    mixin newModel
-    var targetEntries: seq[relatedManyType] = @[newModel(relatedManyType)]
+    
+    var targetEntries: seq[relatedManyType] = @[new(relatedManyType)]
 
     connection.selectOneToMany(oneEntry,  targetEntries)
     result = targetEntries
@@ -202,12 +199,12 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     fkColumnFromJoinToManyStart: static string, 
     fkColumnFromJoinToManyEnd: static string
 ): Table[int64, seq[M2]] =
-    mixin newModel
+    
     if queryStartEntries.len == 0: return result
 
-    var joinModelEntries: seq[J] = @[newModel(J)]
+    var joinModelEntries: seq[J] = @[new(J)]
     var queryEndEntries: Table[int64, seq[M2]]
-    queryEndEntries[0] = @[newModel(M2)]
+    queryEndEntries[0] = @[new(M2)]
 
     connection.selectManyToMany(
         queryStartEntries, 
@@ -237,10 +234,10 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   ## `fkColumnFromJoinToManyEnd`.
   ## Will not compile if the specified fields on the joinModel do not properly point
   ## to the tables of `queryStartEntry` and `queryEndEntries`.
-  mixin newModel
+  
 
-  var joinModelEntries: seq[joinModel] = @[newModel(joinModel)]
-  var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
+  var joinModelEntries: seq[joinModel] = @[new(joinModel)]
+  var queryEndEntries: seq[M2] = @[new(otherManyModel)]
 
   connection.selectManyToMany(queryStartEntry, joinModelEntries, queryEndEntries)
 
@@ -261,10 +258,10 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   ## the table of `queryStartEntry` as well as exactly one field pointing to 
   ## the table of `queryEndEntries`. Specify the parameters `fkColumnFromJoinToManyStart`
   ## and `fkColumnFromJoinToManyEnd` if that is not the case.
-  mixin newModel
   
-  var joinModelEntries: seq[J] = @[newModel(joinModel)]
-  var queryEndEntries: seq[M2] = @[newModel(otherManyModel)]
+  
+  var joinModelEntries: seq[J] = @[new(joinModel)]
+  var queryEndEntries: seq[M2] = @[new(otherManyModel)]
 
   connection.selectManyToMany(queryStartEntry, joinModelEntries, queryEndEntries)
   

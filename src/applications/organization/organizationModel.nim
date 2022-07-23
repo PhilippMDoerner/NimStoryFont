@@ -16,57 +16,57 @@ type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of M
     leader*: Option[string] = some("")
     headquarter_id* {.fk: Location.}: Option[int64] = some(MODEL_INIT_ID)
 
-implDefaults(Organization)
-proc newModel*(T: typedesc[Organization]): Organization = newOrganization()
-proc newTableModel*(T: typedesc[Organization]): Organization = newOrganization()
+implDefaults(Organization, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type OrganizationOverview* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+
+
+type OrganizationOverview* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
     description*: Option[string]
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
 
-implDefaults(OrganizationOverview)
-proc newModel*(T: typedesc[OrganizationOverview]): OrganizationOverview = newOrganizationOverview()
+implDefaults(OrganizationOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type OrganizationParentLocation {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+type OrganizationParentLocation {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The parent location of a location, that a character 
     currently resides in]##
     name*: string = ""
 
-implDefaults(OrganizationParentLocation)
+implDefaults(OrganizationParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type OrganizationLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+type OrganizationLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
     name*: string = ""
-    parent_location_id*: Option[OrganizationParentLocation] = some(newOrganizationParentLocation())
+    parent_location_id*: Option[OrganizationParentLocation] = some(new(OrganizationParentLocation))
 
-implDefaults(OrganizationLocation)
-proc newModel*(T: typedesc[OrganizationLocation]): OrganizationLocation = newOrganizationLocation()
+implDefaults(OrganizationLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type OrganizationRead* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+
+type OrganizationRead* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     description*: Option[string] = some("")
     leader*: Option[string] = some("")
-    headquarter_id*: Option[OrganizationLocation] = some(newModel(OrganizationLocation))
+    headquarter_id*: Option[OrganizationLocation] = some(new(OrganizationLocation))
 
-implDefaults(OrganizationRead)
-proc newModel*(T: typedesc[OrganizationRead]): OrganizationRead = newOrganizationRead()
+implDefaults(OrganizationRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type OrganizationCharacter* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+
+type OrganizationCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
     make a list of characters with necessary meta data ]##
     alive*: bool = true
     name*: string = ""
     organization_id* {.fk: Organization.} : int64 = MODEL_INIT_ID
 
-implDefaults(OrganizationCharacter)
-proc newModel*(T: typedesc[OrganizationCharacter]): OrganizationCharacter = newOrganizationCharacter()
+implDefaults(OrganizationCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

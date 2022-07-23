@@ -31,5 +31,5 @@ type MarkerType*  {.defaults, tableName: MARKERTYPE_TABLE.} = ref object of Mode
   fontawesome_type*: FontAwesomeType = FontAwesomeType.VERSION5 
   color*: string = ""
 
-implDefaults(MarkerType)
-proc newModel*(T: typedesc[MarkerType]): MarkerType = newMarkerType()
+implDefaults(MarkerType, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

@@ -21,7 +21,7 @@ proc getCampaignMemberIds(connection: DbConn, campaignName: string): seq[int64] 
   result = rows.map(row => row[0].i)
 
 proc getCampaignUsers*(connection: DbConn, campaignName: string): seq[User] =
-  var entries = @[newModel(User)]
+  var entries = @[new(User)]
 
   let memberIds = connection.getCampaignMemberIds(campaignName)
   let memberIdStr = memberIds.map(id => id.int.intToStr).join(",")

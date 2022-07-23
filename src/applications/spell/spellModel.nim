@@ -26,11 +26,11 @@ type Spell* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-implDefaults(Spell)
+implDefaults(Spell, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[Spell]): Spell = newSpell()
 
-type SpellRead* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
+
+type SpellRead* {.defaults, readOnly, tableName: SPELL_TABLE.} = ref object of Model
     name*: string = ""
     description*: string = ""
     spell_level*: 0..9 = 0
@@ -45,20 +45,20 @@ type SpellRead* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
     damage*: Option[string] = some("")
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(SpellRead)
+implDefaults(SpellRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[SpellRead]): SpellRead = newSpellRead()
+
 
 type SpellConnection*{.defaults, tableName: SPELL_PLAYERCLASS_TABLE.} = ref object of Model
     player_class_id* {.fk: PlayerClass.}: int64 = MODEL_INIT_ID
     spell_id* {.fk: Spell.}: int64 = MODEL_INIT_ID
-implDefaults(SpellConnection)
-proc newModel*(T: typedesc[SpellConnection]): SpellConnection = newSpellConnection()
+implDefaults(SpellConnection, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type SpellConnectionRead*{.defaults, tableName: SPELL_PLAYERCLASS_TABLE.} = ref object of Model
-    player_class_id*: PlayerClass = newModel(PlayerClass)
-    spell_id*: Spell = newModel(Spell)
-implDefaults(SpellConnectionRead)
-proc newModel*(T: typedesc[SpellConnectionRead]): SpellConnectionRead = newSpellConnectionRead()
+
+type SpellConnectionRead*{.defaults, readOnly, tableName: SPELL_PLAYERCLASS_TABLE.} = ref object of Model
+    player_class_id*: PlayerClass = new(PlayerClass)
+    spell_id*: Spell = new(Spell)
+implDefaults(SpellConnectionRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

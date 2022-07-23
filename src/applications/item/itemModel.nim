@@ -6,11 +6,11 @@ import ../../utils/djangoDateTime/djangoDateTimeType
 import std/options
 import constructor/defaults
 
-type ItemOwner* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+type ItemOwner* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
     name*: string = ""
 
-implDefaults(ItemOwner)
-proc newModel*(T: typedesc[ItemOwner]): ItemOwner = newItemOwner()
+implDefaults(ItemOwner, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 type Item* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
@@ -21,27 +21,27 @@ type Item* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 
-implDefaults(Item)
-proc newModel*(T: typedesc[Item]): Item = newItem()
-proc newTableModel*(T: typedesc[Item]): Item = newItem()
+implDefaults(Item, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type ItemOverview* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
+
+
+type ItemOverview* {.defaults, readOnly, tableName: ITEM_TABLE.} = ref object of Model
     name*: string = ""
     campaign_id*: int64 = MODEL_INIT_ID
     owner_id* {.fk: ItemOwner.}: Option[int64] = some(MODEL_INIT_ID)
 
-implDefaults(ItemOverview)
-proc newModel*(T: typedesc[ItemOverview]): ItemOverview = newItemOverview()
+implDefaults(ItemOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type ItemRead* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
+
+type ItemRead* {.defaults, readOnly, tableName: ITEM_TABLE.} = ref object of Model
     description*: Option[string] = some("")
     name*: string = ""
-    owner_id*: Option[ItemOwner] = some(newModel(ItemOwner))
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    owner_id*: Option[ItemOwner] = some(new(ItemOwner))
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
 
-implDefaults(ItemRead)
-proc newModel*(T: typedesc[ItemRead]): ItemRead = newItemRead()
+implDefaults(ItemRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

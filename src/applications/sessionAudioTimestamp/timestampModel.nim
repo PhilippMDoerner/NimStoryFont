@@ -6,18 +6,18 @@ import ../campaign/campaignModel
 import ../encounter/encounterModel
 import std/options
 
-type TimestampSession*{.defaults, tableName: SESSION_TABLE.} = ref object of Model
+type TimestampSession*{.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   is_main_session*: bool = true
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(TimestampSession)
-proc newModel*(T: typedesc[TimestampSession]): TimestampSession = newTimestampSession()
+implDefaults(TimestampSession, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type TimestampSessionAudio*{.defaults, tableName: SESSIONAUDIO_TABLE} = ref object of Model
-  session_id*: TimestampSession = newModel(TimestampSession)
-implDefaults(TimestampSessionAudio)
-proc newModel*(T: typedesc[TimestampSessionAudio]): TimestampSessionAudio = newTimestampSessionAudio()
+
+type TimestampSessionAudio*{.defaults, readOnly, tableName: SESSIONAUDIO_TABLE} = ref object of Model
+  session_id*: TimestampSession = new(TimestampSession)
+implDefaults(TimestampSessionAudio, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 type Timestamp* {.defaults, tableName: TIMESTAMP_TABLE} = ref object of Model
@@ -26,15 +26,14 @@ type Timestamp* {.defaults, tableName: TIMESTAMP_TABLE} = ref object of Model
   encounter_id* {.fk: Encounter.}: Option[int64] = some(MODEL_INIT_ID)
   session_audio_id* {.fk: TimestampSessionAudio.}: int64 = MODEL_INIT_ID
 
-implDefaults(Timestamp)
-proc newModel*(T: typedesc[Timestamp]): Timestamp = newTimestamp()
+implDefaults(Timestamp, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type TimestampRead* {.defaults, tableName: TIMESTAMP_TABLE} = ref object of Model
+
+type TimestampRead* {.defaults, readOnly, tableName: TIMESTAMP_TABLE} = ref object of Model
   name*: string = ""
   time*: Natural = 0
   encounter_id* {.fk: Encounter.}: Option[int64] = some(MODEL_INIT_ID)
-  session_audio_id*:TimestampSessionAudio = newModel(TimestampSessionAudio)
+  session_audio_id*:TimestampSessionAudio = new(TimestampSessionAudio)
 
-implDefaults(TimestampRead)
-proc newModel*(T: typedesc[TimestampRead]): TimestampRead = newTimestampRead()
+implDefaults(TimestampRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

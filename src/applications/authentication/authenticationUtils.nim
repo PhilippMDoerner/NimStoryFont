@@ -2,7 +2,7 @@ import authenticationModels
 import norm/model
 import prologue
 import ../genericArticleRepository
-import std/[options, tables, strformat]
+import std/[options, tables, strformat, logging]
 import ../../utils/[jwtContext]
 import ../allUrlParams
 import ../campaign/campaignModel
@@ -58,6 +58,7 @@ proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
   let campaign = getEntryByField("name", campaignName, Campaign)
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
   if not hasCampaignMembership:
+    log(lvlDebug, fmt"'{ctx.tokenData.username}' does not have access to campaign '{campaignName}'")
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 

@@ -16,33 +16,33 @@ type
         parent_location_id* {.fk: Location.}: Option[int64] = some(MODEL_INIT_ID)
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID # The id of the campaign that this character occurred in
 
-implDefaults(Location)
-
-proc newTableModel*(T: typedesc[Location]): Location = newLocation()
-proc newModel*(T: typedesc[Location]): Location = newLocation()
+implDefaults(Location, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type GrandParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+
+
+type GrandParentLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     name*: string = ""
-implDefaults(GrandParentLocation)
-proc newModel*(T: typedesc[GrandParentLocation]): GrandParentLocation = newGrandParentLocation()
+implDefaults(GrandParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type ParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+type ParentLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     name*: string = ""
-    parent_location_id*: Option[GrandParentLocation] = some(newModel(GrandParentLocation))
-implDefaults(ParentLocation)
-proc newModel*(T: typedesc[ParentLocation]): ParentLocation = newParentLocation()
+    parent_location_id*: Option[GrandParentLocation] = some(new(GrandParentLocation))
+implDefaults(ParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 type 
-    LocationRead* {.defaults, tableName: LOCATION_TABLE.}= ref object of Model
+    LocationRead* {.defaults, readOnly, tableName: LOCATION_TABLE.}= ref object of Model
         name*: string = ""
         description*: Option[string] = some("")
         creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
         update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-        parent_location_id*: Option[ParentLocation] = some(newModel(ParentLocation))
-        campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview) # The id of the campaign that this character occurred in
+        parent_location_id*: Option[ParentLocation] = some(new(ParentLocation))
+        campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview) # The id of the campaign that this character occurred in
 
-implDefaults(LocationRead)
+implDefaults(LocationRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[LocationRead]): LocationRead = newLocationRead()
+
 

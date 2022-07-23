@@ -21,28 +21,27 @@ type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-implDefaults(Quest)
-proc newModel*(T: typedesc[Quest]): Quest = newQuest()
+implDefaults(Quest, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type QuestCharacter* {.defaults, tableName: CHARACTER_TABLE} = ref object of Model
+
+type QuestCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE} = ref object of Model
   name*: string
-implDefaults(QuestCharacter)
-proc newModel*(T: typedesc[QuestCharacter]): QuestCharacter = newQuestCharacter()
+implDefaults(QuestCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
  
 
-type QuestRead* {.defaults, tableName: QUEST_TABLE} = ref object of Model
+type QuestRead* {.defaults, readOnly, tableName: QUEST_TABLE} = ref object of Model
   name*: string = ""
   status*: string = ""
-  taker_id*: Option[Character] = some(newModel(Character))
-  giver_id*: Option[Character] = some(newModel(Character))
+  taker_id*: Option[Character] = some(new(Character))
+  giver_id*: Option[Character] = some(new(Character))
   abstract*: Option[string] = some("")
   description*: Option[string] = some("")
-  start_session_id*: SessionRead = newModel(SessionRead)
-  end_session_id*: Option[SessionRead] = some(newModel(SessionRead))
+  start_session_id*: SessionRead = new(SessionRead)
+  end_session_id*: Option[SessionRead] = some(new(SessionRead))
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(QuestRead)
-proc newModel*(T: typedesc[QuestRead]): QuestRead = newQuestRead()
+implDefaults(QuestRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

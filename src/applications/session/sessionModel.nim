@@ -16,13 +16,13 @@ type Session* {.defaults, tableName: SESSION_TABLE} = ref object of Model
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-implDefaults(Session)
-
-proc newModel*(T: typedesc[Session]): Session = newSession()
+implDefaults(Session, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-type SessionRead* {.defaults, tableName: SESSION_TABLE} = ref object of Model
+
+
+type SessionRead* {.defaults, readOnly, tableName: SESSION_TABLE} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
@@ -30,8 +30,7 @@ type SessionRead* {.defaults, tableName: SESSION_TABLE} = ref object of Model
   start_day*: Option[int] = some(-1)
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(SessionRead)
+implDefaults(SessionRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[SessionRead]): SessionRead = newSessionRead()
