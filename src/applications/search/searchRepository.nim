@@ -6,10 +6,7 @@ import ../campaign/campaignService
 import nisane
 import ../../utils/myStrutils
 import tinypool/sqlitePool
-
-when defined(normDebug):
-  import std/logging
-  import jsony
+import ../genericRawRepository
 
 #TODO Replace the hard coded table here with an insert
 proc toTitleQueryParam(tokens: seq[string]): string = 
@@ -23,7 +20,7 @@ proc toBodyQueryParam(tokens: seq[string]): string =
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let campaignId: string = $campaign.id
-  let searchSQLStatement: SqlQuery = sql fmt """
+  let searchSQLStatement: string = fmt """
       SELECT 
           title,
           table_name,
@@ -54,29 +51,18 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
     searchLimit.intToStr()
   ]
 
-  when defined(normDebug):
-    log(lvlDebug, fmt"'{searchSQLStatement.string}' <- {queryParams.toJson()}")
-
-  var rows: seq[Row]
   withDbConn(connection):
-    rows = connection.getAllRows(
+    result = connection.rawSelectRows(
       searchSQLStatement,
+      SearchHit,
       queryParams
     )
-
-  var searchEntries: seq[SearchHit] = @[]
-  for row in rows:
-    var searchEntry: SearchHit = init(SearchHit)
-    row.to(searchEntry, nil)
-    searchEntries.add(searchEntry)
-
-  result = searchEntries
 
 
 
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
-  let addSearchEntryQuery = sql fmt"""
+  let addSearchEntryQuery = fmt"""
     INSERT INTO search_article_content (
       title,
       title_rev, 
@@ -97,16 +83,13 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
     searchBody.reverseString(),
   ]
 
-  when defined(normDebug):
-    log(lvlDebug, fmt"'{addSearchEntryQuery.string}' <- {queryParams.toJson()}")
-
-  connection.exec(
+  connection.rawExec(
     addSearchEntryQuery,
     queryParams
   )
 
 proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
-  let updateSearchEntryQuery = sql fmt"""
+  let updateSearchEntryQuery = fmt"""
     UPDATE search_article_content 
     SET
       title = ?,
@@ -123,26 +106,19 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
     searchBody.reverseString(),
   ]
 
-  when defined(normDebug):
-    log(lvlDebug, fmt"'{updateSearchEntryQuery.string}' <- {queryParams.toJson()}")
-
-
-  connection.exec(
+  connection.rawExec(
     updateSearchEntryQuery,
     queryParams,
   )
 
 
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
-    let deleteSearchEntryQuery = sql fmt"""
+    let deleteSearchEntryQuery = fmt"""
       DELETE FROM search_article_content
       WHERE guid = '{guid}'
     """
 
-    when defined(normDebug):
-      log(lvlDebug, fmt"'{deleteSearchEntryQuery.string}'")
-
-    connection.exec(
+    connection.rawExec(
       deleteSearchEntryQuery,
       guid
     )

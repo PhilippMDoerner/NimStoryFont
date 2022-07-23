@@ -1,9 +1,10 @@
 import norm/sqlite
+import ../genericRawRepository
+import std/[strformat]
 
 proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
-  const query = sql"""
+  let query = fmt"""
     DELETE FROM auth_user_groups 
-    WHERE user_id = ? AND group_id = ?
+    WHERE user_id = {userId} AND group_id = {groupId}
   """
-  let queryParams: array[2, DbValue] = [userId.dbValue(), groupId.dbValue()]
-  connection.exec(query, queryParams)
+  connection.rawExec(query)
