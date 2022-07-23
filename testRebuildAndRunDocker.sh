@@ -5,7 +5,7 @@ sudo docker container rm test
 nimble alpine_debug
 
 sudo docker build -t nsi_prod .
-
+sudo bash ./enabledev.sh
 echo "Run new container"
 sudo docker run -p 80:80 -p 443:443 -p 8080:8080 \
 -v /etc/nginx/certificates:/cert/live/www.aldrune.com:ro \
