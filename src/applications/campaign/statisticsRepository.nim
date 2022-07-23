@@ -1,8 +1,9 @@
 import std/[db_sqlite, strformat, strutils]
 import ../../applicationSettings
+import ../genericRawRepository
 
 proc getEncounterCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {ENCOUNTER_TABLE} encounter
     INNER JOIN {DIARYENTRY_TABLE} diaryentry ON encounter.diaryentry_id = diaryentry.id
@@ -10,33 +11,31 @@ proc getEncounterCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
 
 proc getDiaryEntryCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {DIARYENTRY_TABLE} diaryentry
     INNER JOIN {SESSION_TABLE} session ON diaryentry.session_id = session.id
     WHERE session.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+
 
 proc getSessionAudioCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {SESSIONAUDIO_TABLE} sessionaudio
     INNER JOIN {SESSION_TABLE} session ON sessionaudio.session_id = session.id
     WHERE session.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
 
 proc getTimestampCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {TIMESTAMP_TABLE} timestamp
     INNER JOIN {SESSIONAUDIO_TABLE} sessionaudio ON timestamp.session_audio_id = sessionaudio.id
@@ -44,27 +43,27 @@ proc getTimestampCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+
 
 proc getQuoteCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {QUOTE_TABLE} quote
     INNER JOIN {SESSION_TABLE} session ON quote.session_id = session.id
     WHERE session.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+
 
 proc getMarkerCount*(connection: DbConn, campaignId: int64): int =
-  const sqlStatement = sql fmt"""
+  const sqlStatement = fmt"""
     SELECT COUNT(*)
     FROM {MARKER_TABLE} marker
     INNER JOIN {MAP_TABLE} map ON marker.map_id = map.id
     WHERE map.campaign_id = ?
   """
 
-  let sqlResult: Row = connection.getRow(sqlStatement, campaignId)
-  return sqlResult[0].parseInt()
+  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+
