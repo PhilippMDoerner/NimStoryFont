@@ -28,6 +28,9 @@ proc getCampaignId[T: Model](entry: T): int64 =
 
 
 proc checkCampaignWritePermission(ctx: JWTContext, entryCampaignId: int64) =
+  if ctx.tokenData.isSiteAdmin():
+    return
+
   let isCampaignMember = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
   if not isCampaignMember:
     raise newException(CampaignPermissionError, fmt"You are not a member of the campaign '{entryCampaignId}' which you're creating an entry for")
@@ -43,7 +46,7 @@ proc checkCampaignWritePermission[T: Model](ctx: JWTContext, entry: T) =
   checkCampaignWritePermission(ctx, entryCampaignId)
 
 proc checkAdminPermission*[T: Model](ctx: JWTContext, entry: T) = 
-  let hasAdminPermission = ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser
+  let hasAdminPermission = ctx.tokenData.isSiteAdmin()
   if not hasAdminPermission:
     raise newException(AdminPermissionError, "Only admins of the webpage can perform this action")
 
@@ -55,6 +58,9 @@ proc checkSuperUserPermission*[T: Model](ctx: JWTContext, entry: T) =
 
 
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
+  if ctx.tokenData.isSiteAdmin():
+    return
+
   let campaign = getEntryByField("name", campaignName, Campaign)
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
   if not hasCampaignMembership:
@@ -62,7 +68,10 @@ proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 
-proc checkReadPermission*[T: Model](ctx: JWTContext, entry: T) =  
+proc checkReadPermission*[T: Model](ctx: JWTContext, entry: T) =
+  if ctx.tokenData.isSiteAdmin():
+    return
+  
   let entryCampaignId: int64 = entry.getCampaignId()
   let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
   if not hasCampaignMembership:
@@ -88,7 +97,7 @@ proc checkDeletePermission*(ctx: JWTContext, campaignId: int64) =
   checkCampaignWritePermission(ctx, campaignId)
 
 proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
-  if ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser:
+  if ctx.tokenData.isSiteAdmin():
     return
   
   let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)

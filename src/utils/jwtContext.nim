@@ -2,6 +2,7 @@ import prologue
 import ../applications/authentication/myJwt
 
 export myJwt
+export tokenTypes
 
 type JWTContext* = ref object of Context
     tokenData*: TokenData

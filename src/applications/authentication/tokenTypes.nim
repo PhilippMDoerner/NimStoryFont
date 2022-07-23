@@ -76,3 +76,5 @@ implDefaults(TokenData)
 proc newTokenData*(): TokenData = initTokenData()
 
 proc isInitTokenData*(tokenData: TokenData): bool = tokenData.userId == MODEL_INIT_ID
+
+proc isSiteAdmin*(tokenData: TokenData): bool = tokenData.isAdmin or tokenData.isSuperUser
