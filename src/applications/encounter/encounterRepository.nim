@@ -31,7 +31,7 @@ proc getNextEncounter*(connection: DbConn, encounter: Encounter): Option[Encount
         LIMIT 1
     """
 
-    var encounter = newModel(Encounter)
+    var encounter = new(Encounter)
     try:
         connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
         result = some(encounter)
@@ -47,7 +47,7 @@ proc getPriorEncounter*(connection: DbConn, encounter: Encounter): Option[Encoun
         LIMIT 1
     """
 
-    var encounter = newModel(Encounter)
+    var encounter = new(Encounter)
     try:
         connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
         result = some(encounter)

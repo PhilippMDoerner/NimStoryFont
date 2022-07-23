@@ -11,7 +11,7 @@ export locationModel
 
 
 proc getLocationByName*(connection: DbConn, params: ReadLocationByNameParams): LocationRead = 
-    var entry: LocationRead = newModel(LocationRead)
+    var entry: LocationRead = new(LocationRead)
     const locationTable: string = LocationRead.table()
 
     if params.parentLocationName.toLowerAscii() == NONE_STRING:

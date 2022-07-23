@@ -12,7 +12,7 @@ proc getDiaryEntriesForCampaign*(connection: DbConn, campaignName: string): seq[
   result = connection.getList(DiaryEntryRead, condition, campaignName.dbValue())
 
 proc getDairyEntry*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool, authorName: string): DiaryEntryRead =
-  var entry = newModel(DiaryEntryRead)
+  var entry = new(DiaryEntryRead)
 
   const condition = """
     session_id_campaign_id.name LIKE ? 

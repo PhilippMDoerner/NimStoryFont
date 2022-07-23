@@ -18,54 +18,54 @@ type Encounter* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
     order_index*: Option[int] = some(-1)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
-implDefaults(Encounter)
+implDefaults(Encounter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[Encounter]): Encounter = newEncounter()
-proc newTableModel*(T: typedesc[Encounter]): Encounter = newEncounter()
 
-type EncounterParentLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+
+type EncounterParentLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL*: The parent location of a location, that an encounter happened 
     in]##
     name*: string = ""
-implDefaults(EncounterParentLocation)
-proc newModel*(T: typedesc[EncounterParentLocation]): EncounterParentLocation = newEncounterParentLocation()
+implDefaults(EncounterParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type EncounterLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+type EncounterLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL*: The location an encounter happened in]##
     name*: string = ""
-    parent_location_id*: Option[EncounterParentLocation] = some(newEncounterParentLocation())
-implDefaults(EncounterLocation)
-proc newModel*(T: typedesc[EncounterLocation]): EncounterLocation = newEncounterLocation()
+    parent_location_id*: Option[EncounterParentLocation] = some(new(EncounterParentLocation))
+implDefaults(EncounterLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type EncounterSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
+
+type EncounterSession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
     session_number*: int = -1
     is_main_session*: bool = true
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
-implDefaults(EncounterSession)
-proc newModel*(T: typedesc[EncounterSession]): EncounterSession = newEncounterSession()
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
+implDefaults(EncounterSession, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type DiaryEntryAuthor* {.defaults, tableName: USER_TABLE.} = ref object of Model
+
+type DiaryEntryAuthor* {.defaults, readOnly, tableName: USER_TABLE.} = ref object of Model
     username*: string = ""
-implDefaults(DiaryEntryAuthor)
-proc newModel*(T: typedesc[DiaryEntryAuthor]): DiaryEntryAuthor = newDiaryEntryAuthor()
-
-type EncounterDiaryentry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
-    session_id*: EncounterSession = newEncounterSession()
-    author_id*: DiaryEntryAuthor = newDiaryEntryAuthor()
-implDefaults(EncounterDiaryentry)
-proc newModel*(T: typedesc[EncounterDiaryentry]): EncounterDiaryentry = newEncounterDiaryentry()
+implDefaults(DiaryEntryAuthor, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type EncounterRead* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
+type EncounterDiaryentry* {.defaults, readOnly, tableName: DIARYENTRY_TABLE.} = ref object of Model
+    session_id*: EncounterSession = new(EncounterSession)
+    author_id*: DiaryEntryAuthor = new(DiaryEntryAuthor)
+implDefaults(EncounterDiaryentry, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
+
+type EncounterRead* {.defaults, readOnly, tableName: ENCOUNTER_TABLE.} = ref object of Model
     description*: Option[string] = some("")
     title*: Option[string] = some("")
-    diaryentry_id*: EncounterDiaryentry = newEncounterDiaryentry()
-    location_id*: Option[EncounterLocation] = some(newEncounterLocation())
+    diaryentry_id*: EncounterDiaryentry = new(EncounterDiaryentry)
+    location_id*: Option[EncounterLocation] = some(new(EncounterLocation))
     order_index*: Option[int] = some(-1)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
-implDefaults(EncounterRead)
+implDefaults(EncounterRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[EncounterRead]): EncounterRead = newEncounterRead()
+

@@ -80,7 +80,7 @@ proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: 
         cutEncounter.order_index = some(newOrderIndex)
         connection.update(cutEncounter)
         
-        var diaryentry = newModel(DiaryEntry)
+        var diaryentry = new(DiaryEntry)
         diaryentry.id = cutEncounter.diaryentry_id
         result = getManyFromOne(connection, diaryentry, EncounterRead)
 

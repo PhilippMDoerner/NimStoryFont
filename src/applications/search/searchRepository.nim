@@ -66,7 +66,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
 
   var searchEntries: seq[SearchHit] = @[]
   for row in rows:
-    var searchEntry: SearchHit = newViewModel(SearchHit)
+    var searchEntry: SearchHit = init(SearchHit)
     row.to(searchEntry, nil)
     searchEntries.add(searchEntry)
 

@@ -5,7 +5,7 @@ import ../../utils/djangoDateTime/[normConversion]
 
 
 proc getSession*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionRead =
-  var entry = newModel(SessionRead)
+  var entry = new(SessionRead)
 
   const condition = """
     campaign_id.name LIKE ? 

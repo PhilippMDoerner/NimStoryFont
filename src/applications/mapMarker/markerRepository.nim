@@ -11,7 +11,7 @@ proc getMarkerForMap*(connection: DbConn, campaignName: string, mapName: string)
   result = connection.getList(MarkerRead, condition, queryParams)
 
 proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerRead =
-  var entry = newModel(MarkerRead)
+  var entry = new(MarkerRead)
 
   if parentLocationName.toLowerAscii() == NONE_STRING:
       var sqlCondition: string = fmt """ 

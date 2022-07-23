@@ -16,7 +16,7 @@ type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
     date_joined*: DjangoDateTime = djangoDateTimeType.now()
     first_name*: string = ""
 
-implDefaults(User)
-proc newTableModel*(T: typedesc[User]): User = newUser()
-proc newModel*(T: typedesc[User]): User = newUser()
+implDefaults(User, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
 

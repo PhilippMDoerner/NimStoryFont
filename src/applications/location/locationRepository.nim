@@ -88,7 +88,7 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
 
   let condition = fmt"id IN ({allIdsStr})"
 
-  var parentLocations: seq[Location] = @[newModel(Location)]
+  var parentLocations: seq[Location] = @[new(Location)]
   connection.select(parentLocations, condition)
 
   for locationId in locationIds:

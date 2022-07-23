@@ -13,26 +13,18 @@ type OrganizationMembership* {.defaults, tableName: ORGANIZATION_CHARACTER_TABLE
     organization_id* {.fk: Organization.}: int64 = MODEL_INIT_ID
     role*: Option[string] = some("")
 
-implDefaults(OrganizationMembership)
-proc newModel*(T: typedesc[OrganizationMembership]): OrganizationMembership =
-    result = newOrganizationMembership()
-proc newTableModel*(T: typedesc[OrganizationMembership]): OrganizationMembership =
-    result = newOrganizationMembership()
+implDefaults(OrganizationMembership, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type OrganizationMembershipRead*  {.defaults, tableName: ORGANIZATION_CHARACTER_TABLE.} = ref object of Model
-    organization_id*: OrganizationRead = newModel(OrganizationRead)
+type OrganizationMembershipRead*  {.defaults, readOnly, tableName: ORGANIZATION_CHARACTER_TABLE.} = ref object of Model
+    organization_id*: OrganizationRead = new(OrganizationRead)
     member_id* {.fk: Character.}: int64 = MODEL_INIT_ID
     role*: Option[string] = some("")
 
-implDefaults(OrganizationMembershipRead)
-proc newModel*(T: typedesc[OrganizationMembershipRead]): OrganizationMembershipRead =
-    result = newOrganizationMembershipRead()
+implDefaults(OrganizationMembershipRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type OrganizationMemberRead*  {.defaults, tableName: ORGANIZATION_CHARACTER_TABLE.} = ref object of Model
+type OrganizationMemberRead*  {.defaults, readOnly, tableName: ORGANIZATION_CHARACTER_TABLE.} = ref object of Model
     organization_id* {.fk: Organization.}: int64 = MODEL_INIT_ID
-    member_id*: Character = newModel(Character)
+    member_id*: Character = new(Character)
     role*: Option[string] = some("")
 
-implDefaults(OrganizationMemberRead)
-proc newModel*(T: typedesc[OrganizationMemberRead]): OrganizationMemberRead =
-    result = newOrganizationMemberRead()
+implDefaults(OrganizationMemberRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

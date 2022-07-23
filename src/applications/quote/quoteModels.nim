@@ -8,14 +8,14 @@ import constructor/defaults
 import ../character/characterModel
 
 
-type QuoteSession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
+type QuoteSession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
-implDefaults(QuoteSession)
-proc newModel*(T: typedesc[QuoteSession]): QuoteSession = newQuoteSession()
+implDefaults(QuoteSession, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type QuoteEncounter* {.defaults, tableName: ENCOUNTER_TABLE.} = ref object of Model
-implDefaults(QuoteEncounter)
-proc newModel*(T: typedesc[QuoteEncounter]): QuoteEncounter = newQuoteEncounter()
+
+type QuoteEncounter* {.defaults, readOnly, tableName: ENCOUNTER_TABLE.} = ref object of Model
+implDefaults(QuoteEncounter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 
@@ -27,32 +27,31 @@ type Quote* {.defaults, tableName: QUOTE_TABLE.} = ref object of Model
     session_id* {.fk: QuoteSession.}: int64 = MODEL_INIT_ID
     encounter_id* {.fk: QuoteEncounter.}: Option[int64] = some(MODEL_INIT_ID)
 
-implDefaults(Quote)
-proc newModel*(T: typedesc[Quote]): Quote = newQuote()
-proc newTableModel*(T: typedesc[Quote]): Quote = newQuote()
+implDefaults(Quote, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type QuoteRead* {.defaults, tableName: QUOTE_TABLE.} = ref object of Model
+
+
+type QuoteRead* {.defaults, readOnly, tableName: QUOTE_TABLE.} = ref object of Model
     quote*: string = ""
     description*: Option[string] = none(string) # A description of the character
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    session_id*: QuoteSession = newModel(QuoteSession)
-    encounter_id*: Option[QuoteEncounter] = some(newModel(QuoteEncounter))
-implDefaults(QuoteRead)
-proc newModel*(T: typedesc[QuoteRead]): QuoteRead = newQuoteRead()
+    session_id*: QuoteSession = new(QuoteSession)
+    encounter_id*: Option[QuoteEncounter] = some(new(QuoteEncounter))
+implDefaults(QuoteRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 type QuoteConnection* {.defaults, tableName: QUOTE_CHARACTER_TABLE.} = ref object of Model
   character_id* {.fk: QuoteSession.}: int64 = MODEL_INIT_ID
   quote_id* {.fk: QuoteSession.}: int64 = MODEL_INIT_ID
-implDefaults(QuoteConnection)
-proc newModel*(T: typedesc[QuoteConnection]): QuoteConnection = newQuoteConnection()
+implDefaults(QuoteConnection, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-type QuoteConnectionRead* {.defaults, tableName: QUOTE_CHARACTER_TABLE.} = ref object of Model
-  character_id*: Character = newModel(Character)
-  quote_id*: QuoteRead = newModel(QuoteRead)
-implDefaults(QuoteConnectionRead)
-proc newModel*(T: typedesc[QuoteConnectionRead]): QuoteConnectionRead = newQuoteConnectionRead()
+
+type QuoteConnectionRead* {.defaults, readOnly, tableName: QUOTE_CHARACTER_TABLE.} = ref object of Model
+  character_id*: Character = new(Character)
+  quote_id*: QuoteRead = new(QuoteRead)
+implDefaults(QuoteConnectionRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

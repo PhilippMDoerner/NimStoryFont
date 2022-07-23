@@ -29,6 +29,6 @@ proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageNumber: int
     )
 
   for row in rows:
-    var articleEntry: UpdatedArticle = newViewModel(UpdatedArticle)
+    var articleEntry: UpdatedArticle = init(UpdatedArticle)
     row.to(articleEntry, nil)
     result.add(articleEntry)

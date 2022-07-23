@@ -14,18 +14,18 @@ type Map* {.defaults, tableName: MAP_TABLE.} = ref object of Model
   campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
   name*: string = ""
 
-implDefaults(Map)
+implDefaults(Map, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[Map]): Map = newMap()
 
-type MapRead* {.defaults, tableName: MAP_TABLE.} = ref object of Model
+
+type MapRead* {.defaults, readOnly, tableName: MAP_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
   image*: string = ""
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
   name*: string = ""
 
-implDefaults(MapRead)
+implDefaults(MapRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[MapRead]): MapRead = newMapRead()
+

@@ -15,34 +15,33 @@ type DiaryEntry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
   session_id* {.fk: Session.}: int64 = MODEL_INIT_ID
   author_id* {.fk: User.}: int64 = MODEL_INIT_ID
 
-implDefaults(DiaryEntry)
-
-proc newModel*(T: typedesc[DiaryEntry]): DiaryEntry = newDiaryEntry()
+implDefaults(DiaryEntry, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type DiaryEntrySession* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
+
+
+type DiaryEntrySession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
   end_day*: Option[int] = some(-1)
   start_day*: Option[int] = some(-1)
-  campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+  campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
 
-implDefaults(DiaryEntrySession)
+implDefaults(DiaryEntrySession, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type DiaryEntryUser {.defaults, tableName: USER_TABLE.} = ref object of Model
+type DiaryEntryUser {.defaults, readOnly, tableName: USER_TABLE.} = ref object of Model
     username*: string = ""
 
-implDefaults(DiaryEntryUser)
+implDefaults(DiaryEntryUser, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-type DiaryEntryRead* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
+type DiaryEntryRead* {.defaults, readOnly, tableName: DIARYENTRY_TABLE.} = ref object of Model
   title*: Option[string] = some("")
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-  session_id*: DiaryEntrySession = newDiaryEntrySession()
-  author_id*: DiaryEntryUser = newDiaryEntryUser()
+  session_id*: DiaryEntrySession = new(DiaryEntrySession)
+  author_id*: DiaryEntryUser = new(DiaryEntryUser)
 
-implDefaults(DiaryEntryRead)
+implDefaults(DiaryEntryRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[DiaryEntryRead]): DiaryEntryRead = newDiaryEntryRead()

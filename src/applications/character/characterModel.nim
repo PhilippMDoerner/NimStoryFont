@@ -33,37 +33,37 @@ type Character* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID # The id of the campaign that this character occurred in
 
-implDefaults(Character)
+implDefaults(Character, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 ##[Enables generic instantiation of the model. This enable the use of 
 generic methods that only read the database in genericArticleRepository ]##
-proc newModel*(T: typedesc[Character]): Character = newCharacter()
+
 
 ##[Enables generic instantiation of the model as a Table Model.
 This enables the use of generic methods to create, update and delete 
 entries from the database from the genericArticleRepository ]##
-proc newTableModel*(T: typedesc[Character]): Character = newCharacter()
 
 
 
-type CharacterParentLocation {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+
+type CharacterParentLocation {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The parent location of a location, that a character 
     currently resides in]##
     name*: string = ""
 
-implDefaults(CharacterParentLocation)
+implDefaults(CharacterParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-type CharacterLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+type CharacterLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
     ##[HELPER MODEL: The location a character currently resides in]##
     name*: string =""
-    parent_location_id*: Option[CharacterParentLocation] = some(newCharacterParentLocation())
+    parent_location_id*: Option[CharacterParentLocation] = some(new(CharacterParentLocation))
 
-implDefaults(CharacterLocation)
+implDefaults(CharacterLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-type CharacterRead* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+type CharacterRead* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
     ##[An extended Model of a story-character. Instead of the foreign-key ids it contains
     direct (reduced) representations of the datasets that the foreign-keys link to. ]##
     player_character*: bool = false
@@ -73,18 +73,18 @@ type CharacterRead* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Mod
     race*: string = ""
     title*: Option[string] = some("")
     description*: Option[string] = some("")
-    current_location_id*: Option[CharacterLocation] = some(newCharacterLocation())
+    current_location_id*: Option[CharacterLocation] = some(new(CharacterLocation))
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(CharacterRead)
+implDefaults(CharacterRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 ##[Enables generic instantiation of the model. This enable the use of 
 generic methods that only read the database in genericArticleRepository ]##
-proc newModel*(T: typedesc[CharacterRead]): CharacterRead = newCharacterRead()
 
 
-type CharacterOverview* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+
+type CharacterOverview* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
     ##[A reduced Model of a story-character. Cut down to the bare minimum needed to
     make a list of characters with necessary meta data ]##
     player_character*: bool = false
@@ -92,11 +92,11 @@ type CharacterOverview* {.defaults, tableName: CHARACTER_TABLE.} = ref object of
     alive*: bool = true
     name*: string = ""
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-    campaign_id*: MinimumCampaignOverview = newModel(MinimumCampaignOverview)
+    campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-implDefaults(CharacterOverview)
+implDefaults(CharacterOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 ##[Enables generic instantiation of the model. This enable the use of 
 generic methods that only read the database in genericArticleRepository ]##
-proc newModel*(T: typedesc[CharacterOverview]): CharacterOverview = result = newCharacterOverview()
+
  

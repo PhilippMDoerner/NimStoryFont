@@ -27,7 +27,7 @@ proc getCharacterImages*(connection: DbConn, characterIds: seq[int64]): Table[in
   result = connection.getImagesForArticles(ImageType.CHARACTERTYPE, characterIds)
 
 proc getOrganizationMemberships*[T: Model](connection: DbConn, characterId: int64, membershipModelType: typedesc[T]): seq[T] =
-  var character = newModel(Character)
+  var character = new(Character)
   character.id = characterId
 
   result = connection.getManyFromOne(
@@ -36,7 +36,7 @@ proc getOrganizationMemberships*[T: Model](connection: DbConn, characterId: int6
   )
 
 proc getOrganizationMembers*(connection: DbConn, organizationId: int64): seq[OrganizationMemberRead] =
-  var organization = newModel(Organization)
+  var organization = new(Organization)
   organization.id = organizationId
 
   result = connection.getManyFromOne(

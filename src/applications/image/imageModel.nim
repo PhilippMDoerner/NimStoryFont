@@ -13,35 +13,35 @@ type ImageType* = enum
     ORGANIZATIONTYPE = "organization"
 
 type ##[Exist solely to inform Image model to which table a given fk-model points]##
-    ImageCharacter* {.defaults, tableName: CHARACTER_TABLE.} = ref object of Model
+    ImageCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-    ImageLocation* {.defaults, tableName: LOCATION_TABLE.} = ref object of Model
+    ImageLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-    ImageItem* {.defaults, tableName: ITEM_TABLE.} = ref object of Model
+    ImageItem* {.defaults, readOnly, tableName: ITEM_TABLE.} = ref object of Model
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-    ImageCreature* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
+    ImageCreature* {.defaults, readOnly, tableName: CREATURE_TABLE.} = ref object of Model
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-    ImageOrganization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
+    ImageOrganization* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.} = ref object of Model
         campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
-implDefaults(ImageCharacter)
-proc newModel*(T: typedesc[ImageCharacter]): ImageCharacter = newImageCharacter()
+implDefaults(ImageCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-implDefaults(ImageLocation)
-proc newModel*(T: typedesc[ImageLocation]): ImageLocation = newImageLocation()
 
-implDefaults(ImageItem)
-proc newModel*(T: typedesc[ImageItem]): ImageItem = newImageItem()
+implDefaults(ImageLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-implDefaults(ImageCreature)
-proc newModel*(T: typedesc[ImageCreature]): ImageCreature = newImageCreature()
 
-implDefaults(ImageOrganization)
-proc newModel*(T: typedesc[ImageOrganization]): ImageOrganization = newImageOrganization()
+implDefaults(ImageItem, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
+implDefaults(ImageCreature, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
+
+implDefaults(ImageOrganization, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 type Image* {.defaults, tableName: IMAGE_TABLE.} = ref object of Model
@@ -53,5 +53,5 @@ type Image* {.defaults, tableName: IMAGE_TABLE.} = ref object of Model
     location_article_id* {.fk: ImageLocation.}: Option[int64] = some(MODEL_INIT_ID)
     organization_article_id* {.fk: ImageOrganization.}: Option[int64] = some(MODEL_INIT_ID)
 
-implDefaults(Image)
-proc newModel*(T: typedesc[Image]): Image = newImage()
+implDefaults(Image, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+

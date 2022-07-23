@@ -14,10 +14,10 @@ type Search* {.defaults.} = object
   record_id*: int64 = MODEL_INIT_ID
   campaign_id*: int64 = MODEL_INIT_ID
   guid*: string = ""
-implDefaults(Search)
+implDefaults(Search, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc newModel*(T: typedesc[Search]): Search = initSearch()
-proc newTableModel*(T: typedesc[Search]): Search = initSearch()
+
+
 
 
 type SearchHit* {.defaults.} = object
@@ -25,8 +25,6 @@ type SearchHit* {.defaults.} = object
   table_name*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID
   record_id*: int64 = MODEL_INIT_ID
-implDefaults(SearchHit)
-
-proc newViewModel*(T: typedesc[SearchHit]): SearchHit = initSearchHit()
+implDefaults(SearchHit, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type SearchSerializable* = JsonNode
