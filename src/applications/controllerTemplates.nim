@@ -18,13 +18,13 @@ template respondBadRequestOnDbError*(body: untyped) =
     resp get404NotFoundResponse() 
 
   except CampaignPermissionError:
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries())
+    debugErrorLog("User does not have the necessary permission for this campaign")
     resp get403ForbiddenResponse()
 
   except JsonParsingError:
-    debug("Error during parsing of input: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries())
+    debugErrorLog("Error during parsing of input")
     resp get400BadRequestResponse(getCurrentExceptionMsg())
 
   except Exception:
-    debug("Error during db request: ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
+    debugErrorLog("Unkonwn Error during db request") 
     resp get500ServerErrorResponse()
