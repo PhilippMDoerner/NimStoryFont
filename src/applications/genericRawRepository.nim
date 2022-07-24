@@ -3,7 +3,10 @@ import nisane
 when defined(normDebug):
   import std/logging
 
+export nisane
+
 type RawType = ref object | object | int | string | float | bool
+
 
 proc parseTo[T: RawType](row: Row, rowType: typedesc[T]): T =
     when T is ref object:
@@ -13,11 +16,13 @@ proc parseTo[T: RawType](row: Row, rowType: typedesc[T]): T =
         result = init(T)
         row.to(result, nil)
     elif T is int:
-        result = row[0].parseInt()
+        result = row[0].toInt()
     elif T is string:
         result = row[0]
     elif T is bool:
-        result = row[0].parseBool()
+        result = row[0].toBool()
+    elif T is float:
+        result row[0].toFloat()
 
 proc rawSelectRows*[T: RawType](connection: DbConn, sqlQuery: string, outputType: typedesc[T], queryParams: varargs[string]): seq[T] =
     when defined(normDebug):
