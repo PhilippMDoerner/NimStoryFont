@@ -107,8 +107,12 @@ proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings
     let body = getPasswordResetMailBody(newPassword)
     sendSystemEmail(subject, body, user.email, settings)
 
-proc createAuthToken*(connection: DbConn, user: User): string =
+proc createAuthToken(connection: DbConn, user: User): string =
   let token = myStrutils.randomString(40)
   connection.insertToken(token, user.id)
 
   result = token
+
+proc createAuthToken*(connection: DbConn, tokenLifetimeInDays: int, user: User): TokenData =
+  let token = connection.createAuthToken(user)
+  result = connection.getTokenData(tokenLifetimeInDays, token)

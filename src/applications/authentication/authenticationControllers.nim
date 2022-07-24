@@ -73,10 +73,10 @@ proc login*(ctx: Context) {.async.} =
         resp get401UnauthorizedResponse(ctx)
         return
     
-    let newAccessToken: JWT = createNextToken(user, JWTType.ACCESS, ctx)
-    let newRefreshToken: JWT = createNextToken(user, JWTType.REFRESH, ctx)
-
-    resp jsonResponse(%*{"refresh": newRefreshToken, "access": newAccessToken})
+    let tokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
+    withDbConn(connection):
+        let authToken = connection.createAuthToken(tokenLifetimeInDays, user)
+        resp jsonResponse(%*authToken)
 
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
