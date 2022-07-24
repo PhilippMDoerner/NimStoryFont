@@ -20,6 +20,7 @@ type UserTokenRow {.defaults.} = object
   username*: string = ""
   groupName*: string = ""
   groupId*: int = -1
+  created*: int64 = -1
   guestCampaignName*: string
   guestCampaignId*: string
   memberCampaignName*: string
@@ -39,6 +40,7 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
       user.username,
       userGroup.name,
       userGroup.id AS groupId,
+      token.created AS created,
       guestCampaign.name AS guestCampaignName,
       guestCampaign.id AS guestCampaignId,
       memberCampaign.name AS memberCampaignName,
@@ -66,6 +68,8 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
     isSuperUser: rows[0].isSuperUser,
     username: rows[0].username,
     userId: rows[0].id,
+    jti: token,
+    exp: rows[0].created + tokenLifetimeInSeconds,
     campaignMemberships: newMembershipTable()
   )
 

@@ -72,6 +72,8 @@ type TokenData* {.defaults.} = object
     isSuperUser*: bool = false
     userId*: int64 = MODEL_INIT_ID
     userName*: string = ""
+    jti*: string = ""
+    exp*: int64 = -1
 implDefaults(TokenData)
 proc newTokenData*(): TokenData = initTokenData()
 
