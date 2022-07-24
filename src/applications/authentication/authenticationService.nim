@@ -8,7 +8,7 @@ import std/[options, sequtils, tables, strutils, strformat]
 import norm/model
 import ../allUrlParams
 import ../user/userService
-import ../../utils/[emailUtils]
+import ../../utils/[emailUtils, myStrutils]
 
 export authenticationModels
 
@@ -106,3 +106,9 @@ proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings
     let subject = getPasswordResetMailSubject(user.username)
     let body = getPasswordResetMailBody(newPassword)
     sendSystemEmail(subject, body, user.email, settings)
+
+proc createAuthToken*(connection: DbConn, user: User): string =
+  let token = myStrutils.randomString(40)
+  connection.insertToken(token, user.id)
+
+  result = token
