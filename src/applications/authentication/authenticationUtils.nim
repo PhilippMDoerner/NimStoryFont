@@ -7,6 +7,7 @@ import ../../utils/[jwtContext]
 import ../allUrlParams
 import ../campaign/campaignModel
 
+type UnauthorizedError* = object of CatchableError
 type CampaignPermissionError* = object of CatchableError
 type AdminPermissionError* = object of CatchableError
 
