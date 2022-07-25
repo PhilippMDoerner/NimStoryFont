@@ -108,10 +108,20 @@ proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings
     sendSystemEmail(subject, body, user.email, settings)
 
 proc createAuthToken(connection: DbConn, user: User): string =
-  let token = myStrutils.randomString(40)
-  connection.insertToken(token, user.id)
+  for i in 0..1000:
+    let token = myStrutils.randomString(40)
 
-  result = token
+    try:
+      connection.insertToken(token, user.id)
+      result = token
+
+    except DbError:
+      let isDuplicateToken: bool = getCurrentExceptionMsg() == "UNIQUE constraint failed: authtoken_token.key"
+      if isDuplicateToken:
+        continue
+      else:
+        raise
+
 
 proc createAuthToken*(connection: DbConn, tokenLifetimeInDays: int, user: User): TokenData =
   let token = connection.createAuthToken(user)
