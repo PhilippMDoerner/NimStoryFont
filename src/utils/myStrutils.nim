@@ -1,6 +1,8 @@
 import std/[strutils, htmlparser, xmltree, algorithm, random, enumerate]
 import ../applicationConstants
 
+randomize() # Necessary so that random strings are different every time
+
 proc reverseString*(s: string): string =
   for character in reversed(s):
     result.add(character)
