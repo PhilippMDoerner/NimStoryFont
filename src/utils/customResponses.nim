@@ -10,7 +10,7 @@ func jsonyResponse*(text: string, code = Http200, headers = initResponseHeaders(
   result.headers["Content-Type"] = "application/json" 
 
 proc jsonyResponse*[T](
-  ctx: JWTContext,
+  ctx: Context,
   content: T, 
   code = Http200, 
   headers = initResponseHeaders(),
