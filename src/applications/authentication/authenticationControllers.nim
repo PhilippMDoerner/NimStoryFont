@@ -13,7 +13,7 @@ import ../genericArticleRepository
 import jsony
 import tinypool/sqlitePool
 import ../allUrlParams
-
+import ../controllerTemplates
 
 proc createAndSerializeAuthData(connection: MyDbConn, ctx: Context, user: User): AuthDataSerializable =
         let accessTokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
@@ -36,14 +36,15 @@ proc refreshTokens*(ctx: Context) {.async.} =
 
     let tokenLifetime: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
     
-    withDbConn(connection):
-        let oldAuthenticationData: TokenData = connection.getRefreshTokenData(tokenLifetime, refreshToken)
-        let user: User = connection.getEntryById(oldAuthenticationData.userId, User)
+    respondBadRequestOnDbError():
+        withDbConn(connection):
+            let oldAuthenticationData: TokenData = connection.getRefreshTokenData(tokenLifetime, refreshToken)
+            let user: User = connection.getEntryById(oldAuthenticationData.userId, User)
 
-        connection.invalidateToken(oldAuthenticationData.jti)
+            connection.invalidateToken(oldAuthenticationData.jti)
 
-        let newAuthData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
-        resp jsonyResponse(ctx, newAuthData)
+            let newAuthData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
+            resp jsonyResponse(ctx, newAuthData)
 
 
 
@@ -59,9 +60,10 @@ proc login*(ctx: Context) {.async.} =
         resp get401UnauthorizedResponse(ctx)
         return
     
-    withDbConn(connection):
-        let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
-        resp jsonyResponse(ctx, loginData)
+    respondBadRequestOnDbError():
+        withDbConn(connection):
+            let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
+            resp jsonyResponse(ctx, loginData)
 
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
