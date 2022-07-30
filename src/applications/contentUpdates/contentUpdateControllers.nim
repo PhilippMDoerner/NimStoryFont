@@ -14,6 +14,6 @@ proc getRecentlyUpdatedArticles*(ctx: Context) {.async.} =
     let pageNumber: int = ctx.getPathParams(PAGE_NUMBER_PARAM, "0").parseInt()
     let pageSize: int = ctx.gScope.settings.getOrDefault("pageSize").getInt()
 
-    respondBadRequestOnDbError():
+    respondOnError():
         let articles: seq[ContentUpdateSerializable] = contentUpdateService.getRecentlyUpdatedArticles(campaignName, pageNumber, pageSize)
         resp jsonyResponse(ctx, articles)

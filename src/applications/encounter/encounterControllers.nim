@@ -21,7 +21,7 @@ proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
     let encounter1Id = jsonData["encounter1"].getInt().int64
     let encounter2Id = jsonData["encounter2"].getInt().int64
 
-    respondBadRequestOnDbError():
+    respondOnError():
         let swappedEncounters: JsonNode = swapEncounterOrder(encounter1Id, encounter2Id)
         resp jsonResponse(swappedEncounters)
 
@@ -33,7 +33,7 @@ proc cutInsertEncounter*(ctx: Context) {.async, gcsafe.} =
     let newOrderIndex = jsonData["new_order_index"].getInt()
     let oldOrderIndex = jsonData["old_order_index"].getInt()
 
-    respondBadRequestOnDbError():
+    respondOnError():
         let diaryentryEncounters: seq[EncounterRead] = cutInsertEncounter(cutEncounterId, oldOrderIndex, newOrderIndex)
         resp jsonyResponse(ctx, diaryentryEncounters)
 
@@ -45,7 +45,7 @@ proc createEncounterInDiaryentry*(ctx: Context) {.async, gcsafe.} =
     var newEntry: Encounter = params.body.fromJson(Encounter)
     checkCreatePermission(ctx, newEntry)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         let createdEntry: Encounter = connection.createEncounter(params, newEntry)
         let diaryentryEncounters: seq[EncounterRead] = connection.readDiaryEntryEncounters(createdEntry.diaryentry_id)

@@ -33,7 +33,7 @@ proc changeMembership*(ctx: Context) {.async.} =
   let roleStr = changeRequestParams.action.split("_")[1]
   let role = parseEnum[CampaignRole](roleStr)
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbTransaction(connection):
       let campaign: CampaignRead = connection.getEntryByField("name", campaignName, CampaignRead)
       checkCampaignMembershipChangePermission(ctx, campaign.id)
@@ -58,7 +58,7 @@ proc deactivateCampaignController*(ctx: Context) {.async.} =
   
   let campaignId: int64 = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbTransaction(connection):
       var campaign: Campaign = connection.getEntryById(campaignId, Campaign)
       checkAdminPermission(ctx, campaign)
@@ -72,7 +72,7 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbConn(connection):
       let statistics: Statistics = connection.getCampaignStatistics(campaignName)
       resp jsonyResponse(ctx, statistics)
@@ -81,7 +81,7 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 proc getWikiStatistics*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbConn(connection):
       let statistics: Statistics = connection.getWikiStatistics()
       resp jsonyResponse(ctx, statistics)

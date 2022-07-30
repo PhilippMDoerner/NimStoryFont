@@ -17,7 +17,7 @@ proc findArticles*(ctx: Context) {.async.} =
     let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM)
     let searchText: string = ctx.getPathParams(SEARCH_TEXT_PARAM)
 
-    respondBadRequestOnDbError():
+    respondOnError():
         let articles: seq[SearchSerializable] = searchService.findArticles(campaignName, searchText)
         let responeData = SearchResponse(empty_response: none(string), articles: articles)
         resp jsonyResponse(ctx, responeData)

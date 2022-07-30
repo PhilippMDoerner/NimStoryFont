@@ -42,7 +42,7 @@ proc createReadHandler*[P: object, E: Model, S: object | ref object](
 
     let params: P = ctx.extractQueryParams(P)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbConn(connection):
         let entry: E = connection.readEntry(params)
         
@@ -76,7 +76,7 @@ proc createUpdateHandler*[P: object, E: Model, S: object | ref object](
     var newEntry: E = ctx.request.body().fromJson(E)
     checkPermission(ctx, newEntry)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         let oldEntry: E = connection.readProc(params)
         checkPermission(ctx, oldEntry)
@@ -112,7 +112,7 @@ proc createPatchHandler*[P: object, E: Model, S: object | ref object](
 
     var params: P = ctx.extractQueryParams(P)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         var oldEntry: E = connection.readProc(params)
         checkPermission(ctx, oldEntry)
@@ -156,7 +156,7 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
 
     var newEntry: E = params.body.fromJson(E)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       checkPermission(ctx, newEntry)
 
       withDbTransaction(connection):
@@ -187,7 +187,7 @@ proc createReadListHandler*[P: ReadListParams, E: Model, S: object | ref object]
 
     let params: P = ctx.extractQueryParams(P)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbConn(connection):
         let entries: seq[E] = readListProc(connection, params)
         checkPermission(ctx, entries)
@@ -203,7 +203,7 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
 
     let params: P = ctx.extractQueryParams(P)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       checkReadListPermission(ctx, params.campaignName)
 
       withDbConn(connection):
@@ -224,7 +224,7 @@ proc createDeleteHandler*[P: object, E: Model](
     
     let params: DeleteParams = ctx.extractQueryParams(DeleteParams)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         var entryToDelete: E = connection.readProc(params)
         checkPermission(ctx, entryToDelete)

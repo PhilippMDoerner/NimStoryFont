@@ -21,7 +21,7 @@ proc createQuoteConnection*(ctx: Context) {.async.} =
   let characterId: int64 = body.character.parseInt().int64
   let quoteId: int64 = body.quote
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbTransaction(connection):
       let quote = connection.getEntryById(quoteId, QuoteRead)
       checkQuotePermission(ctx, quote)
@@ -40,7 +40,7 @@ proc getRandomQuote*(ctx: Context) {.async.} =
     userToken: ctx.tokenData
   )
 
-  respondBadRequestOnDbError():
+  respondOnError():
     withDbConn(connection):
       let entry: Option[QuoteRead] = connection.getRandomCharacterQuote(params)
       

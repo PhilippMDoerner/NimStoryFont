@@ -16,6 +16,6 @@ proc getOrganizationByNameController*(ctx: Context) {.async.} =
     let campaignName: string = ctx.getPathParams(CAMPAIGN_NAME_PARAM).decodeUrl()
     let entryName: string = ctx.getPathParams(ARTICLE_NAME_PARAM).decodeUrl()
 
-    respondBadRequestOnDbError():
+    respondOnError():
         let entry = getOrganizationByName(campaignName, entryName)
         resp jsonyResponse(ctx, entry)
