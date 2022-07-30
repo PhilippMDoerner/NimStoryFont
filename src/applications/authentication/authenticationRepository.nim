@@ -1,5 +1,5 @@
 import ../genericRawRepository
-import std/[strformat, times, db_sqlite, strutils]
+import std/[strformat, db_sqlite, strutils]
 import ../../applicationSettings
 import constructor/defaults
 import tokenTypes
@@ -30,7 +30,7 @@ type UserTokenRow {.defaults.} = object
 implDefaults(UserTokenRow, {DefaultFlag.defExported, DefaultFlag.defTypeConstr}) 
 
 
-proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
+proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string, tokenType: TokenType): TokenData =
   let tokenLifetimeInSeconds = tokenLifetimeInDays * 24 * 60 * 60
   let query = fmt"""
     SELECT 
@@ -57,9 +57,10 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
     WHERE token.blacklisted IS FALSE 
       AND token.key = ? 
       AND token.created + {tokenLifetimeInSeconds} > CAST(strftime('%s', 'now') AS INT)
+      AND token.tokenType = ?
   """
 
-  let rows: seq[UserTokenRow] = connection.rawSelectRows(query, UserTokenRow, token)
+  let rows: seq[UserTokenRow] = connection.rawSelectRows(query, UserTokenRow, token, $tokenType)
   if rows.len() == 0:
     raise newException(UnauthorizedError, fmt"There is no valid token '{token}'")
   
@@ -85,7 +86,7 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
       result.campaignMemberships[row.adminCampaignId.parseInt()] = CampaignAccessLevel.ADMIN
 
 
-proc blacklistToken*(connection: DbConn, token: string): bool =
+proc blacklistToken*(connection: DbConn, token: string) =
   const query = fmt"""
     UPDATE {TOKEN_TABLE}
     SET blacklisted = TRUE;
@@ -93,9 +94,9 @@ proc blacklistToken*(connection: DbConn, token: string): bool =
   """
   connection.rawExec(query, token)
 
-proc insertToken*(connection: DbConn, token: string, userId: int64) =
+proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, userId: int64, tokenType: TokenType) =
   let query = fmt"""
-    INSERT INTO {TOKEN_TABLE} (key, created, user_id, blacklisted)
-    VALUES (?, CAST(strftime('%s', 'now') AS INT), {userId}, FALSE)
+    INSERT INTO {TOKEN_TABLE} (key, created, user_id, blacklisted, tokenType)
+    VALUES (?, {creationTimestamp}, {userId}, FALSE, ?)
   """
-  connection.rawExec(query, token)
+  connection.rawExec(query, token, $tokenType)

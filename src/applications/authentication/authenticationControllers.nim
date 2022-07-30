@@ -1,68 +1,54 @@
 import prologue
-import std/[json, times]
-import ../../utils/[jwtContext, myStrutils, errorResponses]
+import std/[json, strutils]
+import ../../utils/[jwtContext, myStrutils, errorResponses, databaseUtils, customResponses]
 import myJwt
 import authenticationService
 import ../user/userService
 import authenticationModels
+import tokenTypes
+import authenticationSerialization
 import djangoEncryption
 import ../../applicationSettings
 import ../genericArticleRepository
-import jwt
+import jsony
 import tinypool/sqlitePool
 import ../allUrlParams
 
 
-proc getRefreshToken(ctx: Context): Option[JWT] =
-    let requestBody: string = ctx.request.body()
-    let parsedRequestBody: JsonNode = parseJson(requestBody)
-    let refreshTokenString: string = parsedRequestBody.fields["refresh"].getStr()
-
-    result = parseJWT(refreshTokenString)
-
-
-proc getTokenLifetime(ctx: Context, tokenType: JWTType): TimeInterval =
-    var lifetimeKey: SettingName
-    case tokenType:
-      of JWTType.ACCESS:
-        lifetimeKey = SettingName.snAccesTokenLifetime
-      of JWTType.REFRESH:
-        lifetimeKey = SettingName.snRefreshTokenLifetime
-    
-    let lifetimeDays = ctx.getSetting(lifetimeKey).getInt()
-    result = days(lifetimeDays)
-
-proc createNextToken(user: User, tokenType: JWTType, ctx: Context): JWT =
-    let secretKey: string = ctx.getSetting(SettingName.snSecretKey).getStr()
-    let lifetime: TimeInterval = ctx.getTokenLifetime(tokenType)
-
-    let userContainer: UserContainer = getUserContainer(user)
-    var newToken: JWT = userContainer.createToken(tokenType, lifetime)
-    newToken.sign(secretKey)
-    result = newToken
-
+proc createAndSerializeAuthData(connection: MyDbConn, ctx: Context, user: User): AuthDataSerializable =
+        let accessTokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
+        let refreshTokenLifetimeInDays: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
+            
+        let userContainer: UserContainer = connection.getUserContainer(user)
+        let accessToken: TokenContainer = connection.createAuthToken(user, access)
+        let refreshToken: TokenContainer = connection.createAuthToken(user, refresh)
+        result = serializeLoginData(
+            userContainer,
+            accessToken, 
+            accessTokenLifetimeInDays, 
+            refreshToken, 
+            refreshTokenLifetimeInDays
+        )
 
 proc refreshTokens*(ctx: Context) {.async.} =
-    let refreshTokenOption: Option[JWT] = getRefreshToken(ctx)
-    if refreshTokenOption.isNone():
-        resp get401UnauthorizedResponse(ctx)
-        return
+    let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
+    let refreshToken = authHeaderValue.split(' ')[1]
 
-    let refreshToken: JWT = refreshTokenOption.get()
-    if not myJwt.isValidRefreshToken(ctx, refreshToken):
-        resp get401UnauthorizedResponse(ctx)
-        return
-
-    let tokenData: TokenData = extractTokenData(refreshToken)
-    let user: User = getEntryById(tokenData.userId, User)
+    let tokenLifetime: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
     
-    let newAccessToken: JWT = createNextToken(user, JWTType.ACCESS, ctx)
-    let newRefreshToken: JWT = createNextToken(user, JWTType.REFRESH, ctx)
+    withDbConn(connection):
+        let oldAuthenticationData: TokenData = connection.getRefreshTokenData(tokenLifetime, refreshToken)
+        let user: User = connection.getEntryById(oldAuthenticationData.userId, User)
 
-    resp jsonResponse(%*{"refresh": newRefreshToken, "access": newAccessToken})
+        connection.invalidateToken(oldAuthenticationData.jti)
+
+        let newAuthData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
+        resp jsonyResponse(ctx, newAuthData)
+
 
 
 proc login*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
     let requestBody: JsonNode = parseJson(ctx.request.body())
     let userName: string = requestBody.fields["username"].getStr()
     let user: User = getUserByName(userName)
@@ -73,10 +59,9 @@ proc login*(ctx: Context) {.async.} =
         resp get401UnauthorizedResponse(ctx)
         return
     
-    let tokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
     withDbConn(connection):
-        let authToken = connection.createAuthToken(tokenLifetimeInDays, user)
-        resp jsonResponse(%*authToken)
+        let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
+        resp jsonyResponse(ctx, loginData)
 
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)

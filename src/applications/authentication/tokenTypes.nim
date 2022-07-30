@@ -2,6 +2,12 @@
 import std/[tables, strutils, strformat, json]
 import constructor/defaults
 import ../../applicationConstants
+import ../../utils/myStrutils
+import jsony
+
+type TokenType* {.pure.} = enum
+  access = "access"
+  refresh = "refresh"
 
 type CampaignAccessLevel* = enum
   GUEST = "guest", MEMBER = "member", ADMIN = "admin"
@@ -23,7 +29,10 @@ proc `==`*(id1, id2: CampaignIdentifier): bool =
     result = case id1.kind:
     of CampaignIdType.citString: id1.campaignName == id2.campaignName
     of CampaignIdType.citInt: id1.id == id2.id 
-
+proc `$`*(id: CampaignIdentifier): string =
+  result = case id.kind:
+  of citString: id.campaignName
+  of citInt: fmt"{ID_STRING_PREFIX}{$id.id}"
 
 
 type CampaignMemberships* = TableRef[CampaignIdentifier, CampaignAccessLevel]
@@ -44,6 +53,22 @@ proc `[]=`*(table: var CampaignMemberships, identifier: string, value: CampaignA
 
   else: 
     table[newCampaignIdentifier(identifier)] = value
+
+proc dumpHook*(json: var string, input: CampaignMemberships) =
+  ## Output fraction type as a string "x/y".
+  json.add '{'
+  for key in input.keys:
+    json.add '"'
+    json.add $key
+    json.add '"'
+    json.add ": "
+    json.add '"'
+    json.add $input[key]
+    json.add '"'
+    json.add ','
+
+  json.removeSuffix(1)
+  json.add '}'
 
 proc dumpHook*(s: var string, identifier: CampaignIdentifier) =
   ## Implements serializing the identifier to JSON strings for jsony

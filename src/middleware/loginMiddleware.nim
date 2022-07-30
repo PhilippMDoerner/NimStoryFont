@@ -2,7 +2,7 @@ import prologue
 import ../utils/[databaseUtils, jwtContext]
 import ../applicationSettings
 import std/[strutils, options, json]
-import ../applications/authentication/[authenticationRepository, myJwt]
+import ../applications/authentication/[authenticationService, myJwt]
 import ../utils/errorResponses
 
 
@@ -16,7 +16,7 @@ proc getAccessToken(ctx: Context): Option[JWT] =
     result = parseJWT(jwtString)
 
 
-proc tokenLoginMiddleware*(): HandlerAsync =
+proc loginMiddleware*(): HandlerAsync =
     result = proc(ctx: Context) {.async.} =  
         var ctx = JWTContext(ctx)
 
@@ -24,11 +24,11 @@ proc tokenLoginMiddleware*(): HandlerAsync =
         let token = authHeaderValue.split(' ')[1]
         let tokenLifetime: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
         withDbConn(connection):
-            ctx.tokenData = connection.getTokenData(tokenLifetime, token)
+            ctx.tokenData = connection.getAccessTokenData(tokenLifetime, token)
 
         await switch(ctx)
 
-proc loginMiddleware*(): HandlerAsync =
+proc jwtLoginMiddleware*(): HandlerAsync =
     result = proc(ctx: Context) {.async.} =  
         var ctx = JWTContext(ctx)
 
