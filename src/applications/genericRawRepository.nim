@@ -1,4 +1,4 @@
-import std/[db_sqlite, strformat, strutils, sequtils]
+import std/[db_sqlite, strformat, sequtils]
 import nisane
 when defined(normDebug):
   import std/logging

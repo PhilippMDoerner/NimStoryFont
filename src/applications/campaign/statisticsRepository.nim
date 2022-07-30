@@ -1,4 +1,4 @@
-import std/[db_sqlite, strformat, strutils]
+import std/[db_sqlite, strformat]
 import ../../applicationSettings
 import ../genericRawRepository
 
