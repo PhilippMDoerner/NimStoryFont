@@ -36,7 +36,7 @@ proc refreshTokens*(ctx: Context) {.async.} =
 
     let tokenLifetime: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
     
-    respondBadRequestOnDbError():
+    respondOnError():
         withDbConn(connection):
             let oldAuthenticationData: TokenData = connection.getRefreshTokenData(tokenLifetime, refreshToken)
             let user: User = connection.getEntryById(oldAuthenticationData.userId, User)
@@ -60,7 +60,7 @@ proc login*(ctx: Context) {.async.} =
         resp get401UnauthorizedResponse(ctx)
         return
     
-    respondBadRequestOnDbError():
+    respondOnError():
         withDbConn(connection):
             let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
             resp jsonyResponse(ctx, loginData)

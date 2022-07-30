@@ -42,7 +42,7 @@ proc createImageView*(ctx: Context) {.async, gcsafe.}=
         image_organization_fk: ctx.extractFKIdFieldFromContext("organization_article")
     )
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbConn(connection):
         let newImageEntry: Option[Image] = connection.createImage(imageFormData)
         if newImageEntry.isSome():
@@ -63,7 +63,7 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.} =
         imageName: ctx.getFormParamsOption("name")
     )
         
-    respondBadRequestOnDbError():
+    respondOnError():
         let updatedImageEntry: Image = updateImageFileOrName(imageToUpdateId, imageFormData)
         let imageSerializable: ImageSerializable = updatedImageEntry.serializeImage()
 
@@ -74,6 +74,6 @@ proc deleteImageView*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let imageToDeleteId: int64 = int64 parseInt(ctx.getPathParams(ID_PARAM))
 
-    respondBadRequestOnDbError():
+    respondOnError():
         deleteImage(imageToDeleteId)
         respDefault(Http204)

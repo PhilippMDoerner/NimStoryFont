@@ -37,7 +37,7 @@ proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
         entryId: none(int64)
     )
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         let newEntry: Option[SessionAudioRead] = connection.createSessionAudio(sessionaudioFormData)
         if newEntry.isSome():
@@ -80,7 +80,7 @@ proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.}=
     let isFormRequest = ctx.extractFileFromContext("audio_file").isSome()
     var sessionaudioUpdateParams = if isFormRequest: ctx.parseFormPatchBody() else: ctx.parseJSONPatchBody()
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
         var oldEntry: SessionAudio = connection.getEntryById(sessionaudioUpdateParams.entryId.get(), SessionAudio)
         checkUpdatePermission(ctx, oldEntry)

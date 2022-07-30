@@ -7,7 +7,7 @@ template debugErrorLog(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
  
 
-template respondBadRequestOnDbError*(body: untyped) =
+template respondOnError*(body: untyped) =
   ## template to handle some usual error cases. Returns HTTP400
   ## in case of any DBError, any HTTP404 in case of any NotFoundError
   try:

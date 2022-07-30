@@ -24,7 +24,7 @@ proc createCharacterConnection*(ctx: Context) {.async.} =
 
     checkCreatePermission(ctx, campaignId)
 
-    respondBadRequestOnDbError():
+    respondOnError():
       withDbTransaction(connection):
 
         let entry: CharacterEncounterRead = connection.createCharacterEncounterConnection(characterId, encounterId)
