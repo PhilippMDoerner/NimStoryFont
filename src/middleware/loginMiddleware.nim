@@ -1,20 +1,12 @@
 import prologue
 import ../utils/[databaseUtils, jwtContext]
 import ../applicationSettings
-import std/[strutils, options, json]
-import ../applications/authentication/[authenticationService, myJwt]
-import ../utils/errorResponses
-import ../applications/controllerTemplates
+import std/[strutils, json, logging]
+import ../applications/authentication/[authenticationService, authenticationUtils]
+import ../utils/[errorResponses]
 
-
-
-proc hasAccessToken(ctx: Context): bool =
-    result = ctx.request.hasHeader(AUTHORIZATION_HEADER)
-
-proc getAccessToken(ctx: Context): Option[JWT] =
-    let headerValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
-    let jwtString: string = headerValue.split(' ')[1]
-    result = parseJWT(jwtString)
+template debugErrorLog(msg: string) =
+     debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
 
 
 proc loginMiddleware*(): HandlerAsync =
@@ -24,31 +16,28 @@ proc loginMiddleware*(): HandlerAsync =
         let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
         let token = authHeaderValue.split(' ')[1]
         let tokenLifetime: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
-        respondBadRequestOnDbError():
+        try:
             withDbConn(connection):
                 ctx.tokenData = connection.getAccessTokenData(tokenLifetime, token)
 
-        await switch(ctx)
-
-proc jwtLoginMiddleware*(): HandlerAsync =
-    result = proc(ctx: Context) {.async.} =  
-        var ctx = JWTContext(ctx)
-
-        if not hasAccessToken(ctx):
-            resp get401UnauthorizedResponse(ctx)
+        except DbError:
+            debugErrorLog("Error during db request") 
+            resp get400BadRequestResponse(getCurrentExceptionMsg())
             return
 
-        let tokenOption: Option[JWT] = getAccessToken(ctx)
-        let isParseableToken = tokenOption.isSome()
-        if not isParseableToken:
-            resp get401UnauthorizedResponse(ctx)
+        except UnauthorizedError:
+            debugErrorLog("User could not be authorized")
+            resp get401UnauthorizedResponse()
             return
         
-        let token: JWT = tokenOption.get()
-        if not ctx.isValidAccessToken(token):
-            resp get401UnauthorizedResponse(ctx)
+        except CampaignPermissionError:
+            debugErrorLog("User does not have the necessary permission for this campaign")
+            resp get403ForbiddenResponse()
             return
 
-        ctx.tokenData = extractTokenData(token)
-        
+        except Exception:
+            debugErrorLog("Unkonwn Error during db request") 
+            resp get500ServerErrorResponse()
+            return
+
         await switch(ctx)
