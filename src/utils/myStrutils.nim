@@ -19,5 +19,7 @@ proc truncate*(text: string): string =
 
 proc randomString*(length: int): string =
   for _ in 0..length:
-    add(result, char(rand(int('A') .. int('z'))))
+    add(result, char(rand(int('a') .. int('z'))))
 
+proc removeSuffix*(s: var string, charCount: int) =
+  s.setLen(s.len() - charCount)
