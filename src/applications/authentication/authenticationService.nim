@@ -4,8 +4,10 @@ import ../campaign/[campaignModel, campaignService, campaignUtils]
 import authenticationEmailText
 import authenticationRepository
 import authenticationConstants
-import std/[options, sequtils, tables, strutils, strformat]
+import authenticationModels
+import std/[options, sequtils, tables, strutils, strformat, times]
 import norm/model
+import tokenTypes
 import ../allUrlParams
 import ../user/userService
 import ../../utils/[emailUtils, myStrutils]
@@ -26,7 +28,7 @@ proc addCampaignGroup(
 
 
 #You may want to cache the results of this proc somehow, for at least an hour
-proc getCampaignIdMembershipTable(): Table[string, CampaignMemberships] =
+proc getCampaignIdMembershipTable(connection: DbConn): Table[string, CampaignMemberships] =
   #Generates a map representation of which groups have access to which campaigns. 
   #Basically table[GroupName][campaignId] --> AccessLevel
   let campaigns: seq[CampaignRead] = getAllCampaignReads()
@@ -50,12 +52,13 @@ proc getCampaignIdMembershipTable(): Table[string, CampaignMemberships] =
 
   result = membershipTable
 
-proc getUserCampaignMemberships(user: User): CampaignMemberships =
+
+proc getUserCampaignMemberships(connection: DbConn, user: User): CampaignMemberships =
     var userMemberships: CampaignMemberships = newMembershipTable()
 
-    let campaignIdMembershipTable: Table[string, CampaignMemberships] = getCampaignIdMembershipTable()
+    let campaignIdMembershipTable: Table[string, CampaignMemberships] = connection.getCampaignIdMembershipTable()
 
-    let userGroups: seq[Group] = getManyToMany(user, UserGroup, Group)
+    let userGroups: seq[Group] = connection.getManyToMany(user, UserGroup, Group)
     for group in userGroups:
         let isCampaignGroup: bool = campaignIdMembershipTable.hasKey(group.name)
         if not isCampaignGroup:
@@ -66,15 +69,10 @@ proc getUserCampaignMemberships(user: User): CampaignMemberships =
             userMemberships[campaignId] = campaignMemberships[campaignId]
     
     result = userMemberships
-        
 
-proc getUserContainer*(user: User): UserContainer =
-    let campaignMemberships = getUserCampaignMemberships(user)
-    result = UserContainer(
-        user: user, 
-        campaignMemberships: campaignMemberships
-    )
-
+proc getUserContainer*(connection: DbConn, user: User): UserContainer =
+    result.user = user
+    result.campaignMemberships = connection.getUserCampaignMemberships(user)
 
 proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission] =
   const permissionTable = Permission.table()
@@ -107,13 +105,27 @@ proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings
     let body = getPasswordResetMailBody(newPassword)
     sendSystemEmail(subject, body, user.email, settings)
 
-proc createAuthToken(connection: DbConn, user: User): string =
+proc getAccessTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
+  result = connection.getTokenData(tokenLifetimeInDays, token, access)
+
+proc getRefreshTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
+  result = connection.getTokenData(tokenLifetimeInDays, token, refresh)
+
+proc invalidateToken*(connection: DbConn, token: string) =
+  connection.blacklistToken(token)
+
+proc createAuthToken*(connection: DbConn, userId: int64, tokenType: TokenType): TokenContainer =
+  let creationTime = getTime().toUnix()
+  result.`type` = tokenType
+  result.created = creationTime
+  
   for i in 0..1000:
     let token = myStrutils.randomString(40)
 
     try:
-      connection.insertToken(token, user.id)
-      result = token
+      connection.insertToken(token, creationTime, userId, tokenType)
+      result.token = token
+      break
 
     except DbError:
       let isDuplicateToken: bool = getCurrentExceptionMsg() == "UNIQUE constraint failed: authtoken_token.key"
@@ -122,7 +134,5 @@ proc createAuthToken(connection: DbConn, user: User): string =
       else:
         raise
 
-
-proc createAuthToken*(connection: DbConn, tokenLifetimeInDays: int, user: User): TokenData =
-  let token = connection.createAuthToken(user)
-  result = connection.getTokenData(tokenLifetimeInDays, token)
+proc createAuthToken*(connection: DbConn, user: User, tokenType: TokenType): TokenContainer =
+  result = connection.createAuthToken(user.id, tokenType)

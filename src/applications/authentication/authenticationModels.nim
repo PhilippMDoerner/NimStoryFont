@@ -57,3 +57,9 @@ implDefaults(UserPermission, {DefaultFlag.defExported, DefaultFlag.defTypeConstr
 type UserContainer* = object
     user*: User
     campaignMemberships*: CampaignMemberships
+
+
+type TokenContainer* = object
+  `type`*: TokenType
+  token*: string
+  created*: int64
