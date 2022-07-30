@@ -2,7 +2,7 @@ import authenticationModels
 import norm/model
 import prologue
 import ../genericArticleRepository
-import std/[options, tables, strformat, logging]
+import std/[options, tables, strformat, logging, sysrand, base64]
 import ../../utils/[jwtContext]
 import ../allUrlParams
 import ../campaign/campaignModel
@@ -115,3 +115,5 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
 
 proc checkNoPermission*(ctx: JWTContext, entries: seq[authenticationModels.Group]) = 
   return
+
+proc generateToken*(): string = urandom(30).encode()

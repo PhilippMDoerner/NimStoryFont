@@ -5,12 +5,13 @@ import authenticationEmailText
 import authenticationRepository
 import authenticationConstants
 import authenticationModels
+import authenticationUtils
 import std/[options, sequtils, tables, strutils, strformat, times]
 import norm/model
 import tokenTypes
 import ../allUrlParams
 import ../user/userService
-import ../../utils/[emailUtils, myStrutils]
+import ../../utils/[emailUtils]
 
 export authenticationModels
 
@@ -120,7 +121,7 @@ proc createAuthToken*(connection: DbConn, userId: int64, tokenType: TokenType): 
   result.created = creationTime
   
   for i in 0..1000:
-    let token = myStrutils.randomString(40)
+    let token = generateToken()
 
     try:
       connection.insertToken(token, creationTime, userId, tokenType)
