@@ -23,6 +23,7 @@ template respondBadRequestOnDbError*(body: untyped) =
 
   except UnauthorizedError:
     debugErrorLog("User could not be authorized")
+    resp get401UnauthorizedResponse()
 
   except CampaignPermissionError:
     debugErrorLog("User does not have the necessary permission for this campaign")
