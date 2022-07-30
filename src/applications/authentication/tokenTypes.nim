@@ -54,29 +54,18 @@ proc `[]=`*(table: var CampaignMemberships, identifier: string, value: CampaignA
   else: 
     table[newCampaignIdentifier(identifier)] = value
 
-proc dumpHook*(json: var string, input: CampaignMemberships) =
-  ## Output fraction type as a string "x/y".
-  json.add '{'
-  for key in input.keys:
-    json.add '"'
-    json.add $key
-    json.add '"'
-    json.add ": "
-    json.add '"'
-    json.add $input[key]
-    json.add '"'
-    json.add ','
-
-  json.removeSuffix(1)
-  json.add '}'
 
 proc dumpHook*(s: var string, identifier: CampaignIdentifier) =
   ## Implements serializing the identifier to JSON strings for jsony
+  s.add('"')
+
   case identifier.kind:
   of CampaignIdType.citString:
     s.add(identifier.campaignName)
   of CampaignIdType.citInt:
     s.add(fmt"{ID_STRING_PREFIX}{identifier.id}")
+
+  s.add('"')
 
 proc jsonFieldName*(identifier: CampaignIdentifier): string =
   case identifier.kind:
