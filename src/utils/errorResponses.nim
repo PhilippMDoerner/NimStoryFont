@@ -7,6 +7,9 @@ proc get400BadRequestResponse*(errorMsg: string): Response {.inline.}  =
     let responseText = "Something around the given data was invalid: " & errorMsg
     result = jsonResponse(%*responseText, Http400)
 
+proc get401UnauthorizedResponse*(): Response {.inline.} =
+    result = jsonResponse(%*"The given token is not, or no longer, valid", Http401)
+
 proc get403ForbiddenResponse*(): Response {.inline.} =
     result = jsonResponse(%*"You lack access rights for the requested action", Http403)
 
