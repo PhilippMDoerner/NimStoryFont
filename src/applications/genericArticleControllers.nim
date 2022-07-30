@@ -155,9 +155,10 @@ proc createCreateHandler*[P: object, E: Model, S: object | ref object](
     let params: P = ctx.extractQueryParams(P)
 
     var newEntry: E = params.body.fromJson(E)
-    checkPermission(ctx, newEntry)
 
     respondBadRequestOnDbError():
+      checkPermission(ctx, newEntry)
+
       withDbTransaction(connection):
         let newCreatedEntry: E = connection.createProc(params, newEntry)
         let data: S = connection.serialize(newCreatedEntry)
@@ -201,9 +202,10 @@ proc createReadCampaignListHandler*[P: ReadListParams, E: Model, S: object | ref
     let ctx = JWTContext(ctx)
 
     let params: P = ctx.extractQueryParams(P)
-    checkReadListPermission(ctx, params.campaignName)
 
     respondBadRequestOnDbError():
+      checkReadListPermission(ctx, params.campaignName)
+
       withDbConn(connection):
         let entries: seq[E] = readCampaignArticleList[P, E](connection, params)
         let data: seq[S] = connection.serialize(entries)

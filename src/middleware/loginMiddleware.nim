@@ -4,6 +4,7 @@ import ../applicationSettings
 import std/[strutils, options, json]
 import ../applications/authentication/[authenticationService, myJwt]
 import ../utils/errorResponses
+import ../applications/controllerTemplates
 
 
 
@@ -23,8 +24,9 @@ proc loginMiddleware*(): HandlerAsync =
         let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
         let token = authHeaderValue.split(' ')[1]
         let tokenLifetime: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
-        withDbConn(connection):
-            ctx.tokenData = connection.getAccessTokenData(tokenLifetime, token)
+        respondBadRequestOnDbError():
+            withDbConn(connection):
+                ctx.tokenData = connection.getAccessTokenData(tokenLifetime, token)
 
         await switch(ctx)
 
