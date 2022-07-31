@@ -3,7 +3,7 @@ import ../../applicationSettings
 import ../../applicationConstants
 import constructor/defaults
 import ../user/userModel
-import tokenTypes
+import ../../utils/tokenTypes
 
 export tokenTypes
 

@@ -9,7 +9,6 @@ import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../allUrlParams
 import ../../utils/jwtContext
-import ../authentication/myJwt
 
 export campaignModel
 

@@ -1,11 +1,9 @@
 import prologue
 import std/[json, strutils]
-import ../../utils/[jwtContext, myStrutils, errorResponses, databaseUtils, customResponses]
-import myJwt
+import ../../utils/[tokenTypes, jwtContext, myStrutils, errorResponses, databaseUtils, customResponses]
 import authenticationService
 import ../user/userService
 import authenticationModels
-import tokenTypes
 import authenticationSerialization
 import djangoEncryption
 import ../../applicationSettings

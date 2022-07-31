@@ -2,7 +2,7 @@ import ../genericRawRepository
 import std/[strformat, db_sqlite, strutils]
 import ../../applicationSettings
 import constructor/defaults
-import tokenTypes
+import ../../utils/tokenTypes
 import authenticationUtils
 
 

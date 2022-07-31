@@ -1,7 +1,6 @@
 import prologue
-import ../applications/authentication/myJwt
+import tokenTypes
 
-export myJwt
 export tokenTypes
 
 type JWTContext* = ref object of Context
