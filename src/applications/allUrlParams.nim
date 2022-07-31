@@ -1,7 +1,7 @@
 import std/[strformat]
 import constructor/defaults
 import ../applicationConstants
-import authentication/[myJwt, authenticationModels]
+import authentication/[authenticationModels]
 
 export authenticationModels
 

@@ -8,10 +8,9 @@ import authenticationModels
 import authenticationUtils
 import std/[options, sequtils, tables, strutils, strformat, times]
 import norm/model
-import tokenTypes
 import ../allUrlParams
 import ../user/userService
-import ../../utils/[emailUtils]
+import ../../utils/[emailUtils, tokenTypes]
 
 export authenticationModels
 

@@ -1,7 +1,7 @@
 
 import std/[tables, strutils, strformat, json]
 import constructor/defaults
-import ../../applicationConstants
+import ../applicationConstants
 
 
 type TokenType* {.pure.} = enum
