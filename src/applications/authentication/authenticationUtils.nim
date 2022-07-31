@@ -29,16 +29,15 @@ proc getCampaignId[T: Model](entry: T): int64 =
 
 
 proc checkCampaignWritePermission(ctx: JWTContext, entryCampaignId: int64) =
-  if ctx.tokenData.isSiteAdmin():
+  if ctx.hasAdminPermission():
     return
 
-  let isCampaignMember = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
-  if not isCampaignMember:
+  if not ctx.hasCampaignMembership(entryCampaignId):
     raise newException(CampaignPermissionError, fmt"You are not a member of the campaign '{entryCampaignId}' which you're creating an entry for")
 
-  let userAccessLevel: CampaignAccessLevel = ctx.tokenData.campaignMemberships[entryCampaignId]
-  let hasWriteAccess = userAccessLevel == CampaignAccessLevel.MEMBER or userAccessLevel == CampaignAccessLevel.ADMIN
-  if not hasWriteAccess:
+  let accessLevel: CampaignAccessLevel = ctx.getCampaignAccessLevel(entryCampaignId)
+  let hasWritePermission = accessLevel in [CampaignAccessLevel.MEMBER, CampaignAccessLevel.ADMIN]
+  if not hasWritePermission:
     raise newException(CampaignPermissionError, "Only members and admins of this campaign can create/update/delete entries")
 
 
@@ -47,7 +46,7 @@ proc checkCampaignWritePermission[T: Model](ctx: JWTContext, entry: T) =
   checkCampaignWritePermission(ctx, entryCampaignId)
 
 proc checkAdminPermission*[T: Model](ctx: JWTContext, entry: T) = 
-  let hasAdminPermission = ctx.tokenData.isSiteAdmin()
+  let hasAdminPermission = ctx.hasAdminPermission()
   if not hasAdminPermission:
     raise newException(AdminPermissionError, "Only admins of the webpage can perform this action")
 
@@ -59,23 +58,21 @@ proc checkSuperUserPermission*[T: Model](ctx: JWTContext, entry: T) =
 
 
 proc checkReadListPermission*(ctx: JWTContext, campaignName: string) =
-  if ctx.tokenData.isSiteAdmin():
+  if ctx.hasAdminPermission():
     return
 
   let campaign = getEntryByField("name", campaignName, Campaign)
-  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
-  if not hasCampaignMembership:
+  if not ctx.hasCampaignMembership(campaign.id):
     log(lvlDebug, fmt"'{ctx.tokenData.username}' does not have access to campaign '{campaignName}'")
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 
 proc checkReadPermission*[T: Model](ctx: JWTContext, entry: T) =
-  if ctx.tokenData.isSiteAdmin():
+  if ctx.hasAdminPermission():
     return
   
   let entryCampaignId: int64 = entry.getCampaignId()
-  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(entryCampaignId)
-  if not hasCampaignMembership:
+  if not ctx.hasCampaignMembership(entryCampaignId):
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 
@@ -98,7 +95,7 @@ proc checkDeletePermission*(ctx: JWTContext, campaignId: int64) =
   checkCampaignWritePermission(ctx, campaignId)
 
 proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]) = 
-  if ctx.tokenData.isSiteAdmin():
+  if ctx.hasAdminPermission():
     return
   
   let campaignName: Option[string] = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM)
@@ -108,8 +105,7 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
     raise newException(RouteError, errorMsg)
   
   let campaign = getEntryByField("name", campaignName.get(), Campaign)
-  let hasCampaignMembership = ctx.tokenData.campaignMemberships.hasKey(campaign.id)
-  if not hasCampaignMembership:
+  if not ctx.hasCampaignMembership(campaign.id):
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
 

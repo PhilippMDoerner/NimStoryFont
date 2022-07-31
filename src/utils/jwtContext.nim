@@ -9,6 +9,17 @@ type JWTContext* = ref object of Context
 method extend(ctx: JWTContext) =    
     ctx.tokenData = newTokenData()
 
+proc hasAdminPermission*(ctx: JWTContext): bool = 
+  result = ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser
+
+proc hasCampaignMembership*(ctx: JWTContext, campaignId: int64): bool =
+  result = ctx.tokenData.campaignMemberships.hasKey(campaignId)
+
+proc getCampaignAccessLevel*(ctx: JWTContext, campaignId: int64): CampaignAccessLevel =
+  result = ctx.tokenData.campaignMemberships[campaignId]
+
+
+
 proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue: var T) =
   ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object
   ## TODO: Figure out how to check if a url param exists at compiletime
@@ -36,3 +47,4 @@ proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc
 
   for fieldName, fieldValue in result.fieldPairs:
     extractQueryParam(ctx, fieldName, fieldValue)
+
