@@ -1,10 +1,10 @@
 import quoteModels
 import norm/sqlite
-import ../session/[sessionSerialization, sessionModel]
+import ../session/[sessionSerialization, sessionRepository, sessionModel]
 import ../genericArticleRepository
 import ../character/characterUtils
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[options, sequtils, sugar]
+import std/[options, sequtils, sugar, tables]
 
 type QuoteConnectionCharacter* = object
     name: string
@@ -63,8 +63,20 @@ proc serializeQuoteRead*(connection: DbConn, entry: QuoteRead): QuoteSerializabl
     result = serializeQuoteRead(entry, serializedSession, quoteConnections)
 
 proc serializeQuoteReads*(connection: DbConn, entries: seq[QuoteRead]): seq[QuoteSerializable] =
-    #TODO: do multi queries for quotes to cut down on total query count
-    result = entries.map(entry => connection.serializeQuoteRead(entry))
+    #let allSessions: Table[int64, seq[SessionRead]] = connection.getManyFromOne(entries, SessionRead)
+    let allQuoteConnections: Table[int64, seq[QuoteConnectionRead]] = connection.getManyFromOne(entries, QuoteConnectionRead, "quote_id")
+    let sessionIds: seq[int64] = entries.mapIt(it.session_id.id)
+    let allSessions: seq[SessionRead] = connection.getSessionsById(sessionIds)
+    let allSerializedSession: seq[SessionSerializable] = connection.serializeSessionReads(allSessions)
+    var sessionTable: Table[int64, SessionSerializable] = initTable[int64, SessionSerializable]()
+    for entry in allSerializedSession:
+        sessionTable[entry.pk] = entry
+
+    for entry in entries:
+        let serializedSession: SessionSerializable = sessionTable[entry.session_id.id]
+        let quoteConnections: seq[QuoteConnectionRead] = allQuoteConnections[entry.id]
+
+        result.add(serializeQuoteRead(entry, serializedSession, quoteConnections))
 
 proc serializeQuote*(connection: DbConn, entry: Quote): QuoteSerializable =
     let fullEntry = connection.getEntryById(entry.id, QuoteRead)
