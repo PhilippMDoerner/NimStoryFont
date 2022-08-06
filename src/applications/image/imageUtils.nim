@@ -3,10 +3,6 @@ import ../genericArticleRepository
 import std/[strformat, options]
 import ../../applicationSettings
 
-proc convertToWebP*(imageFilepath: string): string =
-  #TODO: Actually implement this proc
-  result = ""
-
 type InvalidImageError* = object of CatchableError
 
 
