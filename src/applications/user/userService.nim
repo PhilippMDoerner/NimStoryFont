@@ -61,7 +61,6 @@ proc updateUserGroups*(connection: DbConn, requestData: UpdateParams, entry: Use
     
   for oldUserGroup in oldUserGroups:
     if not newGroupIds.contains(oldUserGroup.group_id.id):
-      echo fmt"{newGroupids} does not contain {oldUserGroup.id}"
       var entryToDelete = oldUserGroup
       connection.deleteEntryInTransaction(entryToDelete)
       
