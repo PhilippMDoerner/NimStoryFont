@@ -19,8 +19,8 @@ template transferJsonIntValue(receiver: var Option[untyped], valueNode: JsonNode
   of JsonNodeKind.JString:
     try:
       receiver = if valueNode.str == "": none(int) else: some(valueNode.str.parseInt())
-    except ValueError:
-      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
+    except ValueError as e:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number", e)
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type, but the json was of kind '{valueNode.kind}'")
 
@@ -34,8 +34,8 @@ template transferJsonIntRangeValue[T: range](receiver: var Option[T], valueNode:
     try:
       let rangeNumber: T = valueNode.str.parseInt()
       receiver = if valueNode.str == "": none(typedesc[T]) else: some(rangeNumber)
-    except ValueError:
-      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
+    except ValueError as e:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number", e)
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type, but the json was of kind '{valueNode.kind}'")
 
@@ -47,8 +47,8 @@ template transferJsonInt64Value(receiver: var Option[int64], valueNode: JsonNode
   of JsonNodeKind.JString:
     try:
       receiver = if valueNode.str == "": none(int64) else: some(valueNode.str.parseInt().int64)
-    except ValueError:
-      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number")
+    except ValueError as e:
+      raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int-type and received a string. That string was '{valueNode.str}' and could not be parsed into a number", e)
   
   else:
     raise newException(JsonParsingError, fmt"The field {typeName}.{fieldName} expected the json to have an int64-type, but the json was of kind '{valueNode.kind}'")
