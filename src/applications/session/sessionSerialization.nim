@@ -24,21 +24,21 @@ proc serializeSessionDiaryentry(entry: DiaryEntryRead): SessionDiaryEntrySeriali
     )
 
 type SessionSerializable* = object
-    session_number: int
-    session_date: DjangoDateTime
-    is_main_session: bool
-    is_main_session_int: 0..1
-    end_day: Option[int]
-    start_day: Option[int]
-    creation_datetime: DjangoDateTime
-    update_datetime: DjangoDateTime
-    campaign: int64
-    campaign_details: MinimumCampaignOverview
-    pk: int64
-    name: string
-    name_full: string
-    diaryentries: seq[SessionDiaryEntrySerializable]
-    has_recording: bool
+    session_number*: int
+    session_date*: DjangoDateTime
+    is_main_session*: bool
+    is_main_session_int*: 0..1
+    end_day*: Option[int]
+    start_day*: Option[int]
+    creation_datetime*: DjangoDateTime
+    update_datetime*: DjangoDateTime
+    campaign*: int64
+    campaign_details*: MinimumCampaignOverview
+    pk*: int64
+    name*: string
+    name_full*: string
+    diaryentries*: seq[SessionDiaryEntrySerializable]
+    has_recording*: bool
 
 proc serializeSessionRead(entry: SessionRead, diaryentries: seq[DiaryEntryRead]): SessionSerializable =
     let serializedDiaryentries = diaryentries.map(serializeSessionDiaryentry)
