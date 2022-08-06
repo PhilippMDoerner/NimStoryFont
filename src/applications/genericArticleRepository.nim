@@ -51,26 +51,6 @@ proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, mode
 
     result = connection.getList(M, condition, campaignName.dbValue())
 
-# #TODO: Figure out how to infer the campaign_id field somehow
-# proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
-#     ##[ Retrieves all rows/entries of a campaign with the given name and 
-#     returns them as Model M. 
-    
-#     ``campaignName`` must be exactly equal to the name of the targetted campaign,
-#     the comparison is case-sensitive.]##
-#     
-
-#     var entries: seq[M] = @[new(M)]
-    
-#     var condition = "campaign_id.name LIKE ?"
-#     when M.hasField("name"):
-#         const tableName = M.table()
-#         condition.add(fmt" ORDER BY {tableName}.name")
-
-#     let queryParams: array[1, DbValue] = [campaignName.dbValue()]
-#     connection.select(entries, condition, queryParams)
-
-#     result = entries
 
 proc getCampaignList*[M: Model](campaignName: string, modelType: typedesc[M]): seq[M] =
     ##[ Helper proc for getCampaignList when you don't want to provide the connection yourself]##
@@ -87,15 +67,13 @@ proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entry
     the comparison is case-sensitive.
     ``entryName`` must be exactly equal to the name of the targetted entry,
     the comparison is case-sensitive.]##
-    
-    
     var entry: M = new(M)
     
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt "{modelTableName}.name LIKE ? AND campaign_id.name LIKE ?"
+    const condition: string = fmt "{modelTableName}.name LIKE ? AND campaign_id.name LIKE ?"
     
     let queryParams: array[2, DbValue] = [entryName.dbValue(), campaignName.dbValue()]
-    connection.select(entry, sqlCondition, queryParams)
+    connection.select(entry, condition, queryParams)
 
     result = entry
 
@@ -105,7 +83,7 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string, modelTyp
         result = getEntryByName[M](connection, campaignName, entryName, modelType)
 
 
-proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
+proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -113,34 +91,30 @@ proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: string, fiel
     the comparison is case-sensitive.
     ``entryName`` must be exactly equal to the name of the targetted entry,
     the comparison is case-sensitive.]##
-    
-    
     var entry: M = new(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt "{modelTableName}.{fieldName} = ?"
+    const condition: string = fmt "{modelTableName}.{fieldName} = ?"
 
-    connection.select(entry, sqlCondition, fieldValue)
+    connection.select(entry, condition, fieldValue)
 
     result = entry 
 
 
-proc getEntryByField*[M: Model, T](fieldName: string, fieldValue: T, modelType: typedesc[M]): M = 
+proc getEntryByField*[M: Model, T](fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Helper proc for getEntryByField when you don't want to provide the connection yourself]##
     withDbConn(connection):
         result = getEntryByField[M](connection, fieldName, fieldValue, modelType)
 
 
-#TODO: Make it so entryId does not have to be inserted via formatting
 proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     
-
     var targetEntry: M = new(M)
     const modelTableName: string = M.table()
-    var sqlCondition: string = fmt"{modelTableName}.id = ?"
+    const condition: string = fmt"{modelTableName}.id = ?"
 
     let queryParams: array[1, DbValue] = [dbValue(entryId)]
-    connection.select(targetEntry, sqlCondition, queryParams)
+    connection.select(targetEntry, condition, queryParams)
 
     result = targetEntry
 
@@ -161,8 +135,6 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
     result = targetEntries
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
-    
-
     if oneEntries.len == 0: return result
 
     var relatedEntries: Table[int64, seq[M]]
@@ -174,7 +146,6 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O
 
 proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
-    
     var targetEntries: seq[relatedManyType] = @[new(relatedManyType)]
 
     connection.selectOneToMany(oneEntry,  targetEntries)
@@ -258,7 +229,6 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   ## the table of `queryStartEntry` as well as exactly one field pointing to 
   ## the table of `queryEndEntries`. Specify the parameters `fkColumnFromJoinToManyStart`
   ## and `fkColumnFromJoinToManyEnd` if that is not the case.
-  
   
   var joinModelEntries: seq[J] = @[new(joinModel)]
   var queryEndEntries: seq[M2] = @[new(otherManyModel)]
