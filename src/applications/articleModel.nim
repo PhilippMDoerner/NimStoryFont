@@ -13,7 +13,7 @@ import rules/ruleModel
 import mapMarker/markerModel
 import ../applicationSettings
 
-type ArticleTable* = enum #TODO: Replace this with applicationSettings constants once that can compile
+type ArticleTable* = enum
   atbCHARACTER = CHARACTER_TABLE
   atbCREATURE = CREATURE_TABLE
   atbDIARYENTRY = DIARYENTRY_TABLE
