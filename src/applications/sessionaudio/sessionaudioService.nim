@@ -37,7 +37,6 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
         let createdEntry = connection.createEntryInTransaction(newEntry)
         result = some(connection.getEntryById(createdEntry.id, SessionAudioRead))
     except Exception:
-        #TODO: implement: Delete the file if its there, if it isn't do nothing
         deleteFile(relativeFilePath)
         raise
 
