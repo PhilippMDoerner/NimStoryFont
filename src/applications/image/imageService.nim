@@ -52,14 +52,13 @@ proc createImage*(connection: DbConn, imageDTO: var ImageDTO): Option[Image] =
     deleteFile(absoluteImagePath)
     raise
 
-#TODO: Refactor this to more cleanly handle when to delete an old image if the image was swapped out
 proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
   ## This is a special form of updating, as it is for updating individual fields
   ## which may or may not be specified. If they are specified, edit the values
   ## in the entry and persist them to the database. If they aren't, ignore them.  
   var newImageRelativeFilePath: Option[string]
-  let isImageBeingReplaced = imageDTO.imageFile.isSome()
-  if isImageBeingReplaced: 
+  let isUpdateToNewImage = imageDTO.imageFile.isSome()
+  if isUpdateToNewImage: 
     let newImageAbsoluteFilePath = saveFile(imageDTO.imageFile.get(), imageDTO.mediaDirectory)
     newImageRelativeFilePath = some(newImageAbsoluteFilePath.getRelativeFilepathTo(imageDTO.mediaDirectory))
   else:
@@ -75,9 +74,10 @@ proc updateImageFileOrName*(imageId: int64, imageDTO: var ImageDTO): Image =
         result = connection.updateImage(imageToUpdate, newImageRelativeFilePath, imageDTO.imageName)
   
   except DbError:
-    if isImageBeingReplaced:
+    if isUpdateToNewImage:
       deleteFile(newImageRelativeFilePath.get(), imageDTO.mediaDirectory)
       raise
 
-  if isImageBeingReplaced:
-    deleteFile(oldImageRelativeFilePath, imageDTO.mediaDirectory) #Delete last to make sure you only delete after the image was succesfully swapped out in the database
+  if isUpdateToNewImage:
+    #Delete last to make sure you only delete after the image was succesfully swapped out in the database
+    deleteFile(oldImageRelativeFilePath, imageDTO.mediaDirectory)
