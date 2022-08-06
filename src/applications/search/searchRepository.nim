@@ -2,13 +2,12 @@ import searchModel
 import norm/model
 import std/[db_sqlite, strformat, unicode, strutils]
 import ../campaign/campaignService
-#import ../../applicationSettings
+import ../../applicationSettings
 import nisane
 import ../../utils/myStrutils
 import tinypool/sqlitePool
 import ../genericRawRepository
 
-#TODO Replace the hard coded table here with an insert
 proc toTitleQueryParam(tokens: seq[string]): string = 
   let joinedTokens = tokens.join("* OR ")
   result.add(fmt"{joinedTokens}*")
@@ -27,7 +26,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
           campaign_id,
           record_id,
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
-      FROM search_article_content 
+      FROM {SEARCH_TABLE} 
       WHERE
           campaign_id = {campaignId}
           AND (
@@ -63,7 +62,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
   let addSearchEntryQuery = fmt"""
-    INSERT INTO search_article_content (
+    INSERT INTO {SEARCH_TABLE} (
       title,
       title_rev, 
       body, 
@@ -90,7 +89,7 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
 
 proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
   let updateSearchEntryQuery = fmt"""
-    UPDATE search_article_content 
+    UPDATE {SEARCH_TABLE} 
     SET
       title = ?,
       title_rev = ?,
@@ -114,7 +113,7 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
 
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
     let deleteSearchEntryQuery = fmt"""
-      DELETE FROM search_article_content
+      DELETE FROM {SEARCH_TABLE}
       WHERE guid = '{guid}'
     """
 
