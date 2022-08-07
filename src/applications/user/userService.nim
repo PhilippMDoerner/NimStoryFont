@@ -33,6 +33,8 @@ proc getCampaignUserListOverview*(connection: DbConn, requestParams: ReadListPar
 proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var User): User =
   newEntry.date_joined = djangoDateTimeType.now()
   newEntry.is_active = true
+  let plainTextPassword = newEntry.password
+  newEntry.password = createPasswordDatabaseRepresentation(plainTextPassword, "")
   result = connection.createEntryInTransaction(newEntry)
 
 
