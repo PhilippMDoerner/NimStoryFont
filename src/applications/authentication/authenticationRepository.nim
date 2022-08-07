@@ -18,8 +18,6 @@ type UserTokenRow {.defaults.} = object
   isStaff*: bool = false
   isSuperUser*: bool = false
   username*: string = ""
-  groupName*: string = ""
-  groupId*: int = -1
   created*: int64 = -1
   guestCampaignName*: string
   guestCampaignId*: string
@@ -38,8 +36,6 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
       user.is_staff AS isAdmin,
       user.is_superuser AS isSuperUser,
       user.username,
-      userGroup.name,
-      userGroup.id AS groupId,
       token.created AS created,
       guestCampaign.name AS guestCampaignName,
       guestCampaign.id AS guestCampaignId,
