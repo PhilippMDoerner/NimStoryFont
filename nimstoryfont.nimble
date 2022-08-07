@@ -32,13 +32,33 @@ task alpine, "Build an alpine release":
   --opt:speed
   --define:release
   --define:lto
+  --styleCheck:usages
+  --spellSuggest:50
   --mm:orc
   --define:ssl
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
 
-task alpine_debug, "Build a release for debugging":
+task debug, "Build a normal debug build":
   --verbose
+  --deepcopy:on
+  --threads:on
+  --define:lto
+  --mm:orc
+  --define:enableTinyPoolLogging
+  --define:normDebug
+  --stackTrace:on 
+  --lineTrace:on 
+  --styleCheck:usages
+  --spellSuggest:50
+  --excessiveStackTrace:on
+  --hotcodereloading:on
+  --define:ssl
+  --define:verbose
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
+
+task alpine_debug, "Build a release for debugging":
   --gcc.exe:"musl-gcc"
   --gcc.linkerexe:"musl-gcc"
   --threads:on
@@ -50,6 +70,7 @@ task alpine_debug, "Build a release for debugging":
   --stackTrace:on 
   --lineTrace:on 
   --styleCheck:usages
+  #--styleCheck:error
   --spellSuggest:50
   --excessiveStackTrace:on
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
