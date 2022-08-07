@@ -45,8 +45,8 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
       adminCampaign.id AS adminCampaignId
     FROM {TOKEN_TABLE} token
     INNER JOIN {USER_TABLE} user ON token.user_id = user.id
-    INNER JOIN {USER_GROUP_TABLE} membership ON user.id = membership.user_id
-    INNER JOIN {GROUP_TABLE} userGroup ON membership.group_id = userGroup.id
+    LEFT JOIN {USER_GROUP_TABLE} membership ON user.id = membership.user_id
+    LEFT JOIN {GROUP_TABLE} userGroup ON membership.group_id = userGroup.id
     LEFT JOIN {CAMPAIGN_TABLE} guestCampaign ON guestCampaign.guest_group_id = userGroup.id
     LEFT JOIN {CAMPAIGN_TABLE} memberCampaign ON memberCampaign.member_group_id = userGroup.id
     LEFT JOIN {CAMPAIGN_TABLE} adminCampaign ON adminCampaign.admin_group_id = userGroup.id
