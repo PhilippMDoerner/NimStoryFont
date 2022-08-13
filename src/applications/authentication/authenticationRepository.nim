@@ -1,5 +1,6 @@
 import ../genericRawRepository
-import std/[strformat, db_sqlite, strutils]
+import std/[strformat, strutils, options]
+import norm/sqlite
 import ../../applicationSettings
 import constructor/defaults
 import ../../utils/tokenTypes
@@ -13,18 +14,18 @@ proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
   """
   connection.rawExec(query)
 
-type UserTokenRow {.defaults.} = object
-  id: int = -1
+type UserTokenRow {.defaults.} = ref object
+  id*: int = -1
   isStaff*: bool = false
   isSuperUser*: bool = false
   username*: string = ""
   created*: int64 = -1
-  guestCampaignName*: string
-  guestCampaignId*: string
-  memberCampaignName*: string
-  memberCampaignId*: string
-  adminCampaignName*: string
-  adminCampaignId*: string
+  guestCampaignName*: Option[string]
+  guestCampaignId*: Option[int64]
+  memberCampaignName*: Option[string]
+  memberCampaignId*: Option[int64]
+  adminCampaignName*: Option[string]
+  adminCampaignId*: Option[int64]
 implDefaults(UserTokenRow, {DefaultFlag.defExported, DefaultFlag.defTypeConstr}) 
 
 
@@ -52,11 +53,16 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
     LEFT JOIN {CAMPAIGN_TABLE} adminCampaign ON adminCampaign.admin_group_id = userGroup.id
     WHERE token.blacklisted IS FALSE 
       AND token.key = ? 
-      AND token.created + {tokenLifetimeInSeconds} > CAST(strftime('%s', 'now') AS INT)
+      AND token.created + ? > CAST(strftime('%s', 'now') AS INT)
       AND token.tokenType = ?
   """
+  let queryParams: array[3, DbValue] = [
+    token.dbValue(),
+    tokenLifetimeInSeconds.dbValue(),
+    ($tokenType).dbValue()
+  ]
 
-  let rows: seq[UserTokenRow] = connection.rawSelectRows(query, UserTokenRow, token, $tokenType)
+  let rows: seq[UserTokenRow] = connection.rawSelectRows(query, UserTokenRow, queryParams)
   if rows.len() == 0:
     raise newException(UnauthorizedError, fmt"There is no valid token '{token}'")
   
@@ -71,15 +77,15 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
   )
 
   for row in rows:
-    if row.guestCampaignName != "":
-      result.campaignMemberships[row.guestCampaignName] = CampaignAccessLevel.GUEST
-      result.campaignMemberships[row.guestCampaignId.parseInt()] = CampaignAccessLevel.GUEST
-    elif row.memberCampaignName != "":
-      result.campaignMemberships[row.memberCampaignName] = CampaignAccessLevel.MEMBER
-      result.campaignMemberships[row.memberCampaignId.parseInt()] = CampaignAccessLevel.MEMBER
-    elif row.adminCampaignName != "":
-      result.campaignMemberships[row.adminCampaignName] = CampaignAccessLevel.ADMIN
-      result.campaignMemberships[row.adminCampaignId.parseInt()] = CampaignAccessLevel.ADMIN
+    if row.guestCampaignName.isSome():
+      result.campaignMemberships[row.guestCampaignName.get()] = CampaignAccessLevel.GUEST
+      result.campaignMemberships[row.guestCampaignId.get()] = CampaignAccessLevel.GUEST
+    elif row.memberCampaignName.isSome():
+      result.campaignMemberships[row.memberCampaignName.get()] = CampaignAccessLevel.MEMBER
+      result.campaignMemberships[row.memberCampaignId.get()] = CampaignAccessLevel.MEMBER
+    elif row.adminCampaignName.isSome():
+      result.campaignMemberships[row.adminCampaignName.get()] = CampaignAccessLevel.ADMIN
+      result.campaignMemberships[row.adminCampaignId.get()] = CampaignAccessLevel.ADMIN
 
 
 proc blacklistToken*(connection: DbConn, token: string) =
@@ -88,11 +94,18 @@ proc blacklistToken*(connection: DbConn, token: string) =
     SET blacklisted = TRUE;
     WHERE key = ?
   """
-  connection.rawExec(query, token)
+  connection.rawExec(query, token.dbValue())
 
 proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, userId: int64, tokenType: TokenType) =
   let query = fmt"""
     INSERT INTO {TOKEN_TABLE} (key, created, user_id, blacklisted, tokenType)
-    VALUES (?, {creationTimestamp}, {userId}, FALSE, ?)
+    VALUES (?, ?, ?, FALSE, ?)
   """
-  connection.rawExec(query, token, $tokenType)
+
+  let queryParams: array[4, DbValue] = [
+    token.dbValue(),
+    creationTimestamp.dbValue(),
+    userId.dbValue(),
+    ($tokenType).dbValue()
+  ]
+  connection.rawExec(query, queryParams)

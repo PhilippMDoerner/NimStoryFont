@@ -2,7 +2,7 @@ import constructor/defaults
 import ../../applicationConstants
 import std/json
 
-type UpdatedArticle* {.defaults.} = object
+type UpdatedArticle* {.defaults.} = ref object
   table_name*: string = ""
   record_id*: int64 = MODEL_INIT_ID
   campaign_id*: int64 = MODEL_INIT_ID

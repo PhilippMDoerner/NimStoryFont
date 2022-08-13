@@ -1,4 +1,5 @@
-import std/[db_sqlite, strformat]
+import std/[strformat]
+import norm/sqlite
 import ../../applicationSettings
 import ../genericRawRepository
 
@@ -11,7 +12,7 @@ proc getEncounterCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 
 proc getDiaryEntryCount*(connection: DbConn, campaignId: int64): int =
   const sqlStatement = fmt"""
@@ -21,7 +22,7 @@ proc getDiaryEntryCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 
 
 proc getSessionAudioCount*(connection: DbConn, campaignId: int64): int =
@@ -32,7 +33,7 @@ proc getSessionAudioCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 
 proc getTimestampCount*(connection: DbConn, campaignId: int64): int =
   const sqlStatement = fmt"""
@@ -43,7 +44,7 @@ proc getTimestampCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 
 
 proc getQuoteCount*(connection: DbConn, campaignId: int64): int =
@@ -54,7 +55,7 @@ proc getQuoteCount*(connection: DbConn, campaignId: int64): int =
     WHERE session.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 
 
 proc getMarkerCount*(connection: DbConn, campaignId: int64): int =
@@ -65,5 +66,5 @@ proc getMarkerCount*(connection: DbConn, campaignId: int64): int =
     WHERE map.campaign_id = ?
   """
 
-  result = connection.rawSelectRow(sqlStatement, int, $campaignId)
+  result = connection.rawSelectRow(sqlStatement, int, campaignId.dbValue())
 

@@ -1,34 +1,33 @@
-import norm/model
-import std/[db_sqlite, strformat]
+import norm/[sqlite, model]
+import std/[strformat]
 import ../campaign/campaignService
 import ../../applicationSettings
-import nisane
 import tinypool/sqlitePool
 import contentUpdateModel
 
 
 proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageNumber: int, pageSize: int): seq[UpdatedArticle] =
   let campaign: Campaign = getCampaignByName(campaignName)
-  let campaignId: string = $campaign.id
-  let recentArticleQuery: SqlQuery = sql fmt """
+  let recentArticleQuery = fmt """
     SELECT table_name, record_id, campaign_id, guid 
     FROM {V_ALL_ARTICLES_TABLE}
-    WHERE campaign_id = {campaignId}
+    WHERE campaign_id = ?
     ORDER BY update_datetime DESC
     LIMIT ?
     OFFSET ?
   """
   
   let pageStartIndex = pageSize * pageNumber
-  var rows: seq[Row]
-  withDbConn(connection):
-    rows = connection.getAllRows(
-      recentArticleQuery,
-      pageSize,
-      pageStartIndex
-    )
+  let queryParams: array[3, DbValue] = [
+    campaign.id.dbValue(),
+    pageSize.dbValue(),
+    pageStartIndex.dbValue()
+  ]
 
-  for row in rows:
-    var articleEntry: UpdatedArticle = init(UpdatedArticle)
-    row.to(articleEntry, nil)
-    result.add(articleEntry)
+  withDbConn(connection):
+    result = @[new(UpdatedArticle)]
+    connection.rawSelect(
+      recentArticleQuery,
+      result, 
+      queryParams
+    )
