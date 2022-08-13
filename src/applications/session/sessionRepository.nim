@@ -1,6 +1,5 @@
 import norm/[model, sqlite]
 import sessionModel
-import tinypool/sqlitePool except DbConn
 import ../../utils/djangoDateTime/[normConversion]
 import std/[strformat, strutils]
 

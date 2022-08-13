@@ -1,5 +1,5 @@
 import ../genericRawRepository
-import std/[strformat, strutils, options]
+import std/[strformat, options]
 import norm/sqlite
 import ../../applicationSettings
 import constructor/defaults

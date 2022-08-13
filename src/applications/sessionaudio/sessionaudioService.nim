@@ -5,7 +5,7 @@ import norm/sqlite
 import prologue
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../allUrlParams
-import ../../utils/[fileUpload, databaseUtils]
+import ../../utils/[fileUpload]
 import std/[strformat, options, os]
 
 export sessionaudioModel

@@ -2,7 +2,6 @@ import locationService
 import std/[strformat, sequtils, sugar, options]
 import norm/sqlite
 import locationRepository
-import ../../utils/databaseUtils
 
 proc `$`*(model: Location | LocationRead): string = 
     var parentLocations: seq[Location] = readParentLocations(model)
