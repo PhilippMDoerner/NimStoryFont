@@ -2,6 +2,7 @@ import imageModel
 import imageUtils
 import std/[options]
 import tinypool/sqlitePool
+import norm/sqlite
 
 type ImageSerializable* = object
   pk: int64

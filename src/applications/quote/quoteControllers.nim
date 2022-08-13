@@ -14,7 +14,7 @@ type CreateQuoteConnectionRequestBody* = object
   character*: string
   quote*: int64
 
-proc createQuoteConnection*(ctx: Context) {.async.} = 
+proc createQuoteConnection*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
   
   let body = ctx.request.body.fromJson(CreateQuoteConnectionRequestBody)

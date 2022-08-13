@@ -1,9 +1,9 @@
 import prologue
 import organizationService
-import std/[strutils, uri, db_sqlite]
+import std/[strutils, uri]
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/serialization
-import norm/model
+import norm/[sqlite, model]
 import jsony
 import ../controllerTemplates
 import ../allUrlParams
