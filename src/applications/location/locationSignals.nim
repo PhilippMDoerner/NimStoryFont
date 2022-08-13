@@ -1,4 +1,3 @@
-import ../../utils/databaseUtils
 import std/[strformat, options]
 import ../core/signalSystem
 import norm/sqlite
