@@ -2,7 +2,7 @@ import tinypool/sqlitePool
 import std/db_sqlite
 import norm/sqlite
 
-export sqlitePool except DbConn
+export sqlitePool
 
 type MyDbConn* = sqlite.DbConn | db_sqlite.DbConn
 

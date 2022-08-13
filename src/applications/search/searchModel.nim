@@ -5,7 +5,7 @@ import std/[json]
 
 export campaignModel
 
-type Search* {.defaults.} = object
+type Search* {.defaults.} = ref object
   title*: string = ""
   title_rev*: string = ""
   body*: string = ""
@@ -20,7 +20,7 @@ implDefaults(Search, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-type SearchHit* {.defaults.} = object
+type SearchHit* {.defaults.} = ref object
   title*: string = ""
   table_name*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID

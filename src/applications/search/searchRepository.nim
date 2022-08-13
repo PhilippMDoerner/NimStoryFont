@@ -1,9 +1,8 @@
 import searchModel
-import norm/model
-import std/[db_sqlite, strformat, unicode, strutils]
+import norm/[sqlite, model]
+import std/[strformat, unicode, strutils]
 import ../campaign/campaignService
 import ../../applicationSettings
-import nisane
 import ../../utils/myStrutils
 import tinypool/sqlitePool
 import ../genericRawRepository
@@ -18,7 +17,6 @@ proc toBodyQueryParam(tokens: seq[string]): string =
 
 proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
-  let campaignId: string = $campaign.id
   let searchSQLStatement: string = fmt """
       SELECT 
           title,
@@ -28,7 +26,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
       FROM {SEARCH_TABLE} 
       WHERE
-          campaign_id = {campaignId}
+          campaign_id = ?
           AND (
               title MATCH ?
               OR title_rev MATCH ?
@@ -42,12 +40,13 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
   let tokens = searchText.split(' ')
   let tokensRev = searchText.reversed().split(' ')
 
-  let queryParams: array[5, string] = [
-    tokens.toTitleQueryParam(), 
-    tokensRev.toTitleQueryParam(), 
-    tokens.toBodyQueryParam(), 
-    tokensRev.toBodyQueryParam(),
-    searchLimit.intToStr()
+  let queryParams: array[6, DbValue] = [
+    campaign.id.dbValue(),
+    tokens.toTitleQueryParam().dbValue(), 
+    tokensRev.toTitleQueryParam().dbValue(), 
+    tokens.toBodyQueryParam().dbValue(), 
+    tokensRev.toBodyQueryParam().dbValue(),
+    searchLimit.dbValue()
   ]
 
   withDbConn(connection):
@@ -72,14 +71,19 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
       campaign_id, 
       guid
     )
-    VALUES (?, ?, ?, ?, '{tableName}', {record_id}, {campaign_id}, '{tableName}_{record_id}')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   """
 
-  let queryParams: array[4, string] = [
-    searchTitle,
-    searchTitle.reverseString(),
-    searchBody,
-    searchBody.reverseString(),
+  let guid = fmt"{tableName}_{record_id}"
+  let queryParams: array[8, DbValue] = [
+    searchTitle.dbValue(),
+    searchTitle.reverseString().dbValue(),
+    searchBody.dbValue(),
+    searchBody.reverseString().dbValue(),
+    tableName.dbValue(),
+    record_id.dbValue(),
+    campaign_id.dbValue(),
+    guid.dbValue()
   ]
 
   connection.rawExec(
@@ -95,14 +99,15 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
       title_rev = ?,
       body = ?,
       body_rev = ?
-    WHERE guid = '{guid}'
+    WHERE guid = ?
   """
 
-  let queryParams: array[4, string] = [
-    searchTitle,
-    searchTitle.reverseString(),
-    searchBody,
-    searchBody.reverseString(),
+  let queryParams: array[5, DbValue] = [
+    searchTitle.dbValue(),
+    searchTitle.reverseString().dbValue(),
+    searchBody.dbValue(),
+    searchBody.reverseString().dbValue(),
+    guid.dbValue()
   ]
 
   connection.rawExec(
@@ -114,10 +119,10 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
     let deleteSearchEntryQuery = fmt"""
       DELETE FROM {SEARCH_TABLE}
-      WHERE guid = '{guid}'
+      WHERE guid = ?
     """
 
     connection.rawExec(
       deleteSearchEntryQuery,
-      guid
+      guid.dbValue()
     )

@@ -4,6 +4,7 @@ import ../applicationSettings
 import std/[strutils, json, logging]
 import ../applications/authentication/[authenticationService, authenticationUtils]
 import ../utils/[errorResponses]
+import norm/sqlite
 
 template debugErrorLog(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
