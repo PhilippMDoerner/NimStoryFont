@@ -12,7 +12,7 @@ proc queryImagesForArticle*(articleType: ImageType, articleId: int64): seq[Image
   withDbConn(connection):
     result = connection.getList(Image, condition, articleId.dbValue())
 
-proc queryImagesForArticles*(connection: MyDbConn, articleType: static ImageType, articleIds: seq[int64]): Table[int64, seq[Image]] =
+proc queryImagesForArticles*(connection: DbConn, articleType: static ImageType, articleIds: seq[int64]): Table[int64, seq[Image]] =
   const articleFkFieldname = fmt"{$articleType}_article_id"
   let articleIdStr: string = articleIds.join(",")
   let condition: string = fmt """{articleFkFieldname} IN ({articleIdStr})"""
@@ -27,7 +27,7 @@ proc queryImagesForArticles*(connection: MyDbConn, articleType: static ImageType
     result[articleId].add(image)
 
 
-proc updateImage*(connection: MyDbConn, imageToUpdate: var Image, newImageFilePath: Option[string], newImageName: Option[string]): Image =
+proc updateImage*(connection: DbConn, imageToUpdate: var Image, newImageFilePath: Option[string], newImageName: Option[string]): Image =
   if newImageFilePath.isSome():
     imageToUpdate.image = newImageFilePath.get()
 

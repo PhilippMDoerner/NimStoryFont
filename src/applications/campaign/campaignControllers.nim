@@ -22,7 +22,7 @@ type ChangeMembershipRequestBody = object
 type MembershipAction = enum
   ADD="add", REMOVE="remove"
 
-proc changeMembership*(ctx: Context) {.async.} = 
+proc changeMembership*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
   
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
@@ -53,7 +53,7 @@ proc changeMembership*(ctx: Context) {.async.} =
 
 
 
-proc deactivateCampaignController*(ctx: Context) {.async.} = 
+proc deactivateCampaignController*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
   
   let campaignId: int64 = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64

@@ -1,8 +1,8 @@
 import searchModel
 import searchUtils
 import searchRepository
-import norm/model
-import std/[db_sqlite, strutils, json]
+import norm/[sqlite, model]
+import std/[strutils, json]
 import tinypool/sqlitePool
 import articleToStringUtils
 import ../articleModel

@@ -1,5 +1,5 @@
-import std/[tables, sets, hashes, db_sqlite, typetraits, logging, strformat]
-import norm/model 
+import std/[tables, sets, hashes, typetraits, logging, strformat]
+import norm/[sqlite, model] 
 
 
 type SignalType* = enum

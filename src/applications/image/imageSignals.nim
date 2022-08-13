@@ -1,7 +1,8 @@
 import ../core/signalSystem
 import ../../applicationSettings
 import ../../utils/fileUpload
-import std/[db_sqlite, json]
+import std/[json]
+import norm/sqlite
 import imageModel
 import prologue
 

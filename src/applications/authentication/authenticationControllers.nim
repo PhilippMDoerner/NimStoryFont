@@ -13,7 +13,7 @@ import tinypool/sqlitePool
 import ../allUrlParams
 import ../controllerTemplates
 
-proc createAndSerializeAuthData(connection: MyDbConn, ctx: Context, user: User): AuthDataSerializable =
+proc createAndSerializeAuthData(connection: DbConn, ctx: Context, user: User): AuthDataSerializable =
         let accessTokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
         let refreshTokenLifetimeInDays: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
             

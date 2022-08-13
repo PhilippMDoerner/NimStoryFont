@@ -18,7 +18,7 @@ export jsony
 
 
 # SELECT PROCS
-proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M]): seq[M] =
+proc getList*[M: Model](connection: DbConn, modelType: typedesc[M]): seq[M] =
     ##[ Retrieves all rows/entries of a Model M from the database ]##
 
     var entryList: seq[M] = @[]
@@ -33,7 +33,7 @@ proc getList*[M: Model]( modelType: typedesc[M]): seq[M] =
     withDbConn(connection):
         result = getList[M](connection, modelType)
 
-proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M], condition: string, queryParams: varargs[DbValue]): seq[M] =
+proc getList*[M: Model](connection: DbConn, modelType: typedesc[M], condition: string, queryParams: varargs[DbValue]): seq[M] =
     var entryList: seq[M] = @[]
     entryList.add(new(M))
 
@@ -42,7 +42,7 @@ proc getList*[M: Model](connection: MyDbConn, modelType: typedesc[M], condition:
     result = entryList
 
 
-proc getCampaignList*[M: Model](connection: MyDbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
+proc getCampaignList*[M: Model](connection: DbConn, campaignName: string, modelType: typedesc[M]): seq[M] =
     when M.hasField("name"):
         const tableName = M.table()
         const condition = fmt"campaign_id.name LIKE ? ORDER BY {tableName}.name"
@@ -59,7 +59,7 @@ proc getCampaignList*[M: Model](campaignName: string, modelType: typedesc[M]): s
 
 
 
-proc getEntryByName*[M: Model](connection: MyDbConn, campaignName: string, entryName: string, modelType: typedesc[M]): M = 
+proc getEntryByName*[M: Model](connection: DbConn, campaignName: string, entryName: string, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -83,7 +83,7 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string, modelTyp
         result = getEntryByName[M](connection, campaignName, entryName, modelType)
 
 
-proc getEntryByField*[M: Model, T](connection: MyDbConn, fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
+proc getEntryByField*[M: Model, T](connection: DbConn, fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
@@ -106,7 +106,7 @@ proc getEntryByField*[M: Model, T](fieldName: static string, fieldValue: T, mode
         result = getEntryByField[M](connection, fieldName, fieldValue, modelType)
 
 
-proc getEntryById*[M: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[M]): M =
+proc getEntryById*[M: Model](connection: DbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
     
     var targetEntry: M = new(M)
@@ -125,7 +125,7 @@ proc getEntryById*[M: Model](entryId: int64, modelType: typedesc[M]): M =
 
 
 
-proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
+proc getManyFromOne*[O: Model, M: Model](connection: DbConn, oneEntry: O, relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): seq[M] =
     ## manyTypeforeignKeyFieldName = Name of the foreign key field on the Many Type
     
     var targetEntries: seq[relatedManyType] = @[new(relatedManyType)]
@@ -134,7 +134,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, rela
 
     result = targetEntries
 
-proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
+proc getManyFromOne*[O: Model, M: Model](connection: DbConn, oneEntries: seq[O], relatedManyType: typedesc[M], manyTypeforeignKeyFieldName: static string): Table[int64, seq[M]] =
     if oneEntries.len == 0: return result
 
     var relatedEntries: Table[int64, seq[M]]
@@ -144,7 +144,7 @@ proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntries: seq[O
 
     result = relatedEntries
 
-proc getManyFromOne*[O: Model, M: Model](connection: MyDbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
+proc getManyFromOne*[O: Model, M: Model](connection: DbConn, oneEntry: O, relatedManyType: typedesc[M]): seq[M] =
     ##[ Helper proc for getManyFromOne when you don't want to specify the related FK field since there is only one ]##
     var targetEntries: seq[relatedManyType] = @[new(relatedManyType)]
 
@@ -163,7 +163,7 @@ proc getManyFromOne*[O: Model, M: Model](oneEntry: O, relatedManyType: typedesc[
 
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
-    connection: MyDbConn, 
+    connection: DbConn, 
     queryStartEntries: seq[M1], 
     joinModel: typedesc[J], 
     otherManyModel: typedesc[M2], 
@@ -188,7 +188,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     result = queryEndEntries
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
-    connection: MyDbConn, 
+    connection: DbConn, 
     queryStartEntry: M1, 
     joinModel: typedesc[J], 
     otherManyModel: typedesc[M2], 
@@ -215,7 +215,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
   result = queryEndEntries
 
 proc getManyToMany*[M1: Model, J: Model, M2: Model](
-    connection: MyDbConn, 
+    connection: DbConn, 
     queryStartEntry: M1, 
     joinModel: typedesc[J], 
     otherManyModel: typedesc[M2]
@@ -250,7 +250,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 
 
 #DELETE PROCS
-proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T) =
+proc deleteEntryInTransaction*[T: Model](connection: DbConn, entry: var T) =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     triggerSignal(SignalType.stPreDelete, connection, entry)
@@ -258,7 +258,7 @@ proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T) =
     connection.delete(entry)
     
 
-proc deleteEntryInTransaction*[T: Model](connection: MyDbConn, entryId: int64, modelType: typedesc[T]) =
+proc deleteEntryInTransaction*[T: Model](connection: DbConn, entryId: int64, modelType: typedesc[T]) =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     var entryToDelete = connection.getEntryById(entryId, modelType)
@@ -274,7 +274,7 @@ proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) {.gcsafe.}=
 
 
 #UPDATE PROCS
-proc updateEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
+proc updateEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     triggerSignal(SignalType.stPreUpdate, connection, entry)
@@ -317,7 +317,7 @@ proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string, modelT
     result = updateEntry(entry)
 
 #CREATE PROCS
-proc createEntryInTransaction*[T: Model](connection: MyDbConn, entry: var T): T =
+proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     triggerSignal(SignalType.stPreCreate, connection, entry)

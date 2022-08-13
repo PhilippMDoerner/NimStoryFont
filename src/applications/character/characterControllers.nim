@@ -14,7 +14,7 @@ type CreateConnectionRequestBody* = object
   encounter*: int64
   campaign*: int64
 
-proc createCharacterConnection*(ctx: Context) {.async.} = 
+proc createCharacterConnection*(ctx: Context) {.async, gcsafe.} = 
     let ctx = JWTContext(ctx)
     
     let body = ctx.request.body.fromJson(CreateConnectionRequestBody)
@@ -26,7 +26,6 @@ proc createCharacterConnection*(ctx: Context) {.async.} =
 
     respondOnError():
       withDbTransaction(connection):
-
         let entry: CharacterEncounterRead = connection.createCharacterEncounterConnection(characterId, encounterId)
         let data = connection.serializeCharacterEncounterRead(entry)
         resp jsonyResponse(ctx, data)
