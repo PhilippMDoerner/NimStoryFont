@@ -63,3 +63,11 @@ type TokenContainer* = object
   `type`*: TokenType
   token*: string
   created*: int64
+
+type TokenEntry* {.defaults.} = ref object
+  key*: string = ""
+  created*: int64 = -1
+  user_id*: int64 = -1
+  blacklisted*: bool = false
+  tokenType*: string = ""
+implDefaults(TokenEntry, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
