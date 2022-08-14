@@ -57,39 +57,20 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
     )
 
 
-
-
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
-  let addSearchEntryQuery = fmt"""
-    INSERT INTO {SEARCH_TABLE} (
-      title,
-      title_rev, 
-      body, 
-      body_rev, 
-      table_name, 
-      record_id, 
-      campaign_id, 
-      guid
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  """
-
   let guid = fmt"{tableName}_{record_id}"
-  let queryParams: array[8, DbValue] = [
-    searchTitle.dbValue(),
-    searchTitle.reverseString().dbValue(),
-    searchBody.dbValue(),
-    searchBody.reverseString().dbValue(),
-    tableName.dbValue(),
-    record_id.dbValue(),
-    campaign_id.dbValue(),
-    guid.dbValue()
-  ]
-
-  connection.rawExec(
-    addSearchEntryQuery,
-    queryParams
+  let searchHit = Search(
+    title: searchTitle,
+    title_rev: searchTitle.reverseString(),
+    body: searchBody,
+    body_rev: searchBody.reverseString(),
+    table_name: tableName,
+    record_id: record_id,
+    campaign_id: campaign_id,
+    guid: guid  
   )
+
+  connection.rawInsert(searchHit, SEARCH_TABLE)
 
 proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
   let updateSearchEntryQuery = fmt"""

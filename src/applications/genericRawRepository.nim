@@ -1,4 +1,4 @@
-import std/[strformat, options, typetraits]
+import std/[strformat, strutils, options, typetraits, enumerate, sequtils]
 import norm/sqlite
 
 when defined(normDebug):
@@ -52,10 +52,38 @@ proc rawSelectRow*[T: RawType](connection: DbConn, sqlQuery: string, outputType:
         let columnVal = rawRow[0]
         result = columnVal.to(T)
 
-proc rawExec*(connection: DbConn, sqlQuery: string, queryParams: varargs[DbValue]) =
+proc rawExec*(connection: DbConn, sqlQuery: string, queryParams: varargs[DbValue]) {.gcsafe.} =
   when defined(normDebug):
     log(lvlDebug, fmt"'{sqlQuery}' <- {queryParams}")
   
   {.cast(gcsafe).}:
     connection.exec(sql sqlQuery, queryParams)
 
+proc getColumns[T: ref object](t: typedesc[T]): seq[string]{.compileTime.} =
+  for fieldName, value in T()[].fieldPairs:
+    result.add(fieldName)
+
+proc assertNoNestedObjects[T: ref object](t: typedesc[T]): bool {.compileTime.} =
+  for fieldName, value in T()[].fieldPairs:
+    let isObject = typeof(value) is (object or ref object)
+    let name = name(typeof(value))
+    assert(not isObject, fmt"You're trying to insert with a non-Model object with nested fields with Model '{name}'. This is not allowed. Please ensure all fields are in there directly")
+
+proc rawInsert*[T: ref object](connection: DbConn, obj: T, tableName: string) =
+  static: discard assertNoNestedObjects(T)
+
+  const columnNames: seq[string] = getColumns(T)
+  const columnCount: int = columnNames.len()
+  const columnString: string = columnNames.join(",")
+  const valueString: string = "?".repeat(columnCount).join(",")
+
+  let sqlQuery = fmt"""
+    INSERT INTO {tableName} ({columnString})
+    VALUES ({valueString})
+  """
+  
+  var queryParams: array[columnCount, DbValue]
+  for index, fieldName, value in enumerate(obj[].fieldPairs):
+    queryParams[index] = value.dbValue()
+
+  connection.rawExec(sqlQuery, queryParams)

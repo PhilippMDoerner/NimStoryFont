@@ -5,6 +5,7 @@ import ../../applicationSettings
 import constructor/defaults
 import ../../utils/tokenTypes
 import authenticationUtils
+import authenticationModels
 
 
 proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
@@ -97,15 +98,12 @@ proc blacklistToken*(connection: DbConn, token: string) =
   connection.rawExec(query, token.dbValue())
 
 proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, userId: int64, tokenType: TokenType) =
-  let query = fmt"""
-    INSERT INTO {TOKEN_TABLE} (key, created, user_id, blacklisted, tokenType)
-    VALUES (?, ?, ?, FALSE, ?)
-  """
+  let tokenEntry = TokenEntry(
+      key: token,
+      created: creationTimestamp,
+      user_id: userId,
+      blacklisted: false,
+      tokenType: $tokenType
+  )  
 
-  let queryParams: array[4, DbValue] = [
-    token.dbValue(),
-    creationTimestamp.dbValue(),
-    userId.dbValue(),
-    ($tokenType).dbValue()
-  ]
-  connection.rawExec(query, queryParams)
+  connection.rawInsert(tokenEntry, TOKEN_TABLE)
