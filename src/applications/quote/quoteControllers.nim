@@ -10,15 +10,15 @@ import ../controllerTemplates
 import ../genericArticleRepository
 import ../allUrlParams
 
-type CreateQuoteConnectionRequestBody* = object
-  character*: string
-  quote*: int64
+type CreateQuoteConnectionRequestBody = object
+  character: int64
+  quote: int64
 
 proc createQuoteConnection*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
   
   let body = ctx.request.body.fromJson(CreateQuoteConnectionRequestBody)
-  let characterId: int64 = body.character.parseInt().int64
+  let characterId: int64 = body.character
   let quoteId: int64 = body.quote
 
   respondOnError():
