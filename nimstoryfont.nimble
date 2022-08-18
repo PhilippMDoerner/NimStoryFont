@@ -78,3 +78,22 @@ task alpine_debug, "Build a release for debugging":
   #--debugger:native
   --outdir:"."
   setCommand "c", "src/nimstoryfont.nim"
+
+task normal_debug, "Build a release for debugging":
+  --threads:on
+  --mm:orc
+  --deepcopy:on
+  --define:ssl
+  --define:enableTinyPoolLogging
+  --define:normDebug
+  --stackTrace:on 
+  --lineTrace:on 
+  --styleCheck:usages
+  #--styleCheck:error
+  --spellSuggest:50
+  --excessiveStackTrace:on
+  #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
+  #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
+  --debugger:native
+  --outdir:"."
+  setCommand "c", "src/nimstoryfont.nim"
