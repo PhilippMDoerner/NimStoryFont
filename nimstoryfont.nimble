@@ -52,7 +52,6 @@ task debug, "Build a normal debug build":
   --styleCheck:usages
   --spellSuggest:50
   --excessiveStackTrace:on
-  --hotcodereloading:on
   --define:ssl
   --define:verbose
   --outdir:"."
