@@ -18,7 +18,6 @@ requires "constructor >= 1.0.3"
 requires "tinypool >= 1.0.0"
 requires "jwt >= 0.2.0"
 requires "zippy >= 0.9.7"
-requires "nisane >= 0.2.0"
 
 
 # Tasks
