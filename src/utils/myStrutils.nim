@@ -23,3 +23,5 @@ proc randomString*(length: int): string =
 
 proc removeSuffix*(s: var string, charCount: int) =
   s.setLen(s.len() - charCount)
+
+proc toLower*[T](s: typedesc[T]): string {.compileTime.} = ($T).toLower()

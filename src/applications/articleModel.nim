@@ -12,6 +12,7 @@ import spell/spellModel
 import rules/ruleModel
 import mapMarker/markerModel
 import ../applicationSettings
+import ../utils/myStrutils
 
 type ArticleTable* = enum
   atbCHARACTER = CHARACTER_TABLE
@@ -29,15 +30,15 @@ type ArticleTable* = enum
 
 type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap | Organization | OrganizationRead | Quest | SessionAudio | Spell | Rule
 type ArticleType* = enum
-  atCharacter = "character"
-  atCreature = "creature"
-  atDiaryEntry = "diaryentry"
-  atEncounter = "encounter"
-  atItem = "item"
-  atLocation = "location"
-  atMap = "map"
-  atOrganization = "organization"
-  atQuest = "quest"
-  atSessionAudio = "sessionaudio"
-  atSpell = "spell"
+  atCharacter = Character.toLower()
+  atCreature = Creature.toLower()
+  atDiaryEntry = DiaryEntry.toLower()
+  atEncounter = Encounter.toLower()
+  atItem = Item.toLower()
+  atLocation = Location.toLower()
+  atMap = Map.toLower()
+  atOrganization = Organization.toLower()
+  atQuest = Quest.toLower()
+  atSessionAudio = SessionAudio.toLower()
+  atSpell = Spell.toLower()
   atRule = "rules"
