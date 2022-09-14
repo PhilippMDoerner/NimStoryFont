@@ -1,7 +1,7 @@
 import norm/model
 import itemModel
 import itemUtils
-import ../image/[imageModel, imageUtils]
+import ../image/[imageModel, imageUtils, imageSerialization]
 import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
@@ -24,13 +24,13 @@ type ItemSerializable* = object
     description*: Option[string]
     update_datetime*: DjangoDateTime
     creation_datetime*: DjangoDateTime
-    images*: seq[string]
+    images*: seq[ImageSerializable]
     campaign*: int64
     campaign_details*: MinimumCampaignOverview
 
 proc serializeItemRead*(connection: DbConn, entry: ItemRead): ItemSerializable =
     let owner: Option[OwnerDetails] = entry.owner_id.map(serializeOwner)
-    let images = connection.getManyFromOne(entry, Image).map(img => img.image.getImagePath())
+    let images = connection.getManyFromOne(entry, Image).map(serializeImage)
     
     result = ItemSerializable(
         pk: entry.id,
