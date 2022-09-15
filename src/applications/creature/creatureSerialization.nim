@@ -1,8 +1,8 @@
 import creatureModel
 import norm/sqlite
 import ../genericArticleRepository
-import ../image/imageModel
-import std/[options, strformat, sugar]
+import ../image/[imageSerialization, imageModel]
+import std/[options, strformat, sugar, sequtils]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../campaign/campaignModel
 import ../articleModel
@@ -15,11 +15,11 @@ type CreatureSerializable* = object
     update_datetime*: DjangoDateTime
     campaign: int64
     campaign_details*: MinimumCampaignOverview
-    images: seq[Image]
+    images: seq[ImageSerializable]
 
 
 proc serializeCreatureRead*(connection: DbConn, entry: CreatureRead): CreatureSerializable =
-    let images = connection.getManyFromOne(entry, Image)
+    let images = connection.getManyFromOne(entry, Image).map(serializeImage)
     result = CreatureSerializable(
         pk: entry.id,
         name: entry.name,
