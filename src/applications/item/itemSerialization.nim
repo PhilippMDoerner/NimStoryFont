@@ -1,7 +1,7 @@
 import norm/model
 import itemModel
 import itemUtils
-import ../image/[imageModel, imageUtils, imageSerialization]
+import ../image/[imageModel, imageSerialization]
 import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
