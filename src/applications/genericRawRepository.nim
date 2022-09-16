@@ -21,7 +21,7 @@ proc rawSelectRows*[T: RawType](connection: DbConn, sqlQuery: string, outputType
     if hasRows:
       let hasSingleColumn = row[0].len() == 1
       if not hasSingleColumn:
-        raise newException(ValueError, fmt"Tried parsing sqlQuery into type '{name(T)}'. T was not a ref object and thus expected to require only 1 column of data. However, the query returned '{row.len()}' columns of data! Query: {sqlQuery}")
+        raise newException(ValueError, fmt"Tried parsing sqlQuery result into type '{name(T)}'. T expected to be a primitive datatype and thus require only 1 column of data. However, the query returned '{row[0].len()}' columns of data! Query: {sqlQuery}")
       else:
         for row in rows:
           let columnVal = row[0]
@@ -45,9 +45,9 @@ proc rawSelectRow*[T: RawType](connection: DbConn, sqlQuery: string, outputType:
       let rawRow = row.get()
       let hasSingleColumn = rawRow.len() == 1
       
-      if hasSingleColumn:
+      if not hasSingleColumn:
         const typeName: string = name(T)
-        raise newException(ValueError, fmt"Tried parsing sqlQuery into type '{typeName}'. T was not a ref object and thus expected to require only 1 column of data. However, the query returned '{rawRow.len()}' columns of data! Query: {sqlQuery}")
+        raise newException(ValueError, fmt"Tried parsing sqlQuery into type '{typeName}'. T expected to be a primitive datatype and thus require only 1 column of data. However, the query returned '{rawRow.len()}' columns of data! Query: {sqlQuery}")
       else:
         let columnVal = rawRow[0]
         result = columnVal.to(T)
