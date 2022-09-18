@@ -7,7 +7,7 @@ sudo docker save -o ns_image.tar nimstoryfont-nimstoryfont
 
 sudo chmod 777 nginx_image.tar
 sudo chmod 777 ns_image.tar
-bash ./disabledev.sh
+bash ./disabledev.sh # in case /etc/hosts file redirects still to localhost
 
 # Upload tar files
 scp nginx_image.tar isofruit@aldrune.com:~/nginx_image.tar
