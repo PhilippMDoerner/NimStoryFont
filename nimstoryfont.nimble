@@ -35,7 +35,7 @@ task alpine, "Build an alpine release":
   --spellSuggest:50
   --mm:orc
   --define:ssl
-  --outdir:"."
+  --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
 task debug, "Build a normal debug build":
@@ -53,7 +53,7 @@ task debug, "Build a normal debug build":
   --excessiveStackTrace:on
   --define:ssl
   --define:verbose
-  --outdir:"."
+  --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
 task alpine_debug, "Build a release for debugging":
@@ -74,7 +74,7 @@ task alpine_debug, "Build a release for debugging":
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   #--debugger:native
-  --outdir:"."
+  --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
 task normal_debug, "Build a release for debugging":
@@ -93,5 +93,5 @@ task normal_debug, "Build a release for debugging":
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   --debugger:native
-  --outdir:"."
+  --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
