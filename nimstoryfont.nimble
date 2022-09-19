@@ -128,12 +128,12 @@ task save_images, "Store images as tar files for current nginx and nimstoryfont 
   echo staticExec(fmt"sudo chmod 777 {ns_image_tarname}")
 
 task enabledev, "Changes the hosts file to change DNS lookups to the 'aldrune.com' domain get routed to localhost":
-  echo staticExec(fmt"sudo echo '127.0.0.1       {domain}' >> /etc/hosts")
-  echo staticExec(fmt"sudo echo '127.0.0.1       www.{domain}' >> /etc/hosts")
+  exec(fmt"""sudo sh -c "echo '127.0.0.1       {domain}' >> /etc/hosts"""")
+  exec(fmt"""sudo sh -c "echo '127.0.0.1       www.{domain}' >> /etc/hosts"""")
 
 task disabledev, "Changes the hosts file so that DNS lookups to the 'aldrune.com' domain get routed to the internet":
-  exec("sudo sed -i /'127.0.0.1       {domain}'/d  /etc/hosts")
-  exec("sudo sed -i /'127.0.0.1       www.{domain}'/d  /etc/hosts")
+  exec(fmt"sudo sed -i /'127.0.0.1       {domain}'/d  /etc/hosts")
+  exec(fmt"sudo sed -i /'127.0.0.1       www.{domain}'/d  /etc/hosts")
 
 task local_deploy, "Stops and removes prior container and images, rebuilds the images and runs them":
   exec("nimble alpine_debug")
