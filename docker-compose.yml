@@ -4,8 +4,8 @@ services:
   proxy:
     image: nimstoryfont-proxy
     ports:
-     - "443:443"
-     - "80:80"
+      - "443:443"
+      - "80:80"
     volumes:
       - /etc/nginx/certificates:/cert/live/www.aldrune.com
       - /etc/nginx/certificates:/cert/archive/www.aldrune.com
@@ -15,13 +15,15 @@ services:
       - /home/philipp/Music/session_audio_backup:/session_audio # To serve audio files
       - /home/philipp/Music/session_audio_backup/extended:/session_audio/extended # To serve audio files
     container_name: production_nginx
+    restart: on-failure
   
   #NimStoryfont backend webserver that receives requests on port 8080
   nimstoryfont:
     image: nimstoryfont-nimstoryfont
-    expose: 
+    expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
       - /home/philipp/dev/nimstoryfont/:/database # For database access
       - /tmp:/var/log/nginx # For prologue logs
     container_name: nswebserver
+    restart: on-failure
