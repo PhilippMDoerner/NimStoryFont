@@ -41,10 +41,10 @@ task alpine, "Build an alpine release":
   --opt:speed
   --define:release
   --define:lto
+  --define:ssl
   --styleCheck:usages
   --spellSuggest:50
   --mm:orc
-  --define:ssl
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
@@ -52,17 +52,15 @@ task debug, "Build a normal debug build":
   --verbose
   --deepcopy:on
   --threads:on
-  --define:lto
   --mm:orc
   --define:enableTinyPoolLogging
   --define:normDebug
+  --define:ssl
   --stackTrace:on 
   --lineTrace:on 
   --styleCheck:usages
   --spellSuggest:50
   --excessiveStackTrace:on
-  --define:ssl
-  --define:verbose
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
