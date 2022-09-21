@@ -2,7 +2,7 @@
 
 version       = "1.0.0"
 author        = "PhilippMDoerner"
-description   = "A new awesome nimble package"
+description   = "A web-application backend written in nim. The backend of a webpage to store information about your dnd campaigns."
 license       = "GPL-3.0-or-later"
 srcDir        = "src"
 bin           = @["nimstoryfont"]
@@ -16,7 +16,6 @@ requires "prologue >= 0.6.0"
 requires "jsony >= 1.1.2"
 requires "constructor >= 1.0.3"
 requires "tinypool >= 1.0.0"
-requires "jwt >= 0.2.0"
 requires "zippy >= 0.9.7"
 
 import std/strformat
