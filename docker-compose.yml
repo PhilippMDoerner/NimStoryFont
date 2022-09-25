@@ -23,7 +23,8 @@ services:
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
+      - /home/philipp/dev/nimstoryfont/media:/imagemedia
       - /home/philipp/dev/nimstoryfont/:/database # For database access
-      - /tmp:/var/log/nginx # For prologue logs
+      - /tmp:/server_logs # For prologue logs
     container_name: nswebserver
     restart: on-failure

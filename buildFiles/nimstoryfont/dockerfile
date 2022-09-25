@@ -10,6 +10,7 @@ COPY ./nimstoryfontSettings.json /settings.json
 # Setup necessary directories
 RUN mkdir /database
 RUN mkdir /imagemedia
+RUN mkdir /server_logs
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN mkdir /session_audio
 
