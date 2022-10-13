@@ -2,6 +2,7 @@ import prologue
 import ../../middleware/[loginMiddleware]
 import mapService
 import mapSerialization
+import mapControllers
 import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
@@ -11,7 +12,7 @@ import mapModel
 proc addMapRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/map/",
-        handler = createCreateArticleHandler[CreateParams, Map, MapSerializable](serializeMap),
+        handler = createMapController,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
