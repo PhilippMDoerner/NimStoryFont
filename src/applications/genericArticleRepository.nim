@@ -265,12 +265,11 @@ proc deleteEntryInTransaction*[T: Model](connection: DbConn, entryId: int64, mod
     connection.deleteEntryInTransaction(entryToDelete)
     
 
-proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) {.gcsafe.}=
+proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) =
     ##[ Deletes a row/an entry of a TableModel T with the given id.
     Uses norm's "delete" capabilities, thus the need to instantiate the TableModel]##
     withDbTransaction(connection):
-        {.cast(gcsafe).}:
-            connection.deleteEntryInTransaction(entryId, modelType)
+      connection.deleteEntryInTransaction(entryId, modelType)
 
 
 #UPDATE PROCS
@@ -296,8 +295,7 @@ proc updateEntry*[T: Model](entry: var T): T =
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
 
     withDbTransaction(connection):
-        {.cast(gcsafe).}:
-            result = connection.updateEntryInTransaction(entry)
+      result = connection.updateEntryInTransaction(entry)
 
 
 proc updateEntry*[T: Model](entryId: int64, entryJsonData: string, modelType: typedesc[T]): T =
@@ -334,8 +332,7 @@ proc createEntry*[T: Model](entry: var T): T =
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     
     withDbTransaction(connection):
-        {.cast(gcsafe).}:
-            result = connection.createEntryInTransaction(entry)
+      result = connection.createEntryInTransaction(entry)
 
 
 proc createEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =

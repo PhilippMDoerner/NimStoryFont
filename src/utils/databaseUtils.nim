@@ -9,8 +9,7 @@ template withDbTransaction*(connection: untyped, body: untyped) =
 
     exec(connection, sql"BEGIN")
     try:
-      {.cast(gcsafe).}:
-        body
+      body
       exec(connection, sql"COMMIT")
     
     except:
