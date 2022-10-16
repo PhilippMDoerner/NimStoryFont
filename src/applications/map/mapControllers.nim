@@ -1,13 +1,12 @@
 import prologue
 import std/[json, strutils, sugar]
-import ../../utils/[jwtContext, myStrutils, errorResponses, databaseUtils, customResponses]
+import ../../utils/[jwtContext, errorResponses, databaseUtils, customResponses]
 import mapService
 import mapSerialization
 import ../../applicationSettings
 import ../genericArticleRepository
 import jsony
 import tinypool/sqlitePool
-import ../allUrlParams
 import ../controllerTemplates
 import ../authentication/authenticationUtils
 
