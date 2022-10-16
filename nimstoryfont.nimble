@@ -10,8 +10,8 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 
-requires "nim >= 1.6.2"
-requires "norm >= 2.5.0"
+requires "nim >= 1.6.8"
+requires "norm >= 2.5.2"
 requires "prologue >= 0.6.0"
 requires "jsony >= 1.1.2"
 requires "constructor >= 1.0.3"
@@ -41,6 +41,7 @@ task alpine, "Build an alpine release":
   --define:release
   --define:lto
   --define:ssl
+  --hint:"XCannotRaiseY:off"
   --styleCheck:usages
   --spellSuggest:50
   --mm:orc
