@@ -62,7 +62,7 @@ proc opensslCalculateSHA256Pbkdf2Hash(password: string, salt: string, iterations
       iterations.cint,
       digest,
       keylen,
-      output[0].unsafeAddr
+      output[0].addr
     )
 
   doAssert retVal == 1
