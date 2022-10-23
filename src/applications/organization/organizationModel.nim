@@ -23,7 +23,7 @@ implDefaults(Organization, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type OrganizationOverview* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
-    description*: Option[string]
+    description*: Option[string] = none(string)
     campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
 

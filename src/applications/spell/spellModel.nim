@@ -9,9 +9,8 @@ import ../playerclass/playerClassModel
 
 
 type Spell* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
-    ##[TableModel of the table of story characters. ]##
     name*: string = ""
-    description*: string = "" # A description of the character
+    description*: string = ""
     spell_level*: 0..9 = 0
     casting_time*: string = ""
     range*: string = ""
