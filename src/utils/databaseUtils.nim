@@ -7,14 +7,18 @@ template withDbTransaction*(connection: untyped, body: untyped) =
   block: #ensures connection exists only within the scope of this block
     var connection: DbConn = borrowConnection()
 
-    exec(connection, sql"BEGIN")
+    {.cast(gcsafe).}:
+      exec(connection, sql"BEGIN")
     try:
-      body
-      exec(connection, sql"COMMIT")
+      {.cast(gcsafe).}:
+        body
+      {.cast(gcsafe).}:
+        exec(connection, sql"COMMIT")
     
     except:
       #If anything errors out, roll back the transaction and reraise the error
-      exec(connection, sql"ROLLBACK")
+      {.cast(gcsafe).}:
+        exec(connection, sql"ROLLBACK")
       raise
 
     finally:
