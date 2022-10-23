@@ -76,6 +76,7 @@ task alpine_debug, "Build a release for debugging":
   --stackTrace:on 
   --lineTrace:on 
   --styleCheck:usages
+  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   #--styleCheck:error
   --spellSuggest:50
   --excessiveStackTrace:on
