@@ -1,4 +1,5 @@
 import spellModel
+import spellConstants
 import std/[strformat, options]
 import ../../utils/jwtContext
 import ../authentication/authenticationUtils
