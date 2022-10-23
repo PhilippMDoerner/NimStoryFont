@@ -26,7 +26,7 @@ implDefaults(Quest, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 type QuestCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE} = ref object of Model
-  name*: string
+  name*: string = ""
 implDefaults(QuestCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
  
