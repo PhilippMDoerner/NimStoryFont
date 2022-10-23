@@ -7,6 +7,7 @@ import spellService
 import std/strformat
 import spellSerialization
 import ../genericArticleControllers
+import spellConstants
 
 proc addSpellRoutes*(app: Prologue) =
     app.addRoute(

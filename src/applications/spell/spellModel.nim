@@ -6,19 +6,20 @@ import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
 import constructor/defaults
 import ../playerclass/playerClassModel
+import spellConstants
 
 
 type Spell* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
     name*: string = ""
     description*: string = ""
-    spell_level*: 0..9 = 0
-    casting_time*: string = ""
-    range*: string = ""
-    duration*: string = ""
+    spell_level*: SpellLevel = SpellLevel.slCANTRIP
+    casting_time*: CastingTime = CastingTime.ctACTION
+    range*: Range = Range.rFEET5
+    duration*: SpellDuration = SpellDuration.sdINSTANT
     concentration*: bool = false
     ritual*: bool = false
-    school*: string = ""
-    saving_throw*: Option[string] = some("")
+    school*: MagicSchool = MagicSchool.msABJURATION
+    saving_throw*: Option[SavingThrow] = some(SavingThrow.stDEXTERITY)
     components*: string = ""
     damage*: Option[string] = some("")
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
@@ -32,14 +33,14 @@ implDefaults(Spell, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 type SpellRead* {.defaults, readOnly, tableName: SPELL_TABLE.} = ref object of Model
     name*: string = ""
     description*: string = ""
-    spell_level*: 0..9 = 0
-    casting_time*: string = ""
-    range*: string = ""
-    duration*: string = ""
+    spell_level*: SpellLevel = SpellLevel.slCANTRIP
+    casting_time*: CastingTime = CastingTime.ctACTION
+    range*: Range = Range.rFEET5
+    duration*: SpellDuration = SpellDuration.sdINSTANT
     concentration*: bool = false
     ritual*: bool = false
-    school*: string = ""
-    saving_throw*: Option[string] = some("")
+    school*: MagicSchool = MagicSchool.msABJURATION
+    saving_throw*: Option[SavingThrow] = some(SavingThrow.stDEXTERITY)
     components*: string = ""
     damage*: Option[string] = some("")
     creation_datetime*: DjangoDateTime = djangoDateTimeType.now()

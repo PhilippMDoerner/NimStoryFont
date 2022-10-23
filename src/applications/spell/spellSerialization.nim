@@ -7,6 +7,7 @@ import std/[options, sugar, sequtils, tables]
 import ../campaign/campaignModel
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../articleModel
+import spellConstants
 
 type SpellConnectionSerializable* = object
     pk: int64
@@ -34,15 +35,15 @@ type SpellSerializable* = object
     name: string
     pk: int64
     player_class_connections: seq[SpellConnectionSerializable]
-    spell_level: int
-    casting_time: string
-    `range`: string
+    spell_level: SpellLevel
+    casting_time: CastingTime
+    `range`: Range
     components: string
-    duration: string
+    duration: SpellDuration
     concentration: bool
     ritual: bool
-    school: string
-    saving_throw: Option[string]
+    school: MagicSchool
+    saving_throw: Option[SavingThrow]
     damage: Option[string]
     description: string
     creation_datetime: DjangoDateTime

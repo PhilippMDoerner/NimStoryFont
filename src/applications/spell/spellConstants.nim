@@ -1,3 +1,7 @@
+import std/strutils
+import jsony
+import norm/sqlite
+
 type SavingThrow* = enum
   stATTACK = "ATK",
   stSTRENGTH = "STR",
@@ -6,6 +10,31 @@ type SavingThrow* = enum
   stINTELLIGENCE = "INT",
   stWISDOM = "WIS",
   stCHARISMA = "CHA"
+
+func dbType*(T: typedesc[SavingThrow]): string = "TEXT"
+func dbValue*(val: SavingThrow): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[SavingThrow]): T = parseEnum[SavingThrow](dbVal.s)
+
+proc dumpHook*(s: var string, value: SavingThrow) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var SavingThrow) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[SavingThrow](str)
+
 
 type SpellLevel* = enum
   slCANTRIP = 0
@@ -19,6 +48,27 @@ type SpellLevel* = enum
   slLEVEL8 = 8,
   slLEVEL9 = 9
 
+func dbType*(T: typedesc[SpellLevel]): string = "INT"
+func dbValue*(val: SpellLevel): DbValue = dbValue(val.int)
+proc to*(dbVal: DbValue, T: typedesc[SpellLevel]): T = SpellLevel(dbVal.i)
+
+proc dumpHook*(s: var string, value: SpellLevel) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add $value.int
+
+proc parseHook*(s: string, i: var int, v: var SpellLevel) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var level: int
+    s.parseHook(i, level)
+    v = SpellLevel(level)
+
 type CastingTime* = enum
   ctACTION = "1 Action",
   ctBONUSACTION = "1 Bonus Action",
@@ -29,6 +79,31 @@ type CastingTime* = enum
   ctEIGHTHOURS = "8 Hours",
   ctTWELVEHOURS = "12 Hours",
   ctDAY = "24 Hours"
+
+func dbType*(T: typedesc[CastingTime]): string = "TEXT"
+func dbValue*(val: CastingTime): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[CastingTime]): T = parseEnum[CastingTime](dbVal.s)
+
+proc dumpHook*(s: var string, value: CastingTime) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var CastingTime) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[CastingTime](str)
+
 
 type SpellDuration* = enum
   sdINSTANT = "Instantaneous",
@@ -46,6 +121,31 @@ type SpellDuration* = enum
   sdSPECIAL = "Special",
   sdUNTILDISPELLED = "Until Dispelled"
 
+func dbType*(T: typedesc[SpellDuration]): string = "TEXT"
+func dbValue*(val: SpellDuration): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[SpellDuration]): T = parseEnum[SpellDuration](dbVal.s)
+
+proc dumpHook*(s: var string, value: SpellDuration) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var SpellDuration) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[SpellDuration](str)
+
+
 type Range* = enum
   rSELF = "Self",
   rFEET5 = "5 Feet",
@@ -61,8 +161,58 @@ type Range* = enum
   rMILE3 = "3 Miles",
   rMILE10 = "10 Miles"
 
+func dbType*(T: typedesc[Range]): string = "TEXT"
+func dbValue*(val: Range): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[Range]): T = parseEnum[Range](dbVal.s)
+
+proc dumpHook*(s: var string, value: Range) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var Range) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[Range](str)
+
+
 type SpellComponents* = enum
   scV, scS, scM, scVS, scVM, scSM, scVSM, scVSMS = "VSM*"
+
+func dbType*(T: typedesc[SpellComponents]): string = "TEXT"
+func dbValue*(val: SpellComponents): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[SpellComponents]): T = parseEnum[SpellComponents](dbVal.s)
+
+proc dumpHook*(s: var string, value: SpellComponents) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var SpellComponents) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[SpellComponents](str)
+
 
 type MagicSchool* = enum
   msABJURATION = "Abjuration",
@@ -73,3 +223,27 @@ type MagicSchool* = enum
   msILLUSION = "Illusion",
   msNECROMANCY = "Necromancy",
   msTRANSMUTATION = "Transmutation"
+
+func dbType*(T: typedesc[MagicSchool]): string = "TEXT"
+func dbValue*(val: MagicSchool): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[MagicSchool]): T = parseEnum[MagicSchool](dbVal.s)
+
+proc dumpHook*(s: var string, value: MagicSchool) =
+    ##[ jsony-Hook that is automatically called to convert SpellLevel to json string
+
+    ``s``: The string containing the current serialization. ONLY APPEND TO THIS STRING
+    ``value``: The value you want to convert to a string]##
+    s.add '"'
+    s.add $value
+    s.add '"'
+
+
+proc parseHook*(s: string, i: var int, v: var MagicSchool) =
+    ##[ jsony-hook that is automatically called to convert a json-string to SpellLevel
+
+    ``s``: The full JSON string that needs to be serialized. Your type may only be a part of this
+    ``i``: The index on the JSON string where the next section of it starts that needs to be serialized here
+    ``v``: The variable to fill with a proper value]##
+    var str: string
+    s.parseHook(i, str)
+    v = parseEnum[MagicSchool](str)
