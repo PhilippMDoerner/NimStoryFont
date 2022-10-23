@@ -253,9 +253,10 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
 proc deleteEntryInTransaction*[T: Model](connection: DbConn, entry: var T) =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-    triggerSignal(SignalType.stPreDelete, connection, entry)
-    
-    connection.delete(entry)
+    {.cast(gcsafe).}:
+      triggerSignal(SignalType.stPreDelete, connection, entry)
+
+      connection.delete(entry)
     
 
 proc deleteEntryInTransaction*[T: Model](connection: DbConn, entryId: int64, modelType: typedesc[T]) =
@@ -276,13 +277,14 @@ proc deleteEntry*[T: Model](entryId: int64, modelType: typedesc[T]) =
 proc updateEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-    triggerSignal(SignalType.stPreUpdate, connection, entry)
-    
-    connection.update(entry)
-    
-    triggerSignal(SignalType.stPostUpdate, connection, entry)
-    
-    result = entry
+    {.cast(gcsafe).}:
+      triggerSignal(SignalType.stPreUpdate, connection, entry)
+
+      connection.update(entry)
+
+      triggerSignal(SignalType.stPostUpdate, connection, entry)
+
+      result = entry
 
 
 proc updateEntry*[T: Model](entry: var T): T =
@@ -318,13 +320,14 @@ proc updateArticleEntry*[T: Model](entryId: int64, entryJsonData: string, modelT
 proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     ##[ Core proc to insert an entry of Model `T` into its associated table.
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
-    triggerSignal(SignalType.stPreCreate, connection, entry)
-    
-    connection.insert(entry)
+    {.cast(gcsafe).}:
+      triggerSignal(SignalType.stPreCreate, connection, entry)
 
-    triggerSignal(SignalType.stPostCreate, connection, entry)
+      connection.insert(entry)
 
-    result = entry
+      triggerSignal(SignalType.stPostCreate, connection, entry)
+
+      result = entry
 
 
 proc createEntry*[T: Model](entry: var T): T =

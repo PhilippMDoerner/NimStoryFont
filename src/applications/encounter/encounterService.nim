@@ -21,24 +21,23 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
     if encounter1.diaryentry_id != encounter2.diaryentry_id:
         raise newException(DbError, fmt "The encouters with id {encounter1Id} and {encounter2Id} whose order is to be swapped are not from the same diaryentry!")
 
-    {.cast(gcsafe).}:
-        withDbTransaction(connection):
-            let orderIndex1 = encounter1.order_index
-            encounter1.order_index = some(encounter2.order_index.get() + 1)
-            connection.update(encounter1)
+    withDbTransaction(connection):
+      let orderIndex1 = encounter1.order_index
+      encounter1.order_index = some(encounter2.order_index.get() + 1)
+      connection.update(encounter1)
 
-            encounter2.order_index = orderIndex1
-            connection.update(encounter2)
+      encounter2.order_index = orderIndex1
+      connection.update(encounter2)
 
-            encounter1.order_index = some(encounter1.order_index.get() - 1)
-            connection.update(encounter1)
+      encounter1.order_index = some(encounter1.order_index.get() - 1)
+      connection.update(encounter1)
 
-            let swappedEncounters: seq[EncounterRead] = @[
-                getEntryById(encounter1Id, EncounterRead),
-                getEntryById(encounter2Id, EncounterRead)
-            ]
+      let swappedEncounters: seq[EncounterRead] = @[
+        getEntryById(encounter1Id, EncounterRead),
+        getEntryById(encounter2Id, EncounterRead)
+      ]
 
-            result = jsonutils.toJson(swappedEncounters)
+      result = jsonutils.toJson(swappedEncounters)
 
 
 proc createEncounter*(connection: DbConn, requestParams: CreateParams, entry: var Encounter): Encounter =
