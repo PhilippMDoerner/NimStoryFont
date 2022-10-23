@@ -21,12 +21,12 @@ type UserTokenRow {.defaults.} = ref object
   isSuperUser*: bool = false
   username*: string = ""
   created*: int64 = -1
-  guestCampaignName*: Option[string]
-  guestCampaignId*: Option[int64]
-  memberCampaignName*: Option[string]
-  memberCampaignId*: Option[int64]
-  adminCampaignName*: Option[string]
-  adminCampaignId*: Option[int64]
+  guestCampaignName*: Option[string] = none(string)
+  guestCampaignId*: Option[int64] = none(int64)
+  memberCampaignName*: Option[string] = none(string)
+  memberCampaignId*: Option[int64] = none(int64)
+  adminCampaignName*: Option[string] = none(string)
+  adminCampaignId*: Option[int64] = none(int64)
 implDefaults(UserTokenRow, {DefaultFlag.defExported, DefaultFlag.defTypeConstr}) 
 
 
