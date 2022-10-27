@@ -41,6 +41,7 @@ task alpine, "Build an alpine release":
   --define:release
   --define:lto
   --define:ssl
+  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   --hint:"XCannotRaiseY:off"
   --styleCheck:usages
   --spellSuggest:50
