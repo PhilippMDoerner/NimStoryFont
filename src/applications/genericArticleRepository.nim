@@ -353,7 +353,7 @@ proc createArticleEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]
     be set accordingly. You can provide your own connection here]##
     var entry: T = entryJsonData.fromJson(T)
 
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    let creationTime: DjangoDateTime = djangoDateTimeType.now()
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
 

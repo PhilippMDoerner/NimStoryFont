@@ -44,7 +44,7 @@ proc fetchSessionAudioNeighbourIds(connection: DbConn, campaignName: string, ses
     SELECT sessionaudio.id
     FROM sessionaudio, targetRow
     WHERE ABS(sessionaudio.rownum - targetRow.targetRowNum) = 1
-    ORDER BY sessionaudio.rownum;
+    ORDER BY sessionaudio.rownum
   """
   let queryParams: array[3, DbValue] = [campaignName.dbValue(), sessionNumber.dbValue(), isMainSession.dbValue]
   let rows: seq[Row] = connection.getAllRows(sqlStatement, queryParams)

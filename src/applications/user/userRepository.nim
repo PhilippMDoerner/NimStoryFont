@@ -14,7 +14,7 @@ proc getCampaignMemberIds(connection: DbConn, campaignName: string): seq[int64] 
     FROM targetCampaign campaign
     INNER JOIN auth_group memberGroup ON campaign.member_group_id = memberGroup.id
     INNER JOIN auth_user_groups memberJoin ON memberGroup.id = memberJoin.group_id
-    INNER JOIN auth_user members ON memberJoin.user_id = members.id;
+    INNER JOIN auth_user members ON memberJoin.user_id = members.id
   """
 
   let rows: seq[Row] = connection.getAllRows(campaignUserQuery, campaignName)

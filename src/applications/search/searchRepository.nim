@@ -34,7 +34,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
               OR body_rev MATCH ?
           )
       ORDER BY search_score
-      LIMIT ?;
+      LIMIT ?
   """
 
   let tokens = searchText.split(' ')
