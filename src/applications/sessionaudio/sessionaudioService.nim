@@ -24,7 +24,7 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
     let sessionId = requestParams.sessionId.get()
     let relativeFilePath = requestParams.sessionaudioFileName.get()
     
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    let creationTime: DjangoDateTime = djangoDateTimeType.now()
     
     var newEntry = SessionAudio(
         audio_file: relativeFilePath,

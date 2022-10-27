@@ -41,7 +41,7 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
 
 
 proc createEncounter*(connection: DbConn, requestParams: CreateParams, entry: var Encounter): Encounter =
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    let creationTime: DjangoDateTime = djangoDateTimeType.now()
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
 

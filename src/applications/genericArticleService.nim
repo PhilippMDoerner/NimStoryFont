@@ -23,7 +23,7 @@ proc createArticle*[T: Model](connection: DbConn, jsonData: string, modelType: t
     be set accordingly. You can provide your own connection here]##
     var entry: T = jsonData.fromJson(T)
 
-    let creationTime: DjangoDateTime = djangoDateTimeType.now();
+    let creationTime: DjangoDateTime = djangoDateTimeType.now()
     entry.creation_datetime = creationTime
     entry.update_datetime = creationTime
 
@@ -32,7 +32,7 @@ proc createArticle*[T: Model](connection: DbConn, jsonData: string, modelType: t
 
 proc createArticle*[P: object, E: Model](connection: DbConn, params: P, entry: var E): E =
   ## A default implementation of creating the given article in the DB
-  let creationTime: DjangoDateTime = djangoDateTimeType.now();
+  let creationTime: DjangoDateTime = djangoDateTimeType.now()
   entry.creation_datetime = creationTime
   entry.update_datetime = creationTime
 

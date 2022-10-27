@@ -32,7 +32,7 @@ proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Ta
     )
     SELECT id, id_path
     FROM locationpath
-    WHERE id IN ({locationIdStr});
+    WHERE id IN ({locationIdStr})
   """
   
   let rawParentLocationIdRows: seq[Row] = connection.getAllRows(parentLocationIdQuery)
