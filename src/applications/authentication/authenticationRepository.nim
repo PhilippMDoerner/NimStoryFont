@@ -92,7 +92,7 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
 proc blacklistToken*(connection: DbConn, token: string) =
   const query = fmt"""
     UPDATE {TOKEN_TABLE}
-    SET blacklisted = TRUE;
+    SET blacklisted = TRUE
     WHERE key = ?
   """
   connection.rawExec(query, token.dbValue())
