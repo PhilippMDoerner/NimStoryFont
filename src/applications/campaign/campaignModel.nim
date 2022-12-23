@@ -6,6 +6,12 @@ import ../authentication/authenticationModels
 import ../../applicationSettings
 import ../../applicationConstants
 
+type CampaignDefaultMap* {.defaults, readOnly, tableName: MAP_TABLE} = ref object of Model
+    icon*: Option[string] = some("")
+    image*: string = ""
+    name*: string = ""
+
+implDefaults(CampaignDefaultMap, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type Campaign* {.defaults, tableName: CAMPAIGN_TABLE} = ref object of Model
     ##[A full dataset of a tabletop campaign]##
@@ -16,7 +22,7 @@ type Campaign* {.defaults, tableName: CAMPAIGN_TABLE} = ref object of Model
     background_image*: string = ""
     icon*: Option[string] = some("")
     subtitle*: Option[string] = some("")
-    default_map_id*: Option[int64] = some(MODEL_INIT_ID)
+    default_map_id* {.fk: CampaignDefaultMap.}: Option[int64] = some(MODEL_INIT_ID)
     has_audio_recording_permission*: bool = false
     admin_group_id* {.fk: Group.}: Option[int64] = some(MODEL_INIT_ID)
     admin_permission_id* {.fk: Permission.}: Option[int64] = some(MODEL_INIT_ID)
@@ -28,13 +34,6 @@ type Campaign* {.defaults, tableName: CAMPAIGN_TABLE} = ref object of Model
 implDefaults(Campaign, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
-
-type CampaignDefaultMap* {.defaults, readOnly, tableName: MAP_TABLE} = ref object of Model
-    icon*: Option[string] = some("")
-    image*: string = ""
-    name*: string = ""
-
-implDefaults(CampaignDefaultMap, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 type CampaignRead* {.defaults, readOnly, tableName: CAMPAIGN_TABLE.} = ref object of Model

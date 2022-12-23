@@ -5,7 +5,7 @@ import ../authentication/authenticationModels
 import ../authentication/authenticationUtils
 import ../../utils/jwtContext
 
-proc `$`*(model: CampaignOverview | MinimumCampaignOverview | CampaignRead | Campaign): string = 
+proc `$`*(model: CampaignOverview | MinimumCampaignOverview | CampaignRead | Campaign | CampaignDefaultMap): string = 
   result = model.name
 
 proc guestPermissionName*(instance: Campaign): string = fmt "Is {instance.name} guest"
