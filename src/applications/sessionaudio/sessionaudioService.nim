@@ -36,7 +36,7 @@ proc createSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO)
     try:
         let createdEntry = connection.createEntryInTransaction(newEntry)
         result = some(connection.getEntryById(createdEntry.id, SessionAudioRead))
-    except Exception:
+    except CatchableError:
         deleteFile(relativeFilePath)
         raise
 
@@ -53,7 +53,7 @@ proc patchSessionAudio*(connection: DbConn, requestParams: var SessionAudioDTO, 
     try:
         result = connection.updateEntryInTransaction(entry)
     
-    except Exception:
+    except CatchableError:
         if absoluteFilePath != "": deleteFile(absoluteFilePath)
         raise
 

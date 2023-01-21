@@ -38,6 +38,6 @@ proc createMap*(connection: DbConn, requestParams: var MapDTO): Map =
 
   try:
     result = createEntry(map)
-  except Exception:
+  except CatchableError:
     deleteFile(absoluteImagePath)
     raise

@@ -38,7 +38,7 @@ template withDbTransaction*(connection: untyped, body: untyped) =
         body
         exec(connection, sql"COMMIT")
       
-      except:
+      except CatchableError:
         #If anything errors out, roll back the transaction and reraise the error
         exec(connection, sql"ROLLBACK")
         raise

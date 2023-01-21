@@ -33,6 +33,6 @@ template respondOnError*(body: untyped) =
     debugErrorLog("Error during parsing of input")
     resp get400BadRequestResponse(getCurrentExceptionMsg())
 
-  except Exception:
+  except CatchableError:
     debugErrorLog("Unkonwn Error during db request") 
     resp get500ServerErrorResponse()

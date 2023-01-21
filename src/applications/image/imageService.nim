@@ -48,7 +48,7 @@ proc createImage*(connection: DbConn, imageDTO: var ImageDTO): Option[Image] =
 
   try:
     result = some(createEntry(image))
-  except Exception:
+  except CatchableError:
     deleteFile(absoluteImagePath)
     raise
 

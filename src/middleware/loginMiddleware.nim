@@ -37,7 +37,7 @@ proc loginMiddleware*(): HandlerAsync =
             resp get403ForbiddenResponse()
             return
 
-        except Exception:
+        except CatchableError:
             debugErrorLog("Unkonwn Error during db request") 
             resp get500ServerErrorResponse()
             return
