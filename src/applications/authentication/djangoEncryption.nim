@@ -1,5 +1,5 @@
 from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, DLLUtilName
-import std/[strformat, strutils]
+import std/[strformat, strutils, logging, base64]
 
 ### nimcrypto based pbkdf2
 # import nimcrypto
@@ -34,7 +34,7 @@ import std/[strformat, strutils]
 
 
 # Must be imported this way as EVP_MD_get_size is not available in std/openssl. It only has EVP_MD_size, which has been renamed into EVP_MD_get_size
-proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_get_size".}
+proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_size".}
 
 proc PKCS5_PBKDF2_HMAC(
   pass: cstring,
@@ -67,16 +67,20 @@ proc opensslCalculateSHA256Pbkdf2Hash(password: string, salt: string, iterations
       hashLength,
       outputStartingpoint
     )
+  
+  let wasHashSuccessful = hashOperationReturnCode == 1
+  doAssert wasHashSuccessful
+
+  result = encode(output)
 
 ### pbkdf2 usage
 proc calcPasswordHash*(password: string, salt: string, iterations: int): string =
-  opensslCalculateSHA256Pbkdf2Hash(password, salt, iterations)
+  result = opensslCalculateSHA256Pbkdf2Hash(password, salt, iterations)
 
 proc isValidPassword*(password: string, databaseHash: string): bool =
   let storedPasswordPieces: seq[string] = databaseHash.split('$')
   let iterations: int = parseInt(storedPasswordPieces[1])
   let salt: string = storedPasswordPieces[2]
   let dbHash: string = storedPasswordPieces[3]
-
   let incomingHash: string = calcPasswordHash(password, salt, iterations)
   result = dbHash == incomingHash
