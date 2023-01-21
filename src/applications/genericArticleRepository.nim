@@ -1,5 +1,6 @@
 import ../utils/djangoDateTime/[normConversion, djangoDateTimeType, serialization]
-import ../utils/[macroUtils, databaseUtils]
+import ../utils/[macroUtils]
+import ../database
 import norm/[model, sqlite]
 import jsony
 import std/[options, strformat, sequtils, strutils, tables]

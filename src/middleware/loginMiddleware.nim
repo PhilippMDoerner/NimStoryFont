@@ -1,10 +1,11 @@
-import prologue
-import ../utils/[databaseUtils, jwtContext]
-import ../applicationSettings
 import std/[strutils, json, logging]
+import prologue
+import norm/sqlite
+import ../utils/[jwtContext]
+import ../applicationSettings
+import ../database
 import ../applications/authentication/[authenticationService, authenticationUtils]
 import ../utils/[errorResponses]
-import norm/sqlite
 
 template debugErrorLog(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 

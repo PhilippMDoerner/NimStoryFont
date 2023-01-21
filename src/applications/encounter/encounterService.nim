@@ -1,15 +1,14 @@
-import encounterModel
-import encounterRepository
-import tinypool/sqlitePool except DbConn
+import std/[options, strformat, json, jsonutils]
 import norm/model
+import ./encounterModel
+import ./encounterRepository
 import ../diaryentry/diaryEntryModel
 import ../genericArticleRepository
 import ../genericArticleService
-import ../../applicationConstants
-import std/[options, strformat, json, jsonutils]
-import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
-import ../../utils/databaseUtils
 import ../allUrlParams
+import ../../applicationConstants
+import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
+import ../../database
 
 export encounterModel
 

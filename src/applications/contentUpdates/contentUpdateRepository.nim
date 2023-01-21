@@ -2,7 +2,7 @@ import norm/[sqlite, model]
 import std/[strformat]
 import ../campaign/campaignService
 import ../../applicationSettings
-import tinypool/sqlitePool
+import ../../database
 import contentUpdateModel
 
 

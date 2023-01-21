@@ -1,14 +1,14 @@
-import prologue
-import applicationSettings
-import applicationConstants
-import applicationEvents
-import utils/jwtContext
 import std/[os, logging, strformat]
-import tinypool/sqlitePool
-import applications/allSignals #Necessary so that signals get loaded
-import routes
+import prologue
 import prologue/middlewares/[cors]
-import middleware/[timingMiddleware, compressionMiddleware]
+import ./applicationSettings
+import ./applicationConstants
+import ./applicationEvents
+import ./database
+import ./utils/jwtContext
+import ./applications/allSignals #Necessary so that signals get loaded
+import ./routes
+import ./middleware/[timingMiddleware, compressionMiddleware]
 
 when not defined(release):
   import prologue/middlewares/staticfile

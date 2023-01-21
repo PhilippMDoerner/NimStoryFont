@@ -1,3 +1,4 @@
+import std/[strformat, options]
 import ../authentication/authenticationService
 import ../character/[characterModel, characterService]
 import ../creature/creatureService
@@ -16,8 +17,7 @@ import ../rules/ruleService
 import ../user/userService
 import ../genericArticleRepository
 import ../mapMarker/markerModel
-import std/[strformat, options]
-import ../../utils/databaseUtils
+import ../../database
 
 
 proc getSearchBody*(connection: DbConn, modelInstance: Character): string =

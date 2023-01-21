@@ -1,45 +1,47 @@
 import norm/[pool, sqlite]
-import std/[logging, sugar]
+import std/[logging, sugar, strformat]
 
 var SQLITE_POOL*: Pool[DbConn]
 
-proc initPool*(databasePath: string, size: int) =
-  SQLITE_POOL = newPool[DbConn](
-    size, 
-    () => open(databasePath, "", "", ""), 
-    pepExtend
-  )
+proc initConnectionPool*(databasePath: string, size: int) =
+  {.cast(gcsafe).}:
+    SQLITE_POOL = newPool[DbConn](
+      size, 
+      () => open(databasePath, "", "", ""), 
+      pepExtend
+    )
 
-  debug fmt"Created pool with '{$size}' connections to '{databasePath}'"
+    debug fmt"Created pool with '{$size}' connections to '{databasePath}'"
+
+proc destroyConnectionPool*() =
+  {.cast(gcsafe).}:
+    close SQLITE_POOL
 
 template withDbConn*(connection: untyped, body: untyped) =
-  block: #ensures connection exists only within the scope of this block
-    var connection: DbConn = SQLITE_POOL.pop()
+  {.cast(gcsafe).}:
+    block: #ensures connection exists only within the scope of this block
+      var connection: DbConn = SQLITE_POOL.pop()
 
-    try:
-      {.cast(gcsafe).}:
-        body
- 
-    finally:
-      SQLITE_POOL.add(connection)
+      try:
+          body
+  
+      finally:
+        SQLITE_POOL.add(connection)
 
 template withDbTransaction*(connection: untyped, body: untyped) =
-  block: #ensures connection exists only within the scope of this block
-    var connection: DbConn = SQLITE_POOL.pop()
+  {.cast(gcsafe).}:
+    block: #ensures connection exists only within the scope of this block
+      var connection: DbConn = SQLITE_POOL.pop()
 
-    {.cast(gcsafe).}:
       exec(connection, sql"BEGIN")
-    try:
-      {.cast(gcsafe).}:
+      try:
         body
-      {.cast(gcsafe).}:
         exec(connection, sql"COMMIT")
-    
-    except:
-      #If anything errors out, roll back the transaction and reraise the error
-      {.cast(gcsafe).}:
+      
+      except:
+        #If anything errors out, roll back the transaction and reraise the error
         exec(connection, sql"ROLLBACK")
-      raise
+        raise
 
-    finally:
-      SQLITE_POOL.add(connection)
+      finally:
+        SQLITE_POOL.add(connection)

@@ -1,16 +1,17 @@
-import prologue
-import encounterService
-import encounterModel
-import encounterUtils
-import encounterSerialization
 import std/[json, strutils]
-import ../../utils/[databaseUtils, jwtContext, customResponses, errorResponses]
+import prologue
 import jsony
+import ./encounterService
+import ./encounterModel
+import ./encounterUtils
+import ./encounterSerialization
+import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../controllerTemplates
-import ../../utils/djangoDateTime/serialization
 import ../allUrlParams
 import ../genericArticleControllers
 import ../authentication/authenticationUtils
+import ../../utils/djangoDateTime/serialization
+import ../../database
 
 
 

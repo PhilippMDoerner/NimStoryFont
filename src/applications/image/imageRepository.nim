@@ -1,9 +1,9 @@
 import std/[options, tables, strformat, strutils]
-import ../genericArticleRepository
 import norm/[sqlite]
-import imageModel
-import ../../utils/[databaseUtils, macroUtils]
-import tinypool/sqlitePool
+import ./imageModel
+import ../genericArticleRepository
+import ../../utils/[macroUtils]
+import ../../database
 
 
 proc queryImagesForArticle*(articleType: ImageType, articleId: int64): seq[Image] =

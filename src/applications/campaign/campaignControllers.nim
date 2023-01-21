@@ -1,16 +1,17 @@
-import campaignService
-import campaignUtils
-import campaignSerialization
+import std/[strformat, strutils, sequtils, sugar, options]
 import prologue
 import jsony
+import ./campaignService
+import ./campaignUtils
+import ./campaignSerialization
+import ./statisticsService
 import ../controllerTemplates
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../database
 import ../allUrlParams
 import ../user/userService
-import std/[strformat, strutils, sequtils, sugar, options]
 import ../authentication/[authenticationUtils, authenticationService, authenticationConstants]
 import ../genericArticleRepository
-import statisticsService
 
 type RequestedUser = object
   pk: int64
