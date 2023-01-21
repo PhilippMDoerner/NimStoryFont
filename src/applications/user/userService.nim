@@ -35,7 +35,7 @@ proc createUser*(connection: DbConn, requestParams: CreateParams, newEntry: var 
   newEntry.date_joined = djangoDateTimeType.now()
   newEntry.is_active = true
   let plainTextPassword = newEntry.password
-  newEntry.password = createPasswordDatabaseRepresentation(plainTextPassword, "")
+  newEntry.password = createPasswordDatabaseRepresentation(plainTextPassword)
   result = connection.createEntryInTransaction(newEntry)
 
 
@@ -71,7 +71,7 @@ proc updateUserGroups*(connection: DbConn, requestData: UpdateParams, entry: Use
 
 proc updateUserPassword*(connection: DbConn, user: var User, newPassword: string): User =
   
-  let hashRepresentation = createPasswordDatabaseRepresentation(newPassword, "")
+  let hashRepresentation = createPasswordDatabaseRepresentation(newPassword)
   user.password = hashRepresentation
   
   {.cast(gcsafe).}:

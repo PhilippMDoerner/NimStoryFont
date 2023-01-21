@@ -21,8 +21,8 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
 proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
   return
 
-proc createPasswordDatabaseRepresentation*(password: string, secretKey: string): string =
+proc createPasswordDatabaseRepresentation*(password: string): string =
   let salt: string = myStrutils.randomString(DEFAULT_SALT_LENGTH)
-  let hash: string = calcPasswordHash(password, salt, DEFAULT_HASH_ITERATIONS, secretKey)
+  let hash: string = calcPasswordHash(password, salt, DEFAULT_HASH_ITERATIONS)
   const hashAlgorithm: string = "pbkdf2_sha256"
   result = fmt"{hashAlgorithm}${DEFAULT_HASH_ITERATIONS}${salt}${hash}"

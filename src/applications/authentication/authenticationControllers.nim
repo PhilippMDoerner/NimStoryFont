@@ -54,8 +54,7 @@ proc login*(ctx: Context) {.async.} =
     let user: User = getUserByName(userName)
 
     let plainPassword: string = requestBody.fields["password"].getStr()
-    let secretKey = ctx.getSetting(SettingName.snSecretKey).getStr()
-    if not plainPassword.isValidPassword(user.password, secretKey):
+    if not plainPassword.isValidPassword(user.password):
         resp get401UnauthorizedResponse(ctx)
         return
     

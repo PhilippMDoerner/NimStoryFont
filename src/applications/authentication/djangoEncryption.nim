@@ -1,4 +1,5 @@
-import std/[base64, strutils]
+from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, DLLUtilName
+import std/[strformat, strutils]
 
 ### nimcrypto based pbkdf2
 # import nimcrypto
@@ -30,8 +31,10 @@ import std/[base64, strutils]
 #     return $string_hash
 
 ### C openssl based pbkdf2
-from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, EVP_MD_size, DLLUtilName
 
+
+# Must be imported this way as EVP_MD_get_size is not available in std/openssl. It only has EVP_MD_size, which has been renamed into EVP_MD_get_size
+proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_get_size".}
 
 proc PKCS5_PBKDF2_HMAC(
   pass: cstring,
@@ -44,39 +47,36 @@ proc PKCS5_PBKDF2_HMAC(
   output: cstring
 ): cint {.cdecl, dynlib: DLLSSLName, importc: "PKCS5_PBKDF2_HMAC".}
 
-proc EVP_MD_size_fixed*(md: EVP_MD): cint {.cdecl, dynlib: DLLUtilName, importc: "EVP_MD_size".}
-proc EVP_sha256_fixed*(): EVP_MD    {.cdecl, dynlib: DLLUtilName, importc: "EVP_sha256".}
+proc opensslCalculateSHA256Pbkdf2Hash(password: string, salt: string, iterations: int): string {.gcsafe.} =
+  let hasTooManyIterations = iterations > cint.high
+  if hasTooManyIterations: 
+    raise newException(ValueError, fmt"You can not have more iterations than a c integer can carry. Choose a number below {cint.high}")
 
-proc opensslCalculateSHA256Pbkdf2Hash(password: string, salt: string, iterations: int, secretKey: string): string {.gcsafe.} =
-  if iterations > cint.high: raise newException(ValueError, "iterations too high")
-  let
-    digest: EVP_MD = EVP_sha256_fixed()
-    keylen: cint = EVP_MD_size_fixed(digest)
-    output = newString(keylen)
+  let digest: EVP_MD = EVP_sha256()
+  let hashLength: cint = EVP_MD_size_fixed(digest)
+  let output = newString(hashLength)
+  let outputStartingpoint: cstring = cast[cstring](output[0].addr)
 
-    retVal = PKCS5_PBKDF2_HMAC(
+  let hashOperationReturnCode = PKCS5_PBKDF2_HMAC(
       password.cstring,
       -1,
       salt.cstring,
       len(salt).cint,
       iterations.cint,
       digest,
-      keylen,
-      output[0].addr
+      hashLength,
+      outputStartingpoint
     )
 
-  doAssert retVal == 1
-  result = encode(output)
-
 ### pbkdf2 usage
-proc calcPasswordHash*(password: string, salt: string, iterations: int, secretKey: string): string =
-  opensslCalculateSHA256Pbkdf2Hash(password, salt, iterations, secretKey)
+proc calcPasswordHash*(password: string, salt: string, iterations: int): string =
+  opensslCalculateSHA256Pbkdf2Hash(password, salt, iterations)
 
-proc isValidPassword*(password: string, databaseHash: string, secretKey: string): bool =
+proc isValidPassword*(password: string, databaseHash: string): bool =
   let storedPasswordPieces: seq[string] = databaseHash.split('$')
   let iterations: int = parseInt(storedPasswordPieces[1])
   let salt: string = storedPasswordPieces[2]
   let dbHash: string = storedPasswordPieces[3]
 
-  let incomingHash: string = calcPasswordHash(password, salt, iterations, secretKey)
+  let incomingHash: string = calcPasswordHash(password, salt, iterations)
   result = dbHash == incomingHash
