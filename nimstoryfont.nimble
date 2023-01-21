@@ -14,7 +14,7 @@ requires "nim >= 1.6.8"
 requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.2"
 requires "jsony >= 1.1.2"
-requires "constructor >= 1.0.5" # Upgrade to 1.1.1 when you can
+requires "constructor >= 1.1.1" # Upgrade to 1.1.1 when you can
 requires "zippy >= 0.9.7"
 requires "smtp >= 0.1.0"
 
