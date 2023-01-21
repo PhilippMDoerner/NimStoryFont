@@ -1,4 +1,4 @@
-import std/smtp
+import smtp
 import prologue
 import ../applicationSettings
 

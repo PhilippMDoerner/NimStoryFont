@@ -11,12 +11,13 @@ bin           = @["nimstoryfont"]
 # Dependencies
 
 requires "nim >= 1.6.8"
-requires "norm >= 2.6.0"
+requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.2"
 requires "jsony >= 1.1.2"
-requires "constructor >= 1.0.5"
-requires "tinypool >= 1.0.0"
+requires "constructor >= 1.0.5" # Upgrade to 1.1.1 when you can
+requires "tinypool >= 1.0.3"
 requires "zippy >= 0.9.7"
+requires "smtp >= 0.1.0"
 
 import std/strformat
 let domain = "aldrune.com"
