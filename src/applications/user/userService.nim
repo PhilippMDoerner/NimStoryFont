@@ -1,14 +1,15 @@
-import ../genericArticleRepository
-import ../genericArticleService
-import ../../utils/databaseUtils
-import userModel
-import userRequestParams
-import userUtils
-import userRepository
 import std/[options, tables, strutils, strformat, sugar, json, sequtils, sets]
 import norm/model
+import ./userModel
+import ./userRequestParams
+import ./userUtils
+import ./userRepository
+import ../genericArticleRepository
+import ../genericArticleService
 import ../../utils/[macroUtils, djangoDateTime/djangoDateTimeType]
 import ../../applicationConstants
+import ../../database
+
 
 
 export userModel

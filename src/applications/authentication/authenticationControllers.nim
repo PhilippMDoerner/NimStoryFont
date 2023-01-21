@@ -1,17 +1,18 @@
-import prologue
 import std/[json, strutils]
-import ../../utils/[tokenTypes, jwtContext, myStrutils, errorResponses, databaseUtils, customResponses]
-import authenticationService
-import ../user/userService
-import authenticationModels
-import authenticationSerialization
-import djangoEncryption
-import ../../applicationSettings
-import ../genericArticleRepository
+import prologue
 import jsony
-import tinypool/sqlitePool
+import ./authenticationService
+import ./authenticationModels
+import ./authenticationSerialization
+import ./djangoEncryption
 import ../allUrlParams
 import ../controllerTemplates
+import ../genericArticleRepository
+import ../user/userService
+import ../../applicationSettings
+import ../../database
+import ../../utils/[tokenTypes, jwtContext, myStrutils, errorResponses, customResponses]
+
 
 proc createAndSerializeAuthData(connection: DbConn, ctx: Context, user: User): AuthDataSerializable =
         let accessTokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()

@@ -1,20 +1,21 @@
-import characterModel
+import std/[sugar, sequtils, options, strutils, strformat, algorithm, tables]
+import norm/sqlite
+import ./characterModel
+import ./characterEncounterModel
+import ./characterService
+import ./characterUtils
+import ../genericArticleRepository
+import ../articleModel
 import ../item/itemModel
 import ../encounter/[encounterModel, encounterSerialization, encounterUtils]
 import ../image/[imageSerialization, imageModel, imageUtils]
 import ../location/[locationModel, locationRepository]
 import ../campaign/campaignModel
 import ../organization/organizationModel
-import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[sugar, sequtils, options, strutils, strformat, algorithm, tables]
-import ../genericArticleRepository
-import ../../utils/[myStrutils, databaseUtils]
-import norm/sqlite
-import ../articleModel
 import ../playerclass/[playerClassSerialization, playerClassModel]
-import characterEncounterModel
-import characterService
-import characterUtils
+import ../../utils/djangoDateTime/djangoDateTimeType
+import ../../utils/[myStrutils]
+import ../../database
 
 type CharacterLocationSerializable* = object
     pk*: int64

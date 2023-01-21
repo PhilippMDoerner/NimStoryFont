@@ -1,14 +1,15 @@
-import prologue
-import quoteService
-import quoteUtils
-import quoteSerialization
 import std/[strutils, options, sugar]
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
-import ../../utils/djangoDateTime/serialization
+import prologue
 import jsony
+import ./quoteService
+import ./quoteUtils
+import ./quoteSerialization
 import ../controllerTemplates
 import ../genericArticleRepository
 import ../allUrlParams
+import ../../database
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../utils/djangoDateTime/serialization
 
 type CreateQuoteConnectionRequestBody = object
   character: int64

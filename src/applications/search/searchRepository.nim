@@ -4,7 +4,7 @@ import std/[strformat, unicode, strutils]
 import ../campaign/campaignService
 import ../../applicationSettings
 import ../../utils/myStrutils
-import tinypool/sqlitePool
+import ../../database
 import ../genericRawRepository
 
 proc toTitleQueryParam(tokens: seq[string]): string = 

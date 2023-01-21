@@ -1,12 +1,13 @@
-import mapModel
+import std/[strutils]
+import prologue
+import norm/sqlite
+import ./mapModel
 import ../mapMarker/markerModel
 import ../mapMarkerType/markerTypeModel
 import ../../utils/djangoDateTime/djangoDateTimeType
-import ../../utils/[fileUpload, databaseUtils]
+import ../../utils/[fileUpload]
 import ../genericArticleRepository
-import std/[strutils]
-import norm/sqlite
-import prologue
+import ../../database
 
 export mapModel
 export markerTypeModel

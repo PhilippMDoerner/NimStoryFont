@@ -1,14 +1,15 @@
-import imageService
-import imageModel
-import imageSerialization
-import prologue
 import std/[strutils, options, json]
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
-import ../../applicationSettings
+import prologue
 import jsony
-import ../controllerTemplates
+import ./imageService
+import ./imageModel
+import ./imageSerialization
+import ./imageDataTransferObjects
 import ../allUrlParams
-import imageDataTransferObjects
+import ../controllerTemplates
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../applicationSettings
+import ../../database
 
 
 proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =

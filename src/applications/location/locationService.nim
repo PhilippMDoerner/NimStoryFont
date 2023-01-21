@@ -3,7 +3,7 @@ import ../genericArticleRepository
 import ../../applicationConstants
 import norm/model
 import std/[options, strformat, algorithm, strutils]
-import tinypool/sqlitePool except DbConn
+import ../../database
 import ../allUrlParams
 import locationRepository
 

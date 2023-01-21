@@ -4,7 +4,7 @@ import campaignModel
 import campaignRepository
 import norm/[model, sqlite]
 import std/[options, sets, tables, strformat, sugar]
-import tinypool/sqlitePool except DbConn
+import ../../database
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../allUrlParams

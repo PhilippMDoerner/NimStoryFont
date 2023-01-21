@@ -1,4 +1,5 @@
-import searchService
+import std/[typetraits, strformat, options]
+import ./searchService
 import ../genericArticleRepository
 import ../core/[signalSystem]
 import ../character/[characterService, characterModel, characterOrganizationModel]
@@ -15,8 +16,7 @@ import ../sessionAudioTimestamp/timestampModel
 import ../spell/spellModel
 import ../rules/ruleModel
 import ../mapMarker/markerModel
-import std/[typetraits, strformat, options]
-import ../../utils/databaseUtils
+import ../../database
 
 export encounterUtils #So that "addSearchEntry" can query campaign_id properly
 export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly

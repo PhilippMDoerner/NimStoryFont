@@ -1,14 +1,14 @@
-import prologue
 import std/[json, strutils, sugar]
-import ../../utils/[jwtContext, errorResponses, databaseUtils, customResponses]
-import mapService
-import mapSerialization
-import ../../applicationSettings
-import ../genericArticleRepository
+import prologue
 import jsony
-import tinypool/sqlitePool
+import ./mapService
+import ./mapSerialization
+import ../genericArticleRepository
 import ../controllerTemplates
 import ../authentication/authenticationUtils
+import ../../utils/[jwtContext, errorResponses, customResponses]
+import ../../applicationSettings
+import ../../database
 
 proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)

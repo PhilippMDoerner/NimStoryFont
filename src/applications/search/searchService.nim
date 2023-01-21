@@ -1,12 +1,12 @@
-import searchModel
-import searchUtils
-import searchRepository
 import norm/[sqlite, model]
 import std/[strutils, json]
-import tinypool/sqlitePool
-import articleToStringUtils
+import ./searchModel
+import ./searchUtils
+import ./searchRepository
+import ./articleToStringUtils
 import ../articleModel
 import ../articleUtils
+import ../../database
 
 proc deleteSearchEntry*(connection: DbConn, article: Article) =
   deleteSearchEntry(connection, article.getSearchGuid())

@@ -15,7 +15,6 @@ requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm 
 requires "prologue >= 0.6.2"
 requires "jsony >= 1.1.2"
 requires "constructor >= 1.0.5" # Upgrade to 1.1.1 when you can
-requires "tinypool >= 1.0.3"
 requires "zippy >= 0.9.7"
 requires "smtp >= 0.1.0"
 

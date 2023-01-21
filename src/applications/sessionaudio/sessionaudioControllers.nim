@@ -1,16 +1,17 @@
-import sessionaudioService
-import sessionAudioSerialization
-import sessionaudioUtils
-import prologue
 import std/[strutils, options, json]
+import prologue
+import jsony
+import ./sessionaudioService
+import ./sessionAudioSerialization
+import ./sessionaudioUtils
 import ../authentication/authenticationUtils
 import ../controllerTemplates
 import ../genericArticleRepository
 import ../allUrlParams
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
+import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../applicationSettings
-import jsony
+import ../../database
 
 proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)

@@ -3,7 +3,8 @@ import characterService
 import characterSerialization
 import characterEncounterModel
 import std/[strutils]
-import ../../utils/[jwtContext, customResponses, errorResponses, databaseUtils]
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../database
 import jsony
 import ../controllerTemplates
 import ../genericArticleRepository
