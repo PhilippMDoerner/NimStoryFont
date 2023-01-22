@@ -43,6 +43,7 @@ task alpine, "Build an alpine release":
   --define:ssl
   --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   --hint:"XCannotRaiseY:off"
+  --warning:"BareExcept:off"
   --styleCheck:usages
   --spellSuggest:50
   --mm:orc
@@ -81,6 +82,7 @@ task alpine_debug, "Build a release for debugging":
   #--styleCheck:error
   --spellSuggest:50
   --excessiveStackTrace:on
+  --warning:"BareExcept:off"
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   #--debugger:native
@@ -98,8 +100,10 @@ task normal_debug, "Build a release for debugging":
   --lineTrace:on 
   --styleCheck:usages
   #--styleCheck:error
+  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   --spellSuggest:50
   --excessiveStackTrace:on
+  --warning:"BareExcept:off"
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   --debugger:native
