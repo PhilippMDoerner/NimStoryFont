@@ -1,5 +1,5 @@
 from std/openssl import DLLSSLName, EVP_MD, EVP_sha256, DLLUtilName
-import std/[strformat, strutils, logging, base64]
+import std/[strformat, strutils, base64]
 
 ### nimcrypto based pbkdf2
 # import nimcrypto
