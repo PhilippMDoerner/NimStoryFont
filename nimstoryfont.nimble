@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.0.0"
+version       = "2.0.0"
 author        = "PhilippMDoerner"
 description   = "A web-application backend written in nim. The backend of a webpage to store information about your dnd campaigns."
 license       = "GPL-3.0-or-later"
@@ -10,12 +10,12 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 
-requires "nim >= 1.6.8"
+requires "nim >= 1.9.1"
 requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
-requires "prologue >= 0.6.2"
-requires "jsony >= 1.1.2"
-requires "constructor >= 1.1.1" # Upgrade to 1.1.1 when you can
-requires "zippy >= 0.9.7"
+requires "prologue >= 0.6.4"
+requires "jsony >= 1.1.3"
+requires "constructor >= 1.1.1"
+requires "zippy >= 0.10.6"
 requires "smtp >= 0.1.0"
 
 import std/strformat
@@ -82,7 +82,7 @@ task alpine_debug, "Build a release for debugging":
   #--styleCheck:error
   --spellSuggest:50
   --excessiveStackTrace:on
-  --warning:"BareExcept:off"
+  #--warning:"BareExcept:off"
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   #--debugger:native
