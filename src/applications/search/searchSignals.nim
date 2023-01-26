@@ -17,6 +17,7 @@ import ../spell/spellModel
 import ../rules/ruleModel
 import ../mapMarker/markerModel
 import ../../database
+import ../../applicationSettings
 
 export encounterUtils #So that "addSearchEntry" can query campaign_id properly
 export diaryEntryUtils #So that "addSearchEntry" can query campaign_id properly
