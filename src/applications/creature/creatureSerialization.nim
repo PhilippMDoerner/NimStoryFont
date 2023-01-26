@@ -1,11 +1,11 @@
-import creatureModel
-import norm/sqlite
-import ../genericArticleRepository
-import ../image/[imageSerialization, imageModel]
 import std/[options, strformat, sugar, sequtils]
-import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
+import norm/sqlite
+import ./creatureModel
+import ../genericArticleRepository
 import ../campaign/campaignModel
 import ../articleModel
+import ../image/[imageSerialization, imageModel]
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 
 type CreatureSerializable* = object
     pk*: int64
