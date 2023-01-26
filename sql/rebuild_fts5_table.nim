@@ -10,6 +10,7 @@ import ../src/applications/map/mapModel
 import ../src/applications/organization/organizationModel
 import ../src/applications/quest/questModel
 import ../src/applications/sessionaudio/[sessionaudioUtils, sessionaudioModel]
+import ../src/applications/sessionAudioTimestamp/[timestampUtils, timestampModel]
 import ../src/applications/spell/spellModel
 import ../src/applications/rules/ruleModel
 import ../src/applications/mapMarker/markerModel
@@ -32,9 +33,7 @@ const ADD_NEW_FTS_TABLE = """
   );
 """
 
-const REMOVE_OLD_FTS_TABLE = """
-  DROP TABLE search_article_content;
-"""
+const REMOVE_OLD_FTS_TABLE = "DROP TABLE search_article_content;"
 
 initConnectionPool("/home/philipp/dev/nimstoryfont/db.sqlite3", 5)
 
@@ -43,33 +42,38 @@ proc addSearchEntry[T](entries: seq[T]) =
     for entry in entries:
       connection.addSearchEntry(entry)
 
+proc recreateEmptyFTS5Table() =
+  withDbConn(connection):
+    connection.exec(sql REMOVE_OLD_FTS_TABLE)
+    connection.exec(sql ADD_NEW_FTS_TABLE)
 
-withDbConn(connection):
-  let characters = connection.getList(Character)
-  let creatures = connection.getList(Creature)
-  let diaryentries = connection.getList(DiaryEntry)
-  let encounters = connection.getList(Encounter)
-  let items = connection.getList(Item)
-  let organizations = connection.getList(Organization)
-  let spells = connection.getList(Spell)
-  let rules = connection.getList(Rule)
-  let locations = connection.getList(Location)
-  let quests = connection.getList(Quest)
-  let maps = connection.getList(Map)
-  let recordings = connection.getList(SessionAudio)
+proc refillFTS5Table() =
+  withDbConn(connection):
+    let characters = connection.getList(Character)
+    let creatures = connection.getList(Creature)
+    let diaryentries = connection.getList(DiaryEntry)
+    let encounters = connection.getList(Encounter)
+    let items = connection.getList(Item)
+    let organizations = connection.getList(Organization)
+    let spells = connection.getList(Spell)
+    let rules = connection.getList(Rule)
+    let locations = connection.getList(Location)
+    let quests = connection.getList(Quest)
+    let maps = connection.getList(Map)
+    let recordings = connection.getList(SessionAudio)
 
-  connection.exec(sql REMOVE_OLD_FTS_TABLE)
-  connection.exec(sql ADD_NEW_FTS_TABLE)
+    characters.addSearchEntry()
+    creatures.addSearchEntry()
+    diaryentries.addSearchEntry()
+    encounters.addSearchEntry()
+    items.addSearchEntry()
+    organizations.addSearchEntry()
+    spells.addSearchEntry()
+    rules.addSearchEntry()
+    locations.addSearchEntry()
+    quests.addSearchEntry()
+    maps.addSearchEntry()
+    recordings.addSearchEntry()
 
-  characters.addSearchEntry()
-  creatures.addSearchEntry()
-  diaryentries.addSearchEntry()
-  encounters.addSearchEntry()
-  items.addSearchEntry()
-  organizations.addSearchEntry()
-  spells.addSearchEntry()
-  rules.addSearchEntry()
-  locations.addSearchEntry()
-  quests.addSearchEntry()
-  maps.addSearchEntry()
-  recordings.addSearchEntry()
+recreateEmptyFTS5Table()
+refillFTS5Table()

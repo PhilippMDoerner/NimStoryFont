@@ -110,6 +110,9 @@ task normal_debug, "Build a release for debugging":
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
+task rebuildFTS5Table, "":
+  exec "nim r --path:/home/philipp/.nimble/pkgs2/ndb-0.19.9-ed462bd80da79ed1c032ac31e4315558db423892 --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault ./sql/rebuild_fts5_table.nim"
+
 task build_images, "Builds an nginx docker image for this project to use with docker compose":
   echo "\nRemoving old containers"
   echo staticExec(fmt"sudo docker container stop {nginx_container}")
@@ -149,6 +152,7 @@ task local_deploy, "Stops and removes prior container and images, rebuilds the i
 
 task prod_deploy, "Stops and removes prior container and images, recompiles the binary, rebuilds the images and copies them to the server":
   exec("nimble alpine")
+  exec("nimble rebuildFTS5Table") #Should be done in case a change in how overview serialization is done occurs
   exec("nimble build_images")
   exec("nimble save_images")
   exec("nimble disabledev")
