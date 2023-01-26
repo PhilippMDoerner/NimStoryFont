@@ -35,6 +35,6 @@ proc findArticles*(campaignName: string, searchText: string, searchLimit: int = 
     for searchHit in searchHits:
       let tableName: string = searchHit.table_name
       let articleTable: ArticleTable = parseEnum[ArticleTable](tableName)      
-      let articleDataJsonString: JsonNode = getArticleData(articleTable, searchHit.record_id)
+      let articleDataJson: JsonNode = getArticleData(articleTable, searchHit.record_id)
 
-      result.add(articleDataJsonString)
+      result.add(articleDataJson)
