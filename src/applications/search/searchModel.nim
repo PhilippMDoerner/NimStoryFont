@@ -12,6 +12,7 @@ type Search* {.defaults.} = ref object
   body_rev*: string = ""
   table_name*: string = ""
   record_id*: int64 = MODEL_INIT_ID
+  record*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID
   guid*: string = ""
 implDefaults(Search, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
@@ -25,6 +26,7 @@ type SearchHit* {.defaults.} = ref object
   table_name*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID
   record_id*: int64 = MODEL_INIT_ID
+  record*: string = ""
 implDefaults(SearchHit, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type SearchSerializable* = JsonNode

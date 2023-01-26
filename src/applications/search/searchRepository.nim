@@ -1,11 +1,11 @@
-import searchModel
-import norm/[sqlite, model]
 import std/[strformat, unicode, strutils]
+import norm/[sqlite, model]
+import ./searchModel
+import ../genericRawRepository
 import ../campaign/campaignService
 import ../../applicationSettings
 import ../../utils/myStrutils
 import ../../database
-import ../genericRawRepository
 
 proc toTitleQueryParam(tokens: seq[string]): string = 
   let joinedTokens = tokens.join("* OR ")
@@ -23,6 +23,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
           table_name,
           campaign_id,
           record_id,
+          record,
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
       FROM {SEARCH_TABLE} 
       WHERE
@@ -57,7 +58,7 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
     )
 
 
-proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, campaign_id: int64) =
+proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, record: string, campaign_id: int64) =
   let guid = fmt"{tableName}_{record_id}"
   let searchHit = Search(
     title: searchTitle,
@@ -66,34 +67,37 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
     body_rev: searchBody.reverseString(),
     table_name: tableName,
     record_id: record_id,
+    record: record,
     campaign_id: campaign_id,
     guid: guid  
   )
 
   connection.rawInsert(searchHit, SEARCH_TABLE)
 
-proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string) =
-  let updateSearchEntryQuery = fmt"""
+proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string, record: string) =  
+  const updateSearchEntryQuery = fmt"""
     UPDATE {SEARCH_TABLE} 
     SET
       title = ?,
       title_rev = ?,
       body = ?,
-      body_rev = ?
+      body_rev = ?,
+      record = ?
     WHERE guid = ?
   """
 
-  let queryParams: array[5, DbValue] = [
+  let queryParams: array[6, DbValue] = [
     searchTitle.dbValue(),
     searchTitle.reverseString().dbValue(),
     searchBody.dbValue(),
     searchBody.reverseString().dbValue(),
+    record.dbValue(),
     guid.dbValue()
   ]
 
   connection.rawExec(
     updateSearchEntryQuery,
-    queryParams,
+    queryParams
   )
 
 
