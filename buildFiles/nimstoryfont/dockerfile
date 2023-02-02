@@ -2,7 +2,7 @@ FROM alpine
 
 # Install dependencies
 RUN apk update
-RUN apk add sqlite-libs openssl
+RUN apk add sqlite-libs openssl libsodium
 
 # Copy necessary files
 COPY ./nimstoryfont .

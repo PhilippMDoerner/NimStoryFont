@@ -2,7 +2,7 @@ FROM alpine
 
 # Install dependencies
 RUN apk update
-RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl bash
+RUN apk add openrc nginx sqlite-libs nginx-mod-http-upload-progress openssl bash libsodium
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
