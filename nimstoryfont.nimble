@@ -9,7 +9,6 @@ bin           = @["nimstoryfont"]
 
 
 # Dependencies
-
 requires "nim >= 1.9.1"
 requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.4"
@@ -17,6 +16,7 @@ requires "jsony >= 1.1.3"
 requires "constructor >= 1.1.1"
 requires "zippy >= 0.10.6"
 requires "smtp >= 0.1.0"
+requires "nimword >= 0.2.0"
 
 import std/strformat
 let domain = "aldrune.com"
@@ -67,6 +67,8 @@ task debug, "Build a normal debug build":
   setCommand "c", "src/nimstoryfont.nim"
 
 task alpine_debug, "Build a release for debugging":
+  exec "nim -v"
+
   --gcc.exe:"musl-gcc"
   --gcc.linkerexe:"musl-gcc"
   --threads:on

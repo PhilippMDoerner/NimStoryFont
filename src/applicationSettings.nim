@@ -85,7 +85,7 @@ const ARTICLE_IMAGES_SUBDIR* = "article_images"
 const AUTHORIZATION_HEADER*: string = "Authorization"
 const TEMPORARY_FILENAME_HEADER*: string = "x-file-name"
 #Hashing Settings
-const DEFAULT_HASH_ITERATIONS* = 180000
+const DEFAULT_HASH_ITERATIONS* = 3
 const DEFAULT_SALT_LENGTH* = 12
 const DEFAULT_RESET_PASSWORD_LENGTH* = 20
 

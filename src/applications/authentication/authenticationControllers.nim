@@ -1,10 +1,10 @@
 import std/[json, strutils]
 import prologue
 import jsony
+import nimword
 import ./authenticationService
 import ./authenticationModels
 import ./authenticationSerialization
-import ./djangoEncryption
 import ../allUrlParams
 import ../controllerTemplates
 import ../genericArticleRepository
