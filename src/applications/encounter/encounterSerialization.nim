@@ -70,15 +70,11 @@ proc serializeEncounterConnection(entry: EncounterRead, connection: CharacterEnc
         )
     )
 
-proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[CharacterEncounterRead], encounterLocationParents: seq[Location]): EncounterSerializable =
-    var name = fmt"{entry.diaryentry_id.session_id.session_number}"
-    if entry.location_id.isSome():
-        name.add(fmt" - {entry.location_id.get().name}")
-    
+proc serializeEncounterRead*(entry: EncounterRead, encounterConnections: seq[CharacterEncounterRead], encounterLocationParents: seq[Location]): EncounterSerializable =    
     result = EncounterSerializable(
         pk: entry.id,
         description: entry.description,
-        name: name,
+        name: $entry,
         encounterConnections: encounterConnections.map(con => serializeEncounterConnection(entry, con)),
         location: entry.location_id.map(loc => loc.id),
         location_details: entry.location_id.map(loc => serializeEncounterLocation(loc, encounterLocationParents)),
