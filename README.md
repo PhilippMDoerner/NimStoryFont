@@ -6,11 +6,12 @@ This is a REST-API on top of an sqlite database.
 The nim dependencies of this project are:
 
 - Application Server: prologue - https://github.com/planety/prologue
-- ORM: norm - https://github.com/moigagoo/norm
+- ORM + connection pooling: norm - https://github.com/moigagoo/norm
 - (De)Serializing JSON to/from ORM models: jsony - https://github.com/treeform/jsony
 - Simplifaction of model-object construction: constructor - https://github.com/beef331/constructor
-- Connection pooling: tinypool - https://github.com/PhilippMDoerner/TinyPool
 - Compressing HTTP Responses: zippy - https://github.com/guzba/zippy
+- Password Hashing: Nimword - https://github.com/PhilippMDoerner/nimword
+- Sending emails: smtp - https://github.com/nim-lang/smtp
 
 Beyond that in terms of tooling and software this project uses:
 
