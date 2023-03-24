@@ -73,10 +73,7 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
         var user: User = getUserByName(userName)
 
         try:
-            discard connection.resetUserPassword(user)
-        except MailAuthenticationError as e:
-            resp(code = Http500, body = "Failed to send update email due to server connection issues")
-            return
+            discard await connection.resetUserPassword(user)
         except MissingEmailError as e:
             resp(code = Http400, body = fmt"User '{userName}' has no email address to send reset passwords to")
             return

@@ -103,26 +103,22 @@ proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: Cam
   let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
   connection.deleteGroupMembership(member.id, campaignGroup.id)
 
-proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
-    echo "I got called"
-    debug "me too"
-    info "Me three"
-    warn "me four"
-    echo user.email == ""
-    info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
-    debug user.email == ""
+proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) {.async.}=
     if user.email == "":
       raise newException(MissingEmailError, fmt"User '{user.username}' does not have an email address")
   
     let subject = getPasswordResetMailSubject(user.username)
     let body = getPasswordResetMailBody(newPassword)
-    sendSystemEmail(subject, body, user.email, settings)
+    await sendSystemEmail(subject, body, user.email, settings)
+    
+    info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
 
-proc resetUserPassword*(connection: DbConn, user: var User): User =
-  let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
-  sendPasswordResetEmail(user, newPassword, settings)
-
-  connection.updateUserPassword(user, newPassword)
+proc resetUserPassword*(connection: DbConn, user: User): Future[User] {.async.} =
+  let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)  
+  await sendPasswordResetEmail(user, newPassword, settings)
+  
+  var userMut = user
+  return connection.updateUserPassword(userMut, newPassword)
 
 
 proc getAccessTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
