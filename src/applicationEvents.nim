@@ -1,13 +1,15 @@
 import std/[logging, sugar]
 import prologue
 
+const LOG_FORMAT = "[$date $time] - $levelname: "
+
 proc addLogger*(logFilePath: string) =
     when defined(normdebug):
-        addHandler(newConsoleLogger(levelThreshold = lvlDebug))
-        addHandler(newRollingFileLogger(filename = logFilePath))
+        addHandler(newConsoleLogger(fmtStr = LOG_FORMAT, levelThreshold = lvlDebug))
+        addHandler(newRollingFileLogger(fmtStr = LOG_FORMAT, filename = logFilePath))
         logging.setLogFilter(lvlDebug)
     else:
-        addHandler(newRollingFileLogger(filename = logFilePath))
+        addHandler(newRollingFileLogger(fmtStr = LOG_FORMAT, filename = logFilePath))
         logging.setLogFilter(lvlInfo)
 
 
