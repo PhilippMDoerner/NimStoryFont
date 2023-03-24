@@ -9,7 +9,7 @@ type EmailDTO* = object
   cc*: seq[string]
   bcc*: seq[string]
 
-
+type MailAuthenticationError* = object of ReplyError
 
 proc sendSystemEmail*(subject: string, body: string, target: string, settings: Settings) =  
 
@@ -22,7 +22,11 @@ proc sendSystemEmail*(subject: string, body: string, target: string, settings: S
 
   let emailUserName = settings.getSetting(SettingName.snEmailName).getStr()
   let emailPassword = settings.getSetting(SettingName.snEmailPassword).getStr()
-  smtpConn.auth(emailUserName, emailPassword)
 
+  try:
+    smtpConn.auth(emailUserName, emailPassword)
+  except ReplyError:
+    raise newException(MailAuthenticationError, "Failed to authenticate for sending system mails")
+  
   var msg = createMessage(subject, body, @[target])
   smtpConn.sendMail(emailUserName, @[target], $msg)
