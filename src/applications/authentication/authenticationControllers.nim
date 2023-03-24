@@ -1,4 +1,4 @@
-import std/[json, strutils]
+import std/[json, strutils, logging]
 import prologue
 import jsony
 import nimword
@@ -66,10 +66,13 @@ proc login*(ctx: Context) {.async.} =
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let requestBody: JsonNode = ctx.request.body().parseJson()
+    debug requestBody.repr
     let userName = requestBody["username"].getStr()
-
+    debug "1"
     let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
+    debug "2"
     let settings = ctx.gScope.settings
+    debug "3"
     withDbConn(connection):
       let updatedUser = connection.updateUserPassword(userName, newPassword)
       sendPasswordResetEmail(updatedUser, newPassword, settings)

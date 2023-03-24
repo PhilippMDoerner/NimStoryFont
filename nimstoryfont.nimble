@@ -10,8 +10,9 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 requires "nim >= 1.9.1"
-requires "https://github.com/PhilippMDoerner/norm.git#8784eab" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
+requires "norm >= 2.7.0" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.4"
+requires "lowdb >= 0.2.0"
 requires "jsony >= 1.1.3"
 requires "constructor >= 1.1.1"
 requires "zippy >= 0.10.6"
@@ -58,8 +59,8 @@ task debug, "Build a normal debug build":
   --define:enableTinyPoolLogging
   --define:normDebug
   --define:ssl
-  --stackTrace:on 
-  --lineTrace:on 
+  --stackTrace:on
+  --lineTrace:on
   --styleCheck:usages
   --spellSuggest:50
   --excessiveStackTrace:on
@@ -77,8 +78,9 @@ task alpine_debug, "Build a release for debugging":
   --define:ssl
   --define:enableTinyPoolLogging
   --define:normDebug
-  --stackTrace:on 
-  --lineTrace:on 
+  --define:nimDebugDlOpen
+  --stackTrace:on
+  --lineTrace:on
   --styleCheck:usages
   --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   #--styleCheck:error
@@ -98,8 +100,8 @@ task normal_debug, "Build a release for debugging":
   --define:ssl
   --define:enableTinyPoolLogging
   --define:normDebug
-  --stackTrace:on 
-  --lineTrace:on 
+  --stackTrace:on
+  --lineTrace:on
   --styleCheck:usages
   #--styleCheck:error
   --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
@@ -112,8 +114,8 @@ task normal_debug, "Build a release for debugging":
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
-task rebuildFTS5Table, "":
-  exec "nim r --path:/home/philipp/.nimble/pkgs2/ndb-0.19.9-ed462bd80da79ed1c032ac31e4315558db423892 --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault ./sql/rebuild_fts5_table.nim"
+# task rebuildFTS5Table, "":
+#   exec "nim r --path:/home/philipp/.nimble/pkgs2/ndb-0.19.9-ed462bd80da79ed1c032ac31e4315558db423892 --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault ./sql/rebuild_fts5_table.nim"
 
 task build_images, "Builds an nginx docker image for this project to use with docker compose":
   echo "\nRemoving old containers"
