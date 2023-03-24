@@ -6,7 +6,7 @@ import ./userUtils
 import ./userRepository
 import ../genericArticleRepository
 import ../genericArticleService
-import ../../utils/[macroUtils, djangoDateTime/djangoDateTimeType]
+import ../../utils/[macroUtils, myStrutils, djangoDateTime/djangoDateTimeType]
 import ../../applicationConstants
 import ../../database
 
@@ -70,7 +70,6 @@ proc updateUserGroups*(connection: DbConn, requestData: UpdateParams, entry: Use
   result = connection.getEntryById(entry.id, User)
 
 proc updateUserPassword*(connection: DbConn, user: var User, newPassword: string): User =
-  
   let hashRepresentation = createPasswordDatabaseRepresentation(newPassword)
   user.password = hashRepresentation
   

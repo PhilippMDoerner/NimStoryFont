@@ -1,19 +1,23 @@
+import std/[options, sequtils, tables, strutils, strformat, logging, times]
 import prologue except Group
+import norm/model
+import ./authenticationEmailText
+import ./authenticationRepository
+import ./authenticationConstants
+import ./authenticationModels
+import ./authenticationUtils
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService, campaignUtils]
-import authenticationEmailText
-import authenticationRepository
-import authenticationConstants
-import authenticationModels
-import authenticationUtils
-import std/[options, sequtils, tables, strutils, strformat, times]
-import norm/model
 import ../allUrlParams
 import ../user/userService
-import ../../utils/[emailUtils, tokenTypes]
+import ../../utils/[emailUtils, tokenTypes, myStrutils]
+import ../../applicationSettings
 
+
+export emailUtils.MailAuthenticationError
 export authenticationModels
 
+type MissingEmailError* = object of MissingValueError
 
 proc addCampaignGroup(
     membershipTable: var Table[string, CampaignMemberships], 
@@ -99,11 +103,27 @@ proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: Cam
   let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
   connection.deleteGroupMembership(member.id, campaignGroup.id)
 
-
 proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) =
+    echo "I got called"
+    debug "me too"
+    info "Me three"
+    warn "me four"
+    echo user.email == ""
+    info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
+    debug user.email == ""
+    if user.email == "":
+      raise newException(MissingEmailError, fmt"User '{user.username}' does not have an email address")
+  
     let subject = getPasswordResetMailSubject(user.username)
     let body = getPasswordResetMailBody(newPassword)
     sendSystemEmail(subject, body, user.email, settings)
+
+proc resetUserPassword*(connection: DbConn, user: var User): User =
+  let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
+  sendPasswordResetEmail(user, newPassword, settings)
+
+  connection.updateUserPassword(user, newPassword)
+
 
 proc getAccessTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
   result = connection.getTokenData(tokenLifetimeInDays, token, access)

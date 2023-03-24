@@ -1,4 +1,4 @@
-import std/[json, strutils, logging]
+import std/[json, strutils, strformat, logging]
 import prologue
 import jsony
 import nimword
@@ -66,15 +66,19 @@ proc login*(ctx: Context) {.async.} =
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let requestBody: JsonNode = ctx.request.body().parseJson()
-    debug requestBody.repr
     let userName = requestBody["username"].getStr()
-    debug "1"
-    let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)
-    debug "2"
     let settings = ctx.gScope.settings
-    debug "3"
+    
     withDbConn(connection):
-      let updatedUser = connection.updateUserPassword(userName, newPassword)
-      sendPasswordResetEmail(updatedUser, newPassword, settings)
+        var user: User = getUserByName(userName)
+
+        try:
+            discard connection.resetUserPassword(user)
+        except MailAuthenticationError as e:
+            resp(code = Http500, body = "Failed to send update email due to server connection issues")
+            return
+        except MissingEmailError as e:
+            resp(code = Http400, body = fmt"User '{userName}' has no email address to send reset passwords to")
+            return
 
     respDefault(Http204)
