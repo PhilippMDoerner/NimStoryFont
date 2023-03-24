@@ -6,7 +6,7 @@ import ./userUtils
 import ./userRepository
 import ../genericArticleRepository
 import ../genericArticleService
-import ../../utils/[macroUtils, myStrutils, djangoDateTime/djangoDateTimeType]
+import ../../utils/[macroUtils, djangoDateTime/djangoDateTimeType]
 import ../../applicationConstants
 import ../../database
 
