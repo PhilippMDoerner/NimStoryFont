@@ -11,7 +11,7 @@ import ../genericArticleRepository
 import ../user/userService
 import ../../applicationSettings
 import ../../database
-import ../../utils/[tokenTypes, jwtContext, myStrutils, errorResponses, customResponses]
+import ../../utils/[tokenTypes, jwtContext, errorResponses, customResponses]
 
 
 proc createAndSerializeAuthData(connection: DbConn, ctx: Context, user: User): AuthDataSerializable =
