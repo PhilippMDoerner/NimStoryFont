@@ -11,22 +11,22 @@ type EmailDTO* = object
 
 type MailAuthenticationError* = object of ReplyError
 
-proc sendSystemEmail*(subject: string, body: string, target: string, settings: Settings) =  
+proc sendSystemEmail*(subject: string, body: string, target: string, settings: Settings) {.async.} =  
 
-  let smtpConn = newSmtp()
+  let smtpConn = newAsyncSmtp()
   let smtpServerName = settings.getSetting(SettingName.snSmtpName).getStr()
   let smtpPort: Port = Port settings.getSetting(SettingName.snSmtpPort).getInt()
-  smtpConn.connect(smtpServerName, smtpPort)
+  await smtpConn.connect(smtpServerName, smtpPort)
   
-  smtpConn.startTls()
+  await smtpConn.startTls()
 
   let emailUserName = settings.getSetting(SettingName.snEmailName).getStr()
   let emailPassword = settings.getSetting(SettingName.snEmailPassword).getStr()
 
   try:
-    smtpConn.auth(emailUserName, emailPassword)
-  except ReplyError:
-    raise newException(MailAuthenticationError, "Failed to authenticate for sending system mails")
+    await smtpConn.auth(emailUserName, emailPassword)
+  except ReplyError as e:
+    raise newException(MailAuthenticationError, "Failed to authenticate for sending system mails", e)
   
   var msg = createMessage(subject, body, @[target])
-  smtpConn.sendMail(emailUserName, @[target], $msg)
+  await smtpConn.sendMail(emailUserName, @[target], $msg)
