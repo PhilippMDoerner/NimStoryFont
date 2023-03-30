@@ -20,13 +20,13 @@ proc `$`*(model: DiaryEntry): string =
   
   result.add(fmt "Diary Entry #{session.session_number}")
   if model.title.isSome():
-    result.add(fmt " - {model.title}")
+    result.add(fmt " - {model.title.get()}")
 
 
 proc `$`*(model: DiaryEntryRead): string =  
   result.add(fmt "Diary Entry #{model.session_id.session_number}")
   if model.title.isSome():
-    result.add(fmt " - {model.title}")
+    result.add(fmt " - {model.title.get()}")
   
 proc checkDiaryEntryReadListPermission*(ctx: JWTContext, entries: seq[DiaryEntryRead]) =
   checkCampaignReadListPermission(ctx, entries)
