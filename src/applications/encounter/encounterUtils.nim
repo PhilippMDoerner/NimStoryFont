@@ -16,7 +16,7 @@ proc `$`*(encounter: Encounter): string =
     result.add(if diaryentry.session_id.is_main_session: "Main " else: "Side ")
     result.add(fmt "Session {diaryentry.session_id.session_number}")
     if encounter.title.isSome():
-        result.add(fmt " - {encounter.title}")
+        result.add(fmt " - {encounter.title.get()}")
 
 
 proc campaign_id*(encounter: Encounter): int64 =
