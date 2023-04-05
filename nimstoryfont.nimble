@@ -86,7 +86,7 @@ task alpine_debug, "Build a release for debugging":
   #--styleCheck:error
   --spellSuggest:50
   --excessiveStackTrace:on
-  #--warning:"BareExcept:off"
+  --warning:"BareExcept:off"
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   #--debugger:native
