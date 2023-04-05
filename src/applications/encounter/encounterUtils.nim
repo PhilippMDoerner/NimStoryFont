@@ -1,6 +1,6 @@
-import ../genericArticleRepository
 import std/[strformat, options]
-import encounterModel
+import ./encounterModel
+import ../genericArticleRepository
 import ../authentication/authenticationUtils
 import ../../utils/jwtContext
 
