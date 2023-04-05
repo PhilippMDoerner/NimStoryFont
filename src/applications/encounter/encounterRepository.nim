@@ -26,15 +26,14 @@ proc getEncountersBetweenOrderIndices*(connection: DbConn, diaryentryId: int64, 
 
 proc getNextEncounter*(connection: DbConn, encounter: Encounter): Option[Encounter] =
     const condition = """
-        order_index > ? AND diaryentry_id = ?
+        order_index > ? AND diaryentry_id = ? 
         ORDER BY order_index ASC
-        LIMIT 1
     """
 
-    var encounter = new(Encounter)
+    var nextEncounter = new(Encounter)
     try:
-        connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
-        result = some(encounter)
+        connection.select(nextEncounter, condition, encounter.order_index, encounter.diaryentry_id)
+        result = some(nextEncounter)
     except NotFoundError:
         result = none(Encounter)
         
@@ -44,13 +43,12 @@ proc getPriorEncounter*(connection: DbConn, encounter: Encounter): Option[Encoun
     const condition = """
         order_index < ? AND diaryentry_id = ?
         ORDER BY order_index DESC
-        LIMIT 1
     """
 
-    var encounter = new(Encounter)
+    var priorEncounter = new(Encounter)
     try:
-        connection.select(encounter, condition, encounter.order_index, encounter.diaryentry_id)
-        result = some(encounter)
+        connection.select(priorEncounter, condition, encounter.order_index, encounter.diaryentry_id)
+        result = some(priorEncounter)
     except NotFoundError:
         result = none(Encounter)
 
@@ -79,11 +77,13 @@ proc incrementOrderIndicesOfFollowingEncounters*(connection: DbConn, diaryentryI
         diaryentryId, 
         orderIndex
     )
+    followingEncounters.reverse()
 
-    for followingEncounter in followingEncounters:
-        var encounter: Encounter = deepCopy(followingEncounter)
+    for encounter in followingEncounters.items:
         let newOrderIndex: int = connection.getNextOrderIndex(encounter)
         encounter.order_index = some(newOrderIndex) # TODO: make order_index a "NOT NULL" field, that shouldn't be an optional
+    
+    for encounter in followingEncounters.mItems:
         connection.update(encounter)
 
 
@@ -124,5 +124,5 @@ proc getCampaignEncounters*(connection: DbConn, campaignName: string): seq[Encou
 
 
 proc getEncountersOfDiaryentry*(connection: DbConn, diaryentryId: int64): seq[EncounterRead] =
-    const condition: string = """diaryentry_id = ?"""
+    const condition: string = """diaryentry_id = ? ORDER BY order_index ASC"""
     result = connection.getList(EncounterRead, condition, diaryentryId.dbValue())
