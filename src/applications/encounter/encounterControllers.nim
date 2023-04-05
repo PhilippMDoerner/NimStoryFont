@@ -47,9 +47,11 @@ proc createEncounterInDiaryentry*(ctx: Context) {.async, gcsafe.} =
     checkCreatePermission(ctx, newEntry)
 
     respondOnError():
-      withDbTransaction(connection):
-        let createdEntry: Encounter = connection.createEncounter(params, newEntry)
-        let diaryentryEncounters: seq[EncounterRead] = connection.readDiaryEntryEncounters(createdEntry.diaryentry_id)
-        let data: seq[EncounterSerializable] = connection.serializeEncounterReads(diaryentryEncounters)
+        var data: seq[EncounterSerializable] = @[]
+        
+        withDbTransaction(connection):
+            let createdEntry: Encounter = connection.createEncounter(params, newEntry)
+            let diaryentryEncounters: seq[EncounterRead] = connection.readDiaryEntryEncounters(createdEntry.diaryentry_id)
+            data = connection.serializeEncounterReads(diaryentryEncounters)
 
         resp jsonyResponse(ctx, data)
