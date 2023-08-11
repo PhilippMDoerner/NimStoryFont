@@ -12,6 +12,7 @@ The nim dependencies of this project are:
 - Compressing HTTP Responses: zippy - https://github.com/guzba/zippy
 - Password Hashing: Nimword - https://github.com/PhilippMDoerner/nimword
 - Sending emails: smtp - https://github.com/nim-lang/smtp
+- Simplify mapping: mapster - https://github.com/PhilippMDoerner/mapster
 
 Beyond that in terms of tooling and software this project uses:
 

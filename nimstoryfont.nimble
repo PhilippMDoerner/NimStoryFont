@@ -9,7 +9,7 @@ bin           = @["nimstoryfont"]
 
 
 # Dependencies
-requires "nim >= 1.9.1"
+requires "nim >= 2.0.0"
 requires "norm >= 2.7.0" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.4"
 requires "lowdb >= 0.2.0"
@@ -18,6 +18,7 @@ requires "constructor >= 1.1.1"
 requires "zippy >= 0.10.6"
 requires "smtp >= 0.1.0"
 requires "nimword >= 0.2.0"
+requires "mapster >= 0.1.3"
 
 import std/strformat
 let domain = "aldrune.com"
