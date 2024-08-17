@@ -12,8 +12,6 @@ import ../../database
 import ../../applicationSettings
 import ../../utils/[fileUpload, jwtContext]
 
-import jsony
-
 export campaignModel
 
 proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead =
