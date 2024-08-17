@@ -1,5 +1,6 @@
 import prologue
 import tokenTypes
+import std/strutils
 
 export tokenTypes
 
@@ -18,7 +19,19 @@ proc hasCampaignMembership*(ctx: JWTContext, campaignId: int64): bool =
 proc getCampaignAccessLevel*(ctx: JWTContext, campaignId: int64): CampaignAccessLevel =
   result = ctx.tokenData.campaignMemberships[campaignId]
 
+proc extractFormFile*(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
+  let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
+  if hasFile:
+      result = some(ctx.getUploadFile(fileFieldName))
+  else:
+      result = none(UploadFile)
 
+proc extractIdFormParam*(ctx: JWTContext, fieldName: string): Option[int64] =
+    let idStr: Option[string] = ctx.getFormParamsOption(fieldName)
+    if idStr.isSome():
+        result = some(int64(parseInt(idStr.get())))
+    else: 
+        result = none(int64)
 
 proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue: var T) =
   ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object

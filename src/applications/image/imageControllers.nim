@@ -11,36 +11,19 @@ import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../applicationSettings
 import ../../database
 
-
-proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
-  let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
-  if hasFile:
-      result = some(ctx.getUploadFile(fileFieldName))
-  else:
-      result = none(UploadFile)
-
-
-proc extractFKIdFieldFromContext(ctx: JWTContext, fieldName: string): Option[int64] =
-    let imageIdStr: Option[string] = ctx.getFormParamsOption(fieldName)
-    if imageIdStr.isSome():
-        result = some(int64(parseInt(imageIdStr.get())))
-    else: 
-        result = none(int64)
-
-
 proc createImageView*(ctx: Context) {.async, gcsafe.}=
     let ctx = JWTContext(ctx)
     let imageDirectory: string = ctx.getSetting(SettingName.snImageDir).getStr()
 
     var imageFormData = ImageDTO(
-        imageFile: ctx.extractFileFromContext("image"),
+        imageFile: ctx.extractFormFile("image"),
         mediaDirectory: imageDirectory,
         imageName: ctx.getFormParamsOption("name"),
-        image_character_fk: ctx.extractFKIdFieldFromContext("character_article"),
-        image_creature_fk: ctx.extractFKIdFieldFromContext("creature_article"),
-        image_item_fk: ctx.extractFKIdFieldFromContext("item_article"),
-        image_location_fk: ctx.extractFKIdFieldFromContext("location_article"),
-        image_organization_fk: ctx.extractFKIdFieldFromContext("organization_article")
+        image_character_fk: ctx.extractIdFormParam("character_article"),
+        image_creature_fk: ctx.extractIdFormParam("creature_article"),
+        image_item_fk: ctx.extractIdFormParam("item_article"),
+        image_location_fk: ctx.extractIdFormParam("location_article"),
+        image_organization_fk: ctx.extractIdFormParam("organization_article")
     )
 
     respondOnError():
@@ -59,7 +42,7 @@ proc updateImageView*(ctx: Context) {.async, gcsafe.} =
     let mediaDirectory: string = ctx.getSetting(SettingName.snImageDir).getStr()
 
     var imageFormData = ImageDTO(
-        imageFile: ctx.extractFileFromContext("image"),
+        imageFile: ctx.extractFormFile("image"),
         mediaDirectory: mediaDirectory,
         imageName: ctx.getFormParamsOption("name")
     )
