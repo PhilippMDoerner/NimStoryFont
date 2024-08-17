@@ -10,14 +10,14 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 requires "nim >= 1.9.1"
-requires "norm >= 2.7.0" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
+requires "norm >= 2.8.3" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.4"
 requires "lowdb >= 0.2.0"
 requires "jsony >= 1.1.3"
 requires "constructor >= 1.1.1"
 requires "zippy >= 0.10.6"
 requires "smtp >= 0.1.0"
-requires "nimword >= 0.2.0"
+requires "nimword >= 1.0.1"
 
 import std/strformat
 let domain = "aldrune.com"
@@ -37,6 +37,8 @@ task alpine, "Build an alpine release":
   --gcc.linkerexe:"musl-gcc"
   --forceBuild:on
   --deepcopy:on
+  --passc:"-fpermissive"
+  --passl:"-fpermissive"
   --threads:on
   --opt:speed
   --define:release
@@ -69,7 +71,8 @@ task debug, "Build a normal debug build":
 
 task alpine_debug, "Build a release for debugging":
   exec "nim -v"
-
+  --passc:"-fpermissive"
+  --passl:"-fpermissive"
   --gcc.exe:"musl-gcc"
   --gcc.linkerexe:"musl-gcc"
   --threads:on

@@ -3,7 +3,8 @@ FROM alpine
 # Install dependencies
 RUN apk update
 RUN apk add sqlite-libs openssl libsodium
-
+RUN ln /usr/lib/libsqlite3.so.0 /usr/lib/libsqlite3.so
+RUN ln /usr/lib/libsodium.so.26 /usr/lib/libsodium.so.18
 # Copy necessary files
 COPY ./nimstoryfont .
 COPY ./nimstoryfontSettings.json /settings.json
