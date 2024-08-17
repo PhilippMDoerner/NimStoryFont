@@ -80,8 +80,8 @@ proc getUserContainer*(connection: DbConn, user: User): UserContainer =
 
 proc getPermissions*(connection: DbConn, codeNames: seq[string]): seq[Permission] =
   const permissionTable = Permission.table()
-  let partialConditions: seq[string] = codeNames.map(proc(s: string): string = fmt "{permissionTable}.codename = {s}")
-  let sqlCondition = partialConditions.join(", ")
+  let partialConditions: seq[string] = codeNames.map(proc(s: string): string = fmt """{permissionTable}.codename = "{s}" """)
+  let sqlCondition = partialConditions.join(" OR ")
 
   var permissionEntries: seq[Permission] = @[new(Permission)]
   connection.select(permissionEntries, sqlCondition)

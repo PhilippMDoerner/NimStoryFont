@@ -42,7 +42,7 @@ proc createEntry*[P: object, E: Model](connection: DbConn, params: P, entry: var
   result = connection.createEntryInTransaction(entry)
 
 ### LAST PARADIGM SHIFT, ONCE THIS IS USED EVERYWHERE YOU CAN REMOVE THE OTHER X-ARTICLE PROCS
-proc readArticleById*[P: object, E: Model](connection: DbConn, params: P): E =
+proc readArticleById*[P: object | tuple, E: Model](connection: DbConn, params: P): E =
   ## A default implementation of fetching an article from the DB using the article's id
   result = connection.getEntryById(params.id, E)
 

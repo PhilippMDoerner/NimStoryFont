@@ -20,7 +20,7 @@ proc addCampaignRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/campaign/",
-        handler = createCreateArticleHandler[CreateParams, Campaign, CampaignSerializable](serializeCampaign),
+        handler = createCampaignController,
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )

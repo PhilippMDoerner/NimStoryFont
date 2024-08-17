@@ -47,7 +47,7 @@ proc connect*[T: Model](signalType: SignalType, model: typedesc[T], signalProc: 
   log(lvlInfo, fmt "SIGNALSYSTEM: Connected {signalType} signal to model {tableKind} - There is/are now {myLen} {signalType} signal(s)")
 
 
-proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelInstance: T) =
+proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelInstance: var T) =
   ## Triggers all stored signal procs for the given modelInstance and the given signalType
   {.cast(gcsafe).}:
     let tableKind: string = name(modelInstance.type)
@@ -55,6 +55,6 @@ proc triggerSignal*[T: Model](signalType: SignalType, connection: DbConn, modelI
 
     let signalProcPointers: HashSet[pointer] = STORE.procs[tableKind][signalType]
     for procPointer in signalProcPointers.items:
-      type TempProc = proc (connection: DbConn, modelInstance: T) {.nimcall.}
+      type TempProc = proc (connection: DbConn, modelInstance: var T) {.nimcall.}
       let signalProc = cast[TempProc](procPointer)
       signalProc(connection, modelInstance)
