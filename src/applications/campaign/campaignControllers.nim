@@ -4,14 +4,16 @@ import jsony
 import ./campaignService
 import ./campaignUtils
 import ./campaignSerialization
+import ./campaignDTO
 import ./statisticsService
 import ../controllerTemplates
-import ../../utils/[jwtContext, customResponses, errorResponses]
-import ../../database
 import ../allUrlParams
 import ../user/userService
 import ../authentication/[authenticationUtils, authenticationService, authenticationConstants]
 import ../genericArticleRepository
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../database
+import ../../applicationSettings
 
 type RequestedUser = object
   pk: int64
@@ -22,6 +24,30 @@ type ChangeMembershipRequestBody = object
 
 type MembershipAction = enum
   ADD="add", REMOVE="remove"
+
+proc createCampaignController*(ctx: Context) {.async, gcsafe.} =
+  let ctx = JWTContext(ctx)
+  
+  let backgroundImage = ctx.extractFormFile("background_image")
+  let icon = ctx.extractFormFile("icon")
+  
+  let hasImages = backgroundImage.isSome() and icon.isSome()
+  if not hasImages:
+    resp get400BadRequestResponse()
+    
+  respondOnError():
+    let campaignFormData = CampaignDTO(
+      name: ctx.getFormParamsOption("name").get(),
+      subtitle: ctx.getFormParamsOption("subtitle"),
+      backgroundImage: ctx.extractFormFile("background_image").get(),
+      icon: ctx.extractFormFile("icon").get(),
+      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr()
+    )
+  
+    withDbConn(connection):
+      let newCampaign: CampaignRead = connection.createCampaign(campaignFormData)
+      let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
+      resp jsonyResponse(ctx, campaignSerializable)
 
 proc changeMembership*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
@@ -52,8 +78,6 @@ proc changeMembership*(ctx: Context) {.async, gcsafe.} =
       
       resp jsonyResponse(ctx, data)
 
-
-
 proc deactivateCampaignController*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
   
@@ -66,7 +90,6 @@ proc deactivateCampaignController*(ctx: Context) {.async, gcsafe.} =
       connection.deactivateCampaign(campaign)
 
       respDefault(Http204)
-
 
 proc getCampaignStatistics*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)

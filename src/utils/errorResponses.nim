@@ -3,7 +3,7 @@ import prologue
 proc get401UnauthorizedResponse*(ctx: Context): Response {.inline.} =
     result = jsonResponse(%*"The given token is not, or no longer, valid", Http401)
 
-proc get400BadRequestResponse*(errorMsg: string): Response {.inline.}  =
+proc get400BadRequestResponse*(errorMsg: string = ""): Response {.inline.}  =
     let responseText = "Something around the given data was invalid: " & errorMsg
     result = jsonResponse(%*responseText, Http400)
 

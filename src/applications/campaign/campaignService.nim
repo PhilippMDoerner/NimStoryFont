@@ -1,25 +1,51 @@
-import ../genericArticleRepository
-import ../genericArticleService
+import std/[options, sets, strutils, tables, strformat, sugar]
 import campaignModel
 import campaignRepository
+import campaignDTO
 import norm/[model, sqlite]
-import std/[options, sets, tables, strformat, sugar]
-import ../../database
+import ../genericArticleRepository
+import ../genericArticleService
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../allUrlParams
-import ../../utils/jwtContext
+import ../../database
+import ../../applicationSettings
+import ../../utils/[fileUpload, jwtContext]
+
+import jsony
 
 export campaignModel
 
-
+proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead =
+  let iconDirectory = fmt"{campaignDTO.mediaDirectory}/{CAMPAIGN_ICONS_SUBDIR}"
+  let absoluteIconPath: string = saveFile(campaignDTO.icon, iconDirectory)
+  var relativeIconPath = absoluteIconPath.getRelativeFilepathTo(campaignDTO.mediaDirectory)
+  relativeIconPath.removePrefix("/")
+  
+  let backgroundImageDirectory = fmt"{campaignDTO.mediaDirectory}/{BACKGROUND_IMAGE_SUBDIR}"
+  let absoluteBackgroundImagePath: string = saveFile(campaignDTO.backgroundImage, backgroundImageDirectory)
+  var relativeBackgroundImagePath = absoluteBackgroundImagePath.getRelativeFilepathTo(campaignDTO.mediaDirectory)
+  relativeBackgroundImagePath.removePrefix("/")
+  
+  var campaign = new(Campaign)
+  campaign.name = campaignDTO.name
+  campaign.subtitle = campaignDTO.subtitle
+  campaign.background_image = relativeBackgroundImagePath
+  campaign.icon = some relativeIconPath
+  
+  try:
+    let newCampaign = connection.createEntryInTransaction(campaign)
+    result = connection.getEntryById(newCampaign.id, CampaignRead)
+  except CatchableError:
+    deleteFile(absoluteIconPath)
+    deleteFile(absoluteBackgroundImagePath)
+    raise
+  
 proc getCampaignByName*(campaignName: string): Campaign =
   result = getEntryByField("name", campaignName, Campaign)
 
-
 proc getAllCampaigns*(): seq[Campaign] =
   result = getList(Campaign)
-
 
 proc getAllCampaignReads*(): seq[CampaignRead] = 
   result = getList(CampaignRead)

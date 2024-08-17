@@ -82,6 +82,8 @@ let settings*: Settings = loadNimstoryfontSettings()
 #Custom Settings
 const MEDIA_URL* = "/media/"
 const ARTICLE_IMAGES_SUBDIR* = "article_images"
+const CAMPAIGN_ICONS_SUBDIR* = "campaign_icons"
+const BACKGROUND_IMAGE_SUBDIR* = "campaign_backgrounds"
 const AUTHORIZATION_HEADER*: string = "Authorization"
 const TEMPORARY_FILENAME_HEADER*: string = "x-file-name"
 #Hashing Settings
