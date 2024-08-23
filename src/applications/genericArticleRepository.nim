@@ -323,9 +323,8 @@ proc createEntryInTransaction*[T: Model](connection: DbConn, entry: var T): T =
     Triggers preCreateSignal and postCreateSignal if there are any defined for the model ]##
     {.cast(gcsafe).}:
       triggerSignal(SignalType.stPreCreate, connection, entry)
-      echo "CREATING: ", entry.repr
-      connection.insert(entry)
 
+      connection.insert(entry)
       triggerSignal(SignalType.stPostCreate, connection, entry)
 
       result = entry
