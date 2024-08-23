@@ -4,7 +4,7 @@ import std/[strformat]
 import norm/sqlite
 import sessionaudioModel
 
-proc deleteSessionAudioFile(connection: DbConn, modelInstance: SessionAudio) =
+proc deleteSessionAudioFile(connection: DbConn, modelInstance: var SessionAudio) =
   ## Deletes an sessionAudio file off the harddrive if the corresponding sessionAudio entry
   ## in the database is deleted
   let sessionAudioFilepath: string = modelInstance.audio_file

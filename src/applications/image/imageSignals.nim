@@ -6,7 +6,7 @@ import norm/sqlite
 import imageModel
 import prologue
 
-proc deleteImageFile(connection: DbConn, modelInstance: Image) =
+proc deleteImageFile(connection: DbConn, modelInstance: var Image) =
   ## Deletes an image file off the harddrive if the corresponding image entry
   ## in the database is deleted
   let imageFilepath: string = modelInstance.image
