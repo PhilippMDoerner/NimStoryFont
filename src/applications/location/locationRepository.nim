@@ -37,7 +37,7 @@ proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Ta
   
   let rawParentLocationIdRows: seq[Row] = connection.getAllRows(parentLocationIdQuery)
 
-  assert(locationIdsDed.len() == rawParentLocationIdRows.len(), "Failed to fetch an id_path for every id when fetching parent locations!")
+  assert(locationIdsDed.len() == rawParentLocationIdRows.len(), fmt"Failed to fetch an id_path for every id when fetching parent locations! Started with '{locationIdsDed}' ids, got '{rawParentLocationIdRows}' rows back!")
 
   for row in rawParentLocationIdRows:
     let rowLocationId: string = $row[0]
