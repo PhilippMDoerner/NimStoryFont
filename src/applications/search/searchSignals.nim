@@ -35,7 +35,7 @@ export sessionaudioUtils
 ## time (SignalType) is assigned to them.
 
 #CHARACTER Signals
-proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Character) =
+proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: var Character) =
   let memberships: seq[OrganizationMembershipRead] = connection.getOrganizationMemberships(modelInstance.id, OrganizationMembershipRead)
   for membership in memberships:
     let organization: OrganizationRead = membership.organization_id
@@ -49,15 +49,15 @@ proc updateCharacterAssociatedEntries(connection: DbConn, modelInstance: Charact
   for quest in questsWhereCharacterIsTaker:
     updateSearchEntryContent(connection, quest)
 
-proc characterCreateSignal*(connection: DbConn, modelInstance: Character) =
+proc characterCreateSignal*(connection: DbConn, modelInstance: var Character) =
   addSearchEntry(connection, modelInstance)
   updateCharacterAssociatedEntries(connection, modelInstance)
 
-proc characterUpdateSignal*(connection: DbConn, modelInstance: Character) =
+proc characterUpdateSignal*(connection: DbConn, modelInstance: var Character) =
   updateSearchEntryContent(connection, modelInstance)
   updateCharacterAssociatedEntries(connection, modelInstance)
 
-proc characterDeleteSignal*(connection: DbConn, modelInstance: Character) =
+proc characterDeleteSignal*(connection: DbConn, modelInstance: var Character) =
   deleteSearchEntry(connection, modelInstance)
   updateCharacterAssociatedEntries(connection, modelInstance)
 
@@ -67,13 +67,13 @@ proc connectCharacterSearchSignals() =
   connect(SignalType.stPreDelete, Character, characterDeleteSignal)
 
 #CREATURE
-proc creatureCreateSignal*(connection: DbConn, modelInstance: Creature) =
+proc creatureCreateSignal*(connection: DbConn, modelInstance: var Creature) =
   addSearchEntry(connection, modelInstance)
 
-proc creatureUpdateSignal*(connection: DbConn, modelInstance: Creature) =
+proc creatureUpdateSignal*(connection: DbConn, modelInstance: var Creature) =
   updateSearchEntryContent(connection, modelInstance)
 
-proc creatureDeleteSignal*(connection: DbConn, modelInstance: Creature) =
+proc creatureDeleteSignal*(connection: DbConn, modelInstance: var Creature) =
   deleteSearchEntry(connection, modelInstance)
 
 proc connectCreatureSearchSignals() =
@@ -82,13 +82,13 @@ proc connectCreatureSearchSignals() =
   connect(SignalType.stPreDelete, Creature, creatureDeleteSignal)
 
 #ITEM
-proc itemCreateSignal*(connection: DbConn, modelInstance: Item) = 
+proc itemCreateSignal*(connection: DbConn, modelInstance: var Item) = 
   addSearchEntry(connection, modelInstance)
 
-proc itemUpdateSignal*(connection: DbConn, modelInstance: Item) = 
+proc itemUpdateSignal*(connection: DbConn, modelInstance: var Item) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc itemDeleteSignal*(connection: DbConn, modelInstance: Item) =
+proc itemDeleteSignal*(connection: DbConn, modelInstance: var Item) =
   deleteSearchEntry(connection, modelInstance)
 
 proc connectItemSearchSignals() =
@@ -99,13 +99,13 @@ proc connectItemSearchSignals() =
 
 
 #DIARYENTRY
-proc diaryEntryCreateSignal*(connection: DbConn, modelInstance: DiaryEntry) = 
+proc diaryEntryCreateSignal*(connection: DbConn, modelInstance: var DiaryEntry) = 
   addSearchEntry(connection, modelInstance)
 
-proc diaryEntryUpdateSignal*(connection: DbConn, modelInstance: DiaryEntry) = 
+proc diaryEntryUpdateSignal*(connection: DbConn, modelInstance: var DiaryEntry) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc diaryEntryDeleteSignal*(connection: DbConn, modelInstance: DiaryEntry) =
+proc diaryEntryDeleteSignal*(connection: DbConn, modelInstance: var DiaryEntry) =
   deleteSearchEntry(connection, modelInstance)
 
 proc connectDiaryEntrySearchSignals() =
@@ -116,19 +116,19 @@ proc connectDiaryEntrySearchSignals() =
 
 
 #ENCOUNTER
-proc updateEncounterAssociatedEntries(connection: DbConn, modelInstance: Encounter) =
+proc updateEncounterAssociatedEntries(connection: DbConn, modelInstance: var Encounter) =
   let diaryentry: DiaryEntry = getEntryById(modelInstance.diaryentry_id, DiaryEntry)
   updateSearchEntryContent(connection, diaryentry)
 
-proc encounterCreateSignal*(connection: DbConn, modelInstance: Encounter) = 
+proc encounterCreateSignal*(connection: DbConn, modelInstance: var Encounter) = 
   addSearchEntry(connection, modelInstance)
   updateEncounterAssociatedEntries(connection, modelInstance)
 
-proc encounterUpdateSignal*(connection: DbConn, modelInstance: Encounter) = 
+proc encounterUpdateSignal*(connection: DbConn, modelInstance: var Encounter) = 
   updateSearchEntryContent(connection, modelInstance)
   updateEncounterAssociatedEntries(connection, modelInstance)
 
-proc encounterDeleteSignal*(connection: DbConn, modelInstance: Encounter) =
+proc encounterDeleteSignal*(connection: DbConn, modelInstance: var Encounter) =
   deleteSearchEntry(connection, modelInstance)
   updateEncounterAssociatedEntries(connection, modelInstance)
 
@@ -140,7 +140,7 @@ proc connectEncounterSearchSignals() =
 
 
 #LOCATION
-proc updateLocationAssociatedEntries(connection: DbConn, modelInstance: Location) =
+proc updateLocationAssociatedEntries(connection: DbConn, modelInstance: var Location) =
   let mapsWithLocation: seq[MarkerMap] = getManyToMany(modelInstance, MarkerRead, MarkerMap)
   for map in mapsWithLocation:
     updateSearchEntryContent(connection, map)
@@ -153,14 +153,14 @@ proc updateLocationAssociatedEntries(connection: DbConn, modelInstance: Location
   for encounter in encountersInLocation:
     updateSearchEntryContent(connection, encounter)
 
-proc locationCreateSignal*(connection: DbConn, modelInstance: Location) = 
+proc locationCreateSignal*(connection: DbConn, modelInstance: var Location) = 
   addSearchEntry(connection, modelInstance)
 
-proc locationUpdateSignal*(connection: DbConn, modelInstance: Location) = 
+proc locationUpdateSignal*(connection: DbConn, modelInstance: var Location) = 
   updateSearchEntryContent(connection, modelInstance)
   updateLocationAssociatedEntries(connection, modelInstance)
 
-proc locationDeleteSignal*(connection: DbConn, modelInstance: Location) = 
+proc locationDeleteSignal*(connection: DbConn, modelInstance: var Location) = 
   deleteSearchEntry(connection, modelInstance)
   updateLocationAssociatedEntries(connection, modelInstance)
 
@@ -172,13 +172,13 @@ proc connectLocationSearchSignals() =
 
 
 #MAP
-proc mapCreateSignal*(connection: DbConn, modelInstance: Map) = 
+proc mapCreateSignal*(connection: DbConn, modelInstance: var Map) = 
   addSearchEntry(connection, modelInstance)
 
-proc mapUpdateSignal*(connection: DbConn, modelInstance: Map) = 
+proc mapUpdateSignal*(connection: DbConn, modelInstance: var Map) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc mapDeleteSignal*(connection: DbConn, modelInstance: Map) = 
+proc mapDeleteSignal*(connection: DbConn, modelInstance: var Map) = 
   deleteSearchEntry(connection, modelInstance)
 
 proc connectMapSearchSignals() =
@@ -189,7 +189,7 @@ proc connectMapSearchSignals() =
 
 
 #MARKER
-proc markerSignal*(connection: DbConn, modelInstance: Marker) =
+proc markerSignal*(connection: DbConn, modelInstance: var Marker) =
   let mapWithMarker: Map = getEntryById(modelInstance.map_id, Map)
   updateSearchEntryContent(connection, mapWithMarker)
 
@@ -201,13 +201,13 @@ proc connectMarkerSearchSignals() =
 
 
 #ORGANIZATION
-proc organizationCreateSignal*(connection: DbConn, modelInstance: Organization) = 
+proc organizationCreateSignal*(connection: DbConn, modelInstance: var Organization) = 
   addSearchEntry(connection, modelInstance)
 
-proc organizationUpdateSignal*(connection: DbConn, modelInstance: Organization) = 
+proc organizationUpdateSignal*(connection: DbConn, modelInstance: var Organization) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc organizationDeleteSignal*(connection: DbConn, modelInstance: Organization) = 
+proc organizationDeleteSignal*(connection: DbConn, modelInstance: var Organization) = 
   deleteSearchEntry(connection, modelInstance)
 
 proc connectOrganizationSearchSignals() =
@@ -217,11 +217,11 @@ proc connectOrganizationSearchSignals() =
 
 
 #CHARACTER ORGANIZATION MEMBERSHIP
-proc organizationMembershipSignal*(connection: DbConn, modelInstance: OrganizationMembership) =
-  let character = getEntryById(modelInstance.member_id, Character)
+proc organizationMembershipSignal*(connection: DbConn, modelInstance: var OrganizationMembership) =
+  var character = getEntryById(modelInstance.member_id, Character)
   characterUpdateSignal(connection, character)
 
-  let organization = getEntryById(modelInstance.organization_id, Organization)
+  var organization = getEntryById(modelInstance.organization_id, Organization)
   organizationUpdateSignal(connection, organization)
 
 proc connectOrganizationMembershipSignals() =
@@ -231,13 +231,13 @@ proc connectOrganizationMembershipSignals() =
  
 
 #QUEST
-proc questCreateSignal*(connection: DbConn, modelInstance: Quest) = 
+proc questCreateSignal*(connection: DbConn, modelInstance: var Quest) = 
   addSearchEntry(connection, modelInstance)
 
-proc questUpdateSignal*(connection: DbConn, modelInstance: Quest) = 
+proc questUpdateSignal*(connection: DbConn, modelInstance: var Quest) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc questDeleteSignal*(connection: DbConn, modelInstance: Quest) = 
+proc questDeleteSignal*(connection: DbConn, modelInstance: var Quest) = 
   deleteSearchEntry(connection, modelInstance)
 
 proc connectQuestSearchSignals() =
@@ -248,13 +248,13 @@ proc connectQuestSearchSignals() =
 
 
 #SESSIONAUDIO
-proc sessionAudioCreateSignal*(connection: DbConn, modelInstance: SessionAudio) = 
+proc sessionAudioCreateSignal*(connection: DbConn, modelInstance: var SessionAudio) = 
   addSearchEntry(connection, modelInstance)
 
-proc sessionAudioUpdateSignal*(connection: DbConn, modelInstance: SessionAudio) = 
+proc sessionAudioUpdateSignal*(connection: DbConn, modelInstance: var SessionAudio) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc sessionAudioDeleteSignal*(connection: DbConn, modelInstance: SessionAudio) =
+proc sessionAudioDeleteSignal*(connection: DbConn, modelInstance: var SessionAudio) =
   deleteSearchEntry(connection, modelInstance)
 
 proc connectSessionAudioSearchSignals() =
@@ -265,7 +265,7 @@ proc connectSessionAudioSearchSignals() =
 
 
 #TIMESTAMP
-proc timestampSignal*(connection: DbConn, modelInstance: Timestamp) =
+proc timestampSignal*(connection: DbConn, modelInstance: var Timestamp) =
   let sessionAudioEntryWithTimestamp = getEntryById(modelInstance.session_audio_id, SessionAudio)
   updateSearchEntryContent(connection, sessionAudioEntryWithTimestamp)
 
@@ -276,13 +276,13 @@ proc connectTimestampSearchSignals() =
 
 
 #SPELL
-proc spellCreateSignal*(connection: DbConn, modelInstance: Spell) = 
+proc spellCreateSignal*(connection: DbConn, modelInstance: var Spell) = 
   addSearchEntry(connection, modelInstance)
 
-proc spellUpdateSignal*(connection: DbConn, modelInstance: Spell) = 
+proc spellUpdateSignal*(connection: DbConn, modelInstance: var Spell) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc spellDeleteSignal*(connection: DbConn, modelInstance: Spell) = 
+proc spellDeleteSignal*(connection: DbConn, modelInstance: var Spell) = 
   deleteSearchEntry(connection, modelInstance)
 
 proc connectSpellSearchSignals() =
@@ -293,13 +293,14 @@ proc connectSpellSearchSignals() =
 
 
 #RULE
-proc ruleCreateSignal*(connection: DbConn, modelInstance: Rule) = 
+proc ruleCreateSignal*(connection: DbConn, modelInstance: var Rule) = 
+  echo "INSTANCE ID", modelInstance.id
   addSearchEntry(connection, modelInstance)
 
-proc ruleUpdateSignal*(connection: DbConn, modelInstance: Rule) = 
+proc ruleUpdateSignal*(connection: DbConn, modelInstance: var Rule) = 
   updateSearchEntryContent(connection, modelInstance)
 
-proc ruleDeleteSignal*(connection: DbConn, modelInstance: Rule) = 
+proc ruleDeleteSignal*(connection: DbConn, modelInstance: var Rule) = 
   deleteSearchEntry(connection, modelInstance)
 
 proc connectRuleSearchSignals() =
