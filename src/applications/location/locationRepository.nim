@@ -61,6 +61,11 @@ proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[st
   else:
     raise newException(ValueError, fmt"Received 2 sets of parentLocations for the single location id {locationId}")
 
+proc parseIdString(idStr: string): seq[int64] =
+  return idStr
+    .split(',')
+    .map(idStr => idStr.parseInt().int64)
+    .deduplicate()
 
 proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int64, seq[Location]] =
   let parentLocationIdStrings: Table[int64, Option[string]] = connection.getParentLocationIdStrings(locationIds)
@@ -72,11 +77,7 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
     if parentLocationIdString.isNone():
       continue
 
-    var idSet: HashSet[int64] = parentLocationIdString
-      .get()
-      .split(',')
-      .map(idStr => idStr.parseInt().int64)
-      .toHashSet()
+    var idSet: HashSet[int64] = parentLocationIdString.get().parseIdString().toHashSet()
     
     parentLocationIdSets[locationId] = idSet
     totalIdSet.incl(idSet)
@@ -99,23 +100,48 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
     else:
       result[locationId] = @[]
 
+proc find[T](list: seq[T], condition: proc(x: T): bool): Option[T] =
+  for item in list:
+    if condition(item):
+      return some(item)
+  return none(T)
+
+proc sortById[T: Model](list: seq[T], ids: seq[int64]): seq[T] =
+  result = ids
+    .map(id => list.find(item => item.id == id))
+    .filter(item => item.isSome())
+    .map(item => item.get())
+  
+  assert(result.len() == ids.len(), fmt"Failed to sort parent locations! Got only '{result.len()}' entries in 'sorted' list but expected it to have '{ids.len()}'")
 
 proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
-  let parentLocationIds: Option[string] = connection.getParentLocationIdString(locationId)
-  if parentLocationIds.isNone():
+  let parentLocationIdStr: Option[string] = connection.getParentLocationIdString(locationId)
+  let hasParents = parentLocationIdStr.isSome()
+  if not hasParents:
     return @[]
 
-  let condition = fmt"id IN ({parentLocationIds.get()})"
-  result = connection.getList(Location, condition)
+  let condition = fmt"id IN ({parentLocationIdStr.get()})"
+  let parentLocations = connection.getList(Location, condition)
+  
+  let parentLocationIds: seq[int64] = parentLocationIdStr.get().parseIdString()
+  result = parentLocations.sortById(parentLocationIds)
+  
+  echo fmt"Location {locationId} has {parentLocationIds} parent locations: {result.repr}"
+
 
 
 proc getParentLocationReads*(connection: DbConn, locationId: int64): seq[LocationRead] =
-  let parentLocationIds: Option[string] = connection.getParentLocationIdString(locationId)
-  if parentLocationIds.isNone():
+  let parentLocationIdStr: Option[string] = connection.getParentLocationIdString(locationId)
+  let hasParentLocations = parentLocationIdStr.isSome()
+  if not hasParentLocations:
     return @[]
 
-  let condition = fmt"{LocationRead.table()}.id IN ({parentLocationIds.get()})"
-  result = connection.getList(LocationRead, condition)
+  let condition = fmt"{LocationRead.table()}.id IN ({parentLocationIdStr.get()})"
+  let parentLocations = connection.getList(LocationRead, condition)
+  
+  let parentLocationIds: seq[int64] = parentLocationIdStr.get().parseIdString()
+  result = parentLocations.sortById(parentLocationIds)
+  
 
 proc getSubLocations*(connection: DbConn, locationId: int64): seq[Location] =
   const condition = fmt"{Location.table()}.parent_location_id = ?"
