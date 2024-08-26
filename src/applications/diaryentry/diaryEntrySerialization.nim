@@ -62,21 +62,22 @@ proc getAdjacentDiaryEntries(connection: DbConn, entry: DiaryEntryRead): Adjacen
             entryIndex = i
             break
     
-    var nextDiaryEntry = none(DiaryEntryRead)
-    var priorDiaryEntry = none(DiaryEntryRead)
-
-    if entryIndex == 0:
-        priorDiaryEntry = some(diaryentries[entryIndex + 1])
-    elif entryIndex > 0 and entryIndex < diaryentries.len() - 1:
-        priorDiaryEntry = some(diaryentries[entryIndex + 1])
-        nextDiaryEntry = some(diaryentries[entryIndex - 1])
-    elif entryIndex == diaryentries.len()-1:
-        nextDiaryEntry = some(diaryentries[entryIndex - 1])
-    else:
-       raise newException(ValueError, fmt"The entry with id {entry.id} was not in a list of diaryentries for campaign {entry.session_id.campaign_id.name}.")
+    let priorDiaryEntry = block:
+        let priorIndex = entryIndex + 1
+        let hasPriorDiaryEntry = priorIndex <= diaryentries.high
+        if hasPriorDiaryEntry:
+            some(diaryentries[priorIndex])
+        else:
+            none(DiaryEntryRead)
     
-
-
+    let nextDiaryEntry = block:    
+        let nextIndex = entryIndex - 1
+        let hasNextDiaryEntry = nextIndex > diaryentries.low
+        if hasNextDiaryEntry:
+            some(diaryentries[nextIndex])
+        else:
+            none(DiaryEntryRead)
+    
     result = AdjacentDiaryEntries(
         prior_diaryentry: priorDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry)), 
         next_diaryentry: nextDiaryEntry.map(entry => connection.serializeToDiaryEntryStub(entry))
