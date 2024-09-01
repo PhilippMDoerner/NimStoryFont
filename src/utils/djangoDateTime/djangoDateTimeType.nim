@@ -8,6 +8,7 @@ type DjangoDateTime* = distinct DateTime
 
 #Borrowed functionality from actual DateTime that is needed
 proc toTime*(x: DjangoDateTime): Time  {.borrow.}
+proc isInitialized*(x: DjangoDateTime): bool {.borrow.}
 proc fromUnix*(input: int64): DjangoDateTime = times.fromUnix(input).local().DjangoDateTime
 
 proc format*(x: DjangoDateTime, loc: DateTimeLocale = DefaultLocale, dateFormat = PRIMARY_DB_TIME_FORMAT): string =

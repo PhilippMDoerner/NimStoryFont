@@ -7,3 +7,11 @@ type CampaignDTO* = ref object
   backgroundImage*: UploadFile
   icon*: UploadFile
   mediaDirectory*: string
+
+type CampaignUpdateDTO* = ref object
+  pk*: int64
+  name*: Option[string]
+  subtitle*: Option[string]
+  backgroundImage*: Option[UploadFile]
+  icon*: Option[UploadFile]
+  mediaDirectory*: string

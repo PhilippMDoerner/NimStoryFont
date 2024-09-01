@@ -1,4 +1,4 @@
-import std/[strformat, strutils, sequtils, sugar, options]
+import std/[strutils, sequtils, sugar, options]
 import prologue
 import jsony
 import ./campaignService
@@ -46,6 +46,27 @@ proc createCampaignController*(ctx: Context) {.async, gcsafe.} =
   
     withDbConn(connection):
       let newCampaign: CampaignRead = connection.createCampaign(campaignFormData)
+      let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
+      resp jsonyResponse(ctx, campaignSerializable)
+
+proc updateCampaignController*(ctx: Context) {.async.} =
+  let ctx = JWTContext(ctx)
+  
+  let backgroundImage = ctx.extractFormFile("background_image")
+  let icon = ctx.extractFormFile("icon")
+  
+  respondOnError():
+    let campaignFormData = CampaignUpdateDTO(
+      pk: ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64,
+      name: ctx.getFormParamsOption("name"),
+      subtitle: ctx.getFormParamsOption("subtitle"),
+      backgroundImage: ctx.extractFormFile("background_image"),
+      icon: ctx.extractFormFile("icon"),
+      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr()
+    )
+    
+    withDbConn(connection):
+      let newCampaign: CampaignRead = connection.updateCampaign(campaignFormData)
       let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
       resp jsonyResponse(ctx, campaignSerializable)
 
@@ -100,7 +121,6 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
     withDbConn(connection):
       let statistics: Statistics = connection.getCampaignStatistics(campaignName)
       resp jsonyResponse(ctx, statistics)
-    
 
 proc getWikiStatistics*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
