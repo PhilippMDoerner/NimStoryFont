@@ -34,7 +34,7 @@ proc addCampaignRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/campaign/pk/{ID_PATTERN}/", 
-        handler = createUpdateByIdHandler[UpdateParams, Campaign, CampaignSerializable](serializeCampaign),
+        handler = updateCampaignController,
         httpMethod = HttpPut,
         middlewares = @[loginMiddleware()]
     )

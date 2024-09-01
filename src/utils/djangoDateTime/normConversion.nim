@@ -2,7 +2,7 @@ import djangoDateTimeType
 import lowdb/sqlite
 import ../../applicationSettings
 import times
-
+import std/logging
 ##[ Add support for custom datatype ``DjangoDateTime`` to norm (stolen form norm dbtypes.nim)
 Funcs to convert between Nim types and SQLite types and between Nim values and ``lowdb.sqlite.DbValue``.
 
@@ -13,7 +13,15 @@ To add support for ``YourType``, define three funcs:
 ]##
 
 func dbType*(T: typedesc[DjangoDateTime]): string = "DATETIME"
-func dbValue*(val: DjangoDateTime): DbValue = dbValue(val.format())
+proc dbValue*(val: DjangoDateTime): DbValue = 
+    let storableValue = if val.isInitialized():
+            val
+        else:
+            warn("Attempted to store uninitialized DjangoDateTime!!! in database")
+            djangoDateTimeType.now()
+    
+    return dbValue(storableValue.format())
+        
 proc to*(dbVal: DbValue, T: typedesc[DjangoDateTime]): T = 
     let dateTimeStr: string = dbVal.s
     try:

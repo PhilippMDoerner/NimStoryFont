@@ -1,8 +1,9 @@
 import std/[options, sets, strutils, tables, strformat, sugar]
+import prologue except Group
+import norm/[model, sqlite]
 import campaignModel
 import campaignRepository
 import campaignDTO
-import norm/[model, sqlite]
 import ../genericArticleRepository
 import ../genericArticleService
 import ../authentication/authenticationConstants
@@ -14,17 +15,26 @@ import ../../utils/[fileUpload, jwtContext]
 
 export campaignModel
 
+type PathTuple = tuple[relativeFilePath: string, absoluteFilePath: string]
+
+proc storeFileIn(mediaDir: string, subDir: string, file: var UploadFile): PathTuple =
+  let fileDir = fmt"{mediaDir}/{subDir}"
+  let absolutePath: string = saveFile(file, fileDir)
+  var relativePath = absolutePath.getRelativeFilepathTo(mediaDir)
+  relativePath.removePrefix("/")
+  
+  return (relativePath, absolutePath)
+
+proc storeIcon(mediaDir: string, image: var UploadFile): PathTuple =
+  return mediaDir.storeFileIn(CAMPAIGN_ICONS_SUBDIR, image)
+  
+proc storeBackgroundImage(mediaDir: string, image: var UploadFile): PathTuple =
+  return mediaDir.storeFileIn(BACKGROUND_IMAGE_SUBDIR, image)
+  
 proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead =
-  let iconDirectory = fmt"{campaignDTO.mediaDirectory}/{CAMPAIGN_ICONS_SUBDIR}"
-  let absoluteIconPath: string = saveFile(campaignDTO.icon, iconDirectory)
-  var relativeIconPath = absoluteIconPath.getRelativeFilepathTo(campaignDTO.mediaDirectory)
-  relativeIconPath.removePrefix("/")
-  
-  let backgroundImageDirectory = fmt"{campaignDTO.mediaDirectory}/{BACKGROUND_IMAGE_SUBDIR}"
-  let absoluteBackgroundImagePath: string = saveFile(campaignDTO.backgroundImage, backgroundImageDirectory)
-  var relativeBackgroundImagePath = absoluteBackgroundImagePath.getRelativeFilepathTo(campaignDTO.mediaDirectory)
-  relativeBackgroundImagePath.removePrefix("/")
-  
+  let (relativeIconPath, absoluteIconPath) = campaignDTO.mediaDirectory.storeIcon(campaignDTO.icon)
+  let (relativeBackgroundImagePath, absoluteBackgroundImagePath) = campaignDTO.mediaDirectory.storeBackgroundImage(campaignDTO.backgroundImage)
+    
   var campaign = new(Campaign)
   campaign.name = campaignDTO.name
   campaign.subtitle = campaignDTO.subtitle
@@ -39,6 +49,38 @@ proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead
     deleteFile(absoluteBackgroundImagePath)
     raise
   
+proc updateCampaign*(connection: DbConn, campaignDTO: CampaignUpdateDTO): CampaignRead =
+  let mediaDir = campaignDTO.mediaDirectory
+  var campaign = connection.getEntryById(campaignDTO.pk, Campaign)
+  if campaignDTO.name.isSome():
+    campaign.name = campaignDTO.name.get()
+  if campaignDTO.subtitle.isSome():
+    campaign.subtitle = campaignDTO.subtitle
+  
+  let iconPaths = if campaignDTO.icon.isSome():
+      let paths = mediaDir.storeIcon(campaignDTO.icon.get())
+      campaign.icon = some(paths.relativeFilePath)
+      some(paths)
+    else:
+      none(PathTuple)
+  
+  let backgroundImagePaths = if campaignDTO.backgroundImage.isSome():
+      let paths = mediaDir.storeBackgroundImage(campaignDTO.backgroundImage.get())
+      campaign.backgroundImage = paths.relativeFilePath
+      some(paths)
+    else:
+      none(PathTuple)
+  
+  try:
+    discard connection.updateEntryInTransaction(campaign)
+    result = connection.getEntryById(campaign.id, CampaignRead)
+  except CatchableError:
+    if iconPaths.isSome():
+      deleteFile(iconPaths.get().absoluteFilePath)
+    if backgroundImagePaths.isSome():
+      deleteFile(backgroundImagePaths.get().absoluteFilePath)
+    raise
+
 proc getCampaignByName*(campaignName: string): Campaign =
   result = getEntryByField("name", campaignName, Campaign)
 

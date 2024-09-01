@@ -21,8 +21,12 @@ proc saveFile*(file: var UploadFile, uploadDirectory: string): string =
   while fileExists(filePath):
     file.filename = file.filename.renameFile()
     filePath = fmt "{uploadDirectory}/{file.filename}" 
-
-  file.save(uploadDirectory)
+  
+  try:
+    file.save(uploadDirectory)
+  except IOError as e:
+    raise newException(IOError, fmt"Error saving file '{file.filename}' to '{uploadDirectory}':", e)
+  
   result = filePath
   
 proc buildUniqueFilepath*(startFileName: string, targetDirectory: string): string =
