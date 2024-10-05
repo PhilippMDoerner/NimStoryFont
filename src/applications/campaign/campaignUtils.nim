@@ -48,13 +48,16 @@ proc getCampaignGroupIdForRole*(instance: CampaignRead, role: CampaignRole): int
       instance.admin_group_id.get().id
 
 
-proc checkCampaignMembershipChangePermission*(ctx: JWTContext, campaignId: int64) =
+proc checkCampaignAdminPermission*(ctx: JWTContext, campaignId: int64) =
   if ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser:
     return
 
   let userRole: CampaignAccessLevel = ctx.tokenData.campaignMemberships[campaignId]
   if not (userRole == CampaignAccessLevel.ADMIN):
-    raise newException(CampaignPermissionError, "Only admins of a campaign can add/remove members from it")
+    raise newException(CampaignPermissionError, "Only admins of a campaign can perform this action")
+
+proc checkCampaignAdminPermission*(ctx: JWTContext, entry: EmptySearchResponse) =
+  checkCampaignAdminPermission(ctx, entry.campaign_id)
 
 
 proc noCampaignListPermissionCheck*(ctx: JWTContext, entries: seq[CampaignRead]) = 

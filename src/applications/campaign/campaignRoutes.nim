@@ -1,12 +1,12 @@
+import std/[strformat]
 import prologue
-import ../../middleware/[loginMiddleware]
 import campaignControllers
 import campaignService
 import campaignSerialization
 import campaignUtils
-import std/strformat
 import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 
 
@@ -93,4 +93,25 @@ proc addCampaignRoutes*(app: Prologue) =
         middlewares = @[loginMiddleware()]
     )
     
-   
+    
+    app.addRoute(
+        "/emptysearchresponse",
+        handler = createCreateHandler[CreateParams, EmptySearchResponse, CampaignSerializable](
+            checkCampaignAdminPermission,
+            createEntry,
+            serializeEmptySearchResponse
+        ),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+
+    app.addRoute(
+        re fmt"/emptysearchresponse/pk/{ID_PATTERN}/",
+        handler = createDeleteHandler[DeleteParams, EmptySearchResponse](
+            readArticleById,
+            checkCampaignAdminPermission,
+            deleteArticle
+        ),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
