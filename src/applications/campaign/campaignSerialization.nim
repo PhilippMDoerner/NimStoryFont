@@ -129,4 +129,8 @@ proc overviewSerialize*(connection: DbConn, entries: seq[CampaignRead]): seq[Cam
 
 #TODO: Double check that if this is used during "change member" etc. provides correct data amounts
 proc serializeMembership*(connection: DbConn, entry: UserGroup): UserSerializable = 
-  result = connection.serializeUser(entry.user_id)
+    result = connection.serializeUser(entry.user_id)
+  
+proc serializeEmptySearchResponse*(connection: DbConn, entry: EmptySearchResponse): CampaignSerializable =
+    let campaign = connection.getEntryById(entry.campaign_id, CampaignRead)
+    return connection.serializeCampaignRead(campaign)

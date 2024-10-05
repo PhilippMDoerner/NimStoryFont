@@ -74,7 +74,7 @@ implDefaults(CampaignOverview, {DefaultFlag.defExported, DefaultFlag.defTypeCons
 
 
 
-type EmptySearchResponse* {.defaults, readOnly, tableName: EMPTY_SEARCH_RESPONSE_TABLE.} = ref object of Model
+type EmptySearchResponse* {.defaults, tableName: EMPTY_SEARCH_RESPONSE_TABLE.} = ref object of Model
     text*: string = ""
     campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 

@@ -84,7 +84,7 @@ proc changeMembership*(ctx: Context) {.async, gcsafe.} =
   respondOnError():
     withDbTransaction(connection):
       let campaign: CampaignRead = connection.getEntryByField("name", campaignName, CampaignRead)
-      checkCampaignMembershipChangePermission(ctx, campaign.id)
+      checkCampaignAdminPermission(ctx, campaign.id)
 
       var selectedUser: User = connection.getEntryById(changeRequestParams.user.pk, User)
       
