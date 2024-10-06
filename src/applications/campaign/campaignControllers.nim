@@ -81,7 +81,8 @@ proc updateCampaignController*(ctx: Context) {.async.} =
         resp jsonyResponse(ctx, campaignSerializable)
       except OutdatedDataError:
         let oldEntry = connection.getEntryById(campaignId, CampaignRead)
-        resp outdatedUpdateResponse(ctx, oldEntry)
+        let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(oldEntry)
+        resp outdatedUpdateResponse(ctx, campaignSerializable)
 
 proc changeMembership*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
