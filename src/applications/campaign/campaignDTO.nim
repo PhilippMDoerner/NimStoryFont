@@ -15,3 +15,4 @@ type CampaignUpdateDTO* = ref object
   backgroundImage*: Option[UploadFile]
   icon*: Option[UploadFile]
   mediaDirectory*: string
+  userTimestamp*: int

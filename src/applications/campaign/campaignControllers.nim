@@ -11,6 +11,7 @@ import ../allUrlParams
 import ../user/userService
 import ../authentication/[authenticationUtils, authenticationService, authenticationConstants]
 import ../genericArticleRepository
+import ../genericArticleControllers
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../../database
 import ../../applicationSettings
@@ -27,6 +28,7 @@ type MembershipAction = enum
 
 proc createCampaignController*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
+  ctx.checkAdminPermission(Campaign())
   
   let backgroundImage = ctx.extractFormFile("background_image")
   let icon = ctx.extractFormFile("icon")
@@ -51,24 +53,35 @@ proc createCampaignController*(ctx: Context) {.async, gcsafe.} =
 
 proc updateCampaignController*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
-  
+
+  let campaignId = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64
+  checkCampaignAdminPermission(ctx, campaignId)
+
   let backgroundImage = ctx.extractFormFile("background_image")
   let icon = ctx.extractFormFile("icon")
   
   respondOnError():
+    let updateDatetime: string = ctx.getFormParamsOption("update_datetime").get()
+    let userTimestamp = updateDatetime.parseDefault().toTime().toUnix()
+
     let campaignFormData = CampaignUpdateDTO(
-      pk: ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64,
+      pk: campaignId,
       name: ctx.getFormParamsOption("name"),
       subtitle: ctx.getFormParamsOption("subtitle"),
       backgroundImage: ctx.extractFormFile("background_image"),
       icon: ctx.extractFormFile("icon"),
-      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr()
+      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr(),
+      userTimestamp: userTimestamp
     )
     
-    withDbConn(connection):
-      let newCampaign: CampaignRead = connection.updateCampaign(campaignFormData)
-      let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
-      resp jsonyResponse(ctx, campaignSerializable)
+    withDbTransaction(connection):
+      try:
+        let newCampaign: CampaignRead = connection.updateCampaign(campaignFormData)
+        let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
+        resp jsonyResponse(ctx, campaignSerializable)
+      except OutdatedDataError:
+        let oldEntry = connection.getEntryById(campaignId, CampaignRead)
+        resp outdatedUpdateResponse(ctx, oldEntry)
 
 proc changeMembership*(ctx: Context) {.async, gcsafe.} = 
   let ctx = JWTContext(ctx)
