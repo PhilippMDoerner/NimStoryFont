@@ -1,4 +1,4 @@
-import std/[options, sets, strutils, tables, strformat, sugar]
+import std/[options, sets, strutils, tables, times, strformat, sugar]
 import prologue except Group
 import norm/[model, sqlite]
 import campaignModel
@@ -6,12 +6,13 @@ import campaignRepository
 import campaignDTO
 import ../genericArticleRepository
 import ../genericArticleService
+import ../genericDeserialization
 import ../authentication/authenticationConstants
 import ../authentication/authenticationModels
 import ../allUrlParams
 import ../../database
 import ../../applicationSettings
-import ../../utils/[fileUpload, jwtContext]
+import ../../utils/[fileUpload, jwtContext, djangoDateTime/djangoDateTimeType]
 
 export campaignModel
 
@@ -52,6 +53,11 @@ proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead
 proc updateCampaign*(connection: DbConn, campaignDTO: CampaignUpdateDTO): CampaignRead =
   let mediaDir = campaignDTO.mediaDirectory
   var campaign = connection.getEntryById(campaignDTO.pk, Campaign)
+  let serverTimestamp = campaign.update_datetime.toTime().toUnix()
+  let isOutdatedUpdate = campaignDTO.userTimestamp < serverTimestamp
+  if isOutdatedUpdate:
+    raise newException(OutdatedDataError, "Tried updating a campaign with data that has already been changed by another user!")
+  
   if campaignDTO.name.isSome():
     campaign.name = campaignDTO.name.get()
   if campaignDTO.subtitle.isSome():
@@ -71,6 +77,7 @@ proc updateCampaign*(connection: DbConn, campaignDTO: CampaignUpdateDTO): Campai
     else:
       none(PathTuple)
   
+  campaign.update_datetime = djangoDateTimeType.now()
   try:
     discard connection.updateEntryInTransaction(campaign)
     result = connection.getEntryById(campaign.id, CampaignRead)
