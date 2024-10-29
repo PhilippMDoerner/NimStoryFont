@@ -125,7 +125,8 @@ proc createPatchHandler*[P: object, E: Model, S: object | ref object](
           resp jsonyResponse(ctx, data)
 
         except OutdatedDataError:
-          resp outdatedUpdateResponse(ctx, oldEntry)
+          let data: S = connection.serialize(oldEntry)
+          resp outdatedUpdateResponse(ctx, data)
 
 proc createPatchByIdHandler*[P: object, E: Model, S: object | ref object](
   serialize: SerializeProc[E, S]
