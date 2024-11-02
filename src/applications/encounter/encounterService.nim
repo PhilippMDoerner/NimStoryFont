@@ -32,8 +32,8 @@ proc swapEncounterOrder*(encounter1Id: int64, encounter2Id: int64): JsonNode =
       connection.update(encounter1)
 
       let swappedEncounters: seq[EncounterRead] = @[
-        getEntryById(encounter1Id, EncounterRead),
-        getEntryById(encounter2Id, EncounterRead)
+        connection.getEntryById(encounter1Id, EncounterRead),
+        connection.getEntryById(encounter2Id, EncounterRead)
       ]
 
       result = jsonutils.toJson(swappedEncounters)
