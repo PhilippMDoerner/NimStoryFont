@@ -14,6 +14,10 @@ const ID_PATTERN* = fmt r"(?P<{ID_PARAM}>[\d]+)"
 const ARTICLE_NAME_PARAM* = "articleName"
 const ARTICLE_NAME_PATTERN* = fmt r"(?P<{ARTICLE_NAME_PARAM}>[^/]+)"
 
+const ARTICLE_TYPE_PARAM* = "articleZype"
+const articleTypeRegex = "(character|creature|diaryentry|encounter|item|organization|spell|rules|location|quest|map|sessionaudio)"
+const ARTICLE_TYPE_PATTERN* = fmt r"(?P<{ARTICLE_TYPE_PARAM}>{articleTypeRegex})"
+
 const SEARCH_TEXT_PARAM* = "searchText"
 const SEARCH_TEXT_PATTERN* = fmt r"(?P<{SEARCH_TEXT_PARAM}>[^/]+)"
 

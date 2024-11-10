@@ -1,6 +1,7 @@
 import std/[strformat, unicode, strutils]
 import norm/[sqlite, model]
 import ./searchModel
+import ../articleModel
 import ../genericRawRepository
 import ../campaign/campaignService
 import ../../applicationSettings
@@ -57,6 +58,50 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
       queryParams
     )
 
+proc search*(campaignName: string, searchText: string, table: ArticleTable, searchLimit: int = 20): seq[SearchHit] =
+  let campaign: Campaign = getCampaignByName(campaignName)
+
+  const searchSQLStatement: string = fmt """
+      SELECT 
+          title,
+          table_name,
+          campaign_id,
+          record_id,
+          record,
+          bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
+      FROM {SEARCH_TABLE} 
+      WHERE
+          campaign_id = ?
+          AND table_name = ?
+          AND (
+              title MATCH ?
+              OR title_rev MATCH ?
+              OR body MATCH ?
+              OR body_rev MATCH ?
+          )
+      ORDER BY search_score
+      LIMIT ?
+  """
+
+  let tokens = searchText.split(' ')
+  let tokensRev = searchText.reversed().split(' ')
+
+  let queryParams: array[7, DbValue] = [
+    campaign.id.dbValue(),
+    ($table).dbValue(),
+    tokens.toTitleQueryParam().dbValue(), 
+    tokensRev.toTitleQueryParam().dbValue(), 
+    tokens.toBodyQueryParam().dbValue(), 
+    tokensRev.toBodyQueryParam().dbValue(),
+    searchLimit.dbValue()
+  ]
+  
+  withDbConn(connection):
+    result = connection.rawSelectRows(
+      searchSQLStatement,
+      SearchHit,
+      queryParams
+    )
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, record: string, campaign_id: int64) =
   let guid = fmt"{tableName}_{record_id}"

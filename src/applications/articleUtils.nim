@@ -75,3 +75,18 @@ proc getArticleData*(connection: DbConn, articleTable: ArticleTable, articleId: 
 proc getArticleData*(articleTable: ArticleTable, articleId: int64): JsonNode =
   withDbConn(connection):
     result = connection.getArticleData(articleTable, articleId)
+
+proc toTable*(articleType: ArticleType): ArticleTable =
+  case articleType:
+  of atCharacter: atbCHARACTER
+  of atCreature: atbCREATURE
+  of atDiaryEntry: atbDIARYENTRY
+  of atEncounter: atbENCOUNTER
+  of atItem: atbITEM
+  of atLocation: atbLOCATION
+  of atMap: atbMAP
+  of atOrganization: atbORGANIZATION
+  of atQuest: atbQUEST
+  of atSessionAudio: atbSESSIONAUDIO
+  of atSpell: atbSPELL
+  of atRule: atbRULE
