@@ -1,5 +1,5 @@
 import norm/[sqlite, model]
-import std/[strutils, json, sequtils]
+import std/[strutils, json, sequtils, strformat]
 import ./searchModel
 import ./searchUtils
 import ./searchRepository
@@ -40,3 +40,9 @@ proc findArticlesOfType*(campaignName: string, articleType: ArticleType, searchT
   
   let searchHits: seq[SearchHit] = search(campaignName, searchText, table)
   return searchHits.mapIt(it.record.parseJson())
+
+proc findArticle*(articleId: int, articleType: ArticleType): SearchSerializable =
+  let table = articleType.toTable()
+  let articleGuid = fmt"{table}_{articleId}"
+  let searchHit = searchByGuid(articleGuid)
+  return searchHit.record.parseJson()

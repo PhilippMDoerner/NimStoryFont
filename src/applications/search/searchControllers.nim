@@ -33,3 +33,13 @@ proc findArticlesOfType*(ctx: Context) {.async.} =
     respondOnError():
         let articles: seq[SearchSerializable] = searchService.findArticlesOfType(campaignName, articleType, searchText)
         resp jsonyResponse(ctx, articles)
+        
+proc findArticle*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+    
+    let articleType = parseEnum[ArticleType](ctx.getPathParams(ARTICLE_TYPE_PARAM))
+    let articleId: int = ctx.getPathParams(ID_PARAM).parseInt()
+    
+    respondOnError():
+        let article: SearchSerializable = searchService.findArticle(articleId, articleType)
+        resp jsonyResponse(ctx, article)

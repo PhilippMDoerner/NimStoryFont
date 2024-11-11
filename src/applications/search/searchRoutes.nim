@@ -17,3 +17,10 @@ proc addSearchRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
+    
+    app.addRoute(
+        re fmt"/search/{ARTICLE_TYPE_PATTERN}/{ID_PATTERN}",
+        handler = searchControllers.findArticle,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
