@@ -102,6 +102,30 @@ proc search*(campaignName: string, searchText: string, table: ArticleTable, sear
       SearchHit,
       queryParams
     )
+    
+proc searchByGuid*(articleGuid: string): SearchHit =
+  const searchSQLStatement: string = fmt """
+    SELECT 
+        title,
+        table_name,
+        campaign_id,
+        record_id,
+        record,
+        bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
+    FROM {SEARCH_TABLE} 
+    WHERE guid = ?
+  """
+
+  let queryParams: array[1, DbValue] = [articleGuid.dbValue()]
+  
+  withDbConn(connection):
+    let searchHit = connection.rawSelectRow(
+      searchSQLStatement,
+      SearchHit,
+      queryParams
+    )
+    result = searchHit
+
 
 proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, record: string, campaign_id: int64) =
   let guid = fmt"{tableName}_{record_id}"
