@@ -120,6 +120,7 @@ const DJ_USEROBJECTPERMISSION* = "guardian_userobjectpermission"
 
 #Wikientries
 const CAMPAIGN_TABLE* = "wikientries_campaign"
+const CAMPAIGN_VISIT_TABLE* = "wikientries_campaignvisit"
 const CHARACTER_TABLE* = "wikientries_character"
 const CHARACTER_PLAYERCLASS_TABLE* = "wikientries_characterplayerclassconnection"
 const CREATURE_TABLE* = "wikientries_creature"

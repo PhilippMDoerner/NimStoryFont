@@ -1,8 +1,8 @@
 import contentUpdateModel
 import contentUpdateService
 import prologue
-import jsony
 import ../controllerTemplates
+import ../campaign/campaignService
 import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../allUrlParams
 import std/strutils
@@ -16,4 +16,11 @@ proc getRecentlyUpdatedArticles*(ctx: Context) {.async.} =
 
     respondOnError():
         let articles: seq[ContentUpdateSerializable] = contentUpdateService.getRecentlyUpdatedArticles(campaignName, pageNumber, pageSize)
+        
         resp jsonyResponse(ctx, articles)
+
+        let isFetchingMostRecentEntries = pageNumber == 0
+        if isFetchingMostRecentEntries:
+            let userId = ctx.tokenData.userId
+            trackCampaignVisit(userId, campaignName)
+        
