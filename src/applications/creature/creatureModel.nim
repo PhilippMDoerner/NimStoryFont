@@ -41,6 +41,7 @@ type CreatureOverview* {.defaults, readOnly, tableName: CREATURE_TABLE.} = ref o
     name*: string = ""
     description*: Option[string] = some("")
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
 implDefaults(CreatureOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

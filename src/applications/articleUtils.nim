@@ -26,6 +26,7 @@ proc getArticleData*(connection: DbConn, articleTable: ArticleTable, articleId: 
     of ArticleTable.atbCHARACTER:
       let entry = connection.getEntryById(articleId, characterService.CharacterOverview)
       jsonString = connection.overviewSerialize(entry).toJson()
+    
     of ArticleTable.atbCREATURE:
       let entry = connection.getEntryById(articleId, creatureService.CreatureOverview)
       jsonString = connection.overviewSerialize(entry).toJson()

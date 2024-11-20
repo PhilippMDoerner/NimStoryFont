@@ -92,6 +92,7 @@ type CharacterOverview* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref
     alive*: bool = true
     name*: string = ""
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
     campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
 implDefaults(CharacterOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

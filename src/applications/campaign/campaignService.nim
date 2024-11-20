@@ -148,3 +148,7 @@ proc trackCampaignVisit*(userId: int64, campaignName: string) =
   let lastVisitDate = djangoDateTimeType.now()
   withDbConn(con):
     con.trackCampaignVisit(userId, campaignName, lastVisitDate)
+
+proc getLastCampaignVisit*(userId: int64, campaignName: string): Option[DjangoDateTime] =
+  withDbConn(con):
+    return con.getLastCampaignVisit(userId, campaignName)

@@ -144,6 +144,7 @@ type CharacterOverviewSerializable* = object
     name*: string
     name_full*: string
     campaign_details*: MinimumCampaignOverview
+    creation_datetime*: DjangoDateTime
     update_datetime*: DjangoDateTime
     player_character*: bool
     alive*: bool
@@ -161,6 +162,7 @@ proc overviewSerialize*(entry: CharacterOverview, entryImages: seq[Image]): Char
         name_full: entry.name, #TODO: get rid of name_full, you have to refactor the frontend to instead set the "dead" sign itself instead of relying on the sent name
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime,
         player_character: entry.player_character,
         alive: entry.alive,
         images: imagePaths

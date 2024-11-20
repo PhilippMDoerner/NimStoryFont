@@ -47,6 +47,7 @@ type RuleOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
 
 
 proc overviewSerialize*(connection: DbConn, entry: RuleRead): RuleOverviewSerializable =
@@ -57,7 +58,8 @@ proc overviewSerialize*(connection: DbConn, entry: RuleRead): RuleOverviewSerial
         name_full: $entry,
         name: entry.name,
         campaign_details: entry.campaign_id,
-        update_datetime: entry.update_datetime
+        update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime
     )
 
 

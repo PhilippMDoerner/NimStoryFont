@@ -47,6 +47,7 @@ type MapOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
     icon: Option[string]
 
 proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializable =
@@ -58,7 +59,8 @@ proc overviewSerialize*(connection: DbConn, entry: MapRead): MapOverviewSerializ
         name: entry.name,
         campaign_details: entry.campaign_id,
         icon: entry.icon.map(getImagePath),
-        update_datetime: entry.update_datetime
+        update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime 
     )
 
 

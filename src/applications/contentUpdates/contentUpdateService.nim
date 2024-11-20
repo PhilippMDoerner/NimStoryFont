@@ -5,7 +5,7 @@ import ../articleModel
 import ../../database
 import std/[json, strutils]
 
-proc getRecentlyUpdatedArticles*(campaignName: string, pageNumber: int, pageSize: int): seq[ContentUpdateSerializable] =
+proc getRecentlyUpdatedArticles*(campaignName: string, pageNumber: int, pageSize: int): seq[JsonNode] =
   let recentlyUpdatedArticlesHits: seq[UpdatedArticle] = getRecentlyUpdatedArticleViewEntries(campaignName, pageNumber, pageSize)
 
   withDbConn(connection):

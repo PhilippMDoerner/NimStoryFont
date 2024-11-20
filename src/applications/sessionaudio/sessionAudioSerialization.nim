@@ -81,6 +81,7 @@ type SessionAudioOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
     session_details: SessionAudioSessionSerializable
     audio_url: string
     download_url: string
@@ -96,6 +97,7 @@ proc overviewSerialize(entry: SessionAudioRead, timestamps: seq[Timestamp]): Ses
         name: $entry,
         campaign_details: entry.session_id.campaign_id,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime,
         session_details: serializeSessionAudioSession(entry.session_id),
         audio_url: entry.audio_file,
         download_url: entry.audio_file.getDownloadUrl()

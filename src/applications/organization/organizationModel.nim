@@ -26,7 +26,8 @@ type OrganizationOverview* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.}
     description*: Option[string] = none(string)
     campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
     update_datetime*: DjangoDateTime = djangoDateTimeType.now()
-
+    creation_datetime*: DjangoDateTime = djangoDateTimeType.now()
+    
 implDefaults(OrganizationOverview, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
