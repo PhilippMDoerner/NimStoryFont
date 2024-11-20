@@ -41,3 +41,6 @@ proc parseDefault*(input: string): DjangoDateTime =
             except TimeParseError:
                 log(lvlDebug, fmt"Failed parsing '{input}' to format {OUTPUT_TIME_FORMAT}. Attempting parsing with '{SESSION_DATE_FORMAT}'")
                 result = djangoDateTimeType.parse(input, SESSION_DATE_FORMAT, utc())
+
+proc `>`*(a: DjangoDateTime, b: DjangoDateTime): bool = a.DateTime > b.DateTime
+proc `<`*(a: DjangoDateTime, b: DjangoDateTime): bool = a.DateTime < b.DateTime

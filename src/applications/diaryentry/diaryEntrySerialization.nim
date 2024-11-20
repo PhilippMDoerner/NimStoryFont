@@ -152,6 +152,7 @@ type DiaryEntryOverviewSerializable* = object
     campaign*: int64
     campaign_details*: MinimumCampaignOverview
     update_datetime*: DjangoDateTime
+    creation_datetime*: DjangoDateTime
     session_details*: DiaryEntrySessionSerializable
     author_details*: DiaryEntryAuthorSerializable
 
@@ -168,6 +169,7 @@ proc overviewSerialize*(entry: DiaryEntryRead, encounters: seq[EncounterRead]): 
         campaign: entry.session_id.campaign_id.id,
         campaign_details: entry.session_id.campaign_id,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime,
         session_details: entry.session_id.serializeDiaryEntrySession(),
         author_details: DiaryEntryAuthorSerializable(
             pk: entry.author_id.id, 

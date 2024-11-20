@@ -50,3 +50,29 @@ proc trackCampaignVisit*(connection: DbConn, userId: int64, campaignName: string
   ]
   
   connection.rawExec(upsertCampaignVisitCommand, commandParams)
+
+proc getLastCampaignVisit*(connection: DbConn, userId: int64, campaignName: string): Option[DjangoDateTime] =
+  const getLastCampaignVisitQuery = fmt """
+    SELECT 
+      wikientries_campaignvisit.campaign_id, 
+      wikientries_campaignvisit.user_id,
+      wikientries_campaignvisit.last_visit,
+      wikientries_campaignvisit.id
+    FROM wikientries_campaignvisit
+    INNER JOIN wikientries_campaign ON wikientries_campaignvisit.campaign_id = wikientries_campaign.id
+    WHERE wikientries_campaign.name = ?
+    AND wikientries_campaignvisit.user_id = ?
+  """
+  
+  let queryParams: array[2, DbValue] =  [
+    campaignName.dbValue(),
+    userId.dbValue()
+  ]
+  
+  let campaignVisits: seq[CampaignVisit] = connection.rawSelectRows(getLastCampaignVisitQuery, CampaignVisit, queryParams)
+  
+  if campaignVisits.len() == 0:
+    return none(DjangoDateTime)
+  else:
+    return some(campaignVisits[0].last_visit)
+  

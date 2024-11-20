@@ -109,6 +109,7 @@ type QuestOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
     taker_details: QuestCharacter
     abstract: Option[string]
     status: string
@@ -121,6 +122,7 @@ proc overviewSerialize*(connection: DbConn, entry: QuestRead): QuestOverviewSeri
         name_full: $entry,
         name: entry.name,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime, 
         campaign_details: entry.campaign_id,
         taker_details: entry.taker_id.map(serializeQuestCharacter).get(groupCharacter),
         abstract: entry.abstract,

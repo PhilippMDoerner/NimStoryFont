@@ -161,6 +161,7 @@ type LocationOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
     parent_location_details: ParentLocationSerializable
     parent_location: Option[int64]
 
@@ -174,6 +175,7 @@ proc overviewSerialize(entry: LocationRead, campaignLocations: seq[LocationRead]
         name: entry.name,
         campaign_details: entry.campaign_id,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime,
         parent_location_details: entry.parent_location_id.serializeParentLocation(),
         parent_location: entry.parent_location_id.map(ploc => ploc.id)
     )

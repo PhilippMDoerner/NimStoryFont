@@ -123,6 +123,7 @@ type EncounterOverviewSerializable* = object
     name: string
     campaign_details: MinimumCampaignOverview
     update_datetime: DjangoDateTime
+    creation_datetime: DjangoDateTime
     diaryentry: int64
     title: Option[string]
     diaryentry_details: EncounterDiaryentrySerializable
@@ -138,6 +139,7 @@ proc overviewSerialize*(connection: DbConn, entry: EncounterRead): EncounterOver
         name: $entry,
         campaign_details: entry.diaryentry_id.session_id.campaign_id,
         update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime,
         diaryentry: entry.diaryentry_id.id,
         title: entry.title,
         diaryentry_details: entry.diaryentry_id.serializeDiaryEntry()

@@ -44,6 +44,7 @@ type CreatureOverviewSerializable* = object
     name_full*: string
     campaign_details*: MinimumCampaignOverview
     update_datetime*: DjangoDateTime
+    creation_datetime*: DjangoDateTime
 
 
 proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOverviewSerializable =
@@ -54,7 +55,8 @@ proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOv
         name: entry.name,
         name_full: entry.name,
         campaign_details: entry.campaign_id,
-        update_datetime: entry.update_datetime
+        update_datetime: entry.update_datetime,
+        creation_datetime: entry.creation_datetime
     )
 
 proc overviewSerialize*(connection: DbConn, entries: seq[CreatureOverview]): seq[CreatureOverviewSerializable] =

@@ -1,6 +1,5 @@
 import constructor/defaults
 import ../../applicationConstants
-import std/json
 
 type UpdatedArticle* {.defaults.} = ref object
   table_name*: string = ""
@@ -8,6 +7,3 @@ type UpdatedArticle* {.defaults.} = ref object
   campaign_id*: int64 = MODEL_INIT_ID
   guid*: string = ""
 implDefaults(UpdatedArticle, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-
-
-type ContentUpdateSerializable* = JsonNode
