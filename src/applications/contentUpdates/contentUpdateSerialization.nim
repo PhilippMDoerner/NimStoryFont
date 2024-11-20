@@ -15,14 +15,15 @@ proc contentUpdateSerialize*(contentUpdate: JsonNode, lastVisit: Option[DjangoDa
     return contentUpdate
   
   let lastVisitDate: DjangoDateTime = lastVisit.get()
-  let updateTimestamp: DjangoDateTime = contentUpdate["update_datetime"].getStr().parseDefault()
-  let createTimestamp: DjangoDateTime = contentUpdate["creation_datetime"].getStr().parseDefault()
-
-  let hasSeenArticle = createTimestamp > lastVisitDate
-  let hasSeenArticleUpdate = updateTimestamp > lastVisitDate
-  if hasSeenArticleUpdate:
+  let updateDateTime: DjangoDateTime = contentUpdate["update_datetime"].getStr().parseDefault()
+  let createDateTime: DjangoDateTime = contentUpdate["creation_datetime"].getStr().parseDefault()
+  
+  let isNewArticle = updateDateTime == createDateTime
+  let hasSeenArticle = lastVisitDate > createDateTime
+  let hasSeenLatestArticleUpdate = lastVisitDate > updateDateTime
+  if not isNewArticle and not hasSeenLatestArticleUpdate:
     contentUpdate["visited_state"] = %VisitedState.newUpdated
-  elif hasSeenArticle:
+  elif isNewArticle and not hasSeenArticle:
     contentUpdate["visited_state"] = %VisitedState.newCreated
   else:
     contentUpdate["visited_state"] = %VisitedState.seen
