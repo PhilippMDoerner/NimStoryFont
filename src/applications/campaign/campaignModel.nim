@@ -3,6 +3,7 @@ import options
 import constructor/defaults
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../authentication/authenticationModels
+import ../user/userModel
 import ../../applicationSettings
 import ../../applicationConstants
 
@@ -98,3 +99,8 @@ type Statistics* = object
     marker_count*: int
     spell_count*: int
     rule_count*: int
+    
+type CampaignVisit* {.defaults, tableName: CAMPAIGN_VISIT_TABLE.} = ref object of Model
+    campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
+    user_id* {.fk: User.}: int64 = MODEL_INIT_ID
+    last_visit*: DjangoDateTime = djangoDateTimeType.now()

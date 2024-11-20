@@ -143,3 +143,8 @@ proc deactivateCampaign*(connection: DbConn, campaign: var Campaign) =
   
   campaign.is_deactivated = true
   discard connection.updateEntryInTransaction(campaign)
+
+proc trackCampaignVisit*(userId: int64, campaignName: string) =
+  let lastVisitDate = djangoDateTimeType.now()
+  withDbConn(con):
+    con.trackCampaignVisit(userId, campaignName, lastVisitDate)

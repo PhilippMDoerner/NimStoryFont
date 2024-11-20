@@ -1,9 +1,11 @@
 import norm/[sqlite, model]
 import std/[strformat, strutils, sequtils, sugar, options]
-import ../authentication/authenticationModels
 import campaignModel
-import ../../utils/djangoDateTime/[normConversion]
+import ../authentication/authenticationModels
 import ../genericArticleRepository
+import ../genericRawRepository
+import ../../applicationSettings
+import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
 
 proc getGroupMembers*(connection: DbConn, groupIds: varargs[int64]): seq[UserGroup] =
   let groupIdStrs: string = groupIds.map(id => intToStr(id.int)).join(",")
@@ -30,3 +32,21 @@ proc getCampaigns*(connection: DbConn, campaignIds: varargs[int64]): seq[Campaig
   let campaignIdStr: string = campaignIds.map(id => intToStr(id.int)).join(",")
   let sqlCondition = fmt"{CampaignRead.table()}.id IN ({campaignIdStr})"
   result = connection.getList(CampaignRead, sqlCondition)
+
+proc trackCampaignVisit*(connection: DbConn, userId: int64, campaignName: string, lastVisit: DjangoDateTime) =
+  let campaign: Campaign = connection.getEntryByField("name", campaignName, Campaign)
+  const upsertCampaignVisitCommand = fmt """
+    INSERT INTO {CAMPAIGN_VISIT_TABLE} (campaign_id, user_id, last_visit)
+    VALUES (?, ?, ?)
+    ON CONFLICT(campaign_id, user_id)
+    DO UPDATE SET last_visit = ?
+  """
+  
+  let commandParams: array[4, DbValue] = [
+    campaign.id.dbValue(),
+    userId.dbValue(),
+    lastVisit.dbValue(),
+    lastVisit.dbValue()
+  ]
+  
+  connection.rawExec(upsertCampaignVisitCommand, commandParams)
