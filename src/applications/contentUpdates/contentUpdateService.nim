@@ -1,7 +1,7 @@
-import ../articleUtils
-import ../articleModel
 import contentUpdateModel
 import contentUpdateRepository
+import ../articleUtils
+import ../articleModel
 import ../../database
 import std/[json, strutils]
 
