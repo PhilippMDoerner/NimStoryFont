@@ -8,7 +8,8 @@ services:
         volumes:
             - /etc/nginx/certificates:/cert/live/www.aldrune.com
             - /etc/nginx/certificates:/cert/archive/www.aldrune.com
-            - /home/isofruit/dev/aldrunewikifrontend/dist/frontend:/frontend # prod frontend
+            - /home/isofruit/dev/nimstoryfont-gui/dist/nimstoryfont-gui:/frontend # new prod frontend
+            # - /home/isofruit/dev/aldrunewikifrontend/dist/frontend:/frontend # old prod frontend
             - /tmp:/var/log/nginx # For nginx logs
             - /home/isofruit/dev/nimstoryfont/media:/imagemedia # To serve images
             - /home/isofruit/Music/session_audio_backup:/session_audio # To serve audio files
