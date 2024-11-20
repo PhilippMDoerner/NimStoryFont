@@ -44,3 +44,4 @@ proc parseDefault*(input: string): DjangoDateTime =
 
 proc `>`*(a: DjangoDateTime, b: DjangoDateTime): bool = a.DateTime > b.DateTime
 proc `<`*(a: DjangoDateTime, b: DjangoDateTime): bool = a.DateTime < b.DateTime
+proc `==`*(a: DjangoDateTime, b: DjangoDateTime): bool = a.DateTime == b.DateTime
