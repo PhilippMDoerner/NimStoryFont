@@ -62,6 +62,8 @@ proc updateCampaign*(connection: DbConn, campaignDTO: CampaignUpdateDTO): Campai
     campaign.name = campaignDTO.name.get()
   if campaignDTO.subtitle.isSome():
     campaign.subtitle = campaignDTO.subtitle
+  if campaignDTO.default_map_id.isSome():
+    campaign.default_map_id = campaignDTO.default_map_id
   
   let iconPaths = if campaignDTO.icon.isSome():
       let paths = mediaDir.storeIcon(campaignDTO.icon.get())
