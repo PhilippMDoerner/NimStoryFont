@@ -69,6 +69,7 @@ proc updateCampaignController*(ctx: Context) {.async.} =
       name: ctx.getFormParamsOption("name"),
       subtitle: ctx.getFormParamsOption("subtitle"),
       backgroundImage: ctx.extractFormFile("background_image"),
+      default_map_id: ctx.getFormParamsOption("default_map_id").map(val => val.parseInt().int64),
       icon: ctx.extractFormFile("icon"),
       mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr(),
       userTimestamp: userTimestamp

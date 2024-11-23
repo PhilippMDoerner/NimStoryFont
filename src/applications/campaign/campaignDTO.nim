@@ -16,3 +16,4 @@ type CampaignUpdateDTO* = ref object
   icon*: Option[UploadFile]
   mediaDirectory*: string
   userTimestamp*: int
+  default_map_id*: Option[int64]
