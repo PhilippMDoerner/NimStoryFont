@@ -23,9 +23,9 @@ proc createCharacterConnection*(ctx: Context) {.async, gcsafe.} =
     let encounterId: int64 = body.encounter
     let campaignId: int64 = body.campaign
 
-    checkCreatePermission(ctx, campaignId)
 
     respondOnError():
+      checkCreatePermission(ctx, campaignId)
       withDbTransaction(connection):
         let entry: CharacterEncounterRead = connection.createCharacterEncounterConnection(characterId, encounterId)
         let data = connection.serializeCharacterEncounterRead(entry)
