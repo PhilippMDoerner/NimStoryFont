@@ -22,6 +22,7 @@ import applications/sessionAudioTimestamp/timestampRoutes
 import applications/user/userRoutes
 import applications/quote/quoteRoutes
 import applications/playerclass/playerClassRoutes
+import applications/nodeMap/nodeMapRoutes
 import prologue
 
 proc addApplicationRoutes*(app: Prologue) =
@@ -49,3 +50,4 @@ proc addApplicationRoutes*(app: Prologue) =
   addTimestampRoutes(app)
   addQuoteRoutes(app)
   addPlayerClassRoutes(app)
+  addNodeMapRoutes(app)

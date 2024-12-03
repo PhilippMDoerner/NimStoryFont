@@ -1,0 +1,63 @@
+import std/[strformat]
+import norm/[sqlite]
+import ./nodeMapModel
+import ../genericRawRepository
+import ../../database
+import ../../applicationSettings
+
+proc getNodes*(campaignId: int64): seq[Node] =
+  const getNodesSQLStatement: string = fmt """
+    SELECT record, guid
+    FROM {SEARCH_TABLE}
+    WHERE 
+      campaign_id = ? AND
+      table_name IN (
+        "wikientries_character", 
+        "wikientries_organization", 
+        "wikientries_item"
+      )
+  """
+  
+  let queryParams: array[1, DbValue] = [campaignId.dbValue()]
+  withDbConn(connection):
+    return connection.rawSelectRows(getNodesSQLStatement, Node, queryParams)
+
+proc getLinks*(campaignId: int64, itemOwnershipWeight: int64 = 1, organizationMembershipWeight: int64 = 1): seq[Link] =
+  const getLinksSQLStatement: string = fmt """
+    SELECT 
+      "wikientries_organization_" || membership.organization_id AS node1Guid,
+      "wikientries_character_" || membership.member_id AS node2Guid,
+      IFNULL(membership.role, "member") AS label,
+      ? as weight,
+      "organizationMembership" AS linkKind
+    FROM wikientries_organization_member AS membership
+    INNER JOIN wikientries_organization AS org ON membership.organization_id = org.id
+    WHERE campaign_id = ?
+
+    UNION
+
+    SELECT 
+      "wikientries_character_" || owner_id as node1Guid,
+      "wikientries_item_" || id as node2Guid,
+      "owned by" AS label,
+      ? AS weight,
+      "itemOwnership" AS linkKind
+    FROM wikientries_item AS item
+    WHERE 
+      campaign_id = ? AND
+      owner_id IS NOT NULL
+  """
+  
+  let queryParams: array[4, DbValue] = [
+    itemOwnershipWeight.dbValue(), 
+    campaignId.dbValue(), 
+    organizationMembershipWeight.dbValue(), 
+    campaignId.dbValue()
+  ]
+    
+  withDbConn(connection):
+    return connection.rawSelectRows(
+      getLinksSQLStatement, 
+      Link, 
+      queryParams
+    )
