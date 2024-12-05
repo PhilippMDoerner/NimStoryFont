@@ -1,3 +1,4 @@
+import std/options
 import norm/[model, pragmas]
 import ../campaign/campaignModel
 import ../../applicationSettings
@@ -11,6 +12,7 @@ type LinkKind* = enum
   Sublocation = "sublocation"
 
 type Link* = ref object
+  id*: Option[int64]
   node1Guid*: string
   node2Guid*: string
   label*: string

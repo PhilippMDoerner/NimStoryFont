@@ -32,6 +32,7 @@ proc getLinks*(
 ): seq[Link] =
   const getLinksSQLStatement: string = fmt """
     SELECT 
+      NULL as id,
       "wikientries_organization_" || membership.organization_id AS node1Guid,
       "wikientries_character_" || membership.member_id AS node2Guid,
       IFNULL(membership.role, "member") AS label,
@@ -44,6 +45,7 @@ proc getLinks*(
     UNION
 
     SELECT 
+      NULL as id,
       "wikientries_character_" || owner_id as node1Guid,
       "wikientries_item_" || id as node2Guid,
       "owned by" AS label,
@@ -57,6 +59,7 @@ proc getLinks*(
     UNION 
     
     SELECT 
+      NULL as id,
       "wikientries_location_" || c.id AS node1Guid,
       "wikientries_character_" || c.id AS node2Guid,
       "last seen in" AS label,
@@ -70,6 +73,7 @@ proc getLinks*(
     UNION
     
     SELECT 
+      NULL as id,
       "wikientries_location_" || id AS node1Guid,
       "wikientries_location_" || parent_location_id AS node2Guid,
       "located in" AS label,
@@ -83,6 +87,7 @@ proc getLinks*(
     UNION
     
     SELECT
+      id,
       node1Guid,
       node2Guid,
       label,
