@@ -140,6 +140,7 @@ const RULES_TABLE* = "wikientries_rules"
 const SESSION_TABLE* = "wikientries_session"
 const SPELL_TABLE* = "wikientries_spell"
 const SPELL_PLAYERCLASS_TABLE* = "wikientries_spellclassconnection"
+const RELATIONSHIP_TABLE* = "wikientries_relationship"
 
 #Fileserver
 const SESSIONAUDIO_TABLE* = "fileserver_sessionaudio"

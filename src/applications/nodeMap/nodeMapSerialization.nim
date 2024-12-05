@@ -1,4 +1,5 @@
 import std/[sequtils, json]
+import norm/sqlite
 import ./nodeMapModel
 
 type NodeSerializable* = ref object
@@ -18,4 +19,13 @@ proc serializeNodeMap*(nodeMap: NodeMap): NodeMapSerializable =
   return NodeMapSerializable(
     nodes: serializedNodes,
     links: nodeMap.links
+  )
+  
+proc serializeCustomLink*(con: DbConn, link: CustomLink): Link =
+  return Link(
+    node1Guid: link.node1Guid,
+    node2Guid: link.node2Guid,
+    label: link.label,
+    weight: link.weight,
+    linkKind: "custom",
   )
