@@ -14,7 +14,8 @@ proc getNodes*(campaignId: int64): seq[Node] =
       table_name IN (
         "wikientries_character", 
         "wikientries_organization", 
-        "wikientries_item"
+        "wikientries_item",
+        "wikientries_location"
       )
   """
   
@@ -22,7 +23,13 @@ proc getNodes*(campaignId: int64): seq[Node] =
   withDbConn(connection):
     return connection.rawSelectRows(getNodesSQLStatement, Node, queryParams)
 
-proc getLinks*(campaignId: int64, itemOwnershipWeight: int64 = 1, organizationMembershipWeight: int64 = 1): seq[Link] =
+proc getLinks*(
+  campaignId: int64, 
+  itemOwnershipWeight: int64 = 1, 
+  organizationMembershipWeight: int64 = 1,
+  locationPlacementWeight: int64 = 1,
+  sublocationWeight: int64 = 1
+): seq[Link] =
   const getLinksSQLStatement: string = fmt """
     SELECT 
       "wikientries_organization_" || membership.organization_id AS node1Guid,
@@ -46,12 +53,42 @@ proc getLinks*(campaignId: int64, itemOwnershipWeight: int64 = 1, organizationMe
     WHERE 
       campaign_id = ? AND
       owner_id IS NOT NULL
+      
+    UNION 
+    
+    SELECT 
+      "wikientries_location_" || c.id AS node1Guid,
+      "wikientries_character_" || c.id AS node2Guid,
+      "last seen in" AS label,
+      ? as weight,
+      "locationPlacement" AS linkKind
+    FROM wikientries_character AS c
+    WHERE 
+      c.campaign_id = ? AND
+      c.current_location_id IS NOT NULL
+      
+    UNION
+    
+    SELECT 
+      "wikientries_location_" || id AS node1Guid,
+      "wikientries_location_" || parent_location_id AS node2Guid,
+      "located in" AS label,
+      ? as weight,
+      "sublocation" as linkKind
+    FROM wikientries_location
+    WHERE 
+      parent_location_id IS NOT NULL AND
+      campaign_id = ?
   """
   
-  let queryParams: array[4, DbValue] = [
+  let queryParams: array[8, DbValue] = [
     itemOwnershipWeight.dbValue(), 
     campaignId.dbValue(), 
     organizationMembershipWeight.dbValue(), 
+    campaignId.dbValue(),
+    locationPlacementWeight.dbValue(),
+    campaignId.dbValue(),
+    sublocationWeight.dbValue(),
     campaignId.dbValue()
   ]
     

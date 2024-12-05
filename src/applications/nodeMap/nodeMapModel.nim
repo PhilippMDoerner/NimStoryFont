@@ -1,6 +1,8 @@
 type LinkKind* = enum
   ItemOwnership = "itemOwnership"
   OrganizationMembership = "organizationMembership"
+  LocationPlacement = "locationPlacement"
+  Sublocation = "sublocation"
 
 type Link* = ref object
   node1Guid*: string
