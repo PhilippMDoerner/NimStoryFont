@@ -49,3 +49,10 @@ proc addNodeMapRoutes*(app: Prologue) =
         httpMethod = HttpPatch,
         middlewares = @[loginMiddleware()]
     )
+    
+    app.addRoute(
+        re fmt"/relationship/{CAMPAIGN_NAME_PATTERN}/overview",
+        handler = createReadCampaignListHandler[ReadListParams, CustomLink, CustomLink](
+            noSerialization
+        )
+    )
