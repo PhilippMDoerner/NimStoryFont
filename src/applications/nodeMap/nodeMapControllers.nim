@@ -7,8 +7,6 @@ import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../allUrlParams
 import ../controllerTemplates
 
-
-
 proc fetchNodeMap*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
   

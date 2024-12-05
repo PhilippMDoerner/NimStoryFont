@@ -79,9 +79,20 @@ proc getLinks*(
     WHERE 
       parent_location_id IS NOT NULL AND
       campaign_id = ?
+      
+    UNION
+    
+    SELECT
+      node1Guid,
+      node2Guid,
+      label,
+      weight,
+      "custom" as linkKind
+      FROM wikientries_relationships
+    WHERE campaign_id = ?
   """
   
-  let queryParams: array[8, DbValue] = [
+  let queryParams: array[9, DbValue] = [
     itemOwnershipWeight.dbValue(), 
     campaignId.dbValue(), 
     organizationMembershipWeight.dbValue(), 
@@ -89,6 +100,7 @@ proc getLinks*(
     locationPlacementWeight.dbValue(),
     campaignId.dbValue(),
     sublocationWeight.dbValue(),
+    campaignId.dbValue(),
     campaignId.dbValue()
   ]
     
