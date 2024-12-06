@@ -60,7 +60,7 @@ proc getLinks*(
     
     SELECT 
       NULL as id,
-      "wikientries_location_" || c.id AS node1Guid,
+      "wikientries_location_" || c.current_location_id AS node1Guid,
       "wikientries_character_" || c.id AS node2Guid,
       "last seen in" AS label,
       ? as weight,
