@@ -17,7 +17,7 @@ proc addNodeMapRoutes*(app: Prologue) =
     )
     
     app.addRoute(
-        re fmt"/relationship/{CAMPAIGN_NAME_PATTERN}/",
+        re fmt"/relationship/",
         handler = createCreateArticleHandler[CreateParams, CustomLink, Link](
             serializeCustomLink
         ),
