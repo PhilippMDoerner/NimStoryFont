@@ -24,8 +24,8 @@ proc serializeNodeMap*(nodeMap: NodeMap): NodeMapSerializable =
 proc serializeCustomLink*(con: DbConn, link: CustomLink): Link =
   return Link(
     id: some(link.id),
-    node1Guid: link.node1Guid,
-    node2Guid: link.node2Guid,
+    sourceGuid: link.sourceGuid,
+    targetGuid: link.targetGuid,
     label: link.label,
     weight: link.weight,
     linkKind: "custom",

@@ -13,8 +13,8 @@ type LinkKind* = enum
 
 type Link* = ref object
   id*: Option[int64]
-  node1Guid*: string
-  node2Guid*: string
+  sourceGuid*: string
+  targetGuid*: string
   label*: string
   weight*: int
   linkKind*: string
@@ -28,8 +28,8 @@ type NodeMap* = object
   links*: seq[Link]
   
 type CustomLink* {.defaults, tableName: RELATIONSHIP_TABLE.} = ref object of Model
-  node1Guid*: string = ""
-  node2Guid*: string = ""
+  sourceGuid*: string = ""
+  targetGuid*: string = ""
   label*: string = "" 
   weight*: int = 1
   creation_datetime*: DjangoDateTime = djangoDateTimeType.now()

@@ -34,9 +34,9 @@ proc getLinks*(
   const getLinksSQLStatement: string = fmt """
     SELECT 
       NULL as id,
-      "wikientries_organization_" || membership.organization_id AS node1Guid,
-      "wikientries_character_" || membership.member_id AS node2Guid,
-      IFNULL(membership.role, "member") AS label,
+      "wikientries_character_" || membership.member_id AS sourceGuid,
+      "wikientries_organization_" || membership.organization_id AS targetGuid,
+      IFNULL(membership.role, "member of") AS label,
       ? as weight,
       "organizationMembership" AS linkKind
     FROM wikientries_organization_member AS membership
@@ -47,9 +47,9 @@ proc getLinks*(
 
     SELECT 
       NULL as id,
-      "wikientries_character_" || owner_id as node1Guid,
-      "wikientries_item_" || id as node2Guid,
-      "owned by" AS label,
+      "wikientries_character_" || owner_id as sourceGuid,
+      "wikientries_item_" || id as targetGuid,
+      "owns" AS label,
       ? AS weight,
       "itemOwnership" AS linkKind
     FROM wikientries_item AS item
@@ -61,8 +61,8 @@ proc getLinks*(
     
     SELECT 
       NULL as id,
-      "wikientries_location_" || c.current_location_id AS node1Guid,
-      "wikientries_character_" || c.id AS node2Guid,
+      "wikientries_character_" || c.id AS sourceGuid,
+      "wikientries_location_" || c.current_location_id AS targetGuid,
       "last seen in" AS label,
       ? as weight,
       "locationPlacement" AS linkKind
@@ -75,8 +75,8 @@ proc getLinks*(
     
     SELECT 
       NULL as id,
-      "wikientries_location_" || id AS node1Guid,
-      "wikientries_location_" || parent_location_id AS node2Guid,
+      "wikientries_location_" || id AS sourceGuid,
+      "wikientries_location_" || parent_location_id AS targetGuid,
       "located in" AS label,
       ? as weight,
       "sublocation" as linkKind
@@ -89,9 +89,9 @@ proc getLinks*(
     
     SELECT 
       NULL as id,
-      "wikientries_organization_" || org.id AS node1Guid,
-      "wikientries_location_" || org.headquarter_id AS node2Guid,
-      "headquarters in" AS label,
+      "wikientries_organization_" || org.id AS sourceGuid,
+      "wikientries_location_" || org.headquarter_id AS targetGuid,
+      "has headquarters in" AS label,
       ? as weight,
       "organizationHeadquarter" AS linkKind
     FROM wikientries_organization AS org
@@ -101,8 +101,8 @@ proc getLinks*(
     
     SELECT
       id,
-      node1Guid,
-      node2Guid,
+      sourceGuid,
+      targetGuid,
       label,
       weight,
       "custom" as linkKind
