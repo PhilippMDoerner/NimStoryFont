@@ -20,7 +20,6 @@ implDefaults(Organization, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 
 
-
 type OrganizationOverview* {.defaults, readOnly, tableName: ORGANIZATION_TABLE.} = ref object of Model
     name*: string = ""
     description*: Option[string] = none(string)
@@ -38,6 +37,7 @@ type OrganizationParentLocation {.defaults, readOnly, tableName: LOCATION_TABLE.
     name*: string = ""
 
 implDefaults(OrganizationParentLocation, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
+
 
 
 type OrganizationLocation* {.defaults, readOnly, tableName: LOCATION_TABLE.} = ref object of Model
@@ -71,3 +71,11 @@ type OrganizationCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE.} =
 
 implDefaults(OrganizationCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
+
+
+type OrganizationRelationship* {.defaults, tableName: ORGANIZATION_RELATIONSHIP_TABLE.} = ref object of Model
+    organization_id* {.fk: Organization.} : int64 = MODEL_INIT_ID
+    parent_organization_id* {.fk: Organization.} : int64 = MODEL_INIT_ID
+    relationship*: string = ""
+
+implDefaults(OrganizationRelationship, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})

@@ -82,6 +82,9 @@ proc serializeOrganization*(connection: DbConn, entry: Organization): Organizati
     let fullEntry = connection.getEntryById(entry.id, OrganizationRead)
     result = connection.serializeOrganizationRead(fullEntry)
 
+proc serializeOrganization*(connection: DbConn, entry: OrganizationRelationship): OrganizationSerializable =
+    let fullEntry = connection.getEntryById(entry.organization_id, OrganizationRead)
+    result = connection.serializeOrganizationRead(fullEntry)
 
 
 type OrganizationOverviewSerializable* = object

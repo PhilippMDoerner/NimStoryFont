@@ -1,11 +1,12 @@
 import prologue
-import ../../middleware/loginMiddleware
-import ../allUrlParams
 import organizationModel
 import organizationSerialization
 import organizationService
+import organizationUtils
 import std/strformat
+import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/loginMiddleware
 
 proc addOrganizationRoutes*(app: Prologue) =
     app.addRoute(
@@ -56,4 +57,28 @@ proc addOrganizationRoutes*(app: Prologue) =
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
-   
+    
+    app.addRoute(
+        re fmt"/organizationrelationship/",
+        handler = createCreateHandler[CreateParams, OrganizationRelationship, OrganizationSerializable](
+            checkOrganizationRelationshipCreatePermission,
+            createEntry,
+            serializeOrganization
+        ),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/organizationrelationship/pk/{ID_PATTERN}/",
+        handler = createDeleteByIdHandler[DeleteParams, OrganizationRelationship](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/organizationrelationship/pk/{ID_PATTERN}/",
+        handler = createUpdateEntryByIdHandler[UpdateParams, OrganizationRelationship, OrganizationSerializable](serializeOrganization),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
