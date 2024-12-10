@@ -29,7 +29,8 @@ proc getLinks*(
   organizationMembershipWeight: int64 = 1,
   organizationHeadquarterWeight: int64 = 1,
   locationPlacementWeight: int64 = 1,
-  sublocationWeight: int64 = 1
+  sublocationWeight: int64 = 1,
+  suborganizationWeight: int64 = 1
 ): seq[Link] =
   const getLinksSQLStatement: string = fmt """
     SELECT 
@@ -87,6 +88,16 @@ proc getLinks*(
       
     UNION
     
+    SELECT
+      NULL as id,
+      "wikientries_organization_" || organization_id as sourceGuid,
+      "wikientries_organization_" || parent_organization_id as targetGuid,
+      IFNULL(membership.role, "part of") AS label,
+      ? as weight,
+      "suborganization" as linkKind
+    
+    UNION
+    
     SELECT 
       NULL as id,
       "wikientries_organization_" || org.id AS sourceGuid,
@@ -110,7 +121,7 @@ proc getLinks*(
     WHERE campaign_id = ?
   """
   
-  let queryParams: array[11, DbValue] = [
+  let queryParams: array[13, DbValue] = [
     itemOwnershipWeight.dbValue(), 
     campaignId.dbValue(), 
     organizationMembershipWeight.dbValue(), 
@@ -118,6 +129,8 @@ proc getLinks*(
     locationPlacementWeight.dbValue(),
     campaignId.dbValue(),
     sublocationWeight.dbValue(),
+    campaignId.dbValue(),
+    suborganizationWeight.dbValue(),
     campaignId.dbValue(),
     organizationHeadquarterWeight.dbValue(),
     campaignId.dbValue(),

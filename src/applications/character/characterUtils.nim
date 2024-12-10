@@ -4,8 +4,8 @@ import characterEncounterModel
 import characterOrganizationModel
 import ../genericArticleRepository
 import ../authentication/authenticationUtils
-import ../../utils/jwtContext
 import ../allUrlParams
+import ../../utils/jwtContext
 
 
 proc `$`*(character: CharacterRead | Character): string =
