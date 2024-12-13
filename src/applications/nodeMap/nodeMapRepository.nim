@@ -39,24 +39,33 @@ proc getLinks*(
       "wikientries_organization_" || membership.organization_id AS targetGuid,
       IFNULL(membership.role, "member of") AS label,
       ? as weight,
+      default_relationship_type.color AS color,
+      default_relationship_type.icon AS icon,
       "organizationMembership" AS linkKind
     FROM wikientries_organization_member AS membership
     INNER JOIN wikientries_organization AS org ON membership.organization_id = org.id
-    WHERE campaign_id = ?
+    CROSS JOIN wikientries_relationship_type AS default_relationship_type
+    WHERE 
+      org.campaign_id = 1 AND 
+      default_relationship_type.id = ?
 
     UNION
 
     SELECT 
       NULL as id,
-      "wikientries_character_" || owner_id as sourceGuid,
-      "wikientries_item_" || id as targetGuid,
+      "wikientries_character_" || item.owner_id as sourceGuid,
+      "wikientries_item_" || item.id as targetGuid,
       "owns" AS label,
       ? AS weight,
+      default_relationship_type.color AS color,
+      default_relationship_type.icon AS icon,
       "itemOwnership" AS linkKind
     FROM wikientries_item AS item
+    CROSS JOIN wikientries_relationship_type AS default_relationship_type
     WHERE 
-      campaign_id = ? AND
-      owner_id IS NOT NULL
+      item.campaign_id = ? AND
+      item.owner_id IS NOT NULL AND
+      default_relationship_type.id = 1
       
     UNION 
     
@@ -66,36 +75,34 @@ proc getLinks*(
       "wikientries_location_" || c.current_location_id AS targetGuid,
       "last seen in" AS label,
       ? as weight,
+      default_relationship_type.color AS color,
+      default_relationship_type.icon AS icon,
       "locationPlacement" AS linkKind
     FROM wikientries_character AS c
+    CROSS JOIN wikientries_relationship_type AS default_relationship_type    
     WHERE 
       c.campaign_id = ? AND
-      c.current_location_id IS NOT NULL
-      
+      c.current_location_id IS NOT NULL AND
+      default_relationship_type.id = 1
+
     UNION
     
     SELECT 
       NULL as id,
-      "wikientries_location_" || id AS sourceGuid,
-      "wikientries_location_" || parent_location_id AS targetGuid,
+      "wikientries_location_" || loc.id AS sourceGuid,
+      "wikientries_location_" || loc.parent_location_id AS targetGuid,
       "located in" AS label,
       ? as weight,
+      default_relationship_type.color AS color,
+      default_relationship_type.icon AS icon,
       "sublocation" as linkKind
-    FROM wikientries_location
+    FROM wikientries_location AS loc
+    CROSS JOIN wikientries_relationship_type AS default_relationship_type    
     WHERE 
-      parent_location_id IS NOT NULL AND
-      campaign_id = ?
+      loc.parent_location_id IS NOT NULL AND
+      loc.campaign_id = ? AND
+      default_relationship_type.id = 1
       
-    UNION
-    
-    SELECT
-      NULL as id,
-      "wikientries_organization_" || organization_id as sourceGuid,
-      "wikientries_organization_" || parent_organization_id as targetGuid,
-      IFNULL(membership.role, "part of") AS label,
-      ? as weight,
-      "suborganization" as linkKind
-    
     UNION
     
     SELECT 
@@ -104,36 +111,50 @@ proc getLinks*(
       "wikientries_location_" || org.headquarter_id AS targetGuid,
       "has headquarters in" AS label,
       ? as weight,
+      default_relationship_type.color AS color,
+      default_relationship_type.icon AS icon,
       "organizationHeadquarter" AS linkKind
     FROM wikientries_organization AS org
-    WHERE campaign_id = ? AND headquarter_id IS NOT NULL
+    CROSS JOIN wikientries_relationship_type AS default_relationship_type
+    WHERE 
+      org.campaign_id = ? AND 
+      org.headquarter_id IS NOT NULL AND
+      default_relationship_type.id = 1
     
     UNION
     
     SELECT
-      id,
-      sourceGuid,
-      targetGuid,
-      label,
-      weight,
-      "custom" as linkKind
-      FROM wikientries_relationships
-    WHERE campaign_id = ?
+      relationship.id AS id,
+      relationship.sourceGuid AS sourceGuid,
+      relationship.targetGuid AS targetGuid,
+      relationship.label AS label,
+      IFNULL(relationship.weight, typ.weight) AS weight,
+      typ.color AS color,
+      typ.icon AS icon,
+      "custom" AS linkKind
+    FROM wikientries_relationships AS relationship
+    INNER JOIN wikientries_relationship_type AS typ ON typ.id = relationship.link_type_id
+    WHERE 
+      relationship.campaign_id = ?
   """
   
-  let queryParams: array[13, DbValue] = [
-    itemOwnershipWeight.dbValue(), 
-    campaignId.dbValue(), 
+  let queryParams: array[11, DbValue] = [
+    # Organization - Character Links
     organizationMembershipWeight.dbValue(), 
     campaignId.dbValue(),
+    # Item - Character Links
+    itemOwnershipWeight.dbValue(), 
+    campaignId.dbValue(), 
+    # Location - Character Links
     locationPlacementWeight.dbValue(),
     campaignId.dbValue(),
+    # Location - Location Links
     sublocationWeight.dbValue(),
     campaignId.dbValue(),
-    suborganizationWeight.dbValue(),
-    campaignId.dbValue(),
+    # Organization - Location Links
     organizationHeadquarterWeight.dbValue(),
     campaignId.dbValue(),
+    # Custom Links
     campaignId.dbValue()
   ]
     
