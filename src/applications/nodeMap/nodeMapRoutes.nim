@@ -54,5 +54,51 @@ proc addNodeMapRoutes*(app: Prologue) =
         re fmt"/relationship/{CAMPAIGN_NAME_PATTERN}/overview",
         handler = createReadCampaignListHandler[ReadListParams, CustomLink, CustomLink](
             noSerialization
-        )
+        ),
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
     )
+
+    app.addRoute(
+        re fmt"/relationshiptype/",
+        handler = createCreateArticleHandler[CreateParams, CustomLinkType, CustomLinkType](
+            noSerialization
+        ),
+        httpMethod = HttpPost,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/relationshiptype/pk/{ID_PATTERN}/",
+        handler = createDeleteByIdHandler[DeleteParams, CustomLinkType](),
+        httpMethod = HttpDelete,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/relationshiptype/pk/{ID_PATTERN}/",
+        handler = createUpdateByIdHandler[UpdateParams, CustomLinkType, CustomLinkType](
+            noSerialization
+        ),
+        httpMethod = HttpPut,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/relationshiptype/pk/{ID_PATTERN}/",
+        handler = createPatchByIdHandler[UpdateParams, CustomLinkType, CustomLinkType](
+            noSerialization
+        ),
+        httpMethod = HttpPatch,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/relationshiptype/{CAMPAIGN_NAME_PATTERN}/overview",
+        handler = createReadCampaignListHandler[ReadListParams, CustomLinkType, CustomLinkType](
+            noSerialization
+        ),
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
+    
