@@ -94,7 +94,7 @@ proc addNodeMapRoutes*(app: Prologue) =
     )
     
     app.addRoute(
-        re fmt"/relationshiptype/{CAMPAIGN_NAME_PATTERN}/overview",
+        re fmt"/relationshiptype/{CAMPAIGN_NAME_PATTERN}/overview/",
         handler = createReadCampaignListHandler[ReadListParams, CustomLinkType, CustomLinkType](
             noSerialization
         ),
