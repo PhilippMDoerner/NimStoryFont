@@ -1,8 +1,8 @@
+import std/[strformat]
 import norm/[model, sqlite]
 import characterModel
-import ../../utils/djangoDateTime/[normConversion]
-import std/[strformat]
 import ../genericArticleRepository
+import ../../utils/djangoDateTime/[normConversion]
 
 proc getCharacterSet(connection: DbConn, campaignName: string, isPlayerCharacter: bool): seq[CharacterOverview] =
   const condition = fmt"""
