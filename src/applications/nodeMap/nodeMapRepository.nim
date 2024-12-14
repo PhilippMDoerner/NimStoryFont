@@ -4,6 +4,7 @@ import ./nodeMapModel
 import ../genericRawRepository
 import ../../database
 import ../../applicationSettings
+import ../../utils/djangoDateTime/[normConversion]
 
 proc getNodes*(campaignId: int64): seq[Node] =
   const getNodesSQLStatement: string = fmt """
@@ -164,3 +165,23 @@ proc getLinks*(
       Link, 
       queryParams
     )
+    
+proc getLinkTypes*(con: DbConn, campaignName: string): seq[CustomLinkType] =
+  const getLinkTypesSQL: string = fmt """
+    SELECT 
+      typ.name,
+      typ.icon,
+      typ.color,
+      typ.weight,
+      typ.campaign_id,
+      typ.creation_datetime,
+      typ.update_datetime,
+      typ.id
+    FROM wikientries_relationship_type AS typ
+    LEFT JOIN wikientries_campaign AS camp ON camp.id = typ.campaign_id
+    WHERE 
+      camp.name = ? OR typ.campaign_id IS NULL
+  """
+  
+  let queryParams: array[1, DbValue] = [campaignName.dbValue()]
+  return con.rawSelectRows(getLinkTypesSQL, CustomLinkType, queryParams)

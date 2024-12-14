@@ -108,8 +108,7 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
   if not ctx.hasCampaignMembership(campaign.id):
     raise newException(CampaignPermissionError, "You must be invited to a campaign to read its entries")
 
-
-proc checkNoPermission*(ctx: JWTContext, entries: seq[authenticationModels.Group]) = 
+proc checkNoPermission*[T](ctx: JWTContext, entries: seq[T]) = 
   return
 
 proc generateToken*(): string = urandom(30).encode()

@@ -2,6 +2,7 @@ import std/strformat
 import prologue
 import ./nodeMapControllers
 import ./nodeMapSerialization
+import ./nodeMapService
 import ./nodeMapModel
 import ../allUrlParams
 import ../genericArticleControllers
@@ -95,8 +96,10 @@ proc addNodeMapRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/relationshiptype/{CAMPAIGN_NAME_PATTERN}/overview/",
-        handler = createReadCampaignListHandler[ReadListParams, CustomLinkType, CustomLinkType](
-            noSerialization
+        handler = createReadListHandler[ReadListParams, CustomLinkType, CustomLinkType](
+            readListProc = getLinkTypes,
+            checkPermission = checkNoPermission[CustomLinkType],
+            serialize = noSerialization
         ),
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
