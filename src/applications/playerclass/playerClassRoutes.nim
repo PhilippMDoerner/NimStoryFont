@@ -46,7 +46,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/player_class/{CAMPAIGN_NAME_PATTERN}/overview/", 
         handler = createReadListHandler[ReadListParams, PlayerClass, PlayerClassSerializable](
-          getPlayerClasses,
+          getCampaignPlayerClasses,
           checkPlayerClassPermission,
           serializePlayerClasses
         ),  
