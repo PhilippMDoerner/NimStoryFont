@@ -2,8 +2,10 @@ import norm/[model, pragmas]
 import lowdb/sqlite
 import std/[strutils, options]
 import constructor/defaults
+import ../campaign/campaignModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
+import ../../applicationConstants
 
 type FontAwesomeType* = enum 
   ##Determines whehter an icon is supposed to come from 4.7 or 5
@@ -30,6 +32,7 @@ type MarkerType*  {.defaults, tableName: MARKERTYPE_TABLE.} = ref object of Mode
   update_datetime*: DjangoDateTime = djangoDateTimeType.now()
   fontawesome_type*: FontAwesomeType = FontAwesomeType.VERSION5 
   color*: string = ""
+  campaign_id* {.fk: Campaign.}: int64 = MODEL_INIT_ID
 
 implDefaults(MarkerType, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 

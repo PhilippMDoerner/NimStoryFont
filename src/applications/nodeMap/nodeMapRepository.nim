@@ -177,7 +177,7 @@ proc getLinkTypes*(con: DbConn, campaignName: string): seq[CustomLinkType] =
       typ.creation_datetime,
       typ.update_datetime,
       typ.id
-    FROM wikientries_relationship_type AS typ
+    FROM {RELATIONSHIP_KIND_TABLE} AS typ
     LEFT JOIN wikientries_campaign AS camp ON camp.id = typ.campaign_id
     WHERE 
       camp.name = ? OR typ.campaign_id IS NULL
