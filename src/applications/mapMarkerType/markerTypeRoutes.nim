@@ -60,7 +60,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
 
    
     app.addRoute(
-        re fmt"/markertype/{CAMPAIGN_NAME_PATTERN}/overview", 
+        re fmt"/markertype/{CAMPAIGN_NAME_PATTERN}/overview/", 
         handler = createReadListHandler(
             readListProc = getCampaignMarkerTypes, 
             checkPermission = checkReadMarkerTypeListPermission, 
