@@ -97,6 +97,17 @@ proc addNodeMapRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/relationshiptype/{CAMPAIGN_NAME_PATTERN}/overview/",
         handler = createReadListHandler[ReadListParams, CustomLinkType, CustomLinkType](
+            readListProc = getCampaignLinkTypes,
+            checkPermission = checkNoPermission[CustomLinkType],
+            serialize = noSerialization
+        ),
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
+        re fmt"/relationshiptype/",
+        handler = createReadListHandler[ReadListParams, CustomLinkType, CustomLinkType](
             readListProc = getLinkTypes,
             checkPermission = checkNoPermission[CustomLinkType],
             serialize = noSerialization
