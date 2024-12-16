@@ -10,7 +10,7 @@ proc getPlayerClasses*(con: DbConn, campaignName: string): seq[PlayerClass] =
       typ.name,
       typ.campaign_id,
       typ.update_datetime,
-      ty.creation_datetime,
+      typ.creation_datetime,
       typ.id
     FROM {PLAYERCLASS_TABLE} AS typ
     LEFT JOIN wikientries_campaign AS camp ON camp.id = typ.campaign_id
