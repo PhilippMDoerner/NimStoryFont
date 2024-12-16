@@ -112,3 +112,13 @@ proc checkNoPermission*[T](ctx: JWTContext, entries: seq[T]) =
   return
 
 proc generateToken*(): string = urandom(30).encode()
+
+proc checkCampaignOrGlobalWritePermission*[T](ctx: JWTContext, entry: T) =
+  ## Use for articles that may either be used across campaigns or within a single campaign
+  ## If an article is campaign-specific, then it suffices to have campaign-write-permissions
+  ## If an article is global, then you require site-admin permission
+  let isCampaignEntry = entry.campaign_id.isSome()
+  if isCampaignEntry:
+    checkCampaignWritePermission(ctx, entry.campaign_id.get())
+  else: # isGlobalEntry for all campaigns
+    checkAdminPermission(ctx, entry)

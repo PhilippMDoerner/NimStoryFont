@@ -62,7 +62,9 @@ proc addNodeMapRoutes*(app: Prologue) =
 
     app.addRoute(
         re fmt"/relationshiptype/",
-        handler = createCreateArticleHandler[CreateParams, CustomLinkType, CustomLinkType](
+        handler = createCreateHandler[CreateParams, CustomLinkType, CustomLinkType](
+            checkCampaignOrGlobalWritePermission,
+            createArticle[CreateParams, CustomLinkType],
             noSerialization
         ),
         httpMethod = HttpPost,
@@ -71,14 +73,21 @@ proc addNodeMapRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/relationshiptype/pk/{ID_PATTERN}/",
-        handler = createDeleteByIdHandler[DeleteParams, CustomLinkType](),
+        handler = createDeleteHandler[DeleteParams, CustomLinkType](
+            readArticleById[DeleteParams, CustomLinkType],
+            checkCampaignOrGlobalWritePermission,
+            deleteArticle[CustomLinkType]
+        ),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
     
     app.addRoute(
         re fmt"/relationshiptype/pk/{ID_PATTERN}/",
-        handler = createUpdateByIdHandler[UpdateParams, CustomLinkType, CustomLinkType](
+        handler = createUpdateHandler[UpdateParams, CustomLinkType, CustomLinkType](
+            readArticleById[UpdateParams, CustomLinkType],
+            checkCampaignOrGlobalWritePermission,
+            updateArticle[UpdateParams, CustomLinkType],
             noSerialization
         ),
         httpMethod = HttpPut,
@@ -87,7 +96,10 @@ proc addNodeMapRoutes*(app: Prologue) =
     
     app.addRoute(
         re fmt"/relationshiptype/pk/{ID_PATTERN}/",
-        handler = createPatchByIdHandler[UpdateParams, CustomLinkType, CustomLinkType](
+        handler = createPatchHandler[UpdateParams, CustomLinkType, CustomLinkType](
+            readArticleById[UpdateParams, CustomLinkType],
+            checkCampaignOrGlobalWritePermission,
+            patchArticle[UpdateParams, CustomLinkType],
             noSerialization
         ),
         httpMethod = HttpPatch,

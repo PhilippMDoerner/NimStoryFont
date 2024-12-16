@@ -11,14 +11,22 @@ import ../genericArticleControllers
 proc addMarkerTypeRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/markertype/",
-        handler = createCreateHandler[CreateParams, MarkerType, MarkerTypeSerializable](checkAdminPermission, createArticle, serializeMarkerType),
+        handler = createCreateHandler[CreateParams, MarkerType, MarkerTypeSerializable](
+            checkCampaignOrGlobalWritePermission, 
+            createArticle, 
+            serializeMarkerType
+        ),
         httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
 
     app.addRoute(
         re fmt"/markertype/pk/{ID_PATTERN}/", 
-        handler = createDeleteHandler[DeleteParams, MarkerType](readArticleById, checkAdminPermission, deleteArticle),
+        handler = createDeleteHandler[DeleteParams, MarkerType](
+            readArticleById, 
+            checkCampaignOrGlobalWritePermission, 
+            deleteArticle
+        ),
         httpMethod = HttpDelete,
         middlewares = @[loginMiddleware()]
     )
@@ -27,7 +35,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         re fmt"/markertype/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, MarkerType, MarkerTypeSerializable](
             readArticleById, 
-            checkAdminPermission, 
+            checkCampaignOrGlobalWritePermission, 
             updateArticle, 
             serializeMarkerType
         ),
@@ -39,7 +47,7 @@ proc addMarkerTypeRoutes*(app: Prologue) =
         re fmt"/markertype/pk/{ID_PATTERN}/", 
         handler = createPatchHandler[UpdateParams, MarkerType, MarkerTypeSerializable](
             readArticleById, 
-            checkAdminPermission, 
+            checkCampaignOrGlobalWritePermission, 
             patchArticle, 
             serializeMarkerType
         ),

@@ -12,6 +12,3 @@ proc campaign_id*(entry: PlayerClassConnection): int64 =
 
 proc checkPlayerClassConnectionCreatePermission*(ctx: JWTContext, entry: PlayerClassConnection) =
   checkCreatePermission[PlayerClassConnection](ctx, entry)
-
-proc checkPlayerClassPermission*(ctx: JWTContext, entries: seq[PlayerClass] | PlayerClass) =
-  return

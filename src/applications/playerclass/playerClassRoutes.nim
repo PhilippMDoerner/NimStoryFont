@@ -12,7 +12,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/player_class/",
         handler = createCreateHandler[CreateParams, PlayerClass, PlayerClassSerializable](
-            checkPlayerClassPermission,
+            checkCampaignOrGlobalWritePermission,
             createArticle,
             serializePlayerClass
         ),
@@ -24,7 +24,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
         re fmt"/player_class/pk/{ID_PATTERN}/", 
         handler = createDeleteHandler[DeleteParams, PlayerClass](
             readArticleById,
-            checkPlayerClassPermission,
+            checkCampaignOrGlobalWritePermission,
             deleteArticle
         ),
         httpMethod = HttpDelete,
@@ -35,7 +35,7 @@ proc addPlayerClassRoutes*(app: Prologue) =
         re fmt"/player_class/pk/{ID_PATTERN}/", 
         handler = createUpdateHandler[UpdateParams, PlayerClass, PlayerClassSerializable](
             readArticleById,
-            checkPlayerClassPermission,
+            checkCampaignOrGlobalWritePermission,
             updateArticle,
             serializePlayerClass
         ),
@@ -46,25 +46,25 @@ proc addPlayerClassRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/player_class/{CAMPAIGN_NAME_PATTERN}/overview/", 
         handler = createReadListHandler[ReadListParams, PlayerClass, PlayerClassSerializable](
-          getCampaignPlayerClasses,
-          checkPlayerClassPermission,
-          serializePlayerClasses
+            getCampaignPlayerClasses,
+            checkCampaignReadListPermission,
+            serializePlayerClasses
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
-   
+
     app.addRoute(
         re fmt"/player_class/", 
         handler = createReadListHandler[ReadListParams, PlayerClass, PlayerClassSerializable](
-          getPlayerClasses,
-          checkPlayerClassPermission,
-          serializePlayerClasses
+            getPlayerClasses,
+            checkNoPermission,
+            serializePlayerClasses
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]
     )
-   
+
 
     app.addRoute(
         re fmt"/characterplayerclassconnection/",
