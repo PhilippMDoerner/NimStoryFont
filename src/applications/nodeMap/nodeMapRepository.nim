@@ -48,7 +48,7 @@ proc getLinks*(
     CROSS JOIN wikientries_relationship_type AS default_relationship_type
     WHERE 
       org.campaign_id = ? AND 
-      default_relationship_type.id = ?
+      default_relationship_type.id = 1
 
     UNION
 
