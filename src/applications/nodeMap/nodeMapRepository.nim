@@ -78,7 +78,7 @@ proc getLinks*(
       ? as weight,
       default_relationship_type.color AS color,
       default_relationship_type.icon AS icon,
-      "locationPlacement" AS linkKind
+      "characterLocation" AS linkKind
     FROM wikientries_character AS c
     CROSS JOIN wikientries_relationship_type AS default_relationship_type    
     WHERE 
@@ -132,7 +132,7 @@ proc getLinks*(
       IFNULL(relationship.weight, typ.weight) AS weight,
       typ.color AS color,
       typ.icon AS icon,
-      "custom" AS linkKind
+      typ.name AS linkKind
     FROM wikientries_relationships AS relationship
     INNER JOIN wikientries_relationship_type AS typ ON typ.id = relationship.link_type_id
     WHERE 
