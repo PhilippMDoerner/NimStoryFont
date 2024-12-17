@@ -1,4 +1,4 @@
-import std/[sequtils, json, options]
+import std/[sequtils, json, options, tables]
 import norm/sqlite
 import ./nodeMapModel
 import ../genericArticleRepository
@@ -7,9 +7,26 @@ type NodeSerializable* = object
   record*: JsonNode
   guid*: string
     
+type LinkGroup* = object
+  name*: string
+  links*: seq[Link]
+  
 type NodeMapSerializable* = object
   nodes*: seq[NodeSerializable]
-  links*: seq[Link]
+  links*: seq[LinkGroup]
+  
+proc toLinkGroup*(links: seq[Link]): seq[LinkGroup] =
+  var linkGroups = initTable[string, seq[Link]]()
+  for link in links:
+    let isNewLinkGroup = not linkGroups.hasKey(link.linkKind)
+    if isNewLinkGroup:
+      linkGroups[link.linkKind] = @[]
+    linkGroups[link.linkKind].add(link)
+  
+  for linkGroupName, links in linkGroups.pairs:
+    result.add(LinkGroup(name: linkGroupName, links: links))
+    
+  return result
   
 proc serializeNodeMap*(nodeMap: NodeMap): NodeMapSerializable =
   let serializedNodes = nodeMap.nodes.mapIt(NodeSerializable(
@@ -17,9 +34,11 @@ proc serializeNodeMap*(nodeMap: NodeMap): NodeMapSerializable =
     record: it.record.parseJson()
   ))
   
+  let serializedLinks = toLinkGroup(nodeMap.links)
+  
   return NodeMapSerializable(
     nodes: serializedNodes,
-    links: nodeMap.links
+    links: serializedLinks
   )
   
 proc serializeCustomLink*(con: DbConn, link: CustomLink): Link =
