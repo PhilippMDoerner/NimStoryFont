@@ -23,5 +23,6 @@ proc parseHook*(s: string, i: var int, v: var DjangoDateTime) =
     v = parseDefault(str)
 
 proc toJsonHook*(djangoDateTime: DjangoDateTime): JsonNode = %djangoDateTime.format(dateFormat = OUTPUT_TIME_FORMAT)
+proc `%`*(djangoDateTime: DjangoDateTime): JsonNode = djangoDateTime.toJsonHook()
 proc fromJsonHook*(self: var DjangoDateTime, jsonNode: JsonNode) =
     self = parseDefault(jsonNode.getStr())
