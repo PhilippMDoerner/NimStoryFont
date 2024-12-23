@@ -11,6 +11,14 @@ import ../applications/location/locationDataExporter
 import ../applications/map/mapDataExporter
 import ../applications/mapMarker/markerDataExporter
 import ../applications/mapMarkerType/markerTypeDataExporter
+import ../applications/nodeMap/nodeMapDataExporter
+import ../applications/organization/organizationDataExporter
+import ../applications/playerclass/playerClassDataExporter
+import ../applications/quest/questDataExporter
+import ../applications/quote/quoteDataExporter
+import ../applications/rules/ruleDataExporter
+import ../applications/session/sessionDataExporter
+import ../applications/spell/spellDataExporter
 
 proc merge(nodes: varargs[JsonNode]): JsonNode =
   for node in nodes:
@@ -35,7 +43,15 @@ proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
     con.exportLocationData(campaign),
     con.exportMapData(campaign),
     con.exportMarkerData(campaign),
-    con.exportMarkerTypeData(campaign)
+    con.exportMarkerTypeData(campaign),
+    con.exportNodeMapData(campaign),
+    con.exportOrganizationData(campaign),
+    con.exportPlayerClassData(campaign),
+    con.exportQuestData(campaign),
+    con.exportQuoteData(campaign),
+    con.exportRuleData(campaign),
+    con.exportSessionData(campaign),
+    con.exportSpellData(campaign)
   )
 
 proc main() =

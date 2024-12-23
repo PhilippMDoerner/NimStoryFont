@@ -8,14 +8,14 @@ import std/[options, sugar]
 import ../articleModel
 
 type RuleSerializable* = object
-    article_type: ArticleType
-    pk: int64
-    creation_datetime: DjangoDateTime
-    update_datetime: DjangoDateTime
-    description: Option[string]
-    name: string
-    campaign: int64
-    campaign_details: MinimumCampaignOverview
+    article_type*: ArticleType
+    pk*: int64
+    creation_datetime*: DjangoDateTime
+    update_datetime*: DjangoDateTime
+    description*: Option[string]
+    name*: string
+    campaign*: int64
+    campaign_details*: MinimumCampaignOverview
 
 
 proc serializeRuleRead*(connection: DbConn, entry: RuleRead): RuleSerializable =

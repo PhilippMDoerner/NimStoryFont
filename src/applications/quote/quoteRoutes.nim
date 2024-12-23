@@ -47,9 +47,9 @@ proc addQuoteRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/quote/{CAMPAIGN_NAME_PATTERN}/{ARTICLE_NAME_PATTERN}/", 
         handler = createReadListHandler(
-          getCharacterQuotes,
-          checkQuoteListPermission,
-          serializeQuoteReads
+            getCharacterQuotes,
+            checkQuoteListPermission,
+            serializeQuoteReads
         ),  
         httpMethod = HttpGet,
         middlewares = @[loginMiddleware()]

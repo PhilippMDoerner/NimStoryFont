@@ -2,11 +2,10 @@ import std/[strformat]
 import norm/[sqlite]
 import ./nodeMapModel
 import ../genericRawRepository
-import ../../database
 import ../../applicationSettings
 import ../../utils/djangoDateTime/[normConversion]
 
-proc getNodes*(campaignId: int64): seq[Node] =
+proc getNodes*(con: DbConn, campaignId: int64): seq[Node] =
   const getNodesSQLStatement: string = fmt """
     SELECT record, guid
     FROM {SEARCH_TABLE}
@@ -21,10 +20,10 @@ proc getNodes*(campaignId: int64): seq[Node] =
   """
   
   let queryParams: array[1, DbValue] = [campaignId.dbValue()]
-  withDbConn(connection):
-    return connection.rawSelectRows(getNodesSQLStatement, Node, queryParams)
+  return con.rawSelectRows(getNodesSQLStatement, Node, queryParams)
 
 proc getLinks*(
+  con: DbConn,
   campaignId: int64, 
   itemOwnershipWeight: int64 = 1, 
   organizationMembershipWeight: int64 = 1,
@@ -159,13 +158,12 @@ proc getLinks*(
     campaignId.dbValue()
   ]
     
-  withDbConn(connection):
-    return connection.rawSelectRows(
-      getLinksSQLStatement, 
-      Link, 
-      queryParams
-    )
-    
+  return con.rawSelectRows(
+    getLinksSQLStatement, 
+    Link, 
+    queryParams
+  )
+
 proc getLinkTypes*(con: DbConn, campaignName: string): seq[CustomLinkType] =
   const getLinkTypesSQL: string = fmt """
     SELECT 
