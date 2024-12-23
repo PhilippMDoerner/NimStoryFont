@@ -168,3 +168,6 @@ task prod_deploy, "Stops and removes prior container and images, recompiles the 
   exec(fmt"scp {ns_image_tarname} isofruit@{domain}:~/")
 
   #exec(fmt"ssh isofruit@aldrune.com 'bash startNimstoryfont.sh'")
+  
+task createCert, "Creates a self-signed SSL certificate":
+  exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
