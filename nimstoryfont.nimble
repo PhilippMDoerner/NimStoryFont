@@ -171,3 +171,25 @@ task prod_deploy, "Stops and removes prior container and images, recompiles the 
   
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
+  
+task compileDataExporterJob, "Compiles the data exporter job for alpine":
+  --verbose
+  --gcc.exe:"musl-gcc"
+  --gcc.linkerexe:"musl-gcc"
+  --forceBuild:on
+  --deepcopy:on
+  --passc:"-fpermissive"
+  --passl:"-fpermissive"
+  --threads:on
+  --opt:speed
+  --define:release
+  --define:lto
+  --define:ssl
+  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
+  --hint:"XCannotRaiseY:off"
+  --warning:"BareExcept:off"
+  --styleCheck:usages
+  --spellSuggest:50
+  --mm:orc
+#  --outdir:"buildFiles/jobs"
+  setCommand "c", "src/jobs/dataExportJob.nim"

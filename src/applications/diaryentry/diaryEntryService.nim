@@ -1,12 +1,12 @@
-import diaryEntryModel
-import ../genericArticleRepository
+import std/[sequtils, sugar, options, tables]
 import norm/[sqlite]
+import ./diaryEntryModel
+import ./diaryEntryRepository
+import ../genericArticleRepository
 import ../character/[characterEncounterModel, characterEncounterRepository]
-import diaryEntryRepository
 import ../allUrlParams
 import ../encounter/encounterModel
 import ../location/[locationModel, locationRepository]
-import std/[sequtils, sugar, options, tables]
 
 export diaryEntryModel
 

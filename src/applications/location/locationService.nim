@@ -1,11 +1,11 @@
-import locationModel
-import ../genericArticleRepository
-import ../../applicationConstants
-import norm/model
 import std/[options, strformat, algorithm, strutils]
-import ../../database
+import norm/model
+import ./locationModel
+import ./locationRepository
+import ../genericArticleRepository
 import ../allUrlParams
-import locationRepository
+import ../../applicationConstants
+import ../../database
 
 export locationModel
 

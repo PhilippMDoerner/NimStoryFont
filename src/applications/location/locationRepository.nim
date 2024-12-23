@@ -126,9 +126,6 @@ proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
   let parentLocationIds: seq[int64] = parentLocationIdStr.get().parseIdString()
   result = parentLocations.sortById(parentLocationIds)
   
-  echo fmt"Location {locationId} has {parentLocationIds} parent locations: {result.repr}"
-
-
 
 proc getParentLocationReads*(connection: DbConn, locationId: int64): seq[LocationRead] =
   let parentLocationIdStr: Option[string] = connection.getParentLocationIdString(locationId)

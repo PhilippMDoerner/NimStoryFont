@@ -56,7 +56,6 @@ proc createEncounter*(connection: DbConn, requestParams: CreateParams, entry: va
         )
         result = connection.createArticle(requestParams.body, Encounter)
 
-        
 
 proc cutInsertEncounter*(encounterId: int64, oldOrderIndex: int, newOrderIndex: int): seq[EncounterRead] =
     withDbTransaction(connection):

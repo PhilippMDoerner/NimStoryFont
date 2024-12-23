@@ -10,6 +10,12 @@ proc getMarkerForMap*(connection: DbConn, campaignName: string, mapName: string)
 
   result = connection.getList(MarkerRead, condition, queryParams)
 
+proc getMarkersForCampaign*(connection: DbConn, campaignName: string): seq[MarkerRead] =
+  const condition: string = """map_id_campaign_id.name LIKE ?"""
+
+  result = connection.getList(MarkerRead, condition, campaignName.dbValue())
+
+
 proc getMarker*(connection: DbConn, campaignName: string, parentLocationName: string, locationName: string, mapName: string): MarkerRead =
   var entry = new(MarkerRead)
 
