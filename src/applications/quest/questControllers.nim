@@ -1,16 +1,10 @@
-import prologue
 import std/[strutils, options, typetraits]
-import ../../utils/[jwtContext, customResponses]
+import prologue
 import jsony
+import ./questService
 import ../genericArticleRepository
+import ../../utils/[jwtContext, customResponses]
 import ../../applicationConstants
-
-proc getQuestStateTable(): array[QuestState.enumLen(), Table[string, string]] {.compileTime.} =
-  var x = 0
-  for state in QuestState:
-    let stateTable = {"label": $state, "value": $state}.toTable()
-    result[x] = stateTable
-    x.inc
     
 
 proc getQuestStates*(ctx: Context) {.async.} =

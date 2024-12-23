@@ -98,7 +98,7 @@ type OrganizationOverviewSerializable* = object
     creation_datetime: DjangoDateTime
 
 
-proc overviewSerialize*(connection: DbConn, entry: OrganizationOverview): OrganizationOverviewSerializable =
+proc overviewSerialize*(connection: DbConn, entry: OrganizationOverview | OrganizationRead): OrganizationOverviewSerializable =
     result = OrganizationOverviewSerializable(
         article_type: ArticleType.atOrganization,
         description: entry.description.map(truncate),
@@ -111,6 +111,6 @@ proc overviewSerialize*(connection: DbConn, entry: OrganizationOverview): Organi
     )
 
 
-proc overviewSerialize*(connection: DbConn, entries: seq[OrganizationOverview]): seq[OrganizationOverviewSerializable] =
+proc overviewSerialize*(connection: DbConn, entries: seq[OrganizationOverview | OrganizationRead]): seq[OrganizationOverviewSerializable] =
     for entry in entries:
         result.add(connection.overviewSerialize(entry))
