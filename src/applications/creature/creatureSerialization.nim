@@ -47,7 +47,7 @@ type CreatureOverviewSerializable* = object
     creation_datetime*: DjangoDateTime
 
 
-proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOverviewSerializable =
+proc overviewSerialize*(connection: DbConn, entry: CreatureOverview | CreatureRead): CreatureOverviewSerializable =
     result = CreatureOverviewSerializable(
         article_type: ArticleType.atCreature,
         description: entry.description.map(truncate),
@@ -59,6 +59,6 @@ proc overviewSerialize*(connection: DbConn, entry: CreatureOverview): CreatureOv
         creation_datetime: entry.creation_datetime
     )
 
-proc overviewSerialize*(connection: DbConn, entries: seq[CreatureOverview]): seq[CreatureOverviewSerializable] =
+proc overviewSerialize*(connection: DbConn, entries: seq[CreatureOverview | CreatureRead]): seq[CreatureOverviewSerializable] =
     for entry in entries:
         result.add(connection.overviewSerialize(entry))

@@ -294,7 +294,6 @@ proc connectSpellSearchSignals() =
 
 #RULE
 proc ruleCreateSignal*(connection: DbConn, modelInstance: var Rule) = 
-  echo "INSTANCE ID", modelInstance.id
   addSearchEntry(connection, modelInstance)
 
 proc ruleUpdateSignal*(connection: DbConn, modelInstance: var Rule) = 

@@ -151,7 +151,7 @@ type CharacterOverviewSerializable* = object
     images*: seq[string]
 
 
-proc overviewSerialize*(entry: CharacterOverview, entryImages: seq[Image]): CharacterOverviewSerializable =
+proc overviewSerialize*(entry: CharacterOverview | CharacterRead, entryImages: seq[Image]): CharacterOverviewSerializable =
     let imagePaths = entryImages.map(getImagePath)
 
     result = CharacterOverviewSerializable(
@@ -172,7 +172,7 @@ proc overviewSerialize*(connection: DbConn, entry: CharacterOverview): Character
     let images = if entry.player_character: getManyFromOne(entry, Image) else: @[]
     result = overviewSerialize(entry, images)
 
-proc overviewSerialize*(connection: DbConn, entries: seq[CharacterOverview]): seq[CharacterOverviewSerializable] =
+proc overviewSerialize*(connection: DbConn, entries: seq[CharacterOverview | CharacterRead]): seq[CharacterOverviewSerializable] =
     let playerCharacterIds: seq[int64] = entries.filter(entry => entry.player_character).map(entry => entry.id)
     let playerCharacterImages: Table[int64, seq[Image]] = connection.getCharacterImages(playerCharacterIds)
 
