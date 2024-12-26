@@ -79,3 +79,8 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
             return
 
     respDefault(Http204)
+
+# Does not do anything, as the loginMiddleware it is used with already contains all the logic
+proc validateToken*(ctx: Context) {.async.} =
+    respDefault(Http200)
+    

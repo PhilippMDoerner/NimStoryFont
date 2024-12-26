@@ -1,11 +1,19 @@
 import prologue
-import authenticationControllers
-import authenticationService
-import authenticationUtils
-import authenticationSerialization
+import ./authenticationControllers
+import ./authenticationService
+import ./authenticationUtils
+import ./authenticationSerialization
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addAuthenticationRoutes*(app: Prologue) =
+    app.addRoute(
+        "/token/validate/",
+        authenticationControllers.validateToken,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
+    
     app.addRoute(
         re"/token/refresh", 
         authenticationControllers.refreshTokens, 
