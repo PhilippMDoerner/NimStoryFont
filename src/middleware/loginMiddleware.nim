@@ -14,7 +14,10 @@ template debugErrorLog(msg: string) =
 proc loginMiddleware*(): HandlerAsync =
     result = proc(ctx: Context) {.async.} =  
         var ctx = JWTContext(ctx)
-
+        if not ctx.request.hasHeader(AUTHORIZATION_HEADER):
+            resp get401UnauthorizedResponse()
+            return
+        
         let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
         let token = authHeaderValue.split(' ')[1]
         let tokenLifetime: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
