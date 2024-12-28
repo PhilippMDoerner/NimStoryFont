@@ -1,4 +1,4 @@
-import std/[json, strutils, strformat, logging]
+import std/[json, strutils, times, strformat, logging]
 import prologue
 import jsony
 import nimword
@@ -13,6 +13,35 @@ import ../../applicationSettings
 import ../../database
 import ../../utils/[tokenTypes, jwtContext, errorResponses, customResponses]
 
+proc createAuthResponse(ctx: Context, authData: AuthDataSerializable): Response =
+    result = jsonyResponse(ctx, authData)
+    result.setCookie(
+        "refreshToken", 
+        authData.refreshToken.token, 
+        expires = authData.refreshToken.exp.fromUnix().utc,
+        httpOnly = true,
+        path="/"
+    )
+    result.setCookie(
+        "accessToken", 
+        authData.accessToken.token, 
+        expires = authData.accessToken.exp.fromUnix().utc,
+        httpOnly = true,
+        path="/"
+    )
+
+proc deleteAuthCookies(resp: var Response, ctx: JWTContext) =
+    for authCookieName in ["accessToken", "refreshToken"]:
+        for domain in ["www.aldrune.com"]:
+            let cookieValue = ctx.getCookie(authCookieName)
+            let path = "/"
+            resp.setCookie(
+                authCookieName, 
+                cookieValue, 
+                expires = 0.fromUnix().utc,
+                httpOnly = true,
+                path="/"
+            )
 
 proc createAndSerializeAuthData(connection: DbConn, ctx: Context, user: User): AuthDataSerializable =
         let accessTokenLifetimeInDays: int = ctx.getSetting(SettingName.snAccesTokenLifetime).getInt()
@@ -43,7 +72,9 @@ proc refreshTokens*(ctx: Context) {.async.} =
             connection.invalidateToken(oldAuthenticationData.jti)
 
             let newAuthData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
-            resp jsonyResponse(ctx, newAuthData)
+            let response = createAuthResponse(ctx, newAuthData)
+            
+            resp response
 
 
 
@@ -61,7 +92,15 @@ proc login*(ctx: Context) {.async.} =
     respondOnError():
         withDbConn(connection):
             let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
-            resp jsonyResponse(ctx, loginData)
+            let response = createAuthResponse(ctx, loginData)
+            
+            resp response
+
+proc logout*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
+    var response = initResponse(HttpVer11, Http200, initResponseHeaders())
+    response.deleteAuthCookies(ctx)
+    resp response
 
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
