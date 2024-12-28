@@ -21,9 +21,9 @@ proc serializeGroups*(connection: DbConn, entries: seq[Group]): seq[GroupSeriali
     result.add(connection.serializeGroup(entry))
   
 type TokenSerializable* = object
-  token: string
+  token*: string
   `type`: TokenType
-  exp: int64
+  exp*: int64
 
 proc serializeToken(tokenData: TokenContainer, tokenLifetimeInDays: int): TokenSerializable = 
   result.token = tokenData.token
@@ -31,8 +31,8 @@ proc serializeToken(tokenData: TokenContainer, tokenLifetimeInDays: int): TokenS
   result.exp = tokenData.created + tokenLifetimeInDays * 24 * 60 * 60
 
 type AuthDataSerializable* = object
-  accessToken: TokenSerializable
-  refreshToken: TokenSerializable
+  accessToken*: TokenSerializable
+  refreshToken*: TokenSerializable
   campaignMemberships*: CampaignMemberships
   isAdmin*: bool
   isSuperUser*: bool

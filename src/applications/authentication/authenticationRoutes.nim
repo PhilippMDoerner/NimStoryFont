@@ -19,6 +19,12 @@ proc addAuthenticationRoutes*(app: Prologue) =
         authenticationControllers.refreshTokens, 
         httpMethod = HttpPost,
     )
+    
+    app.addRoute(
+        "/token/logout",
+        authenticationControllers.logout,
+        httpMethod = HttpGet
+    )
 
     app.addRoute(
         re"/token",
