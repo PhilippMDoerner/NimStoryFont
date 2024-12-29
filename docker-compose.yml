@@ -13,6 +13,7 @@ services:
             - /home/isofruit/dev/nimstoryfont/media:/imagemedia # To serve images
             - /home/isofruit/Music/session_audio_backup:/session_audio # To serve audio files
             - /home/isofruit/Music/session_audio_backup/extended:/session_audio/extended # To serve audio files
+            - /home/isofruit/dev/nimstoryfont/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
         container_name: production_nginx
         restart: on-failure
 
