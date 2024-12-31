@@ -157,6 +157,18 @@ task build_images, "Builds an nginx docker image for this project to use with do
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
   exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
+task build_nginx, "Builds an nginx docker image for this project to use with docker compose":
+  echo "\nRemoving old container"
+  echo staticExec(fmt"sudo docker container stop {nginx_container}")
+  echo staticExec(fmt"sudo docker container rm {nginx_container}")
+
+  echo "\nRemoving old images"
+  echo staticExec(fmt"sudo docker image rm {nginx_image}")
+
+  echo "\nCreating new images"
+  exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
+
+
 task save_images, "Store images as tar files for current nginx and nimstoryfont images":
   echo staticExec(fmt"sudo docker save -o {nginx_image_tarname} {nginx_image}")
   echo staticExec(fmt"sudo docker save -o {ns_image_tarname} {ns_image}")
