@@ -20,6 +20,8 @@ proc createAuthResponse(ctx: Context, authData: AuthDataSerializable): Response 
         authData.refreshToken.token, 
         expires = authData.refreshToken.exp.fromUnix().utc,
         httpOnly = true,
+        secure = true,
+        sameSite = SameSite.None,
         path="/"
     )
     result.setCookie(
@@ -27,6 +29,8 @@ proc createAuthResponse(ctx: Context, authData: AuthDataSerializable): Response 
         authData.accessToken.token, 
         expires = authData.accessToken.exp.fromUnix().utc,
         httpOnly = true,
+        secure = true,
+        sameSite = SameSite.None,
         path="/"
     )
 
