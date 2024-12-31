@@ -181,16 +181,19 @@ task local_deploy, "Stops and removes prior container and images, rebuilds the i
 
 task prod_deploy, "Stops and removes prior container and images, recompiles the binary, rebuilds the images and copies them to the server":
   exec("nimble alpine")
-  exec("nimble rebuildFTS5Table") #Should be done in case a change in how overview serialization is done occurs
+  #exec("nimble rebuildFTS5Table") #Should be done in case a change in how overview serialization is done occurs
   exec("nimble build_images")
   exec("nimble save_images")
   exec("nimble disabledev")
 
   exec(fmt"scp {nginx_image_tarname} isofruit@{domain}:~/")
   exec(fmt"scp {ns_image_tarname} isofruit@{domain}:~/")
-
   #exec(fmt"ssh isofruit@aldrune.com 'bash startNimstoryfont.sh'")
-  
+
+task job_prod_deploy, "Compiles and copies job binaries to prod":
+  exec("nimble compileDataExporterJob")
+  exec(fmt"scp buildFiles/nimstoryfont/jobs/* isofruit@{domain}:~/jobs")
+
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
-  
+
