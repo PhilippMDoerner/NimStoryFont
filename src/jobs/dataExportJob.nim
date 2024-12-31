@@ -34,7 +34,7 @@ proc merge(nodes: varargs[JsonNode]): JsonNode =
       result[key] = value
 
 proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
-  return merge(
+  let data = merge(
     con.exportCharacterData(campaign),
     con.exportCreatureData(campaign),
     con.exportDiaryEntryData(campaign),
@@ -53,6 +53,10 @@ proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
     con.exportSessionData(campaign),
     con.exportSpellData(campaign)
   )
+  
+  result = newJObject()
+  for key, value in data.pairs:
+    result[fmt"/wiki1/api{key}"] = value
 
 proc main() =
   let databasePath: string = commandLineParams()[0]
