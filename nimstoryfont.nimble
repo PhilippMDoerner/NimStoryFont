@@ -117,6 +117,28 @@ task normal_debug, "Build a release for debugging":
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
+task compileDataExporterJob, "Compiles the data exporter job for local development":
+  --verbose
+  --forceBuild:on
+  --deepcopy:on
+  --cc:clang 
+  --clang.exe:"zigcc" 
+  --clang.linkerexe:"zigcc" 
+  --passC:"-fpermissive -target x86_64-linux-gnu.2.31 -fno-sanitize=undefined"
+  --passL:"-fpermissive -target x86_64-linux-gnu.2.31 -fno-sanitize=undefined"
+  --define:release
+  --define:lto
+  --define:ssl
+  --debugger:native
+  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
+  --hint:"XCannotRaiseY:off"
+  --warning:"BareExcept:off"
+  --styleCheck:usages
+  --spellSuggest:50
+  --mm:orc
+  --outdir:"buildFiles/nimstoryfont/jobs"
+  setCommand "c", "src/jobs/dataExportJob.nim"
+  
 task rebuildFTS5Table, "":
   exec "nim r --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault --path:/home/philipp/.nimble/pkgs2/norm-2.7.0-00a93c0f5628651c98c933909f3c3c3cd17696f0 ./sql/rebuild_fts5_table.nim"
 
@@ -172,24 +194,3 @@ task prod_deploy, "Stops and removes prior container and images, recompiles the 
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
   
-task compileDataExporterJob, "Compiles the data exporter job for alpine":
-  --verbose
-  --gcc.exe:"musl-gcc"
-  --gcc.linkerexe:"musl-gcc"
-  --forceBuild:on
-  --deepcopy:on
-  --passc:"-fpermissive"
-  --passl:"-fpermissive"
-  --threads:on
-  --opt:speed
-  --define:release
-  --define:lto
-  --define:ssl
-  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
-  --hint:"XCannotRaiseY:off"
-  --warning:"BareExcept:off"
-  --styleCheck:usages
-  --spellSuggest:50
-  --mm:orc
-#  --outdir:"buildFiles/jobs"
-  setCommand "c", "src/jobs/dataExportJob.nim"
