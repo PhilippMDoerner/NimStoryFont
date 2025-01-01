@@ -31,3 +31,24 @@ proc getRecentlyUpdatedArticleViewEntries*(campaignName: string, pageNumber: int
       result, 
       queryParams
     )
+    
+proc getAllRecentlyUpdatedArticleViewEntries*(con: DbConn, campaignName: string): seq[UpdatedArticle] =
+  let campaign: Campaign = getCampaignByName(campaignName)
+  let recentArticleQuery = fmt """
+    SELECT table_name, record_id, campaign_id, guid 
+    FROM {V_ALL_ARTICLES_TABLE}
+    WHERE campaign_id = ?
+    ORDER BY update_datetime DESC
+  """
+  
+  let queryParams: array[1, DbValue] = [
+    campaign.id.dbValue(),
+  ]
+
+  withDbConn(connection):
+    result = @[new(UpdatedArticle)]
+    connection.rawSelect(
+      recentArticleQuery,
+      result, 
+      queryParams
+    )

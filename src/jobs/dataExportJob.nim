@@ -19,6 +19,7 @@ import ../applications/quote/quoteDataExporter
 import ../applications/rules/ruleDataExporter
 import ../applications/session/sessionDataExporter
 import ../applications/spell/spellDataExporter
+import ../applications/contentUpdates/contentUpdateDataExporter
 
 proc merge(nodes: varargs[JsonNode]): JsonNode =
   for node in nodes:
@@ -51,7 +52,8 @@ proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
     con.exportQuoteData(campaign),
     con.exportRuleData(campaign),
     con.exportSessionData(campaign),
-    con.exportSpellData(campaign)
+    con.exportSpellData(campaign),
+    con.exportRecentUpdatesData(campaign),
   )
   
   result = newJObject()

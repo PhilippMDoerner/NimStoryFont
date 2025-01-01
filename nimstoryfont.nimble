@@ -44,6 +44,7 @@ task alpine, "Build an alpine release":
   --define:release
   --define:lto
   --define:ssl
+  --define:appsettings
   --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   --hint:"XCannotRaiseY:off"
   --warning:"BareExcept:off"
@@ -66,6 +67,7 @@ task debug, "Build a normal debug build":
   --styleCheck:usages
   --spellSuggest:50
   --excessiveStackTrace:on
+  --define:appsettings
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
@@ -82,6 +84,7 @@ task alpine_debug, "Build a release for debugging":
   --define:enableTinyPoolLogging
   --define:normDebug
   --define:nimDebugDlOpen
+  --define:appsettings
   --stackTrace:on
   --lineTrace:on
   --styleCheck:usages
@@ -103,6 +106,7 @@ task normal_debug, "Build a release for debugging":
   --define:ssl
   --define:enableTinyPoolLogging
   --define:normDebug
+  --define:appsettings
   --stackTrace:on
   --lineTrace:on
   --styleCheck:usages
