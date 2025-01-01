@@ -21,6 +21,13 @@ import ../applications/session/sessionDataExporter
 import ../applications/spell/spellDataExporter
 import ../applications/contentUpdates/contentUpdateDataExporter
 
+#[
+  A job for creating JSON files that contain publicly accessible data for every member of a given campaign.
+  Not particularly security sensitive, therefore the only authentication required is being a member (see nginx config and authenticationController for the necessary auth checks).
+  
+  Each JSON file maps request URLs to the response of the corresponding JSON endpoint.
+]#
+
 proc merge(nodes: varargs[JsonNode]): JsonNode =
   for node in nodes:
     if not (node.kind == JObject):
@@ -62,6 +69,7 @@ proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
 
 proc main() =
   let databasePath: string = commandLineParams()[0]
+  let outputPath: string = commandLineParams()[1]
   initConnectionPool(databasePath, 4)
 
   withDbConn(con): 
@@ -69,5 +77,5 @@ proc main() =
     for campaign in campaigns:
       let totalCampaignData = con.getCampaignData(campaign)
       
-      writeFile(fmt"{campaign.name}.json", $totalCampaignData)
+      writeFile(fmt"{outputPath}/{campaign.name}-data.json", $totalCampaignData)
 main()
