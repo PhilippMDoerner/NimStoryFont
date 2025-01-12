@@ -4,7 +4,7 @@ import ../database
 import ../applications/campaign/campaignService
 import ../applications/character/characterDataExporter
 import ../applications/creature/creatureDataExporter
-import ../applications/diaryentry/diaryentryDataExporter
+import ../applications/diaryentry/diaryEntryDataExporter
 import ../applications/encounter/encounterDataExporter
 import ../applications/item/itemDataExporter
 import ../applications/location/locationDataExporter
