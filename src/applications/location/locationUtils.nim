@@ -2,6 +2,7 @@ import locationService
 import std/[strformat, sequtils, sugar, options]
 import norm/sqlite
 import locationRepository
+import ../../applicationConstants
 
 proc `$`*(model: Location | LocationRead): string = 
     var parentLocations: seq[Location] = readParentLocations(model)
@@ -10,6 +11,12 @@ proc `$`*(model: Location | LocationRead): string =
         result.add(fmt "{parentLocation.name} - ")
     
     result.add(model.name)
+
+proc getParentLocationName*(model: LocationRead): string =
+    if model.parent_location_id.isNone():
+        return NONE_STRING
+    else:
+        return model.parent_location_id.get().name
 
 proc stringifyLocation*(connection: DbConn, model: Location | LocationRead): string =
     var parentLocations: seq[Location] = connection.getParentLocations(model.id)
