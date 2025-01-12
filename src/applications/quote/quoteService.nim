@@ -1,10 +1,10 @@
-import quoteModels
+import quoteModel
 import norm/[sqlite]
 import ../allUrlParams
 import ../genericArticleRepository
 import ../character/characterModel
 import std/[strutils, random, options]
-export quoteModels
+export quoteModel
 
 
 

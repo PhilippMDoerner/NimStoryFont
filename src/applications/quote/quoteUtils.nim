@@ -1,5 +1,5 @@
 import ../session/sessionModel
-import quoteModels
+import quoteModel
 import ../genericArticleRepository
 import ../authentication/authenticationUtils
 import ../../utils/jwtContext
