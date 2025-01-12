@@ -1,4 +1,4 @@
-import quoteModels
+import quoteModel
 import norm/sqlite
 import ../session/[sessionSerialization, sessionRepository, sessionModel]
 import ../genericArticleRepository

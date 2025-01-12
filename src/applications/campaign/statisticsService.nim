@@ -12,7 +12,7 @@ import ../map/mapModel
 import ../mapMarker/markerModel
 import ../organization/organizationModel
 import ../quest/questModel
-import ../quote/quoteModels
+import ../quote/quoteModel
 import ../rules/ruleModel
 import ../sessionaudio/sessionaudioModel
 import ../sessionAudioTimestamp/timestampModel
