@@ -10,7 +10,7 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 requires "nim >= 1.9.1"
-requires "norm >= 2.8.3" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
+requires "norm >= 2.8.5" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
 requires "prologue >= 0.6.4"
 requires "lowdb >= 0.2.0"
 requires "jsony >= 1.1.3"
