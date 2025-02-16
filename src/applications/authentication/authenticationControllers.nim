@@ -126,4 +126,15 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
 # Does not do anything, as the loginMiddleware it is used with already contains all the logic
 proc validateToken*(ctx: Context) {.async.} =
     respDefault(Http200)
+
+proc getAuthData*(ctx: Context) {.async.} =
+    let ctx = JWTContext(ctx)
     
+    let isLoggedIn = ctx.tokenData.userId > 0
+    if not isLoggedIn:
+        resp get401UnauthorizedResponse(ctx)
+        return
+    
+    withDbConn(con):
+        let authData: AuthDataSerializable2 = serializeAuthData(ctx.tokenData)
+        resp jsonyResponse(ctx, authData)

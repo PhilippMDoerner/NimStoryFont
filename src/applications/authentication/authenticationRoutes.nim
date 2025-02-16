@@ -48,3 +48,9 @@ proc addAuthenticationRoutes*(app: Prologue) =
         httpMethod = HttpPost
     )
     
+    app.addRoute(
+        "/authdata",
+        getAuthData,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+    )
