@@ -53,3 +53,17 @@ proc serializeLoginData*(
   result.userId = userData.user.id
   result.userName = userData.user.username
   result.campaignMemberships = userData.campaignMemberships
+
+type AuthDataSerializable2* = object
+  campaignMemberships*: CampaignMemberships
+  isAdmin*: bool
+  isSuperUser*: bool
+  userId*: int64 
+  userName*: string
+
+proc serializeAuthData*(tokenData: TokenData): AuthDataSerializable2 =
+  result.isAdmin = tokenData.isAdmin
+  result.isSuperUser = tokenData.isSuperUser
+  result.userId = tokenData.userId
+  result.userName = tokenData.userName
+  result.campaignMemberships = tokenData.campaignMemberships
