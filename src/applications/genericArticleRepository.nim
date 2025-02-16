@@ -104,7 +104,7 @@ proc getEntryByField*[M: Model, T](connection: DbConn, fieldName: static string,
 proc getEntryByField*[M: Model, T](fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Helper proc for getEntryByField when you don't want to provide the connection yourself]##
     withDbConn(connection):
-        result = getEntryByField[M](connection, fieldName, fieldValue, modelType)
+        result = getEntryByField[M, T](connection, fieldName, fieldValue, modelType)
 
 
 proc getEntryById*[M: Model](connection: DbConn, entryId: int64, modelType: typedesc[M]): M =

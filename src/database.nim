@@ -8,8 +8,8 @@ const ENABLE_FK_PRAGMA_CHECK = "PRAGMA foreign_keys=on"
 proc initConnectionPool*(databasePath: string, size: int) =
   {.cast(gcsafe).}:
     SQLITE_POOL = newPool[DbConn](
-      size, 
-      () => open(databasePath, "", "", ""), 
+      size,
+      proc(): DbConn {.closure.} = open(databasePath, "", "", ""),
       pepExtend
     )
 
