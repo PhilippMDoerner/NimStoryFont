@@ -10,27 +10,11 @@ import ../utils/[errorResponses]
 template debugErrorLog(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
 
-proc getAccessToken(ctx: JWTContext): Option[string] =
-    if ctx.request.hasHeader(AUTHORIZATION_HEADER):
-        let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
-        let token = authHeaderValue.split(' ')[1]
-        return some(token)
-    
-    let cookieAccessToken = ctx.getCookie("accessToken")
-    let hasCookieAccessToken = cookieAccessToken != ""
-
-    if hasCookieAccessToken:
-        return some(cookieAccessToken)
-    
-    echo "No access token found. Cookie: ", cookieAccessToken
-    return none(string)
-
-
 proc loginMiddleware*(): HandlerAsync =
     result = proc(ctx: Context) {.async.} =  
         var ctx = JWTContext(ctx)
         
-        let accessToken = ctx.getAccessToken()
+        let accessToken = ctx.getTokenFromCookie(TokenType.access)
         if accessToken.isNone():
             resp get401UnauthorizedResponse()
             return
