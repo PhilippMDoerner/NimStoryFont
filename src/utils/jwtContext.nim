@@ -61,3 +61,16 @@ proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc
   for fieldName, fieldValue in result.fieldPairs:
     extractQueryParam(ctx, fieldName, fieldValue)
 
+proc getTokenFromCookie*(ctx: JWTContext, tokenType: TokenType): Option[string] =
+    let tokenCookie = case tokenType:
+      of TokenType.access:
+        ctx.getCookie("accessToken")
+      of TokenType.refresh:
+        ctx.getCookie("refreshToken")
+    let hasToken = tokenCookie != ""
+
+    if hasToken:
+        return some(tokenCookie)
+    
+    echo "No token found. Cookie: ", tokenCookie
+    return none(string)

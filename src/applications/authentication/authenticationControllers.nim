@@ -63,8 +63,10 @@ proc createAndSerializeAuthData(connection: DbConn, ctx: Context, user: User): A
         )
 
 proc refreshTokens*(ctx: Context) {.async.} =
-    let authHeaderValue: string = ctx.request.getHeader(AUTHORIZATION_HEADER)[0]
-    let refreshToken = authHeaderValue.split(' ')[1]
+    let refreshToken = ctx.getCookie("refreshToken")
+    if refreshToken == "":
+        resp get401UnauthorizedResponse()
+        return
 
     let tokenLifetime: int = ctx.getSetting(SettingName.snRefreshTokenLifetime).getInt()
     
