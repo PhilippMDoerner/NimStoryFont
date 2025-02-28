@@ -46,10 +46,16 @@ type EncounterSerializable* = object
 
 proc serializeEncounterLocation(entry: EncounterLocation, encounterParentLocations: seq[Location]): EncounterLocationSerializable =
     let parentNames: string =  encounterParentLocations.map(loc => loc.name).join(" - ")
+    let hasParents = parentNames.len() > 0
+    let fullLocationName = if hasParents:
+            fmt"{parentNames} - {entry.name}"
+        else:
+            entry.name
+    
     result = EncounterLocationSerializable(
         pk: entry.id,
         name: entry.name,
-        name_full: fmt"{parentNames} - {entry.name}",
+        name_full: fullLocationName,
         parent_location_name: entry.parent_location_id.map(ploc => ploc.name)
     )
 
