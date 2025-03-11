@@ -1,5 +1,5 @@
 import encounterModel
-import std/[options, strformat, algorithm]
+import std/[options, strformat, algorithm, sequtils]
 import norm/sqlite
 import ../../applicationSettings
 import ../../utils/djangoDateTime/[normConversion]
@@ -11,8 +11,8 @@ proc getEncountersAtAndAfterOrderIndex*(connection: DbConn, diaryentryId: int64,
 
 
 proc getEncountersBetweenOrderIndices*(connection: DbConn, diaryentryId: int64, orderIndex1: int, orderIndex2: int): seq[Encounter] =
-    let rangeStartOrderIndex = min(orderIndex1, orderIndex2)
-    let rangeEndOrderIndex = max(orderIndex1, orderIndex2)
+    let rangeStartOrderIndex = min(orderIndex1, orderIndex2) - 2 
+    let rangeEndOrderIndex = max(orderIndex1, orderIndex2) + 2
 
     let condition = fmt """
         {ENCOUNTER_TABLE}.diaryentry_id = ? 
@@ -88,11 +88,12 @@ proc incrementOrderIndicesOfFollowingEncounters*(connection: DbConn, diaryentryI
 
 
 proc updateEncounterOrderAfterForwardsInsert*(connection: DbConn, affectedEncounters: var seq[Encounter], cutEncounter: var Encounter) =
-    affectedEncounters.reverse() # So that you move the last one "backwards" first 
+    echo "Before ", affectedEncounters.mapIt((it.title, it.order_index.get()))
     for encounter in affectedEncounters.mitems:
         let isCutEncounter = encounter.id == cutEncounter.id
         if not isCutEncounter:
             encounter.order_index = some(connection.getPriorOrderIndex(encounter))
+    echo "After ", affectedEncounters.mapIt((it.title, it.order_index.get()))
 
     cutEncounter.order_index = some(-1)
     connection.update(cutEncounter)
@@ -104,10 +105,14 @@ proc updateEncounterOrderAfterForwardsInsert*(connection: DbConn, affectedEncoun
 
 
 proc updateEncounterOrderAfterBackwardsInsert*(connection: DbConn, affectedEncounters: var seq[Encounter], cutEncounter: var Encounter) =
+    affectedEncounters.reverse() # So that you move the last one "backwards" first 
+
+    echo "Before ", affectedEncounters.mapIt((it.title, it.order_index.get()))
     for encounter in affectedEncounters.mitems:
         let isCutEncounter = encounter.id == cutEncounter.id
         if not isCutEncounter:
             encounter.order_index = some(connection.getNextOrderIndex(encounter))
+    echo "After ", affectedEncounters.mapIt((it.title, it.order_index.get()))
 
     cutEncounter.order_index = some(-1)
     connection.update(cutEncounter)
