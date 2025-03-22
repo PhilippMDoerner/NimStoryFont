@@ -21,6 +21,9 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
 proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
   return
 
+proc checkNoUserMetaPermission*(ctx: JWTContext, entry: UserMetadata) =
+  return
+
 proc createPasswordDatabaseRepresentation*(password: string): string =
   result = hashEncodePassword(
     password, 

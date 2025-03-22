@@ -17,5 +17,5 @@ proc getSettingsCategory*(ctx: Context) {.async, gcsafe.} =
   respondOnError():
     withDbConn(connection):
       let settings = connection.getUserMetadataByCategory(userId, settingsCategory)
-      let serializedSettings: seq[UserMetadataSerializable] = connection.serializeUserMetadata(settings)
+      let serializedSettings: seq[UserMetadataSerializable] = connection.serializeUserMetadataEntries(settings)
       resp jsonyResponse(ctx, serializedSettings)

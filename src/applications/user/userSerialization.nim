@@ -51,5 +51,5 @@ proc serializeUsers*(connection: DbConn, entries: seq[User]): seq[UserSerializab
 proc serializeUserMetadata*(connection: DbConn, entry: UserMetadata): UserMetadataSerializable =
     result = UserMetadataSerializable(name: entry.name, value: entry.value)
 
-proc serializeUserMetadata*(connection: DbConn, entries: seq[UserMetadata]): seq[UserMetadataSerializable] =
+proc serializeUserMetadataEntries*(connection: DbConn, entries: seq[UserMetadata]): seq[UserMetadataSerializable] =
     return entries.mapIt(connection.serializeUserMetadata(it))
