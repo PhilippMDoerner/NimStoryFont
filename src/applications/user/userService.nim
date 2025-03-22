@@ -99,3 +99,6 @@ proc patchUser*(connection: DbConn, requestData: UpdateParams, entry: User): Use
 
 proc deleteUser*(connection: DbConn, userToDelete: var User) =
   connection.deleteEntryInTransaction(userToDelete)
+  
+proc getUserMetadataByCategory*(connection: DbConn, userId: int64, category: string): seq[UserMetadata] =
+  return connection.fetchUserMetadataByCategory(userId, category)

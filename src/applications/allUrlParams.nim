@@ -42,6 +42,9 @@ const USERNAME_PATTERN* = fmt r"(?P<{USERNAME_PARAM}>[^/]+)"
 const FILE_NAME_PARAM* = "fileName"
 const FILE_NAME_PATTERN* = fmt r"(?P<{FILE_NAME_PARAM}>[^/]+)"
 
+const SETTING_CATEGORY_PARAM* = "settingsCategory"
+const SETTING_CATEGORY_PATTERN* = fmt r"(?P<{SETTING_CATEGORY_PARAM}>[^/]+)"
+
 type ReadByIdParams* {.defaults.} = object
   id*: int64 = MODEL_INIT_ID
   userToken*: TokenData = newTokenData()

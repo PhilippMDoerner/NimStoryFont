@@ -104,6 +104,7 @@ const PERMISSION_TABLE* = "auth_permission"
 const USER_TABLE* = "auth_user"
 const USER_GROUP_TABLE* = "auth_user_groups"
 const USER_USERPERMISSIONS_TABLE* = "auth_user_user_permissions"
+const USER_METADATA_TABLE* = "user_metadata"
 
 const TOKEN_TABLE* = "authtoken_token"
 const TOKEN_BLACKLIST_TABLE* = "token_blacklist_blacklistedtoken"

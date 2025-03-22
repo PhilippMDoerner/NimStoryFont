@@ -2,6 +2,8 @@ import jsony
 import prologue
 import jwtContext
 
+export jsony
+
 func jsonyResponse*(text: string, code = Http200, headers = initResponseHeaders(),
                    version = HttpVer11): Response {.inline.} =
   ## Content-Type: application/json.
