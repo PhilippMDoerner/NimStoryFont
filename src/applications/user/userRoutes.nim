@@ -1,12 +1,13 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import userService
 import std/strformat
-import ../genericArticleControllers
-import userRequestParams
-import userSerialization
-import userUtils
+import prologue
+import ./userControllers
+import ./userService
+import ./userRequestParams
+import ./userSerialization
+import ./userUtils
 import ../authentication/authenticationUtils
+import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addUserRoutes*(app: Prologue) =
     app.addRoute(
@@ -77,4 +78,10 @@ proc addUserRoutes*(app: Prologue) =
             serialize = serializeUsers
         ),
         httpMethod = HttpGet
+    )
+
+    app.addRoute(
+        re fmt"/user/me/settings/{SETTING_CATEGORY_PATTERN}/",
+        handler = getSettingsCategory,
+        middlewares = @[loginMiddleware()]
     )

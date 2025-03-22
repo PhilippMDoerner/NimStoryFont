@@ -1,6 +1,7 @@
-import userModel
-import norm/[sqlite]
 import std/[strformat, sequtils, sugar, strutils]
+import norm/[sqlite]
+import ./userModel
+import ../genericArticleRepository
 
 proc getCampaignMemberIds(connection: DbConn, campaignName: string): seq[int64] =
   const campaignUserQuery = sql """
@@ -30,3 +31,13 @@ proc getCampaignUsers*(connection: DbConn, campaignName: string): seq[User] =
   connection.select(entries, condition)
 
   result = entries
+
+proc fetchUserMetadataByCategory*(connection: DbConn, userId: int64, category: string): seq[UserMetadata] =
+  const condition = "user_id = ? AND category = ?"
+  
+  return connection.getList(
+    UserMetadata, 
+    condition, 
+    userId.dbValue(), 
+    category.dbValue()
+  )

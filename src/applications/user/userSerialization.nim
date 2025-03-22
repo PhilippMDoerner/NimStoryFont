@@ -8,6 +8,10 @@ type UserGroupSerializable* = object
     name: string
     pk: int64
 
+type UserMetadataSerializable* = object
+    name*: string
+    value*: string
+
 proc serializeUserGroup(entry: Group): UserGroupSerializable =
     result = UserGroupSerializable(name: entry.name, pk: entry.id)
 
@@ -43,3 +47,9 @@ proc serializeUsers*(connection: DbConn, entries: seq[User]): seq[UserSerializab
     for entry in entries:
         let serializedEntry = serializeUser(entry, allGroups[entry.id])
         result.add(serializedEntry)
+        
+proc serializeUserMetadata*(connection: DbConn, entry: UserMetadata): UserMetadataSerializable =
+    result = UserMetadataSerializable(name: entry.name, value: entry.value)
+
+proc serializeUserMetadata*(connection: DbConn, entries: seq[UserMetadata]): seq[UserMetadataSerializable] =
+    return entries.mapIt(connection.serializeUserMetadata(it))

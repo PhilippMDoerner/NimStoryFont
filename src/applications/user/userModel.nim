@@ -18,5 +18,8 @@ type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
 
 implDefaults(User, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
+type UserMetadata* {.defaults, tableName: USER_METADATA_TABLE.} = ref object of Model
+    user_id* {.fk: User.}: int64 = MODEL_INIT_ID
+    category*: string = "metadata"
+    name*: string = ""
+    value*: string = ""
