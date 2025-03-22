@@ -10,8 +10,8 @@ bin           = @["nimstoryfont"]
 
 # Dependencies
 requires "nim >= 1.9.1"
-requires "norm >= 2.8.5" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
-requires "prologue >= 0.6.4"
+requires "norm >= 2.8.7" # requires "norm >= 2.6.0" # A norm fork for use until norm is nim 2.0 ready, see https://github.com/moigagoo/norm/issues/182
+requires "prologue#09ac7ac735606d20f7b2ee1afe478c5b840e2cd2" # requires prologue > 6.6. Prior versions parsed request-bodies of forms containing files incorrectly. 
 requires "lowdb >= 0.2.0"
 requires "jsony >= 1.1.3"
 requires "constructor >= 1.1.1"
