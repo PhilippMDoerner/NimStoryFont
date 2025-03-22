@@ -111,6 +111,12 @@ proc logout*(ctx: Context) {.async.} =
 proc resetPassword*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let requestBody: JsonNode = ctx.request.body().parseJson()
+    
+    let hasUserName = requestBody.hasKey("username")
+    if(not hasUserName):
+        resp(code = Http400, body = "Missing username")
+        return
+        
     let userName = requestBody["username"].getStr()
     let settings = ctx.gScope.settings
     
@@ -121,6 +127,9 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
             discard await connection.resetUserPassword(user)
         except MissingEmailError as e:
             resp(code = Http400, body = fmt"User '{userName}' has no email address to send reset passwords to")
+            return
+        except MailAuthenticationError as e:
+            resp(code = Http500, body = fmt"The server is unable to send emails at this time")
             return
 
     respDefault(Http204)
