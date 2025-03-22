@@ -102,3 +102,7 @@ proc deleteUser*(connection: DbConn, userToDelete: var User) =
   
 proc getUserMetadataByCategory*(connection: DbConn, userId: int64, category: string): seq[UserMetadata] =
   return connection.fetchUserMetadataByCategory(userId, category)
+
+proc createUserMetadata*(connection: DbConn, requestParams: CreateParams, newEntry: var UserMetadata): UserMetadata =
+  newEntry.user_id = requestParams.userToken.userId
+  result = connection.createEntryInTransaction(newEntry)

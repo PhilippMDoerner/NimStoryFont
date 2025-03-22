@@ -83,5 +83,18 @@ proc addUserRoutes*(app: Prologue) =
     app.addRoute(
         re fmt"/user/me/settings/{SETTING_CATEGORY_PATTERN}/",
         handler = getSettingsCategory,
+        httpMethod = HttpGet,
+        middlewares = @[loginMiddleware()]
+        
+    )
+    
+    app.addRoute(
+        re fmt"/user/me/settings/",
+        handler = createCreateHandler[CreateParams, UserMetadata, UserMetadataSerializable](
+            checkPermission = checkNoUserMetaPermission,
+            createProc = createUserMetadata,
+            serialize = serializeUserMetadata
+        ),
+        httpMethod = HttpPost,
         middlewares = @[loginMiddleware()]
     )
