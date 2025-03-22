@@ -129,6 +129,7 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
             resp(code = Http400, body = fmt"User '{userName}' has no email address to send reset passwords to")
             return
         except MailAuthenticationError as e:
+            log(lvlError, fmt"The server is unable to send emails at this time", e.repr)
             resp(code = Http500, body = fmt"The server is unable to send emails at this time")
             return
 
