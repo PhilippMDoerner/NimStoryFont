@@ -3,6 +3,9 @@ import std/[logging, strformat]
 
 var SQLITE_POOL*: Pool[DbConn]
 
+type DuplicateEntryError* = object of DbError
+
+
 const ENABLE_FK_PRAGMA_CHECK = "PRAGMA foreign_keys=on"
 
 proc initConnectionPool*(databasePath: string, size: int) =

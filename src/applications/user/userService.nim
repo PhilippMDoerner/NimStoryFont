@@ -104,5 +104,13 @@ proc getUserMetadataByCategory*(connection: DbConn, userId: int64, category: str
   return connection.fetchUserMetadataByCategory(userId, category)
 
 proc createUserMetadata*(connection: DbConn, requestParams: CreateParams, newEntry: var UserMetadata): UserMetadata =
-  newEntry.user_id = requestParams.userToken.userId
+  let userId = requestParams.userToken.userId
+  
+  let existingEntries = connection.getUserMetadataByCategory(userId, newEntry.category)
+  let filteredEntries = existingEntries.filterIt(it.name == newEntry.name)
+  let hasEntryAlready = filteredEntries.len > 0
+  if hasEntryAlready:
+    raise newException(DuplicateEntryError, fmt"'{newEntry.name}' userMetadata entry in category '{newEntry.category}' already exists")
+  
+  newEntry.user_id = userId
   result = connection.createEntryInTransaction(newEntry)
