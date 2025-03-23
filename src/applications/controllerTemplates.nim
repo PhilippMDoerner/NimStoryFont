@@ -1,7 +1,8 @@
-import ../utils/errorResponses
+import std/[json, logging]
 import norm/sqlite
 import authentication/authenticationUtils
-import std/[json, logging]
+import ../utils/errorResponses
+import ../database
 
 template debugErrorLog(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
@@ -12,6 +13,10 @@ template respondOnError*(body: untyped) =
   ## in case of any DBError, any HTTP404 in case of any NotFoundError
   try:
       body
+
+  except DuplicateEntryError:
+    debugErrorLog("Tried to create existing entry")
+    resp get400BadRequestResponse("Tried to create existing entry")
 
   except DbError:
     debugErrorLog("Error during db request") 
