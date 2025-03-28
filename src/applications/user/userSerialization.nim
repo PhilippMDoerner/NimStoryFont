@@ -11,6 +11,7 @@ type UserGroupSerializable* = object
 type UserMetadataSerializable* = object
     name*: string
     value*: string
+    category*: string
 
 proc serializeUserGroup(entry: Group): UserGroupSerializable =
     result = UserGroupSerializable(name: entry.name, pk: entry.id)
@@ -49,7 +50,7 @@ proc serializeUsers*(connection: DbConn, entries: seq[User]): seq[UserSerializab
         result.add(serializedEntry)
         
 proc serializeUserMetadata*(connection: DbConn, entry: UserMetadata): UserMetadataSerializable =
-    result = UserMetadataSerializable(name: entry.name, value: entry.value)
+    result = UserMetadataSerializable(name: entry.name, value: entry.value, category: entry.category)
 
 proc serializeUserMetadataEntries*(connection: DbConn, entries: seq[UserMetadata]): seq[UserMetadataSerializable] =
     return entries.mapIt(connection.serializeUserMetadata(it))
