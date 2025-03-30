@@ -90,7 +90,6 @@ proc changeMembership*(ctx: Context) {.async, gcsafe.} =
   
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
   let changeRequestParams = ctx.request.body().fromJson(ChangeMembershipRequestBody)
-
   let actionStr = changeRequestParams.action.split("_")[0]
   let action = parseEnum[MembershipAction](actionStr)
   let roleStr = changeRequestParams.action.split("_")[1]
@@ -99,8 +98,12 @@ proc changeMembership*(ctx: Context) {.async, gcsafe.} =
   respondOnError():
     withDbTransaction(connection):
       let campaign: CampaignRead = connection.getEntryByFieldCaseInsensitive("name", campaignName, CampaignRead)
-      checkCampaignAdminPermission(ctx, campaign.id)
-
+      # Permission check
+      let isRequestForUserByUser = changeRequestParams.user.pk == ctx.tokenData.userId
+      if not isRequestForUserByUser:
+        checkCampaignAdminPermission(ctx, campaign.id)
+      
+      # Action
       var selectedUser: User = connection.getEntryById(changeRequestParams.user.pk, User)
       
       case action:
