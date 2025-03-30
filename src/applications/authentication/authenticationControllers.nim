@@ -88,8 +88,14 @@ proc login*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
     let requestBody: JsonNode = parseJson(ctx.request.body())
     let userName: string = requestBody.fields["username"].getStr()
-    let user: User = getUserByName(userName)
-
+    
+    var user: User
+    try:
+        user = getUserByName(userName)
+    except NotFoundError:
+        resp get401UnauthorizedResponse(ctx)
+        return
+    
     let plainPassword: string = requestBody.fields["password"].getStr()
     if not plainPassword.isValidPassword(user.password):
         resp get401UnauthorizedResponse(ctx)
