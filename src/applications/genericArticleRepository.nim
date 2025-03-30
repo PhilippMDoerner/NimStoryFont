@@ -86,12 +86,9 @@ proc getEntryByName*[M: Model](campaignName: string, entryName: string, modelTyp
 
 proc getEntryByField*[M: Model, T](connection: DbConn, fieldName: static string, fieldValue: T, modelType: typedesc[M]): M = 
     ##[ Retrieves a single row/entry of a Model M from the database, where
-    the entry is from a campaign with the given name and itself has the given entryName.
+    the entry's field "fieldName" has the value "fieldValue".
 
-    ``campaignName`` must be exactly equal to the name of the targetted campaign, 
-    the comparison is case-sensitive.
-    ``entryName`` must be exactly equal to the name of the targetted entry,
-    the comparison is case-sensitive.]##
+    ``fieldValue`` must be exactly equal if it is a string, the comparison is case-sensitive.]##
     var entry: M = new(M)
     const modelTableName: string = M.table()
     const condition: string = fmt "{modelTableName}.{fieldName} = ?"
@@ -106,6 +103,18 @@ proc getEntryByField*[M: Model, T](fieldName: static string, fieldValue: T, mode
     withDbConn(connection):
         result = getEntryByField[M, T](connection, fieldName, fieldValue, modelType)
 
+proc getEntryByFieldCaseInsensitive*[M: Model](connection: DbConn, fieldName: static string, fieldValue: string, modelType: typedesc[M]): M = 
+    ##[ Retrieves a single row/entry of a Model M from the database, where
+    the entry's field "fieldName" has the value "fieldValue".
+
+    ``fieldValue`` can be roughly equal, the comparison is case-insensitive.]##
+    var entry: M = new(M)
+    const modelTableName: string = M.table()
+    const condition: string = fmt "{modelTableName}.{fieldName} = ? COLLATE NOCASE"
+
+    connection.select(entry, condition, fieldValue)
+
+    result = entry 
 
 proc getEntryById*[M: Model](connection: DbConn, entryId: int64, modelType: typedesc[M]): M =
     ##[ Retrieves a single row/entry of a Model M from the database, whose id matches the given id. ]##
