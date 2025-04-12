@@ -1,0 +1,101 @@
+<div class="config-tables__section section">
+  <!-- Section Heading -->
+  <div class="section__heading heading">
+    <div [heading]="ariaLevel()" class="h3 heading__text">
+      <app-icon [icon]="table().icon"></app-icon>
+      {{ table().name }}
+    </div>
+
+    <!-- Heading Buttons -->
+    <div class="heading__buttons">
+      <!-- Add Users -->
+      @if (canCreate()) {
+        <button
+          btn
+          [kind]="'DARK'"
+          [icon]="table().showForm ? 'times' : 'plus'"
+          [text]="table().showForm ? 'Cancel' : 'Add Entry'"
+          (clicked)="table().showForm = !table().showForm"
+        ></button>
+      }
+
+      <button
+        btn
+        [kind]="'PRIMARY'"
+        [icon]="'refresh'"
+        [text]="'Load'"
+        (clicked)="loadTableEntries.emit()"
+      ></button>
+    </div>
+  </div>
+
+  <app-separator class="section__separator"></app-separator>
+
+  <!-- Section Body -->
+
+  @if (!table().showForm) {
+    @if (tableEntries().length === 0) {
+      Load entries to see them
+    }
+    <div class="section__table-container">
+      <!-- Table -->
+
+      @if (tableEntries().length > 0) {
+        <table class="table table-dark table-striped">
+          <!-- Table heading -->
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              @for (columnName of columnNames(); track columnName) {
+                <th scope="col" class="text-uppercase">
+                  {{ columnName }}
+                </th>
+              }
+            </tr>
+          </thead>
+          <!-- Table body -->
+          <tbody>
+            @for (entry of tableEntries(); track entry) {
+              <tr>
+                <th scope="row">{{ entry.id }}</th>
+                @for (property of entry.properties; track property.key) {
+                  <td>
+                    {{ property.value ?? "---" }}
+                  </td>
+                }
+                @let isCampaignEntry = entry.campaignId != null;
+                @if (
+                  (isCampaignEntry && canDeleteCampaignEntries()) ||
+                  canDeleteGlobalEntries()
+                ) {
+                  <td>
+                    <app-confirmation-toggle-button
+                      [toggleSize]="'SMALL'"
+                      [itemToDelete]="'this entry'"
+                      [icon]="'trash'"
+                      (confirm)="deleteEntry(entry.id)"
+                    ></app-confirmation-toggle-button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  @if (table().showForm) {
+    <app-card>
+      <h4>Adding new {{ table().name }}</h4>
+      <!-- Form -->
+      <app-form
+        [model]="table().model"
+        [fields]="table().formFields"
+        [cancelButtonType]="'DARK'"
+        (formlySubmit)="createEntry($event)"
+        (formlyCancel)="table().showForm = !table().showForm"
+      ></app-form>
+    </app-card>
+  }
+</div>

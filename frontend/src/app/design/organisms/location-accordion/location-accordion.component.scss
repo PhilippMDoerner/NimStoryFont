@@ -1,0 +1,23 @@
+.heading {
+  display: flex;
+  margin-bottom: var(--spacer-3);
+  gap: var(--spacer-3);
+  align-items: center;
+
+  &__text {
+    margin: 0;
+  }
+}
+
+.button-container {
+  &__button {
+    color: unset;
+
+    &:focus,
+    &:focus-within,
+    &:hover,
+    &:focus-visible {
+      outline: var(--focus-outline);
+    }
+  }
+}

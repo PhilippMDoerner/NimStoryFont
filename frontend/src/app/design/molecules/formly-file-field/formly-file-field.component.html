@@ -1,0 +1,28 @@
+<div class="field-container {{ field.className }}" [class.d-none]="to.hidden">
+  <div class="field">
+    @let descriptionLabelId = field.id + "-description";
+    <div [id]="descriptionLabelId" class="cdk-visually-hidden">
+      Opens a filepicker to select a file. You can also paste a file into the
+      window.
+    </div>
+    <input
+      #fileInputElement
+      type="file"
+      class="field__filepicker"
+      aria-label="Filepicker"
+      [id]="field.id ?? ''"
+      [class.disabled]="props.disabled"
+      [disabled]="!!props.disabled"
+      [attr.aria-describedby]="descriptionLabelId"
+      (focus)="formControl.markAsTouched()"
+      (change)="onFileSelect($event)"
+      [formlyAttributes]="field"
+      [name]="props['name']"
+      data-formly-field-type="file"
+    />
+    <div class="field__description">
+      Or paste a file into the window <br />
+      Or drag and drop a file into this field
+    </div>
+  </div>
+</div>

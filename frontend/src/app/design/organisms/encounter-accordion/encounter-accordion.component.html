@@ -1,0 +1,38 @@
+<div class="encounter-list mb-5 mt-3">
+  <div ngbAccordion [closeOthers]="true" [animation]="true">
+    @for (encounter of encounters(); track encounter.pk) {
+      @let headingId = "encounter-heading-" + $index;
+      <div ngbAccordionItem [id]="'static-' + $index">
+        <div ngbAccordionHeader [heading]="3" [id]="headingId">
+          <button ngbAccordionButton class="panel-title">
+            <strong
+              class="encounter-title"
+              [innerHTML]="encounter.name"
+            ></strong>
+          </button>
+        </div>
+
+        <div ngbAccordionCollapse>
+          <div ngbAccordionBody>
+            <app-encounter
+              class="panel-content"
+              [encounter]="encounter"
+              [locations]="campaignLocations()"
+              [characters]="campaignCharacters()"
+              [serverModel]="serverModel()"
+              [canUpdate]="canUpdate()"
+              [canDelete]="canDelete()"
+              [canCreate]="canCreate()"
+              [isInFocus]="false"
+              [headingId]="headingId"
+              (connectionDelete)="connectionDelete.emit($event)"
+              (connectionCreate)="connectionCreate.emit($event)"
+              (encounterDelete)="encounterDelete.emit($event)"
+              (encounterUpdate)="encounterUpdate.emit($event)"
+            ></app-encounter>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

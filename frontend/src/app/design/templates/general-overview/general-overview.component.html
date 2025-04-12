@@ -1,0 +1,180 @@
+<app-page-container>
+  <article class="overview">
+    <!-- Heading -->
+    @if (overviewTypeName()) {
+      <div>
+        <h1 class="overview__page-heading">
+          @switch (overviewType()) {
+            @case ("CHARACTER") {
+              Characters
+            }
+            @case ("LOCATION") {
+              Locations
+            }
+            @case ("ITEM") {
+              Items
+            }
+            @case ("ORGANIZATION") {
+              Organizations
+            }
+            @case ("CREATURE") {
+              Creatures
+            }
+            @case ("DIARYENTRY") {
+              Diaryentries
+            }
+            @default {
+              Entries
+            }
+          }
+        </h1>
+      </div>
+    }
+
+    <div class="overview__subheading">
+      @switch (overviewType()) {
+        @case ("CHARACTER") {
+          <ng-container
+            [ngTemplateOutlet]="
+              (playerCharacters()?.length ?? 0 > 0)
+                ? characterHeading
+                : defaultHeading
+            "
+          />
+        }
+        @default {
+          <ng-container [ngTemplateOutlet]="defaultHeading" />
+        }
+      }
+    </div>
+
+    <!-- Adding Item button -->
+    @if (canCreate()) {
+      <div class="overview__create">
+        <a
+          btn
+          [routerLink]="'create'"
+          #createLink
+          [icon]="'plus'"
+          [kind]="'PRIMARY'"
+          [text]="'Add ' + (overviewTypeName() | titlecase)"
+          [hotkey]="'c'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <section [attr.aria-labelledby]="bodySectionId">
+      @switch (overviewType()) {
+        @case ("CHARACTER") {
+          <ng-container [ngTemplateOutlet]="characterBody" />
+        }
+        @case ("DIARYENTRY") {
+          <ng-container [ngTemplateOutlet]="diaryentryBody" />
+        }
+        @case ("LOCATION") {
+          <ng-container [ngTemplateOutlet]="locationBody" />
+        }
+        @default {
+          <ng-container [ngTemplateOutlet]="defaultBody" />
+        }
+      }
+    </section>
+
+    <!-- Footer -->
+    <app-article-footer
+      class="mt-4"
+      [buttonLabel]="'Back To Frontpage'"
+      [buttonLink]="homeUrl()"
+      [showDelete]="false"
+    />
+  </article>
+</app-page-container>
+
+<ng-template #defaultHeading>
+  <!-- Image -->
+  @let imageData = $any(OVERVIEW_IMAGE_MAP)[overviewType()];
+  <img class="overview__image" [src]="imageData?.url" [alt]="imageData?.alt" />
+</ng-template>
+
+<ng-template #characterHeading>
+  <section [attr.aria-labelledby]="headingSectionId">
+    <h2 class="h3" [id]="headingSectionId">Player Characters</h2>
+
+    <ul class="row" aria-label="All player characters">
+      @for (playerCharacter of playerCharacters(); track playerCharacter.name) {
+        <li
+          class="col-xl-3 col-lg-4 col-md-6 col-sm-6 overview__player-card player-card"
+        >
+          <div class="player-card__link">
+            @if (playerCharacter.images) {
+              <app-image-card
+                class="player-card__card"
+                [serverUrl]="serverUrl()"
+                [fallbackUrl]="'/' + defaultPlayerCharacterImage"
+                [imageUrls]="playerCharacter.images"
+                [link]="playerCharacter.getAbsoluteRouterUrl()"
+                [alt]="''"
+                [text]="playerCharacter.name_full"
+              ></app-image-card>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+</ng-template>
+
+<ng-template #characterBody>
+  <h2 class="h3" [id]="bodySectionId">
+    <span class="cdk-visually-hidden">Filterable list of </span>
+    Non-Player Characters
+  </h2>
+
+  <app-filter-list
+    [id]="filterId"
+    [entries]="displayEntries()"
+    [labelProp]="'name'"
+    [heading]="overviewTypeName()"
+  ></app-filter-list>
+</ng-template>
+
+<ng-template #diaryentryBody>
+  <h2 class="cdk-visually-hidden" [id]="bodySectionId">
+    Filterable list of Diaryentries
+  </h2>
+
+  <app-filter-list
+    [id]="filterId"
+    [entries]="displayEntries()"
+    [labelProp]="'name_full'"
+    [groupConfig]="{ mode: 'PROPERTY', groupProp: 'author_details.name' }"
+    [heading]="overviewTypeName()"
+    [forceSingleLine]="true"
+  ></app-filter-list>
+</ng-template>
+
+<ng-template #locationBody>
+  <h2 class="cdk-visually-hidden" [id]="bodySectionId">Tree of Locations</h2>
+  <app-filter-list
+    [id]="filterId"
+    [entries]="displayEntries()"
+    [labelProp]="'name_full'"
+    [heading]="overviewTypeName()"
+    [groupConfig]="{ mode: 'TREE', toTreeData: toLocationTrees }"
+  />
+</ng-template>
+
+<ng-template #defaultBody>
+  <h2 class="cdk-visually-hidden" [id]="bodySectionId">
+    Filterable list of {{ overviewTypeName() }}s
+  </h2>
+
+  <app-filter-list
+    [id]="filterId"
+    [entries]="displayEntries()"
+    [labelProp]="'name_full'"
+    [heading]="overviewTypeName()"
+  ></app-filter-list>
+</ng-template>

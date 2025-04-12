@@ -1,0 +1,16 @@
+@import "/src/custom_bootstrap.scss";
+
+:host {
+  --card-bg-color: #{$card-bg};
+  --card-flex-direction: column;
+  --card-padding: var(--spacer-4);
+  border-radius: var(--bs-border-radius);
+}
+
+.card {
+  background-color: var(--card-bg-color);
+  padding: var(--card-padding);
+  flex-direction: var(--card-flex-direction);
+  width: 100%;
+  height: 100%;
+}

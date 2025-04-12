@@ -1,0 +1,33 @@
+<div class="search" id="search-area">
+  @let searchLabelId = "search-label";
+  <form
+    class="search__form"
+    role="search"
+    [attr.aria-labelledby]="searchLabelId"
+    (submit)="startSearch()"
+  >
+    <div class="search__bar" [class.search__bar--disabled]="!canSearch()">
+      <app-input
+        #input
+        class="search__input"
+        [label]="_placeholder()"
+        [labelId]="searchLabelId"
+        [disabled]="!canSearch()"
+        [type]="'search'"
+        [hotkey]="'f'"
+        (hotkeyPressed)="input.focus()"
+        (changed)="searchString = $event"
+      />
+      @let canTriggerSearch = canSearch() && !!input._value();
+      <button
+        btn
+        class="search__button"
+        [attr.aria-label]="'Search for ' + input._value()"
+        [disabled]="!canTriggerSearch"
+        [kind]="canTriggerSearch ? 'PRIMARY' : 'LIGHT-OUTLINE'"
+        [icon]="'search'"
+        [type]="'submit'"
+      ></button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,110 @@
+<app-page-container>
+  <article class="container">
+    @if (canUpdate()) {
+      <div class="organization__edit-container">
+        <a
+          btn
+          [routerLink]="updateUrl()"
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          [ngbTooltip]="'Edit ' + organization().name"
+          [attr.aria-label]="'Edit ' + organization().name"
+          [hotkey]="'e'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <!-- Heading -->
+    <div class="row">
+      <h1 class="col-12 organization__heading">
+        {{ organization().name }}
+      </h1>
+      <!-- Leader-Subheading -->
+      <div class="col-12 organization__subheading">
+        Leader:
+        @if (organization().leader) {
+          <strong>
+            <a class="ms-1" [routerLink]="leaderUrl()">
+              {{ organization().leader }}
+            </a>
+          </strong>
+        } @else {
+          <ng-container *ngTemplateOutlet="Unknown" />
+        }
+      </div>
+
+      <!-- Headquarters Subheading -->
+      <div class="col-12 organization__subheading">
+        Headquarters:
+        @if (organization().headquarter_details) {
+          <strong>
+            <a class="ms-1" [routerLink]="headquarterUrl()">
+              {{ organization().headquarter_details?.name_full }}
+            </a>
+          </strong>
+        } @else {
+          <ng-container *ngTemplateOutlet="Unknown" />
+        }
+      </div>
+    </div>
+
+    <!-- Image Gallery -->
+    <div class="organization__images">
+      <app-image-carousel-card
+        [images]="organization().images ?? []"
+        [serverUrl]="serverUrl()"
+        [serverModel]="imageServerModel()"
+        [canUpdate]="canUpdate()"
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        (createImage)="createImage.emit($event)"
+        (deleteImage)="deleteImage.emit($event)"
+        (updateImage)="updateImage.emit($event)"
+      ></app-image-carousel-card>
+    </div>
+
+    <div class="organization__members">
+      <app-badge-list
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        [label]="'Members'"
+        [entries]="organizationMembers()"
+        [createOptions]="{
+          kind: 'SELECT',
+          formFieldLabel: 'Characters',
+          config: {
+            options: campaignCharacters() ?? [],
+            labelProp: 'name',
+            valueProp: 'pk',
+          },
+        }"
+        (entryCreate)="organizationMembershipCreate.emit($event)"
+        (entryDelete)="organizationMembershipDelete.emit($event)"
+      ></app-badge-list>
+    </div>
+
+    <!-- Description -->
+    <app-editable-text
+      class="organization__description"
+      [heading]="'Description'"
+      [ariaLevel]="2"
+      [placeholder]="'Add a description for ' + organization().name"
+      [text]="organization().description"
+      [canUpdate]="canUpdate()"
+      (update)="onDescriptionUpdate($event)"
+    ></app-editable-text>
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to Organizations'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="'Organization ' + organization().name"
+      (delete)="organizationDelete.emit(organization())"
+    ></app-article-footer>
+  </article>
+</app-page-container>
+
+<ng-template #Unknown>Unknown</ng-template>

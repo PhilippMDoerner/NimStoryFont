@@ -1,0 +1,40 @@
+<div class="container p-0 mw-100">
+  <app-alert [kind]="'INFO'">
+    <app-icon [icon]="'info-circle'"></app-icon>
+    While you were updating this article, somebody else updated it as well.
+    <br />
+    The differences between their changes and yours are highlighted below.
+    <br />
+    Please update as needed and submit again.
+  </app-alert>
+
+  <div class="row">
+    <div class="col-12" [class.col-sm-6]="!displayVertically()">
+      <div>
+        <h3>Server Version</h3>
+        <app-form
+          [model]="modelFromServer()"
+          [fields]="fields()"
+          [disabled]="true"
+        ></app-form>
+      </div>
+    </div>
+
+    @if (displayVertically()) {
+      <app-separator />
+    }
+
+    <div class="col-12" [class.col-sm-6]="!displayVertically()">
+      <div>
+        <h3>Your Version</h3>
+        <app-form
+          [model]="modelFromUser()"
+          [fields]="fields()"
+          [enctype]="enctype()"
+          (formlySubmit)="onSubmit()"
+          (formlyCancel)="onCancel()"
+        ></app-form>
+      </div>
+    </div>
+  </div>
+</div>

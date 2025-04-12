@@ -1,0 +1,6 @@
+<app-login
+  [loginState]="(specialLoginState$ | async) ?? undefined"
+  [resetErrorMessage]="store.resetErrorMessage() ?? undefined"
+  (login)="onLogin($event)"
+  (resetPassword)="onResetPassword($event)"
+></app-login>

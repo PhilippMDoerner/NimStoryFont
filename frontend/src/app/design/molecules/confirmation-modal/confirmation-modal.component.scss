@@ -1,0 +1,42 @@
+.modal-border {
+  border-width: 1.5px;
+  border-radius: var(--bs-modal-border-radius);
+  border-style: solid;
+}
+
+.modal-border {
+  &--primary {
+    border-color: var(--bs-primary);
+  }
+  &--secondary {
+    border-color: var(--bs-secondary);
+  }
+  &--info {
+    border-color: var(--bs-info);
+  }
+  &--danger {
+    border-color: var(--bs-danger);
+  }
+  &--dark {
+    border-color: var(--bs-dark);
+  }
+  &--light {
+    border-color: var(--bs-light);
+  }
+
+  &--warning {
+    border-color: var(--bs-warning);
+  }
+}
+
+.body {
+  &__buttons {
+    margin-top: var(--spacer-3);
+    margin-bottom: var(--spacer-1);
+  }
+
+  &__button {
+    margin-right: var(--spacer-3);
+    width: fit-content;
+  }
+}

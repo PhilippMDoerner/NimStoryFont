@@ -1,0 +1,78 @@
+@if (options() && options().length > 0) {
+  @switch (state()) {
+    @case ("DISPLAY") {
+      <ng-container [ngTemplateOutlet]="displayState" />
+    }
+    @case ("CREATE") {
+      <ng-container [ngTemplateOutlet]="createState" />
+    }
+  }
+}
+
+<ng-template #displayState>
+  <app-badge
+    class="display-form"
+    [kind]="'PRIMARY'"
+    [icon]="'plus'"
+    [text]="badgeText()"
+    [interactionMode]="'BUTTON'"
+    [hotkey]="createHotkey()"
+    [disabledHotkey]="disableHotkeys()"
+    (hotkeyPressed)="toggleForm()"
+    (badgeClick)="toggleForm()"
+  ></app-badge>
+</ng-template>
+
+<ng-template #createState>
+  <form class="form" (keydown.Escape)="onCancel()">
+    <label [for]="id" class="cdk-visually-hidden">
+      {{ formFieldLabel() }}
+    </label>
+    <select
+      #select
+      class="form-select"
+      focusOnRender
+      [name]="selectFieldName()"
+      [id]="id"
+      (change)="onChange($event)"
+    >
+      <option [value]="undefined">-----</option>
+      @for (option of options(); track option) {
+        <option
+          [value]="$index"
+          [attr.selected]="
+            option[valueProp()] === userModel?.[valueProp()] ? true : null
+          "
+        >
+          {{ option[labelProp()] }}
+        </option>
+      }
+    </select>
+
+    <!-- Submit Button -->
+    <button
+      btn
+      class="mx-2"
+      aria-label="submit form"
+      [kind]="submitButtonType()"
+      [size]="'SMALL'"
+      [icon]="'check'"
+      [type]="'submit'"
+      [disabled]="select.value === 'undefined'"
+      (clicked)="onSubmit()"
+    ></button>
+
+    <!-- Cancel Button -->
+    <button
+      btn
+      aria-label="cancel form submission"
+      [kind]="cancelButtonType()"
+      [size]="'SMALL'"
+      [icon]="'times'"
+      [hotkey]="'q'"
+      [disabledHotkey]="disableHotkeys()"
+      (hotkeyPressed)="toggleForm()"
+      (clicked)="toggleForm()"
+    ></button>
+  </form>
+</ng-template>

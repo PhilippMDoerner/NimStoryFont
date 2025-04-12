@@ -1,0 +1,37 @@
+.entry {
+  &--active,
+  :hover,
+  :focus-visible {
+    color: var(--entry-hover-color);
+    background-color: var(--entry-hover-bg-color);
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    padding-left: var(--spacer-3);
+    list-style-type: none;
+    height: 2.75rem;
+    font-weight: bold;
+    font-size: large;
+    width: 100%;
+    outline: none;
+    border-radius: 0;
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+    }
+
+    &--disabled {
+      color: var(--bs-gray-600);
+      pointer-events: none;
+    }
+  }
+
+  &__icon {
+    width: var(--spacer-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,38 @@
+.disabled {
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.field-container {
+  margin-bottom: var(--spacer-3);
+
+  &__field {
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+
+  &__filepicker {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacer-5) var(--spacer-5);
+    border: dashed 2px var(--bs-white);
+    border-radius: var(--bs-border-radius);
+    cursor: pointer;
+  }
+
+  &__description {
+    position: relative;
+    font-size: 14px;
+    text-align: center;
+    width: 100%;
+    top: -48px;
+    pointer-events: none;
+  }
+}

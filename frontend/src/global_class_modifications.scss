@@ -1,0 +1,57 @@
+// Modifies all Formly/Angular forms
+.form-label,
+.form-check-label {
+  font-weight: bold;
+}
+
+.form-check-input {
+  border-color: var(--bs-border-color);
+}
+
+// Adds new custom "updated" class to formly
+.updated * {
+  background: repeating-linear-gradient(
+    45deg,
+    hsl(210, 23%, 20%),
+    hsl(210, 23%, 20%) 10px,
+    hsl(210, 23%, 25%) 10px,
+    hsl(210, 23%, 25%) 20px
+  );
+
+  border-radius: var(--bs-border-radius);
+}
+
+a,
+.a {
+  font-weight: bold;
+  text-decoration-style: dashed;
+}
+
+.a,
+a {
+  &:focus-visible {
+    outline: var(--focus-outline);
+    border-radius: var(--bs-border-radius);
+  }
+}
+
+.btn {
+  justify-content: center;
+  align-items: center;
+  height: fit-content;
+}
+
+.btn-none,
+button {
+  background: none;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}

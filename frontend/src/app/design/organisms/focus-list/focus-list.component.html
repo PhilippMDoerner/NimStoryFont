@@ -1,0 +1,30 @@
+@let separator = separatorTemplate();
+<ul>
+  @for (entry of entries(); track entry.id) {
+    @let entryData =
+      {
+        data: entry.data,
+        index: $index,
+        first: $first,
+        last: $last,
+        isInFocus: $index === (focusIndex$ | async),
+      };
+
+    <li
+      class="item-container"
+      #itemContainer
+      (focusin)="this.focusItemEvent$.next($index)"
+      (focus)="this.focusItemEvent$.next($index)"
+    >
+      <ng-container
+        *ngTemplateOutlet="itemTemplate(); context: { $implicit: entryData }"
+      />
+    </li>
+
+    @if (separator && !$last) {
+      <ng-container
+        *ngTemplateOutlet="separator; context: { $implicit: entryData }"
+      />
+    }
+  }
+</ul>

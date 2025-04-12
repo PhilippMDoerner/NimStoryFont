@@ -1,0 +1,96 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<cdk-tree
+  #tree
+  class="tree row"
+  [dataSource]="data()"
+  [childrenAccessor]="childrenAccessor"
+  [trackBy]="trackByFn"
+>
+  <!-- Leaf template -->
+  <cdk-nested-tree-node
+    class="tree__node node"
+    [ngClass]="{
+      'tree__node--root': node.isRootNode,
+      'tree__node--leaf': !node.isRootNode,
+    }"
+    [isExpandable]="false"
+    #treeNode="cdkNestedTreeNode"
+    *cdkTreeNodeDef="let node"
+    (activation)="router.navigateByUrl(node.link)"
+  >
+    <div
+      class="node__content-container content-container content-container--leaf"
+    >
+      <div class="content-container__left">
+        <button
+          cdkTreeNodeToggle
+          btn
+          class="content-container__toggle content-container__toggle--disabled"
+          tabindex="-1"
+          aria-hidden="true"
+          [kind]="'NONE'"
+          [size]="'SMALL'"
+          [icon]="tree.isExpanded(node) ? 'chevron-down' : 'chevron-right'"
+          [attr.aria-label]="'Toggle ' + node.label"
+          [disabled]="true"
+        ></button>
+        <ng-container
+          *ngTemplateOutlet="nodeContent; context: { $implicit: node }"
+        />
+      </div>
+      <span class="content-container__right">
+        {{ node | treeNodeCount }}
+      </span>
+    </div>
+  </cdk-nested-tree-node>
+
+  <!-- Stem Template -->
+  <cdk-nested-tree-node
+    class="tree__node node node--stem"
+    [ngClass]="{ 'tree__node--root': node.isRootNode }"
+    #treeNode="cdkNestedTreeNode"
+    *cdkTreeNodeDef="let node; when: hasChild"
+    isExpandable
+    [cdkTreeNodeTypeaheadLabel]="node.label"
+    (activation)="router.navigateByUrl(node.link)"
+  >
+    <div
+      class="node__content-container content-container content-container--expandable"
+      (click)="tree.isExpanded(node) ? treeNode.collapse() : treeNode.expand()"
+    >
+      <div class="content-container__left">
+        <button
+          cdkTreeNodeToggle
+          btn
+          class="content-container__toggle"
+          [kind]="'NONE'"
+          [size]="'SMALL'"
+          [icon]="tree.isExpanded(node) ? 'chevron-down' : 'chevron-right'"
+          [attr.aria-label]="'Toggle ' + node.label"
+        ></button>
+        <ng-container
+          *ngTemplateOutlet="nodeContent; context: { $implicit: node }"
+        />
+      </div>
+      <span class="content-container__right">
+        {{ node | treeNodeCount }}
+      </span>
+    </div>
+    <div class="node__children" [class.d-none]="!tree.isExpanded(node)">
+      <ng-container cdkTreeNodeOutlet />
+    </div>
+  </cdk-nested-tree-node>
+</cdk-tree>
+
+<ng-template #nodeContent let-node>
+  <a
+    class="content-container__content"
+    [class.content-container__content--root]="node.isRootNode"
+    [routerLink]="node.link"
+    tabindex="-1"
+    (click)="$event.stopPropagation()"
+  >
+    {{ node.label }}
+  </a>
+</ng-template>

@@ -1,0 +1,6 @@
+{
+  "/wiki1/api": {
+    "target": "https://aldrune.com",
+    "secure": false
+  }
+}

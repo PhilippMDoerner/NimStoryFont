@@ -1,0 +1,14 @@
+.list {
+  &__list {
+    padding-left: var(--spacer-4);
+  }
+
+  &__entry {
+    list-style: disclosure-closed;
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: row;
+  }
+}

@@ -1,0 +1,8 @@
+.form-select {
+  font-weight: inherit;
+  font-size: inherit;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}

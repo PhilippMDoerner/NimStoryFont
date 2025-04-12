@@ -1,0 +1,81 @@
+<div class="container list">
+  @if (canCreate()) {
+    <div class="list__button">
+      <button
+        btn
+        [kind]="'PRIMARY'"
+        [text]="'Add Rule'"
+        [icon]="'plus'"
+        (clicked)="addRule()"
+        [hotkey]="'c'"
+        (hotkeyPressed)="addRule()"
+      ></button>
+    </div>
+  }
+
+  <div class="row">
+    @if (isCreatingRule()) {
+      <div class="list__rule-card rule-card" [@slideUpFromBottom]>
+        <app-collapsible-panel [isOpen]="true" [ariaLevel]="2">
+          <span heading>
+            {{ createRuleData().name }}
+          </span>
+
+          <app-rule
+            body
+            class="rule-card__rule"
+            [rule]="createRuleData()"
+            [serverModel]="undefined"
+            [canUpdate]="false"
+            [canDelete]="false"
+            [canCreate]="canCreate()"
+            [cancelButtonType]="'DARK'"
+            (ruleCreate)="onRuleCreate($event)"
+            (ruleCreateCancel)="cancelRuleCreation()"
+          ></app-rule>
+        </app-collapsible-panel>
+      </div>
+    }
+    <app-focus-list [entries]="ruleCards()" #focusListComponent>
+      <ng-template
+        #itemTemplate
+        let-focusEntry
+        [inferContextTypeFrom]="focusListComponent"
+      >
+        <div
+          class="list__rule-card rule-card"
+          [@slideOutFromBottom]
+          [id]="focusEntry.data.rule.name"
+          #rule
+        >
+          <app-collapsible-panel
+            [isOpen]="focusEntry.data.isOpen"
+            [ariaLevel]="2"
+          >
+            <span heading>
+              {{ focusEntry.data.rule.name }}
+            </span>
+
+            <app-rule
+              body
+              class="rule-card__rule"
+              [rule]="focusEntry.data.rule"
+              [serverModel]="serverModel()"
+              [canUpdate]="canUpdate()"
+              [canDelete]="canDelete()"
+              [canCreate]="canCreate()"
+              [cancelButtonType]="'DARK'"
+              [disabledHotkeys]="!focusEntry.isInFocus"
+              (ruleDelete)="onRuleDelete($event)"
+              (ruleUpdate)="ruleUpdate.emit($event)"
+              (ruleCreateCancel)="cancelRuleCreation()"
+            ></app-rule>
+          </app-collapsible-panel>
+        </div>
+      </ng-template>
+    </app-focus-list>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<ng-template #loading><app-spinner></app-spinner></ng-template>

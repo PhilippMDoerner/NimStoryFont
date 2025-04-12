@@ -1,0 +1,24 @@
+@import "/src/screens.scss";
+
+:host {
+  --map-height: 400px;
+  @include media-breakpoint-up(md) {
+    --map-height: 600px;
+  }
+}
+.map-frame {
+  border: 2px solid black;
+  height: var(--map-height);
+  width: 100%;
+  margin: 0 auto 2rem auto;
+}
+
+#leafletMapDiv {
+  height: var(--map-height);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.w-15 {
+  width: 15%;
+}

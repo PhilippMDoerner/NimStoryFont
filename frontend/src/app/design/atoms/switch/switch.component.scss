@@ -1,0 +1,21 @@
+:host {
+  --switch-width: calc(1.25 * var(--spacer-5));
+  --switch-height: calc(0.5 * var(--switch-width));
+  margin-bottom: var(--spacer-0);
+  padding-left: var(--spacer-5);
+}
+
+.form-check-input {
+  height: var(--switch-height);
+  width: var(--switch-width);
+  margin-top: unset;
+  margin-right: var(--spacer-2);
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}
+
+.form-check-label {
+  vertical-align: middle;
+}

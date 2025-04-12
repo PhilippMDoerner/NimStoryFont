@@ -1,0 +1,38 @@
+@let quotes = store.quotes();
+@let character = store.character();
+@let campaignId = globalStore.currentCampaign()?.pk;
+@if (quotes && character && campaignId != null) {
+  <app-page-container>
+    <article class="container">
+      <h1 class="heading">Quotes of {{ character.name }}</h1>
+      <app-quotes
+        [quotes]="quotes"
+        [quoteServerModel]="store.quoteServerModel()"
+        [character]="character"
+        [campaignCharacters]="store.campaignCharacters() ?? []"
+        [campaignSessions]="store.campaignSessions() ?? []"
+        [campaignEncounters]="store.campaignEncounters() ?? []"
+        [campaignId]="campaignId"
+        [canCreate]="store.hasWritePermission()"
+        [canUpdate]="store.hasWritePermission()"
+        [canDelete]="store.hasWritePermission()"
+        [serverModel]="store.quoteServerModel()"
+        [quoteControlsBlacklist]="['LIST', 'REFRESH']"
+        (quoteCreate)="store.createQuote($event)"
+        (quoteUpdate)="store.updateQuote($event)"
+        (quoteDelete)="store.deleteQuote($event.pk)"
+        (connectionCreate)="store.createQuoteConnection($event)"
+        (connectionDelete)="store.deleteQuoteConnection($event)"
+      />
+      <div class="mt-3">
+        <a
+          btn
+          [kind]="'SECONDARY'"
+          [text]="'Back to ' + store.character()?.name"
+          [routerLink]="characterUrl()"
+        >
+        </a>
+      </div>
+    </article>
+  </app-page-container>
+}

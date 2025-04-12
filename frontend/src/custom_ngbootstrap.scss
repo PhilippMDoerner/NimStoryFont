@@ -1,0 +1,24 @@
+div.ngb-dp-header {
+  background-color: var(--wiki-bg-solid);
+}
+
+.ngb-dp-month {
+  background-color: var(--wiki-bg-solid);
+}
+
+ngb-datepicker .ngb-dp-week,
+ngb-datepicker.ngb-dp-weekdays {
+  background-color: var(--wiki-bg-solid);
+}
+
+div.ngb-dp-day div {
+  color: var(--bs-white);
+}
+
+div.ngb-dp-day .btn-light:hover {
+  color: var(--bs-black) !important;
+}
+
+.z-1001 {
+  z-index: 1001;
+}

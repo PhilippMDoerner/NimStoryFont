@@ -1,0 +1,46 @@
+.sessionaudio{
+  &__edit-container{
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  &__heading{
+    text-align: center;
+  }
+  
+  &__data-row{
+    margin-bottom: var(--spacer-5);
+  }
+  
+  &__description{
+    margin-bottom: var(--spacer-5);
+  }
+  
+  &__player-row{
+    margin-top: var(--spacer-5);
+    margin-bottom: var(--spacer-5);
+  }
+  
+  &__buttons{
+    margin-bottom: var(--spacer-3);
+    justify-content: space-between;
+  }
+  
+  &__timestamp-create{
+    margin-bottom: var(--spacer-3);
+    justify-content: center;
+  }
+}
+
+.player-row{
+  &__image{
+    background-color: var(--bs-black);
+    margin-left: var(--spacer-2);
+    margin-right: var(--spacer-2)
+  }
+  
+  &__player{
+    width: 100%;
+  }
+}

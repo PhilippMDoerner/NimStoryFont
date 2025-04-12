@@ -1,0 +1,196 @@
+<app-page-container>
+  <article class="container">
+    <h1 class="text-center mb-3">Wiki Overview</h1>
+    <h2 class="fs-5">
+      <app-info-circle-tooltip
+        [text]="'Node Categories'"
+        [tooltip]="
+          'Nodes in the graph represent Articles in the Wiki that repell each other'
+        "
+      ></app-info-circle-tooltip>
+    </h2>
+    <div class="row mb-3">
+      @for (category of nodeCategories(); track category.label) {
+        <app-selectable-entry
+          class="col-12 col-sm-6 col-lg-4 col-xl-3 row-entry"
+          [label]="category.label"
+          [style]="{ '--border-color': 'var(' + category.color + ')' }"
+          [isActive]="category.active"
+          [isSelectable]="true"
+          (entryClick)="toggleNodeCategory(category, $event)"
+        ></app-selectable-entry>
+      }
+    </div>
+    <h2 class="fs-5">
+      <app-info-circle-tooltip
+        [text]="'Link Categories'"
+        [tooltip]="
+          'The different kinds of connections between articles. Some are inferred automatically, the rest are custom-links added by users.'
+        "
+      ></app-info-circle-tooltip>
+    </h2>
+    <div class="row mb-3">
+      @let linkCategories = linkCategories$ | async;
+      @if (linkCategories) {
+        @for (category of linkCategories; track category) {
+          <app-selectable-entry
+            class="col-12 col-sm-6 col-lg-4 row-entry"
+            [label]="category.label"
+            [style]="{ '--border-color': category.color }"
+            [icon]="category.icon"
+            [isActive]="category.active"
+            [isSelectable]="true"
+            (entryClick)="toggleLinkCategory(category, linkCategories, $event)"
+          ></app-selectable-entry>
+        }
+      } @else {
+        @for (_ of linkCategoryFallbackList; track $index) {
+          <app-placeholder
+            class="rounded-0 col-12 col-sm-6 col-lg-4 row-entry entry-height"
+          />
+        }
+      }
+    </div>
+
+    @let graph = graphData();
+    @if (graph) {
+      <app-search-field
+        [placeholder]="'Search for an article node'"
+        [btnAriaLabel]="
+          'Searches for an article node in the graph and centers it if it can find one'
+        "
+        [canSearch]="true"
+        (appSearch)="nodeQuery$.next($event)"
+      ></app-search-field>
+
+      <div class="row mb-3">
+        <app-graph
+          class="col-12 mb-2"
+          [data]="graph"
+          [graphSettings]="graphSettings()"
+          [activeNodesData]="selectedNodes() ?? []"
+        />
+        <div class="col-12 d-flex justify-content-between">
+          <app-graph-settings-modal
+            (newSettings)="onSettingsChange($event)"
+          ></app-graph-settings-modal>
+          <app-graph-help-modal></app-graph-help-modal>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div
+          class="d-flex col-md-6 col-12 justify-content-start align-items-center row-gap-3"
+          [class.fw-light]="!firstSelectedNode()"
+        >
+          <span class="fs-5 me-3"> 1st Node: </span>
+          {{ firstSelectedNode()?.record?.name ?? "None" }}
+        </div>
+        <div
+          class="d-flex col-md-6 col-12 justify-content-start align-items-center"
+          [class.fw-light]="!secondSelectedNode()"
+        >
+          <span class="fs-5 me-3"> 2nd Node: </span>
+          {{ secondSelectedNode()?.record?.name ?? "None" }}
+        </div>
+      </div>
+      @switch (pageState()) {
+        @case ("DISPLAY") {
+          <ng-container *ngTemplateOutlet="display" />
+        }
+        @case ("CREATE") {
+          <ng-container *ngTemplateOutlet="create" />
+        }
+      }
+    } @else {
+      <app-placeholder class="w-100 height-5 mb-3"></app-placeholder>
+      <app-placeholder class="w-100 vh-50 mb-1"></app-placeholder>
+      <app-placeholder class="w-100 height-3 mb-3"></app-placeholder>
+      <app-placeholder class="w-100 height-5 mb-3"></app-placeholder>
+      <app-placeholder class="w-25 height-5 mb-3"></app-placeholder>
+      <app-placeholder class="w-100 height-5 mb-3"></app-placeholder>
+    }
+
+    <app-article-footer
+      class="d-block mt-5"
+      [buttonLabel]="'Back to Frontpage'"
+      [buttonLink]="homeUrl()"
+      [showDelete]="false"
+    ></app-article-footer>
+  </article>
+</app-page-container>
+
+<ng-template #create>
+  <app-card>
+    <h2 class="fs-3 mb-3">Create Connection</h2>
+    <div class="border border-info rounded p-3 mb-2">
+      <div class="fw-bold fs-5 mb-1">Connection-Preview:</div>
+      {{ formTitle() }}
+    </div>
+
+    <app-form
+      [fields]="formlyFields()"
+      [model]="userModel()"
+      [cancelButtonType]="'DARK'"
+      [isLoading]="store.createLinkState() === 'loading'"
+      (formlyCancel)="pageState.set('DISPLAY')"
+      (formlySubmit)="onCreateConnection($event)"
+      (formChange)="createLabel.set($event.label || EMPTY_LABEL)"
+    ></app-form>
+  </app-card>
+</ng-template>
+
+<ng-template #display>
+  @let isButtonDisabled = !firstSelectedNode() || !secondSelectedNode();
+  <span
+    [ngbTooltip]="
+      isButtonDisabled
+        ? 'Select 2 nodes by clicking on them to create a custom connection!'
+        : null
+    "
+  >
+    <button
+      btn
+      [kind]="'PRIMARY'"
+      [disabled]="isButtonDisabled"
+      [text]="'Connect!'"
+      [icon]="'link'"
+      (clicked)="pageState.set('CREATE')"
+    ></button>
+  </span>
+
+  <app-collapsible-panel
+    class="d-block mt-5"
+    [isOpen]="isPanelOpen()"
+    [ariaLevel]="2"
+  >
+    <ng-container heading> Custom Links </ng-container>
+    <ng-container body>
+      <div class="w-100 d-flex flex-column row-gap-3">
+        @for (linkGroup of store.customLinkGroups(); track linkGroup.name) {
+          <div>
+            <h2 class="fs-4 border-left border-5">
+              {{ linkGroup.name }}
+            </h2>
+
+            @for (item of linkGroup.links; track item.link.id) {
+              <div class="w-100 d-flex justify-content-between">
+                {{ item.label }}
+
+                <app-confirmation-toggle-button
+                  class="user-group__remove-button"
+                  [icon]="'trash'"
+                  [toggleSize]="'SMALL'"
+                  [itemToDelete]="'Link ' + item.label"
+                  [cancelButtonType]="'DARK'"
+                  [enableHotkey]="false"
+                  (confirm)="onDeleteLink(item.link.id!)"
+                ></app-confirmation-toggle-button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </ng-container>
+  </app-collapsible-panel>
+</ng-template>

@@ -1,0 +1,10 @@
+.list {
+  &__button {
+    width: fit-content;
+    margin-bottom: var(--spacer-3);
+  }
+}
+
+.session-card {
+  margin-bottom: var(--spacer-3);
+}

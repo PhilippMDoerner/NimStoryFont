@@ -1,0 +1,10 @@
+<app-create-update
+  [formlyFields]="formlyFields()"
+  [heading]="heading()"
+  [state]="state()"
+  [userModel]="userModel()"
+  [serverModel]="store.questServerModel()"
+  (create)="create($event)"
+  (update)="update($event)"
+  (cancelled)="cancel()"
+/>

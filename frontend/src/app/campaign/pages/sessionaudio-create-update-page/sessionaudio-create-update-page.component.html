@@ -1,0 +1,24 @@
+@if (store.fileUploadState() === "init") {
+  <app-create-update
+    [heading]="heading()"
+    [formlyFields]="formlyFields()"
+    [serverModel]="store.sessionaudioServerModel()"
+    [userModel]="userModel()"
+    [state]="state()"
+    (cancelled)="cancel()"
+    (create)="onCreate($event)"
+    (update)="onUpdate($event)"
+  />
+} @else {
+  <app-page-container class="form-page">
+    <div class="container">
+      <h4 class="text-center">File Upload Progress</h4>
+
+      @let progress = store.uploadProgress();
+      @if (progress !== undefined) {
+        <ngb-progressbar type="primary" [value]="progress" />
+        <h6 class="text-center">{{ progress | number: "1.0-0" }}%</h6>
+      }
+    </div>
+  </app-page-container>
+}

@@ -1,0 +1,35 @@
+.entry {
+  &__link {
+    display: flex;
+    align-items: center;
+    padding-left: var(--spacer-3);
+    list-style-type: none;
+    height: 2.75rem;
+    font-weight: bold;
+    font-size: large;
+    width: 100%;
+    outline: none;
+    border-radius: 0;
+    text-decoration: none;
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+    }
+
+    &--install-button {
+      border: 3px solid var(--bs-primary);
+    }
+
+    &--disabled {
+      color: var(--bs-gray-600);
+      pointer-events: none;
+    }
+  }
+
+  &__icon {
+    width: var(--spacer-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

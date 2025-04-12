@@ -1,0 +1,92 @@
+<app-page-container>
+  <article class="container marker">
+    @if (canUpdate()) {
+      <div class="marker__edit-container">
+        <a
+          [routerLink]="updateUrl()"
+          btn
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          aria-label="Edit Marker"
+        >
+        </a>
+      </div>
+    }
+
+    <div class="row marker__heading heading">
+      <h1 class="col-12 heading__main">
+        Marker on {{ marker().map_details?.name }}
+      </h1>
+
+      <h3 class="col-12 heading__subheading">Properties</h3>
+    </div>
+
+    <!-- Longitude -->
+    <div class="row">
+      <div class="col-0 col-sm-4"></div>
+      <strong class="col-6 col-sm-3">Longitude: </strong>
+      <span class="col-6 col-sm-5">{{ marker().longitude }}</span>
+    </div>
+
+    <!-- Latitude -->
+    <div class="row">
+      <div class="col-0 col-sm-4"></div>
+      <strong class="col-6 col-sm-3">Latitude: </strong>
+      <span class="col-6 col-sm-5">{{ marker().latitude }}</span>
+    </div>
+
+    <!-- Marker Type -->
+    <div class="row">
+      <div class="col-0 col-sm-4"></div>
+      <strong class="col-6 col-sm-3">Marker type: </strong>
+      <span class="col-6 col-sm-5">{{ marker().type_details?.name }}</span>
+    </div>
+
+    <!-- Icon -->
+    <div class="row">
+      <div class="col-0 col-sm-4"></div>
+      <strong class="col-6 col-sm-3">Icon: </strong>
+
+      <span class="col-6 col-sm-5">
+        @let icon = marker().icon;
+        @if (icon) {
+          {{ icon }}
+          ( <app-icon [icon]="icon"></app-icon> )
+        } @else {
+          {{ marker().type_details?.icon }}
+          ( <app-icon [icon]="marker().type_details?.icon!"></app-icon> )
+          <span class="hint"> (from marker type) </span>
+        }
+      </span>
+    </div>
+
+    <!-- Color -->
+    <div class="row mb-5">
+      <div class="col-sm-4 col-0"></div>
+      <strong class="col-6 col-sm-3">Color: </strong>
+
+      <span class="col-sm-5 col-6">
+        @if (marker().color) {
+          {{ marker().color }}
+        } @else {
+          {{ marker().type_details?.color }}
+          <span class="hint"> (from marker type) </span>
+        }
+      </span>
+    </div>
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="locationUrl()"
+      [buttonLabel]="'Back to ' + marker().location_details?.name"
+      [showDelete]="canDelete()"
+      [deleteMessage]="
+        'Marker of ' +
+        marker().location_details?.name +
+        ' on the map of ' +
+        marker().map_details?.name
+      "
+      (delete)="markerDelete.emit(marker())"
+    ></app-article-footer>
+  </article>
+</app-page-container>

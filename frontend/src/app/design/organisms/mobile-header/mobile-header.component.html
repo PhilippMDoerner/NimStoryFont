@@ -1,0 +1,75 @@
+<nav class="navbar bg-dark">
+  <div class="container-fluid">
+    @if (canShowSidebar()) {
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#offcanvasNavbar"
+        aria-controls="sidebar"
+        aria-label="Toggle navigation"
+        (click)="openSidebar.emit()"
+      >
+        <app-icon [icon]="'bars'" />
+      </button>
+    }
+    <a class="navbar-brand" [routerLink]="titleUrl()" aria-label="To Home Page">
+      <strong>
+        <img
+          class="navbar-brand-icon"
+          [src]="serverUrl + currentCampaignIconUrl()"
+          alt="To Home Page"
+        />
+        {{ title() }}
+      </strong>
+    </a>
+
+    @if ((online$ | async) === false) {
+      <button
+        btn
+        aria-label="Toggle offline info modal"
+        [kind]="'WARNING-OUTLINE'"
+        [icon]="'triangle-exclamation'"
+        (clicked)="openModal(offlineInfoModal)"
+      ></button>
+    }
+  </div>
+</nav>
+
+<ng-template #tooltipContent>
+  <div class="m-0 p-0">You are currently offline</div>
+</ng-template>
+
+<ng-template #offlineInfoModal let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title">You're Offline</h5>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="modal.dismiss()"
+    ></button>
+  </div>
+  <div class="modal-body">
+    <p>
+      Your device is currently offline. You will still be able to read most
+      content that you can while online, but some limitations apply:
+    </p>
+    <ul class="ps-3">
+      <li>
+        <strong> You can't create, update or delete articles. </strong><br />
+        Elements linking to such sites will be hidden.
+      </li>
+      <li><strong> You can't upload files such as images </strong></li>
+      <li>
+        <strong> You can't search </strong>
+      </li>
+      <li>
+        <strong> You can't visit sites requiring online access. </strong><br />
+        Typically this is because their data is too large to download (i.e.
+        Recordings), or their sole purpose is data modification which is
+        unavailable while offline.
+      </li>
+    </ul>
+  </div>
+</ng-template>

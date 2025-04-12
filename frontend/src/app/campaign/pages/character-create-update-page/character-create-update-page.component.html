@@ -1,0 +1,15 @@
+@let character = userModel();
+@let campaignName = globalStore.campaignName();
+
+@if (character && campaignName) {
+  <app-character-create-update
+    [state]="state()"
+    [campaignName]="campaignName"
+    [userModel]="character"
+    [serverModel]="store.serverModel()"
+    [lastVisitedPlaceOptions]="store.campaignLocations() ?? []"
+    (cancelled)="onCancel()"
+    (update)="onUpdateSubmit($event)"
+    (create)="onCreateSubmit($event)"
+  />
+}

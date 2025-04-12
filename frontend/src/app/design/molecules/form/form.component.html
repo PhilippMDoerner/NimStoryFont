@@ -1,0 +1,71 @@
+<form
+  class="form"
+  [formGroup]="form"
+  [enctype]="enctype()"
+  (submit)="onSubmit(undefined)"
+>
+  <formly-form
+    [form]="form"
+    [fields]="usedFields()"
+    [model]="model()"
+    [options]="{}"
+  ></formly-form>
+
+  @let errors = formErrors();
+  @if (errors && errors.length > 0) {
+    <div class="form__errors">
+      @for (error of errors; track error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  }
+
+  @if (!disabled() && enableSubmitButtons()) {
+    <div class="form__button-container">
+      <!-- Submit Button -->
+      <ng-container
+        *ngTemplateOutlet="
+          form.valid ? activeSubmitButton : inactiveSubmitButton
+        "
+      />
+      <!-- Cancel Button -->
+      <button
+        btn
+        class="form__button"
+        [kind]="cancelButtonType()"
+        [icon]="'times'"
+        [text]="'Cancel'"
+        (clicked)="onCancel()"
+        [hotkey]="'q'"
+        [disabledHotkey]="disabledHotkeys()"
+        (hotkeyPressed)="onCancel()"
+      ></button>
+    </div>
+  }
+</form>
+
+<ng-template #activeSubmitButton>
+  <button
+    btn
+    class="form__button"
+    [kind]="submitButtonType()"
+    [text]="'Submit'"
+    [icon]="submitIcon()"
+    [type]="'submit'"
+    [isLoading]="isLoading()"
+  ></button>
+</ng-template>
+
+<ng-template #inactiveSubmitButton>
+  <button
+    btn
+    class="form__button"
+    placement="top"
+    [kind]="'DARK'"
+    [ngbTooltip]="'The form is not yet correctly filled out!'"
+    [tooltipClass]="'my-tooltip'"
+    [icon]="'lock'"
+    [text]="'Submit'"
+    [isLoading]="isLoading()"
+  ></button>
+</ng-template>

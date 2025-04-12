@@ -1,0 +1,7 @@
+@use "src/utils" as utils;
+
+@include utils.reset-list-styles();
+
+.item-container {
+  scroll-margin-top: var(--spacer-5);
+}

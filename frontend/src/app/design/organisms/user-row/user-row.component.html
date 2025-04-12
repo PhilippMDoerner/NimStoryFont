@@ -1,0 +1,50 @@
+<div class="container user-card">
+  <h3 class="row user-card__row user-card__row--heading">
+    <div class="col-12">
+      <app-icon [icon]="'user'"></app-icon>
+      {{ user().username | titlecase }}
+      @if (!user().is_active) {
+        <span [ngbTooltip]="'Deleted/Deactivated'"> (†) </span>
+      }
+    </div>
+  </h3>
+
+  <div class="row user-card__row">
+    <app-badge-list
+      class="col-12"
+      [canCreate]="canCreate()"
+      [canDelete]="canDelete()"
+      [entries]="userGroupEntries()"
+      [createOptions]="{
+        kind: 'SELECT',
+        formFieldLabel: 'Permission-Groups',
+        config: {
+          valueProp: 'id',
+          labelProp: 'name',
+          options: groups() ?? [],
+        },
+      }"
+      [label]="'Permission-Groups'"
+      (entryCreate)="addGroup.emit($event)"
+      (entryDelete)="removeGroup.emit($event)"
+    ></app-badge-list>
+  </div>
+
+  <div class="row user-card__row">
+    <div class="col-4">
+      <app-icon [icon]="'envelope'"></app-icon>
+      Email:
+    </div>
+    <div class="col-8">{{ user().email ?? "Not Provided" }}</div>
+  </div>
+
+  @if (user().is_active) {
+    <app-confirmation-toggle-button
+      class="col-12 user-card__row user-card__row--delete"
+      [itemToDelete]="'user ' + user().username"
+      [icon]="'trash'"
+      [cancelButtonType]="'DARK'"
+      (confirm)="deleteUser.emit(user())"
+    ></app-confirmation-toggle-button>
+  }
+</div>

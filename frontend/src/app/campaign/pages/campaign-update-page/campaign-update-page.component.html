@@ -1,0 +1,11 @@
+@let campaignVal = campaign();
+
+@if (campaignVal != null) {
+  <app-campaign-update
+    [userModel]="campaignVal"
+    [serverModel]="serverModel()"
+    [mapOptions]="mapOptions() ?? []"
+    (update)="updateCampaign($event)"
+    (cancelled)="cancel()"
+  />
+}

@@ -1,0 +1,25 @@
+.item {
+  &__edit-container {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__heading {
+    text-align: center;
+  }
+
+  &__subheading {
+    margin-bottom: var(--spacer-3);
+    text-align: center;
+  }
+
+  &__images {
+    margin-bottom: var(--spacer-3);
+  }
+
+  &__description {
+    width: 100%;
+    margin-bottom: var(--spacer-5);
+  }
+}

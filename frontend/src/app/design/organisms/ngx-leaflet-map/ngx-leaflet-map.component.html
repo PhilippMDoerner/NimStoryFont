@@ -1,0 +1,11 @@
+<!-- Leaflet Map -->
+<div
+  id="leafletMapDiv"
+  leaflet
+  [leafletOptions]="options"
+  [leafletLayersControl]="layersControl()"
+  [leafletLayers]="layers()"
+  (leafletMapReady)="onMapReady($event)"
+  (leafletClick)="onMapClick($event)"
+  (leafletMouseMove)="onMouseMove($event)"
+></div>

@@ -1,0 +1,59 @@
+<div class="list">
+  <div class="list__row">
+    @if (isCreatingQuote()) {
+      <app-quote-field
+        class="list__quote"
+        [quote]="createQuoteData()"
+        [quoteControlsBlacklist]="[
+          'CREATE',
+          'DELETE',
+          'UPDATE',
+          'COPY',
+          'REFRESH',
+        ]"
+        [campaignCharacters]="campaignCharacters()"
+        [serverModel]="undefined"
+        [sessions]="campaignSessions()"
+        [encounters]="campaignEncounters()"
+        [character]="character()"
+        [canUpdate]="false"
+        [canDelete]="false"
+        [canCreate]="canCreate()"
+        (quoteCreate)="quoteCreate.emit($event)"
+      ></app-quote-field>
+    }
+    @for (
+      sessionQuotes of quotes()
+        | groupBy
+          : "session_details.session_number"
+          : "session_details.session_number";
+      track $index
+    ) {
+      <div class="list__session-quotes">
+        <h3 class="m-0">Quotes of Session #{{ sessionQuotes.key }}</h3>
+        @for (quote of sessionQuotes.value; track quote.pk) {
+          <app-quote-field
+            class="list__quote"
+            [quote]="quote"
+            [serverModel]="quoteServerModel()"
+            [quoteControlsBlacklist]="quoteControlsBlacklist()"
+            [campaignCharacters]="campaignCharacters()"
+            [sessions]="campaignSessions()"
+            [encounters]="campaignEncounters()"
+            [character]="character()"
+            [canUpdate]="canUpdate()"
+            [canDelete]="canDelete()"
+            [canCreate]="canCreate()"
+            (quoteDelete)="quoteDelete.emit($event)"
+            (quoteUpdate)="quoteUpdate.emit($event)"
+            (connectionCreate)="connectionCreate.emit($event)"
+            (connectionDelete)="connectionDelete.emit($event)"
+          ></app-quote-field>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<ng-template #loading><app-spinner></app-spinner></ng-template>

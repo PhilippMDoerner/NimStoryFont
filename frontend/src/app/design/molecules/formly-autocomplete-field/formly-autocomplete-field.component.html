@@ -1,0 +1,48 @@
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+@let selectedOption = selectedOption$ | async;
+@let selectedLabel = selectedLabel$ | async;
+@let isLoading = (isLoading$ | async) === true;
+
+<div class="field" (click)="input.focus()">
+  <div class="field__input">
+    @if (selectedOption && selectedLabel) {
+      <app-badge
+        [kind]="'SECONDARY'"
+        [text]="selectedLabel"
+        [ngbTooltip]="'Clear this option'"
+        [icon]="'times'"
+        [interactionMode]="'BUTTON'"
+        (badgeClick)="htmlBadgeClickEvents$.next()"
+      />
+    }
+    <input
+      #input
+      [class.field__is-invalid]="showError"
+      [attr.aria-describedby]="id + '-formly-validation-error'"
+      [attr.aria-invalid]="showError"
+      class="field__autocomplete"
+      type="search"
+      name="autocomplete"
+      maxlength="100"
+      (blur)="formControl.markAsTouched()"
+      [value]="inputValue"
+      [disabled]="props.disabled"
+      [id]="field.id ?? ''"
+      [attr.list]="'options-' + randomId"
+      [formlyAttributes]="field"
+      [placeholder]="'Enter a search query'"
+    />
+    <datalist [id]="'options-' + randomId">
+      @for (item of options$ | async; track item[customProps.optionKeyProp]) {
+        <option [value]="item[customProps.optionLabelProp]">
+          {{ item[customProps.optionLabelProp] }}
+        </option>
+      }
+    </datalist>
+
+    @if (isLoading) {
+      <app-spinner class="field__spinner" />
+    }
+  </div>
+</div>

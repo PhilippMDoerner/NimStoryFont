@@ -1,0 +1,18 @@
+@let item = store.item();
+
+@if (item) {
+  <app-item
+    [serverUrl]="serverUrl"
+    [item]="item"
+    [itemServerModel]="store.itemServerModel()"
+    [imageServerModel]="store.imageServerModel()"
+    [canCreate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    [canUpdate]="store.hasWritePermission()"
+    (itemDelete)="onItemDelete()"
+    (itemUpdate)="onItemUpdate($event)"
+    (createImage)="store.createImage($event, item.pk!)"
+    (deleteImage)="store.deleteImage($event.pk)"
+    (updateImage)="store.updateImage($event)"
+  ></app-item>
+}

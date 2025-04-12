@@ -1,0 +1,8 @@
+@let campaignName = globalStore.campaignName();
+@let quests = store.campaignQuests();
+@if (campaignName && quests) {
+  <app-quest-overview
+    [campaignName]="campaignName"
+    [quests]="quests"
+  ></app-quest-overview>
+}

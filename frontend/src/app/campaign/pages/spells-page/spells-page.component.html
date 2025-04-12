@@ -1,0 +1,21 @@
+@let campaignName = globalStore.campaignName();
+@let spells = store.spells();
+@let campaignId = globalStore.currentCampaign()?.pk;
+
+@if (spells && campaignName && campaignId) {
+  <app-spells-template
+    [campaignId]="campaignId"
+    [campaignName]="campaignName"
+    [spells]="spells"
+    [playerClasses]="store.playerClasses() ?? []"
+    [canUpdate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    [canCreate]="store.hasWritePermission()"
+    [serverModel]="store.spellServerModel()"
+    (spellDelete)="store.deleteSpell($event.pk!)"
+    (spellUpdate)="store.updateSpell($event)"
+    (spellCreate)="store.createSpell($event)"
+    (connectionCreate)="store.addPlayerClassConnection($event)"
+    (connectionDelete)="store.removePlayerClassConnection($event)"
+  />
+}

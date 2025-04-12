@@ -1,0 +1,34 @@
+:host {
+  --bs-accordion-active-color: var(--bs-accordion);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &:focus,
+  &:focus-within,
+  &:hover,
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+
+  .encounter-title,
+  .icon {
+    transition: color 0.2s;
+    color: var(--bs-white);
+  }
+
+  &:hover {
+    .encounter-title,
+    .icon {
+      color: var(--bs-gray);
+    }
+  }
+}
+
+.encounter-title {
+  color: var(--bs-white);
+  width: 100%;
+}

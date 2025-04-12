@@ -1,0 +1,15 @@
+<strong
+  [placement]="placement()"
+  [ngbTooltip]="tooltipKind() === 'text' ? tooltipContent : tooltip()"
+  [tooltipClass]="'my-tooltip'"
+  class="pointer"
+>
+  {{ text() }}
+  <app-icon class="mx-1" [icon]="'info-circle'"></app-icon>
+</strong>
+
+<ng-template #tooltipContent>
+  <div class="m-0 p-0">
+    {{ tooltip() }}
+  </div>
+</ng-template>

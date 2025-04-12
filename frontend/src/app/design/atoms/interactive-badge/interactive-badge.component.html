@@ -1,0 +1,58 @@
+<div class="badge-container">
+  @if (textLink()) {
+    <a
+      [routerLink]="textLink()"
+      class="badge"
+      [ngClass]="{
+        'badge--part1': showDeleteButton(),
+        'bg-primary': kind() === 'PRIMARY',
+        'bg-secondary': kind() === 'SECONDARY',
+        'bg-dark': kind() === 'DARK',
+        'bg-danger': kind() === 'DANGER',
+        'bg-warning': kind() === 'WARNING',
+        'bg-info': kind() === 'INFO',
+        'bg-light': kind() === 'LIGHT',
+      }"
+    >
+      {{ text() }}
+    </a>
+  } @else {
+    <button
+      (click)="labelClick.emit($event)"
+      class="badge"
+      tabindex="0"
+      [ngClass]="{
+        'badge--part1': showDeleteButton(),
+        'bg-primary': kind() === 'PRIMARY',
+        'bg-secondary': kind() === 'SECONDARY',
+        'bg-dark': kind() === 'DARK',
+        'bg-danger': kind() === 'DANGER',
+        'bg-warning': kind() === 'WARNING',
+        'bg-info': kind() === 'INFO',
+        'bg-light': kind() === 'LIGHT',
+      }"
+      [type]="'button'"
+    >
+      {{ text() }}
+    </button>
+  }
+
+  @if (showDeleteButton()) {
+    <button
+      (click)="iconClick.emit($event)"
+      class="badge badge--part2"
+      [ngClass]="{
+        'bg-primary': iconKindVal() === 'PRIMARY',
+        'bg-secondary': iconKindVal() === 'SECONDARY',
+        'bg-dark': iconKindVal() === 'DARK',
+        'bg-danger': iconKindVal() === 'DANGER',
+        'bg-warning': iconKindVal() === 'WARNING',
+        'bg-info': iconKindVal() === 'INFO',
+        'bg-light': iconKindVal() === 'LIGHT',
+      }"
+      [attr.aria-label]="'Remove ' + text()"
+    >
+      <app-icon [icon]="'trash'" />
+    </button>
+  }
+</div>

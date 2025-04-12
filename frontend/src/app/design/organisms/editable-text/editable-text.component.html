@@ -1,0 +1,44 @@
+<!-- Heading -->
+@let headingVal = heading();
+<div class="heading__container">
+  @if (headingVal) {
+    <div [heading]="ariaLevel()" class="heading h4 m-0">
+      @if (state() === "DISPLAY") {
+        <div [innerHTML]="headingVal"></div>
+      } @else {
+        <label [for]="editorId" [innerHTML]="headingVal"> </label>
+      }
+    </div>
+    @if (canUpdate()) {
+      <button
+        class="heading__edit-button fs-6 fw-normal"
+        aria-label="Edit text"
+        [hotkey]="'w'"
+        (hotkeyPressed)="toggleEdit()"
+        (click)="toggleEdit()"
+      >
+        (
+        {{ editButtonText() }}
+        <app-icon [icon]="'pen'"></app-icon>
+        )
+      </button>
+    }
+  }
+</div>
+
+<!-- Text Body -->
+<app-editor
+  class="w-100"
+  [state]="state()"
+  [cancelButtonKind]="cancelButtonKind()"
+  [submitButtonKind]="submitButtonKind()"
+  [text]="text()"
+  [placeholder]="placeholder()"
+  [canUpdate]="canUpdate()"
+  [serverModel]="serverModel()"
+  [id]="editorId"
+  (update)="finishEdit($event)"
+  (autosave)="this.update.emit($event)"
+  (cancelled)="cancelEdit()"
+  (editStarted)="startEdit()"
+></app-editor>

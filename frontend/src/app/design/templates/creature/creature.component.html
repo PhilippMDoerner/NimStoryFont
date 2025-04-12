@@ -1,0 +1,62 @@
+<app-page-container>
+  <article class="container creature">
+    @if (canUpdate()) {
+      <div class="creature__edit-container">
+        <a
+          btn
+          [routerLink]="updateUrl()"
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          [attr.aria-label]="'Edit ' + creature().name"
+          [ngbTooltip]="'Edit ' + creature().name"
+          [hotkey]="'e'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <!-- Heading -->
+    <div class="row">
+      <h1 class="col-12 creature__heading">
+        {{ creature().name }}
+      </h1>
+    </div>
+
+    <!-- Image Gallery -->
+    <div class="creature__images">
+      <app-image-carousel-card
+        [images]="creature().images ?? []"
+        [serverUrl]="serverUrl()"
+        [serverModel]="imageServerModel()"
+        [canUpdate]="canUpdate()"
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        (createImage)="createImage.emit($event)"
+        (deleteImage)="deleteImage.emit($event)"
+        (updateImage)="updateImage.emit($event)"
+      ></app-image-carousel-card>
+    </div>
+
+    <!-- Description -->
+    <app-editable-text
+      class="creature__description"
+      [heading]="'Description'"
+      [ariaLevel]="2"
+      [placeholder]="'Add a description for ' + creature().name"
+      [text]="creature().description"
+      [serverModel]="creatureServerModel()?.description"
+      [canUpdate]="canUpdate()"
+      (update)="onDescriptionUpdate($event)"
+    ></app-editable-text>
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to Creatures'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="'Creature ' + creature().name"
+      (delete)="creatureDelete.emit(creature())"
+    ></app-article-footer>
+  </article>
+</app-page-container>

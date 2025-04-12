@@ -1,0 +1,79 @@
+<div class="container list">
+  @if (canCreate()) {
+    <div class="list__button">
+      <button
+        btn
+        [kind]="'PRIMARY'"
+        [text]="'Add Session'"
+        [icon]="'plus'"
+        (clicked)="addSession()"
+        [hotkey]="'c'"
+        (hotkeyPressed)="addSession()"
+      ></button>
+    </div>
+  }
+
+  <div class="row">
+    @if (isCreatingSession()) {
+      <div
+        id="potato"
+        class="list__session-card session-card"
+        [@slideUpFromBottom]
+      >
+        <app-collapsible-panel [isOpen]="true" [ariaLevel]="2">
+          <span heading>
+            {{ createSessionData().name }}
+          </span>
+
+          <app-session
+            body
+            class="session-card__session"
+            [session]="createSessionData()"
+            [serverModel]="undefined"
+            [canUpdate]="false"
+            [canDelete]="false"
+            [canCreate]="canCreate()"
+            (sessionCreate)="onSessionCreate($event)"
+            (sessionCreateCancel)="cancelSessionCreation()"
+          ></app-session>
+        </app-collapsible-panel>
+      </div>
+    }
+
+    <app-focus-list [entries]="sessionCards()" #focusListComponent>
+      <ng-template
+        #itemTemplate
+        let-focusEntry
+        [inferContextTypeFrom]="focusListComponent"
+      >
+        <div class="list__session-card session-card" [@slideOutFromBottom]>
+          @let entryHeadingId = focusEntry.data.session.name;
+          <app-collapsible-panel
+            [isOpen]="focusEntry.data.isOpen"
+            [ariaLevel]="2"
+          >
+            <span heading [id]="entryHeadingId">
+              {{ focusEntry.data.session.name }}
+            </span>
+
+            <app-session
+              body
+              class="session-card__session"
+              [session]="focusEntry.data.session"
+              [serverModel]="serverModel()"
+              [canUpdate]="canUpdate()"
+              [canDelete]="canDelete()"
+              [canCreate]="canCreate()"
+              [disabledHotkeys]="!focusEntry.isInFocus"
+              (sessionDelete)="onSessionDelete($event)"
+              (sessionUpdate)="sessionUpdate.emit($event)"
+            ></app-session>
+          </app-collapsible-panel>
+        </div>
+      </ng-template>
+    </app-focus-list>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<ng-template #loading><app-spinner></app-spinner></ng-template>

@@ -1,0 +1,15 @@
+<button
+  btn
+  [id]="id()"
+  [class.active]="active()"
+  [kind]="active() ? kind() : inactiveElementKind()"
+  [icon]="icon()"
+  [text]="text()"
+  [size]="size()"
+  [disabled]="disabled()"
+  [attr.aria-disabled]="disabled()"
+  [attr.aria-pressed]="active()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-controls]="ariaControls()"
+  (clicked)="changed.emit(!active())"
+></button>

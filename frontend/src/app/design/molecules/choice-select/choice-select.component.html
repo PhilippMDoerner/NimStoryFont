@@ -1,0 +1,10 @@
+<select class="form-select" (change)="onChange($event)" [id]="id()">
+  @for (choice of choices(); track $index) {
+    <option
+      [value]="$index"
+      [selected]="choice[labelProp()] === selectedLabelValue()"
+    >
+      {{ choice[labelProp()] }}
+    </option>
+  }
+</select>

@@ -1,0 +1,33 @@
+@import "/src/screens.scss";
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacer-1);
+
+  min-width: 40px;
+  min-height: 40px;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+
+  :disabled {
+    cursor: not-allowed;
+  }
+}
+
+.btn {
+  &__text {
+    &--large {
+      font-weight: bold;
+    }
+  }
+
+  &__spinner {
+    margin-left: var(--spacer-2);
+    width: 20px;
+    height: 20px;
+  }
+}

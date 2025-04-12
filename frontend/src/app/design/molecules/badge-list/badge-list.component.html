@@ -1,0 +1,72 @@
+<div class="badge-list">
+  <div class="badge-list__list">
+    <span class="badge-list__label"> {{ label() }}: </span>
+    @for (entry of entries(); track $index) {
+      <app-interactive-badge
+        class="badge-list__entry"
+        [kind]="'DARK'"
+        [iconKind]="'DANGER'"
+        [text]="entry.text"
+        [textLink]="entry.link"
+        [showDeleteButton]="canDelete()"
+        (iconClick)="onEntryDelete(entry)"
+      ></app-interactive-badge>
+    }
+
+    <!-- Small Create Form -->
+    @if (canCreate()) {
+      @switch (createKind()) {
+        @case ("LINK") {
+          <ng-container [ngTemplateOutlet]="linkCreate" />
+        }
+        @case ("SELECT") {
+          <ng-container [ngTemplateOutlet]="selectCreate" />
+        }
+      }
+    }
+  </div>
+</div>
+
+<ng-template #selectCreate>
+  @let optionsVal = options();
+  @let optionLabelPropVal = optionLabelProp();
+  @let optionValuePropVal = optionValueProp();
+  @let badgeLabel = createBadgeLabel();
+  @let fieldLabel = formFieldLabel();
+
+  @if (
+    optionsVal &&
+    optionLabelPropVal &&
+    optionValuePropVal &&
+    badgeLabel &&
+    fieldLabel
+  ) {
+    <app-small-create-form
+      class="badge-list__create-form"
+      [options]="optionsVal"
+      [labelProp]="optionLabelPropVal"
+      [valueProp]="optionValuePropVal"
+      [badgeText]="badgeLabel"
+      [formFieldLabel]="fieldLabel"
+      [cancelButtonType]="'DARK'"
+      [createHotkey]="hotkey()"
+      [disableHotkeys]="disableHotkeys()"
+      (create)="onEntryCreate($event)"
+    ></app-small-create-form>
+  }
+</ng-template>
+
+<ng-template #linkCreate>
+  @let badgeLabel = createBadgeLabel();
+  @if (badgeLabel) {
+    <app-badge
+      class="badge-list__create-badge"
+      [kind]="'PRIMARY'"
+      [icon]="'plus'"
+      [text]="badgeLabel"
+      [interactionMode]="'LINK'"
+      [link]="createLink()"
+    >
+    </app-badge>
+  }
+</ng-template>

@@ -1,0 +1,67 @@
+/* SEARCHBAR CSS */
+
+// Remove "blue x" from chrome searchbar styling
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+.search {
+  margin-bottom: var(--spacer-4);
+
+  &__form {
+    flex: 1;
+  }
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-white);
+    border: solid 2px var(--bs-white);
+    border-radius: var(--bs-border-radius);
+    position: relative;
+    gap: 4px;
+
+    &--active,
+    &:focus,
+    &:focus-within {
+      border-color: var(--bs-link-hover-color);
+
+      .search__label {
+        font-size: 14px;
+        top: -4px;
+        padding: var(--spacer-0) var(--spacer-1);
+        background-color: var(--bs-dark);
+        border-radius: var(--bs-border-radius);
+      }
+    }
+
+    &--disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__input {
+    background-color: var(--bs-gray-800);
+    width: 100%;
+    color: var(--bs-white);
+    border-radius: var(--bs-border-radius);
+
+    &--disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__button {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    padding: var(--spacer-3);
+
+    &--disabled {
+      cursor: not-allowed;
+    }
+  }
+}

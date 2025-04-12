@@ -1,0 +1,16 @@
+.entry {
+  margin-bottom: var(--spacer-4);
+  padding-left: var(--spacer-2);
+  padding-right: var(--spacer-2);
+
+  &__placeholder {
+    height: 280px;
+  }
+
+  &__link {
+    font-weight: unset;
+    text-decoration: unset;
+    display: block;
+    border-radius: var(--bs-border-radius);
+  }
+}

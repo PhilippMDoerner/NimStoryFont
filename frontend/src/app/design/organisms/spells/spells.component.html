@@ -1,0 +1,104 @@
+<div class="container list">
+  @if (canCreate()) {
+    <div class="list__button">
+      <button
+        btn
+        class="list__button--button"
+        [kind]="'PRIMARY'"
+        [text]="'Add Spell'"
+        [icon]="'plus'"
+        (clicked)="addSpell()"
+        [hotkey]="'c'"
+        (hotkeyPressed)="addSpell()"
+      ></button>
+    </div>
+  }
+
+  <div class="row">
+    @if (isCreatingSpell()) {
+      <div class="list__spell-card spell-card" [@slideUpFromBottom]>
+        <app-collapsible-panel [isOpen]="true" [ariaLevel]="2">
+          <div heading class="spell-card__heading">
+            <span>
+              {{ createSpellData().name ?? "" }}
+            </span>
+          </div>
+          <app-spell
+            body
+            class="spell-card__spell"
+            [spell]="createSpellData()"
+            [serverModel]="undefined"
+            [playerClasses]="playerClasses()"
+            [canUpdate]="false"
+            [canDelete]="false"
+            [canCreate]="canCreate()"
+            [cancelButtonType]="'DARK'"
+            (spellCreate)="onSpellCreate($event)"
+            (spellCreateCancel)="cancelSpellCreation()"
+          ></app-spell>
+        </app-collapsible-panel>
+      </div>
+    }
+    <app-focus-list [entries]="spellCards()" #focusListComponent>
+      <ng-template
+        #itemTemplate
+        let-focusEntry
+        [inferContextTypeFrom]="focusListComponent"
+      >
+        <div
+          class="list__spell-card spell-card"
+          [@slideOutFromBottom]
+          [id]="focusEntry.data.spell.name"
+          #spell
+        >
+          <app-collapsible-panel
+            [isOpen]="focusEntry.data.isOpen"
+            [ariaLevel]="2"
+          >
+            <div heading class="spell-card__heading">
+              <span class="spell-card__heading-text">
+                {{ focusEntry.data.spell.name ?? "" }}
+              </span>
+
+              <span class="spell-card__classes">
+                @for (
+                  connection of focusEntry.data.spell.player_class_connections;
+                  track connection.pk
+                ) {
+                  <button
+                    class="spell-card__class"
+                    (click)="onSpellClassClick($event, connection)"
+                  >
+                    <app-badge
+                      [text]="connection.player_class_details?.name ?? ''"
+                      [kind]="'DARK'"
+                    ></app-badge>
+                  </button>
+                }
+              </span>
+            </div>
+            <app-spell
+              body
+              class="spell-card__spell"
+              [spell]="focusEntry.data.spell"
+              [serverModel]="serverModel()"
+              [playerClasses]="playerClasses()"
+              [canUpdate]="canUpdate()"
+              [canDelete]="canDelete()"
+              [canCreate]="canCreate()"
+              [cancelButtonType]="'DARK'"
+              (spellDelete)="onSpellDelete($event)"
+              (spellUpdate)="spellUpdate.emit($event)"
+              (spellCreateCancel)="cancelSpellCreation()"
+              (connectionDelete)="connectionDelete.emit($event)"
+              (connectionCreate)="connectionCreate.emit($event)"
+            ></app-spell>
+          </app-collapsible-panel>
+        </div>
+      </ng-template>
+    </app-focus-list>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<ng-template #loading><app-spinner></app-spinner></ng-template>

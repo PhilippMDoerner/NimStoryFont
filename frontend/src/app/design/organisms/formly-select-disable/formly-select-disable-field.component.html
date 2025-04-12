@@ -1,0 +1,30 @@
+<div class="field mb-3 {{ field.className }}" [class.d-none]="to.hidden">
+  <label class="form-label" [for]="'formly_disable_select_' + props.label">
+    <app-info-circle-tooltip
+      [text]="props.label + (props.required ? '*' : '')"
+      [tooltip]="props['additionalProperties']['tooltipMessage']"
+    ></app-info-circle-tooltip>
+  </label>
+
+  @let selectOptions = selectOptions$ | async;
+  @if (selectOptions) {
+    <select
+      class="form-select"
+      [name]="'formly_disable_select_' + props.label"
+      [id]="'formly_disable_select_' + props.label"
+      [required]="!!props.required"
+      [formControl]="formControl"
+      [formlyAttributes]="field"
+    >
+      @for (entry of selectOptions; track entry) {
+        <option
+          [ngValue]="entry.value[props['valueProp']]"
+          [disabled]="!entry.enabled"
+          [selected]="entry.value[props['valueProp']] === modelValue"
+        >
+          {{ entry.value[props["labelProp"]] }}
+        </option>
+      }
+    </select>
+  }
+</div>

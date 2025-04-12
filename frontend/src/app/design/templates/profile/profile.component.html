@@ -1,0 +1,108 @@
+<app-page-container>
+  <article class="profile">
+    <!-- Section Heading -->
+    <div class="row profile__heading heading">
+      <h1 class="col-12 col-sm-6 heading__text">
+        <app-icon [icon]="'circle-user'"></app-icon>
+        Profile
+      </h1>
+
+      <!-- Header Buttons -->
+      <div class="col-12 col-sm-6 heading__buttons">
+        <button
+          btn
+          class="heading__button"
+          [kind]="'SECONDARY'"
+          [icon]="showProfileEditForm ? 'times' : 'pencil'"
+          [text]="showProfileEditForm ? 'Cancel Profile Edit' : 'Edit Profile'"
+          (clicked)="toggleProfileEditState()"
+        ></button>
+
+        <button
+          btn
+          class="heading__button"
+          [kind]="'SECONDARY'"
+          [icon]="showPasswordEditForm ? 'times' : 'pencil'"
+          [text]="
+            showPasswordEditForm ? 'Cancel Password Edit' : 'Edit Password'
+          "
+          (clicked)="togglePasswordEditState()"
+        ></button>
+      </div>
+    </div>
+
+    <app-separator></app-separator>
+
+    <!-- Profile -->
+    @if (!showProfileEditForm) {
+      <div class="row profile__data">
+        <h2 class="h3">Profile Data</h2>
+        <div class="col-4">Username</div>
+        <div class="col-8">{{ user.username }}</div>
+        <div class="col-4">Email</div>
+        <div class="col-8">{{ user.email }}</div>
+      </div>
+      <section
+        class="row profile__memberships"
+        aria-labelledby="campaign-membership-label"
+      >
+        <h2 id="campaign-membership-label" class="h3">Campaign Memberships</h2>
+        @for (membership of memberships; track membership; let i = $index) {
+          <div class="row pe-0">
+            <div class="col-5">{{ membership.campaignName | titlecase }}</div>
+            <div class="col-4">{{ membership.role | titlecase }}</div>
+            <div class="col-3 pe-0 d-flex justify-content-end">
+              <app-confirmation-toggle-button
+                [attr.aria-label]="
+                  'Leave campaign of ' + membership.campaignName
+                "
+                [itemToDelete]="
+                  'your ' +
+                  (membership.campaignName | titlecase) +
+                  ' membership'
+                "
+                [icon]="'sign-out-alt'"
+                [toggleType]="'SECONDARY'"
+                [enableHotkey]="false"
+                (confirm)="leaveCampaign(membership)"
+              />
+            </div>
+          </div>
+        }
+      </section>
+    } @else {
+      <app-card>
+        <app-form
+          [model]="profileModel"
+          [fields]="profileFields"
+          [cancelButtonType]="'DARK'"
+          (formlyCancel)="toggleProfileEditState()"
+          (formlySubmit)="submitProfileUpdate()"
+        ></app-form>
+      </app-card>
+    }
+
+    <!-- Password Form -->
+    @if (showPasswordEditForm) {
+      <app-card>
+        <app-form
+          [model]="passwordModel"
+          [fields]="passwordFields"
+          [cancelButtonType]="'DARK'"
+          (formlyCancel)="togglePasswordEditState()"
+          (formlySubmit)="updatePassword()"
+        ></app-form>
+      </app-card>
+    }
+
+    <app-article-footer
+      class="mt-5 d-block"
+      [buttonLabel]="
+        campaignName ? 'Back To ' + campaignName : 'Back to Campaigns'
+      "
+      [buttonLink]="backUrl()"
+      [deleteMessage]="'your account'"
+      (delete)="profileDelete.emit(user)"
+    ></app-article-footer>
+  </article>
+</app-page-container>

@@ -1,0 +1,33 @@
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+@let contentId = "main-content";
+@let currentUrl = currentUrl$ | async;
+
+@if (currentUrl != null) {
+  <a
+    bypass
+    [skipToId]="contentId"
+    class="skip-to-content fw-bold fs-4"
+    (click)="focusMain()"
+    (keydown.enter)="focusMain()"
+    (keydown.space)="focusMain()"
+  >
+    @if (!currentUrl) {
+      Failed to build skip-url. Please reload the page
+    } @else {
+      Skip to content
+    }
+  </a>
+}
+
+<app-page
+  [serverUrl]="serverUrl"
+  [contentId]="contentId"
+  (logout)="logout()"
+></app-page>
+<app-toast-overlay></app-toast-overlay>
+
+<app-onboarding-modal
+  class="d-none"
+  [isCampaignAdmin]="hasCampaignAdminRights()"
+/>
+<app-hotkey-modal class="d-none" />

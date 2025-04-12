@@ -1,0 +1,14 @@
+<div class="container">
+  <div class="row">
+    @for (option of sidebarEntries(); track $index) {
+      <app-selectable-entry
+        class="col-6 col-sm-3 row-entry"
+        [label]="option.label"
+        [style]="{ '--border-color': 'var(' + option.color + ')' }"
+        [isActive]="option.active"
+        [isSelectable]="true"
+        (entryClick)="onSidebarEntryClick($index)"
+      ></app-selectable-entry>
+    }
+  </div>
+</div>

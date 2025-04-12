@@ -1,0 +1,25 @@
+:host {
+  border-radius: var(--bs-border-radius);
+}
+
+.badge-button {
+  border-radius: var(--bs-border-radius);
+  display: flex;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    color: inherit;
+  }
+}
+
+.badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bg-warning,
+.bg-light,
+.bg-info {
+  color: (var(--bs-black));
+}

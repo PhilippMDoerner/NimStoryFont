@@ -1,0 +1,76 @@
+:host {
+  --image-height: 90vh;
+}
+
+.container-fluid {
+  height: var(--image-height);
+}
+
+.image-grid {
+  height: 100%;
+  padding-left: 0;
+  list-style-type: none;
+
+  &__container {
+    padding: 0;
+  }
+
+  &__entry {
+    cursor: pointer;
+  }
+}
+
+.entry {
+  position: relative;
+  text-decoration: none;
+  display: flex;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  min-height: 30vh;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+
+  opacity: 0.75;
+  transition: opacity 0.2s ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    opacity: 1;
+
+    .entry__heading {
+      color: var(--bs-link-hover-color);
+      transform: scale(1.3);
+      transition: transform 0.2s ease-in-out;
+    }
+  }
+
+  &__overlay {
+    position: absolute;
+    background-color: var(--wiki-bg-transparent);
+    z-index: 1;
+    width: 100%;
+    min-height: 4rem;
+    line-break: anywhere;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  &__heading {
+    margin-bottom: var(--spacer-0);
+    padding-left: var(--spacer-3);
+    padding-right: var(--spacer-3);
+  }
+}
+
+.heading {
+  &__icon {
+    height: var(--spacer-5);
+    width: var(--spacer-5);
+    border-radius: var(--bs-border-radius);
+  }
+}

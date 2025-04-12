@@ -1,0 +1,14 @@
+@let map = store.map();
+
+@if (map) {
+  <app-map
+    [mapChoices]="store.campaignMaps() ?? []"
+    [map]="map"
+    [serverUrl]="serverUrl"
+    [canUpdate]="store.hasWritePermission()"
+    [canCreate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    (mapDelete)="store.deleteMap($event.pk!)"
+    (mapChange)="mapChange($event)"
+  ></app-map>
+}
