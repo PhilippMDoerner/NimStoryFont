@@ -1,3 +1,0 @@
-import itemModel
-
-export itemModel

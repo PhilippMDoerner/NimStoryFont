@@ -1,3 +1,0 @@
-import organizationModel
-
-export organizationModel

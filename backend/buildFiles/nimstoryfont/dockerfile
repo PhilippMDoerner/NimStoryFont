@@ -1,0 +1,21 @@
+FROM alpine
+
+# Install dependencies
+RUN apk update
+RUN apk add sqlite-libs openssl libsodium
+RUN ln /usr/lib/libsqlite3.so.0 /usr/lib/libsqlite3.so
+RUN ln /usr/lib/libsodium.so.26 /usr/lib/libsodium.so.18
+# Copy necessary files
+COPY ./nimstoryfont .
+COPY ./nimstoryfontSettings.json /settings.json
+# Setup necessary directories
+RUN mkdir /database
+RUN mkdir /imagemedia
+RUN mkdir /server_logs
+        # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
+RUN mkdir /session_audio
+
+# Mount external directories
+
+#Startup command
+CMD ["/nimstoryfont"]

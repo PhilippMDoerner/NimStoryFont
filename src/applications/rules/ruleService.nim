@@ -1,3 +1,0 @@
-import ruleModel
-
-export ruleModel
