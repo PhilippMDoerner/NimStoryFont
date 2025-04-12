@@ -1,0 +1,48 @@
+// Inter
+@mixin interFont($fontName, $weight, $style: normal) {
+  @font-face {
+    font-family: "Inter";
+    src: url("/assets/fonts/inter/static/Inter_18pt-#{$fontName}.ttf")
+      format("truetype");
+    font-weight: #{$weight};
+    font-style: #{$style};
+  }
+}
+
+@include interFont(Black, 900);
+@include interFont(BlackItalic, 900, italic);
+@include interFont(Bold, 700);
+@include interFont(BoldItalic, 700, italic);
+@include interFont(ExtraBold, 800);
+@include interFont(ExtraBoldItalic, 800, italic);
+@include interFont(ExtraLight, 200);
+@include interFont(ExtraLightItalic, 200, italic);
+@include interFont(Italic, 400, italic);
+@include interFont(Light, 300);
+@include interFont(LightItalic, 300, italic);
+@include interFont(Medium, 500);
+@include interFont(MediumItalic, 500, italic);
+@include interFont(Regular, 400);
+@include interFont(SemiBold, 600);
+@include interFont(SemiBoldItalic, 600, italic);
+@include interFont(Thin, 100);
+@include interFont(ThinItalic, 100, italic);
+
+// Source Sans Pro
+@mixin sourceSansFont($fontName, $weight, $style: normal) {
+  @font-face {
+    font-family: "Inter";
+    src: url("/assets/fonts/SourceSansPro-#{$fontName}.ttf") format("truetype");
+    font-weight: #{$weight};
+    font-style: #{$style};
+  }
+}
+
+@include sourceSansFont(ExtraLight, 200);
+@include sourceSansFont(Regular, 400);
+@include sourceSansFont(Bold, 700);
+@include sourceSansFont(Black, 900);
+@include sourceSansFont(ExtraLightItalic, 200, italic);
+@include sourceSansFont(Italic, 400, italic);
+@include sourceSansFont(BoldItalic, 700, italic);
+@include sourceSansFont(BlackItalic, 900, italic);

@@ -1,0 +1,18 @@
+<div class="mb-3 {{ field.className }}" [class.d-none]="to.hidden">
+  <label class="form-label" [for]="to['name']">
+    {{ to.label }}
+
+    @if (to.required) {
+      *
+    }
+  </label>
+
+  <editor
+    [id]="field.id ?? ''"
+    [attr.name]="to['name']"
+    #textEditorElement
+    [formControl]="formControl"
+    [formlyAttributes]="field"
+    [init]="settings"
+  ></editor>
+</div>

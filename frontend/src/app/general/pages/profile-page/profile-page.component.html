@@ -1,0 +1,15 @@
+@let user = user$();
+
+@if (user != null) {
+  <app-profile
+    [user]="user"
+    [memberships]="memberships$() ?? []"
+    [canDeleteProfile]="isCurrentUser$()"
+    [campaignName]="campaignName$()"
+    [backUrl]="backUrl()"
+    (campaignLeave)="profilePageStore.leaveCampaign($event)"
+    (passwordUpdate)="profilePageStore.passwordUpdate($event)"
+    (profileDelete)="profilePageStore.profileDelete()"
+    (profileUpdate)="profilePageStore.profileUpdate($event)"
+  ></app-profile>
+}

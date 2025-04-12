@@ -1,0 +1,28 @@
+<app-page-container>
+  <article>
+    <h1 class="heading">Sessions</h1>
+
+    <app-sessions
+      [sessions]="sessions()"
+      [serverModel]="serverModel()"
+      [campaignId]="campaignId()"
+      [canCreate]="canCreate()"
+      [canUpdate]="canUpdate()"
+      [canDelete]="canDelete()"
+      (sessionDelete)="sessionDelete.emit($event)"
+      (sessionCreate)="sessionCreate.emit($event)"
+      (sessionUpdate)="sessionUpdate.emit($event)"
+    ></app-sessions>
+
+    <div class="container">
+      <a
+        class="back-link"
+        [routerLink]="homeUrl()"
+        btn
+        [kind]="'SECONDARY'"
+        [text]="'Back to Frontpage'"
+      >
+      </a>
+    </div>
+  </article>
+</app-page-container>

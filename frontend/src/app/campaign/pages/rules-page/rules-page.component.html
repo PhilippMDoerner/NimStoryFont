@@ -1,0 +1,18 @@
+@let rules = store.rules();
+@let campaignName = globalStore.campaignName();
+@let campaignId = globalStore.currentCampaign()?.pk;
+
+@if (rules && campaignName && campaignId) {
+  <app-rules-template
+    [campaignName]="campaignName"
+    [campaignId]="campaignId"
+    [rules]="rules"
+    [serverModel]="store.ruleServerModel()"
+    [canUpdate]="store.hasWritePermission()"
+    [canCreate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    (ruleCreate)="store.createRule($event)"
+    (ruleUpdate)="store.updateRule($event)"
+    (ruleDelete)="store.deleteRule($event.pk!)"
+  ></app-rules-template>
+}

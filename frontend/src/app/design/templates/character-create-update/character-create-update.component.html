@@ -1,0 +1,70 @@
+<app-page-container>
+  <article class="container create-update">
+    <h1 class="create-update__heading heading">
+      <span class="heading__text"> {{ heading() }} </span>
+
+      <!-- Heading -->
+      <div class="heading__edit-cancel">
+        <button
+          btn
+          (clicked)="onCancel()"
+          [icon]="'times'"
+          [kind]="'SECONDARY'"
+          [attr.aria-label]="'Cancel ' + heading()"
+          [hotkey]="'q'"
+          (hotkeyPressed)="onCancel()"
+        ></button>
+      </div>
+    </h1>
+
+    <!-- Form -->
+    @switch (state()) {
+      @case ("CREATE") {
+        <ng-container [ngTemplateOutlet]="createForm" />
+      }
+      @case ("UPDATE") {
+        <ng-container [ngTemplateOutlet]="updateForm" />
+      }
+      @case ("OUTDATED_UPDATE") {
+        <ng-container [ngTemplateOutlet]="outdatedUpdateForm" />
+      }
+    }
+  </article>
+</app-page-container>
+
+<ng-template #createForm>
+  <app-form
+    class="create-update__form"
+    [model]="userModel()"
+    [fields]="formlyFields()"
+    (formlySubmit)="onSubmit($event)"
+    (formlyCancel)="onCancel()"
+  ></app-form>
+</ng-template>
+
+<ng-template #updateForm>
+  <div class="create-update__form form">
+    <div class="form__character-data">
+      <h4 class="form__heading">Character Data</h4>
+
+      <app-separator class="form__heading-separator" />
+
+      <app-form
+        [model]="userModel()"
+        [fields]="formlyFields()"
+        (formlySubmit)="onSubmit($event)"
+        (formlyCancel)="onCancel()"
+      ></app-form>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #outdatedUpdateForm>
+  <app-compare-form
+    [fields]="formlyFields()"
+    [modelFromUser]="$any(userModel())"
+    [modelFromServer]="serverModel()"
+    (formlySubmit)="onSubmit($event)"
+    (formlyCancel)="onCancel()"
+  ></app-compare-form>
+</ng-template>

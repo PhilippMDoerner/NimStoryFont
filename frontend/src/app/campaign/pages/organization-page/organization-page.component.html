@@ -1,0 +1,21 @@
+@let organization = store.organization();
+
+@if (organization) {
+  <app-organization
+    [organization]="organization"
+    [organizationServerModel]="store.organizationServerModel()"
+    [serverUrl]="serverUrl"
+    [imageServerModel]="store.imageServerModel()"
+    [campaignCharacters]="store.campaignCharacters()"
+    [canUpdate]="store.hasWritePermission()"
+    [canCreate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    (createImage)="store.createImage($event, organization.pk!)"
+    (deleteImage)="store.deleteImage($event.pk)"
+    (updateImage)="store.updateImage($event)"
+    (organizationDelete)="store.deleteOrganization($event.pk!)"
+    (organizationUpdate)="store.updateOrganization($event)"
+    (organizationMembershipCreate)="store.createMembership($event)"
+    (organizationMembershipDelete)="store.deleteMembership($event)"
+  ></app-organization>
+}

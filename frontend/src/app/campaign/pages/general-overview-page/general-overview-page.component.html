@@ -1,0 +1,13 @@
+@let campaignName = campaignName$ | async;
+@let overviewType = overviewType$ | async;
+@let entries = entries$ | async;
+
+@if (entries != null && campaignName != null && overviewType != null) {
+  <app-general-overview
+    [serverUrl]="serverUrl"
+    [overviewType]="overviewType"
+    [entries]="entries"
+    [campaignName]="campaignName"
+    [canCreate]="canCreate()"
+  ></app-general-overview>
+}

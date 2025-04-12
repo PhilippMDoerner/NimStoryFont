@@ -1,0 +1,39 @@
+:host {
+  display: inline-block;
+  --bg-hover-color: var(--bs-secondary);
+}
+
+.field {
+  text-align: unset;
+  border-radius: var(--bs-border-radius);
+
+  &--display {
+    min-height: 1rem;
+    width: 100%;
+    cursor: pointer;
+
+    &:focus,
+    &:hover {
+      outline-offset: 4px;
+      color: unset;
+      background-color: var(--bg-hover-color);
+    }
+  }
+
+  &--hidden {
+    display: none;
+  }
+
+  &__buttons {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacer-3);
+  }
+}
+
+.editor {
+  &--focus {
+    outline: var(--focus-outline);
+    border-radius: var(--bs-border-radius);
+  }
+}

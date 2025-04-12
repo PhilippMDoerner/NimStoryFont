@@ -1,0 +1,71 @@
+@import "/src/screens.scss";
+
+:host {
+  --align: start;
+  --confirmation-bg-color: var(--bs-card-bg) display: flex;
+  justify-content: var(--align);
+}
+
+.confirmation-toggle {
+  display: inline-block;
+  width: fit-content;
+}
+
+.confirmation {
+  border: 1px solid;
+  display: flex;
+  align-items: flex-end;
+  align-content: center;
+  border-radius: var(--bs-border-radius);
+  padding: var(--spacer-2) var(--spacer-3);
+  justify-content: space-between;
+  background-color: var(--confirmation-bg-color);
+  width: fit-content;
+  flex-direction: column;
+
+  @include media-breakpoint-up(lg) {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  &--DANGER {
+    border-color: var(--bs-danger);
+  }
+
+  &--WARNING {
+    border-color: var(--bs-warning);
+  }
+
+  &--PRIMARY {
+    border-color: var(--bs-primary);
+  }
+
+  &--SECONDARY {
+    border-color: var(--bs-secondary);
+  }
+
+  &--TERTIARY {
+    border-color: var(--bs-dark);
+  }
+
+  &__question {
+    flex: 1;
+
+    @include media-breakpoint-up(lg) {
+      margin-right: var(--spacer-2);
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    @include media-breakpoint-up(lg) {
+      width: unset;
+      :nth-child(1) {
+        margin-right: var(--spacer-2);
+      }
+    }
+  }
+}

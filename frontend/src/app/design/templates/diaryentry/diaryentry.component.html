@@ -1,0 +1,130 @@
+<app-page-container>
+  <article class="container diarentry">
+    @if (canUpdate()) {
+      <div class="diaryentry__menu-container">
+        <app-context-menu
+          [menuButtonKind]="'SECONDARY'"
+          [menuButtonIcon]="'pencil'"
+          [menuButtonHotkey]="'e'"
+          [menuButtonAriaLabel]="'Edit actions for diaryentry'"
+          [placement]="['bottom-end', 'top-end']"
+          [menuItems]="[
+            {
+              kind: 'LINK',
+              label: 'Edit Diaryentry',
+              icon: 'book-open',
+              url: updateUrl(),
+            },
+            {
+              kind: 'BUTTON',
+              label:
+                state() === 'DISPLAY' ? 'Edit Encounters' : 'Read Encounters',
+              icon: state() === 'DISPLAY' ? 'rectangle-list' : 'times',
+              actionName: 'toggleState',
+              hotkey: 'r',
+            },
+          ]"
+          (actionTriggered)="toggleState()"
+        ></app-context-menu>
+      </div>
+    }
+
+    <!-- Heading -->
+    <div class="row">
+      <h1 class="col-12 diaryentry__heading">
+        Diary Entry # {{ diaryentry().session_details?.session_number }} <br />
+        {{ diaryentry().title }}
+      </h1>
+      <p class="col-12 fs-6 fw-normal diaryentry__subheading">
+        Written by: {{ diaryentry().author_details?.name }} <br />
+        on {{ diaryentry().session_details?.session_date | date: "longDate" }}
+      </p>
+    </div>
+
+    @if (canUpdate() && state() === "EDIT") {
+      <h2 class="diaryentry__contents-heading">Contents</h2>
+      <app-drag-and-drop-list
+        class="diaryentry__contents"
+        [entries]="sortedEncounters()"
+        [labelProp]="'title'"
+        [idProp]="'pk'"
+        [isUpdating]="isUpdatingEncounters()"
+        aria-label="Rearrangeable encounters in this diaryentry"
+        (changed)="rearrangeEncounters($event)"
+        (swapEntries)="swapEncounters($event)"
+      />
+    }
+
+    @if (state() === "DISPLAY") {
+      <!-- Next/Prior Diaryentry Buttons -->
+      <ng-container *ngTemplateOutlet="navButtons" />
+    }
+
+    @if (state() === "EDIT") {
+      <h3 [id]="encountersListId" class="fs-2">Encounters</h3>
+    }
+
+    <!-- DiaryEntry Text In Encounters -->
+    <app-diaryentry-encounters
+      [state]="state() === 'DISPLAY' ? 'READ' : 'EDIT'"
+      (connectionDelete)="encounterConnectionDelete.emit($event)"
+      (connectionCreate)="encounterConnectionCreate.emit($event)"
+      (encounterDelete)="encounterDelete.emit($event)"
+      (encounterUpdate)="encounterUpdate.emit($event)"
+      (encounterCreate)="encounterCreate.emit($event)"
+      (encounterCutInsert)="encounterCutInsert.emit($event)"
+      (addUnfinishedEncounter)="addUnfinishedEncounter.emit($event)"
+    ></app-diaryentry-encounters>
+
+    @if (state() === "DISPLAY") {
+      <!-- Next/Prior Diaryentry Buttons -->
+      <ng-container *ngTemplateOutlet="navButtons" />
+    }
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to Diaryentries'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="'DiaryEntry ' + diaryentry().title"
+      (delete)="diaryentryDelete.emit(diaryentry())"
+    ></app-article-footer>
+  </article>
+</app-page-container>
+
+<ng-template #navButtons>
+  <!-- Next/Prior Diaryentry Buttons -->
+  <div class="row diaryentry__nav-buttons nav-buttons">
+    <!-- Next Diaryentry -->
+    <div class="col-xl-2 col-lg-3 col-md-4 col-5 nav-buttons__button-container">
+      @if (diaryentry().adjacent_diaryentries.next_diaryentry) {
+        <a
+          btn
+          class="nav-buttons__button nav-buttons__button--left"
+          [routerLink]="nextDiaryentryUrl()"
+          [text]="'Next'"
+          aria-label="To Next Diaryentry"
+          [icon]="'arrow-left'"
+          [kind]="'SECONDARY'"
+        >
+        </a>
+      }
+    </div>
+
+    <!-- Prior Diaryentry -->
+    <div class="col-xl-2 col-lg-3 col-md-4 col-5 nav-buttons__button-container">
+      @if (diaryentry().adjacent_diaryentries.prior_diaryentry) {
+        <a
+          btn
+          class="nav-buttons__button nav-buttons__button--right"
+          [routerLink]="priorDiaryentryUrl()"
+          [text]="'Back'"
+          aria-label="To Prior Diaryentry"
+          [icon]="'arrow-right'"
+          [kind]="'SECONDARY'"
+        >
+        </a>
+      }
+    </div>
+  </div>
+</ng-template>

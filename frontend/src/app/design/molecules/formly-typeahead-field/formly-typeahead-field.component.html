@@ -1,0 +1,36 @@
+@let selectedItemLabel = selectedItemLabel$ | async;
+<div class="form-control">
+  @if (selectedItemLabel && selectedItemLabel !== "undefined") {
+    <app-badge
+      class="form-control__selected-value-badge"
+      [kind]="'DARK'"
+      [text]="selectedItemLabel"
+      [ngbTooltip]="'Clear this option'"
+      [icon]="'times'"
+      [interactionMode]="'BUTTON'"
+      [maxLength]="20"
+      (badgeClick)="resetSelectedValue()"
+      (click)="$event.stopPropagation()"
+    />
+  }
+
+  <input
+    #inputElement
+    #instance="ngbTypeahead"
+    [id]="field.id ?? ''"
+    type="text"
+    class="form-control__input"
+    [ngbTypeahead]="search"
+    [disabled]="props.disabled ?? false"
+    [formlyAttributes]="field"
+    [placeholder]="props.placeholder"
+    [resultFormatter]="formatItem.bind(this)"
+    [inputFormatter]="formatItem.bind(this)"
+    [attr.aria-invalid]="showError"
+    [editable]="false"
+    (blur)="formControl.markAsTouched()"
+    (selectItem)="onSelect($event)"
+    (keydown.Backspace)="clearOnEmptyInput($event.target)"
+    (keydown.Escape)="resetValueAndText()"
+  />
+</div>

@@ -1,0 +1,75 @@
+<div ngbDropdown [placement]="placement()" (openChange)="isOpen.set($event)">
+  <button
+    btn
+    ngbDropdownToggle
+    #triggerElement
+    [id]="triggerId"
+    class="dropdown-toggle"
+    [kind]="menuButtonKind()"
+    [text]="menuButtonText()"
+    [icon]="menuButtonIcon()"
+    [size]="menuButtonSize()"
+    [hotkey]="menuButtonHotkey()"
+    aria-haspopup="menu"
+    [attr.aria-controls]="menuId"
+    [attr.aria-label]="menuButtonAriaLabel()"
+    (hotkeyPressed)="openAndScrollToMenu()"
+  ></button>
+  <ul
+    ngbDropdownMenu
+    class="dropdown-menu dropdown-menu-end p-0"
+    role="menu"
+    [id]="menuId"
+    [attr.aria-labelledby]="triggerId"
+  >
+    @for (item of menuItems(); track item) {
+      @switch (item.kind) {
+        @case ("HEADER") {
+          <div ngbDropdownItem [class]="'dropdown-header ' + item.headerKind">
+            {{ item.label }}
+          </div>
+        }
+        @case ("SEPARATOR") {
+          <hr ngbDropdownItem class="dropdown-divider" />
+        }
+        @case ("LINK") {
+          <a
+            #menuItem
+            ngbDropdownItem
+            [id]="id + '-' + $index"
+            class="dropdown-item"
+            role="menuitem"
+            [class.active]="item.active"
+            [class.disabled]="item.disabled"
+            [routerLink]="item.url"
+            [hotkey]="item.hotkey"
+            (hotkeyPressed)="menuItem.click()"
+          >
+            @if (item.icon) {
+              <app-icon class="me-3" [icon]="item.icon"></app-icon>
+            }
+            {{ item.label }}
+          </a>
+        }
+        @case ("BUTTON") {
+          <button
+            [id]="id + '-' + $index"
+            class="dropdown-item"
+            [class.active]="item.active"
+            [class.disabled]="item.disabled"
+            [hotkey]="item.hotkey"
+            role="menuitem"
+            ngbDropdownItem
+            (click)="actionTriggered.emit(item.actionName)"
+            (hotkeyPressed)="actionTriggered.emit(item.actionName)"
+          >
+            @if (item.icon) {
+              <app-icon class="me-3" [icon]="item.icon"></app-icon>
+            }
+            {{ item.label }}
+          </button>
+        }
+      }
+    }
+  </ul>
+</div>

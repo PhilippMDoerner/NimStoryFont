@@ -1,0 +1,13 @@
+<app-site-admin
+  [users]="allSiteUsers()"
+  [campaigns]="allSiteCampaigns()"
+  [allGroups]="allPermissionGroups()"
+  [statistics]="siteStatistics()"
+  [serverUrl]="serverUrl"
+  (createCampaign)="store.createCampaign($event)"
+  (addUserGroup)="store.addUserToGroup($event.user, $event.groupId)"
+  (removeUserGroup)="store.removeUserFromGroup($event.user, $event.groupId)"
+  (deleteUser)="store.deleteUser($event)"
+  (createUser)="store.createUser($event)"
+  (downloadDatabase)="store.startDatabaseDownload()"
+></app-site-admin>

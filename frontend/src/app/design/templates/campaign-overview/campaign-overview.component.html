@@ -1,0 +1,103 @@
+<div class="container">
+  <div class="campaign__heading heading">
+    <div class="heading__buttons">
+      <a
+        btn
+        class="heading__button"
+        [kind]="'SECONDARY'"
+        [icon]="'circle-user'"
+        [text]="'Profile'"
+        [routerLink]="profileUrl()"
+      ></a>
+
+      <button
+        btn
+        class="heading__button"
+        [kind]="'SECONDARY'"
+        [icon]="'sign-out-alt'"
+        [text]="'Logout'"
+        (clicked)="logout.emit()"
+      ></button>
+
+      @if (isGlobalAdmin()) {
+        <a
+          btn
+          class="heading__button"
+          [kind]="'INFO'"
+          [icon]="'user-cog'"
+          [text]="'General Administration'"
+          [routerLink]="generalAdminUrl()"
+        >
+        </a>
+
+        <a
+          btn
+          class="heading__button"
+          [kind]="'INFO'"
+          [icon]="'table'"
+          [text]="'Config Tables'"
+          [routerLink]="configTableUrl()"
+        >
+        </a>
+      }
+
+      @if (enableCampaignCreation()) {
+        <a
+          btn
+          class="heading__button"
+          [kind]="'SECONDARY'"
+          [icon]="'plus'"
+          [text]="'Create Campaign'"
+          [routerLink]="campaignCreateUrl"
+        >
+        </a>
+      }
+    </div>
+
+    @let campaignsVal = campaigns();
+    <h1 class="fs-3 heading__text">
+      @if (campaignsVal && campaignsVal.length > 0) {
+        Choose Your Campaign
+      } @else if (campaignsVal && campaignsVal.length === 0) {
+        <ng-container *ngTemplateOutlet="noCampaignHeading" />
+      }
+    </h1>
+  </div>
+
+  <div class="body">
+    @let imageGridEntries = gridEntries();
+    @if (imageGridEntries != null) {
+      @if (imageGridEntries.length > 0) {
+        <app-image-grid
+          class="body__images"
+          [entries]="imageGridEntries"
+          [serverUrl]="serverUrl()"
+        />
+      } @else {
+        <ng-container *ngTemplateOutlet="noCampaign" />
+      }
+    } @else {
+      <app-spinner />
+    }
+  </div>
+</div>
+
+<ng-template #noCampaign>
+  <div class="campaign__empty-frame empty-frame">
+    <img
+      class="empty-frame__image"
+      [src]="dragonFrameUrl"
+      alt="Placeholder image for when no campaigns are available"
+    />
+    <div class="empty-frame__text">
+      <app-icon class="empty-frame__icon" [icon]="'lock'"></app-icon>
+      <h2 class="fs-4 m-0">Foiled by locks!</h2>
+      <div>
+        Campaigns are invite only. <br />
+        Ask your DM to get you on board!
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #noCampaignHeading> No Campaign available! </ng-template>

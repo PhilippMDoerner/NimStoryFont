@@ -1,0 +1,109 @@
+@if (rule() || state() === "CREATE") {
+  <div class="card__heading-container">
+    <div class="h4 card__heading heading">
+      @switch (state()) {
+        @case ("DISPLAY") {
+          <ng-container [ngTemplateOutlet]="displayHeading" />
+        }
+        @case ("UPDATE") {
+          <ng-container [ngTemplateOutlet]="updateHeading" />
+        }
+        @case ("CREATE") {
+          <ng-container [ngTemplateOutlet]="createHeading" />
+        }
+        @case ("OUTDATED_UPDATE") {
+          <ng-container [ngTemplateOutlet]="updateHeading" />
+        }
+      }
+    </div>
+
+    @if (canUpdate() || canCreate()) {
+      <app-edit-toggle
+        [buttonKind]="'DARK'"
+        [toggled]="state() !== 'DISPLAY'"
+        [disabledHotkey]="disabledHotkeys()"
+        [title]="'Edit ' + rule()?.name"
+        (toggleEdit)="onToggle($event)"
+      ></app-edit-toggle>
+    }
+  </div>
+  @switch (state()) {
+    @case ("DISPLAY") {
+      <ng-container [ngTemplateOutlet]="displayBody" />
+    }
+    @case ("UPDATE") {
+      <ng-container [ngTemplateOutlet]="updateBody" />
+    }
+    @case ("CREATE") {
+      <ng-container [ngTemplateOutlet]="createBody" />
+    }
+    @case ("OUTDATED_UPDATE") {
+      <ng-container [ngTemplateOutlet]="outdatedUpdateBody" />
+    }
+  }
+}
+
+<ng-template #displayHeading>
+  {{ rule()?.name }}
+</ng-template>
+
+<ng-template #displayBody>
+  @let ruleVal = rule();
+  @if (ruleVal) {
+    <app-html-text [text]="ruleVal.description ?? ''"></app-html-text>
+  }
+
+  <!-- Delete Toggler -->
+  @if (canDelete()) {
+    <app-confirmation-toggle-button
+      class="card__delete-confirmer"
+      [itemToDelete]="'Rule ' + rule()?.name"
+      [icon]="'trash'"
+      [enableHotkey]="!disabledHotkeys()"
+      (confirm)="onRuleDelete()"
+    ></app-confirmation-toggle-button>
+  }
+</ng-template>
+
+<ng-template #updateHeading> Update '{{ rule()?.name }}' </ng-template>
+
+<ng-template #updateBody>
+  <app-form
+    [model]="userModel()"
+    [fields]="formlyFields"
+    [cancelButtonType]="cancelButtonType()"
+    [submitButtonType]="submitButtonType()"
+    [disabledHotkeys]="disabledHotkeys()"
+    (formlySubmit)="onRuleUpdate($event)"
+    (formlyCancel)="changeState('DISPLAY', undefined)"
+  ></app-form>
+</ng-template>
+
+<ng-template #createHeading> Create new Rule </ng-template>
+
+<ng-template #createBody>
+  @if (canCreate()) {
+    <app-form
+      [model]="userModel()"
+      [fields]="formlyFields"
+      [cancelButtonType]="cancelButtonType()"
+      [submitButtonType]="submitButtonType()"
+      (formlySubmit)="onRuleCreate($event)"
+      (formlyCancel)="onRuleCreateCancel()"
+    ></app-form>
+  }
+</ng-template>
+
+<ng-template #outdatedUpdateBody>
+  @let userModelVal = userModel();
+  @if (userModelVal) {
+    <app-compare-form
+      [fields]="formlyFields"
+      [modelFromUser]="userModelVal"
+      [modelFromServer]="serverModel()"
+      [displayVertically]="true"
+      (formlySubmit)="onRuleUpdate($event)"
+      (formlyCancel)="changeState('DISPLAY', undefined)"
+    ></app-compare-form>
+  }
+</ng-template>

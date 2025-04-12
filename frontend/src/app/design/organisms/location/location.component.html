@@ -1,0 +1,23 @@
+<a class="location-title" [routerLink]="link()">
+  <h4 class="card__heading">
+    {{ location().name }}
+  </h4>
+</a>
+
+<!-- Location -->
+<div class="card__text">
+  <app-html-text [text]="location().description"></app-html-text>
+</div>
+
+@if (localCharacters().length > 0) {
+  <app-separator></app-separator>
+  <!-- List of Characters at this location -->
+  <div class="card__connections">
+    <app-badge-list
+      [entries]="localCharacters()"
+      [label]="'Local Characters'"
+      [canCreate]="false"
+      [canDelete]="false"
+    ></app-badge-list>
+  </div>
+}

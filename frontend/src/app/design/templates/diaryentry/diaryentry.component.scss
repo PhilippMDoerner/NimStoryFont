@@ -1,0 +1,92 @@
+::ng-deep li.entry.drag-and-drop-list-entry {
+  background-color: var(--bs-secondary);
+  color: var(--bs-white);
+}
+
+.diaryentry {
+  padding: 0;
+
+  &__menu-container {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__heading {
+    text-align: center;
+  }
+
+  &__subheading {
+    margin-bottom: var(--spacer-4);
+    text-align: center;
+    text-transform: unset;
+  }
+
+  &__contents-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-4);
+  }
+
+  &__images {
+    margin-bottom: var(--spacer-3);
+  }
+
+  &__quote {
+    margin-bottom: var(--spacer-5);
+  }
+
+  &__description {
+    margin-bottom: var(--spacer-5);
+  }
+
+  &__items {
+    margin-bottom: var(--spacer-5);
+  }
+
+  &__nav-buttons {
+    margin-bottom: var(--spacer-3);
+  }
+
+  &__contents {
+    margin-bottom: var(--spacer-4);
+  }
+}
+
+.nav-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &__button-container {
+    display: flex;
+  }
+
+  &__button {
+    width: 100%;
+    display: flex;
+    text-decoration: none;
+  }
+
+  &__inner-button {
+    width: 100%;
+  }
+}
+
+.edit-row {
+  display: flex;
+  justify-content: flex-end;
+
+  &__edit-container {
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+.edit-container {
+  &__button {
+    margin-top: var(--spacer-1);
+    margin-bottom: var(--spacer-1);
+  }
+}

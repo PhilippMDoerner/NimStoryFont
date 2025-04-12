@@ -1,0 +1,34 @@
+<footer class="footer">
+  <ng-container
+    [ngTemplateOutlet]="buttonLink() ? linkButton : nonLinkButton"
+  />
+
+  @if (showDelete()) {
+    <app-confirmation-toggle-button
+      aria-label="Delete current page"
+      [itemToDelete]="deleteMessage()"
+      [icon]="'trash'"
+      (confirm)="delete.emit()"
+    ></app-confirmation-toggle-button>
+  }
+</footer>
+
+<ng-template #linkButton>
+  <a
+    btn
+    [routerLink]="buttonLink()"
+    [kind]="'SECONDARY'"
+    [text]="buttonLabel()"
+    (clicked)="buttonClick.emit()"
+  >
+  </a>
+</ng-template>
+
+<ng-template #nonLinkButton>
+  <button
+    btn
+    [kind]="'SECONDARY'"
+    [text]="buttonLabel()"
+    (clicked)="buttonClick.emit()"
+  ></button>
+</ng-template>

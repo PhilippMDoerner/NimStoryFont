@@ -1,0 +1,34 @@
+@import "/src/screens.scss";
+
+:host {
+  --breadcrumb-divider: "/";
+  --breadcrumb-bg: unset;
+}
+
+.navigation {
+  display: flex;
+  justify-content: center;
+}
+
+.breadcrumb {
+  --bs-breadcrumb-divider: var(--breadcrumb-divider);
+  --bs-breadcrumb-bg: var(--breadcrumb-bg);
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+
+  @include media-breakpoint-up(md) {
+    flex-direction: row;
+  }
+}
+
+.breadcrumb-item {
+  display: flex;
+  justify-content: start;
+
+  &__link {
+    font-weight: normal;
+    text-decoration-style: solid;
+  }
+}

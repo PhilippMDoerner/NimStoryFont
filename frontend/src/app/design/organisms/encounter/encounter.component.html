@@ -1,0 +1,184 @@
+@if (encounter() || cardState() === "CREATE") {
+  <header class="card__heading">
+    <h4 class="mb-0" [id]="headingId()">
+      @switch (cardState()) {
+        @case ("DISPLAY") {
+          <ng-container [ngTemplateOutlet]="displayHeading" />
+        }
+        @case ("UPDATE") {
+          <ng-container [ngTemplateOutlet]="updateHeading" />
+        }
+        @case ("OUTDATEDUPDATE") {
+          <ng-container [ngTemplateOutlet]="updateHeading" />
+        }
+        @case ("CREATE") {
+          <ng-container [ngTemplateOutlet]="createHeading" />
+        }
+      }
+    </h4>
+
+    @if (
+      canUpdate() &&
+      (cardState() === "DISPLAY" ||
+        cardState() === "UPDATE" ||
+        cardState() === "OUTDATEDUPDATE")
+    ) {
+      @let buttonText = textFieldState() === "DISPLAY" ? "Edit text" : "Cancel";
+      <button
+        class="card__text-edit-button fs-6"
+        [hotkey]="'w'"
+        [disabledHotkey]="!isInFocus()"
+        (hotkeyPressed)="toggleTextField()"
+        (click)="toggleTextField()"
+        [attr.aria-label]="buttonText"
+      >
+        ({{ buttonText }})
+      </button>
+    }
+
+    <span class="card__right-container">
+      @if (showUpdateSuccessMarker$ | async) {
+        <span class="card__success-animation">
+          Updated encounter
+          <app-success-animation />
+        </span>
+      }
+      @if (canUpdate()) {
+        <app-edit-toggle
+          #toggleButton
+          class="card__edit-button"
+          [title]="'Edit Encounter Metadata'"
+          [buttonKind]="'DARK'"
+          [toggled]="cardState() !== 'DISPLAY'"
+          [disabledHotkey]="!isInFocus()"
+          (toggleEdit)="onToggle($event)"
+        ></app-edit-toggle>
+      }
+    </span>
+  </header>
+
+  @switch (cardState()) {
+    @case ("DISPLAY") {
+      <ng-container [ngTemplateOutlet]="displayBody" />
+    }
+    @case ("UPDATE") {
+      <ng-container [ngTemplateOutlet]="updateBody" />
+    }
+    @case ("OUTDATEDUPDATE") {
+      <ng-container [ngTemplateOutlet]="updateBody" />
+    }
+    @case ("CREATE") {
+      <ng-container [ngTemplateOutlet]="createBody" />
+    }
+  }
+}
+
+<ng-template #displayHeading>
+  <span class="card__text-container">
+    {{ encounter()?.title }}
+  </span>
+</ng-template>
+
+<ng-template #displayBody>
+  <!-- Encounter -->
+  @let encounterVal = encounter();
+  @if (encounterVal) {
+    <label [for]="editorId" class="cdk-visually-hidden">
+      Description of encounter {{ encounterVal.title }}
+    </label>
+    <app-editor
+      #editor
+      class="card__text"
+      [id]="editorId"
+      [state]="textFieldState()"
+      [canUpdate]="canUpdate()"
+      [text]="encounterVal.description"
+      [serverModel]="serverModel()?.description"
+      [placeholder]="'What happened during ' + encounterVal.title + ' ?'"
+      [cancelButtonKind]="'DARK'"
+      [settings]="{ height: 800 }"
+      (update)="onDescriptionUpdateFinished($event)"
+      (autosave)="saveDescription($event)"
+      (cancelled)="toDisplayState()"
+      (editStarted)="toUpdateState()"
+    ></app-editor>
+  }
+
+  <app-separator></app-separator>
+
+  <!-- Encounter Connections -->
+  <div class="card__connections">
+    <app-badge-list
+      [label]="'Characters'"
+      [entries]="badgeEntries()"
+      [createOptions]="{
+        kind: 'SELECT',
+        hotkey: 'c',
+        createBadgeLabel: 'Add character',
+        formFieldLabel: 'Characters',
+        config: {
+          options: characters(),
+          valueProp: 'pk',
+          labelProp: 'name',
+        },
+      }"
+      [disableHotkeys]="!isInFocus()"
+      [canCreate]="canCreate()"
+      [canDelete]="canDelete()"
+      [cancelButtonType]="'DARK'"
+      (entryCreate)="onConnectionCreate($event)"
+      (entryDelete)="onConnectionDelete($event)"
+    ></app-badge-list>
+  </div>
+
+  <!-- Encounter Footer/Delete Toggle -->
+  @if (canDelete()) {
+    <app-confirmation-toggle-button
+      class="card__delete-confirmer"
+      aria-label="Delete Encounter"
+      [itemToDelete]="'Encounter ' + encounter()?.title"
+      [icon]="'trash'"
+      [enableHotkey]="isInFocus()"
+      (confirm)="onEncounterDelete()"
+    ></app-confirmation-toggle-button>
+  }
+</ng-template>
+
+<ng-template #updateHeading> Update "{{ encounter()?.title }}" </ng-template>
+
+<!-- Form to Update Encounters -->
+<ng-template #updateBody>
+  @if (canUpdate() && cardState() === "UPDATE") {
+    <app-form
+      [model]="userModel()"
+      [fields]="formlyFields()"
+      [cancelButtonType]="'DARK'"
+      (formlySubmit)="onEncounterUpdate(userModel())"
+      (formlyCancel)="changeState('DISPLAY', undefined)"
+    ></app-form>
+  } @else if (canUpdate() && cardState() === "OUTDATEDUPDATE") {
+    <app-compare-form
+      [fields]="formlyFields()"
+      [modelFromUser]="$any(userModel())"
+      [modelFromServer]="serverModel()"
+      [displayVertically]="true"
+      (formlySubmit)="onEncounterUpdate($event)"
+      (formlyCancel)="changeState('DISPLAY', undefined)"
+    ></app-compare-form>
+  }
+</ng-template>
+
+<ng-template #createHeading> Create new Encounter </ng-template>
+
+<!-- Form to Update Encounters -->
+<ng-template #createBody>
+  @if (canCreate() && cardState() === "CREATE") {
+    <app-form
+      [model]="userModel()"
+      [fields]="formlyFields()"
+      [cancelButtonType]="'DARK'"
+      (formlySubmit)="onEncounterCreate($event)"
+      (formlyCancel)="onEncounterCreateCancel()"
+    ></app-form>
+  }
+</ng-template>

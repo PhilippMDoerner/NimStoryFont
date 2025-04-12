@@ -1,0 +1,32 @@
+<button
+  class="rounded-pill"
+  aria-label="Shows modal to modify settings used to create the graph"
+  btn
+  [kind]="'NONE'"
+  [icon]="'gear'"
+  [text]="'Settings'"
+  (clicked)="openModal(settingsModal)"
+></button>
+
+<ng-template #settingsModal let-modal>
+  <div class="modal-header">
+    <h2
+      class="modal-title w-100 d-flex justify-content-between"
+      id="modal-title"
+    >
+      <span>Graph Settings</span>
+      <button type="button" aria-label="Close" (click)="modal.dismiss()">
+        <app-icon [icon]="'times'"></app-icon>
+      </button>
+    </h2>
+  </div>
+
+  <div class="modal-body">
+    <app-form
+      [model]="settings()"
+      [fields]="formlyFields()"
+      (formlySubmit)="onSettingsSubmit($event)"
+      (formlyCancel)="modal.dismiss()"
+    ></app-form>
+  </div>
+</ng-template>

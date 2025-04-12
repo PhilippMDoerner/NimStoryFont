@@ -1,0 +1,58 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<div class="card" [class.card--active]="inFocus()" data-register-focus>
+  @if (currentImage()) {
+    <div class="card__img-container">
+      <a
+        class="card__img-link"
+        [routerLink]="link()"
+        [attr.aria-label]="text()"
+      >
+        <img
+          class="card-img-top"
+          [id]="imageId"
+          [ngSrc]="serverUrl() + currentImage()"
+          [alt]="alt()"
+          [height]="300"
+          [width]="100"
+          priority
+        />
+        <div class="card__title-link fs-5">
+          {{ text() }}
+        </div>
+      </a>
+
+      <button
+        class="card__img-close-btn"
+        btn
+        [kind]="'NONE'"
+        [icon]="inFocus() ? 'xmark' : 'expand'"
+        [attr.aria-label]="'Expand image view of ' + text()"
+        (clicked)="
+          inFocus()
+            ? closeBtnClicked$.next($event)
+            : openBtnClicked$.next($event)
+        "
+        data-ignore-click="true"
+      ></button>
+    </div>
+  }
+  <div class="card-body">
+    @if (imageUrls().length > 1) {
+      <div class="card__img-selectors" (click)="$event.preventDefault()">
+        @for (_ of imageUrls(); track $index) {
+          @let imageIndex = $index + 1;
+          <button
+            class="card__img-selector"
+            [class.card__img-selector--active]="$index === currentImageIndex()"
+            [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
+            [attr.aria-controls]="imageId"
+            (click)="selectorClicked$.next({ index: $index, event: $event })"
+          >
+            {{ imageIndex }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,67 @@
+@import "/src/screens.scss";
+
+.list {
+  padding-left: var(--spacer-0);
+  padding-right: var(--spacer-0);
+
+  &--loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &__inner {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  &__encounter-item {
+  }
+}
+
+.encounter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &__skip {
+    scroll-margin-top: var(--spacer-5);
+    margin-bottom: var(--spacer-3);
+  }
+
+  &__encounter {
+    scroll-margin-top: var(--spacer-4);
+    padding: unset;
+    border-radius: var(--bs-border-radius);
+    width: 100%;
+
+    &:focus-within,
+    &:focus-visible {
+      outline: var(--focus-outline);
+    }
+  }
+
+  &__button {
+    margin-top: var(--spacer-4);
+    margin-bottom: var(--spacer-4);
+    width: 100%;
+    max-width: 350px;
+
+    &--first {
+      margin-top: unset;
+    }
+  }
+
+  &__button-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+.spinner {
+  width: 100px;
+  height: 100px;
+  --thickness: 60px;
+}

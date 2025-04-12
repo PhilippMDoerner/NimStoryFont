@@ -1,0 +1,81 @@
+<div
+  class="login"
+  [@backInUp]
+  [@flipInY]="state() === 'LOGIN' ? 'sideA' : 'sideB'"
+>
+  <app-page-container>
+    @if (state() === "LOGIN") {
+      <h1>Sign In</h1>
+      @let loginStateVal = loginState();
+      @if (loginStateVal) {
+        <div class="login__subtitle-warning">
+          {{ loginMessages[loginStateVal] }}
+        </div>
+      }
+      <form class="login__form" (submit)="onLogin()">
+        <formly-form
+          [model]="model"
+          [fields]="fields"
+          [form]="form"
+        ></formly-form>
+        <button
+          btn
+          class="login__reset-link"
+          [kind]="'NONE'"
+          [size]="'SMALL'"
+          [text]="'Forgot your password?'"
+          (click)="setState('PASSWORD_RESET')"
+        ></button>
+        @if (canRegisterPublicly()) {
+          <a
+            btn
+            class="login__reset-link"
+            [kind]="'NONE'"
+            [size]="'SMALL'"
+            [text]="'Sign up'"
+            [routerLink]="registrationUrl"
+          ></a>
+        }
+        <button
+          btn
+          class="login__button"
+          [kind]="'PRIMARY'"
+          [text]="'Login'"
+          [type]="'submit'"
+        ></button>
+      </form>
+    } @else {
+      <h1>Password Reset</h1>
+      <p>
+        Forgot your account's password? Enter your account name and we'll send
+        you a randomized new password to your email address.
+      </p>
+      <div class="login__subtitle-warning">
+        {{ resetErrorMessage() }}
+      </div>
+      <form class="login__form" (submit)="onPasswordReset()">
+        <formly-form
+          [model]="recoveryModel"
+          [fields]="recoveryFields"
+          [form]="recoveryForm"
+        ></formly-form>
+        <div class="login__button">
+          <button
+            btn
+            class="login__button-left"
+            [kind]="'DARK'"
+            [text]="'Cancel'"
+            (clicked)="setState('LOGIN')"
+          ></button>
+          <button
+            btn
+            [kind]="'PRIMARY'"
+            [text]="'Reset Password'"
+            [type]="'submit'"
+            [disabled]="isWaitingForPasswordReset"
+          ></button>
+        </div>
+      </form>
+    }
+  </app-page-container>
+</div>

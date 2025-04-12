@@ -1,0 +1,14 @@
+.warning{
+  color: var(--lightest-red);
+  font-size: 80%;
+}
+
+app-spinner{
+  --thickness: 30px;
+}
+
+.field{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}

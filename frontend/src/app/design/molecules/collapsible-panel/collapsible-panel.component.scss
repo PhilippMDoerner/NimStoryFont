@@ -1,0 +1,45 @@
+:host {
+  &:has(.card__button:focus-visible) {
+    outline: var(--focus-outline);
+  }
+}
+
+.card {
+  padding: 0;
+
+  &__heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    text-align: start;
+    margin-bottom: 0px;
+  }
+
+  &__heading-text {
+    flex: 1;
+    margin-right: var(--spacer-4);
+  }
+
+  &__button {
+    padding: var(--spacer-3);
+    width: 100%;
+    outline: none;
+  }
+
+  &__body {
+    padding: 0px var(--spacer-3) var(--spacer-3) var(--spacer-3);
+  }
+
+  &__separator {
+    --separator-margin-top: 0;
+  }
+
+  &__heading-icon {
+    transition: transform 0.2s ease-in-out;
+
+    &--open {
+      transform: rotateX(180deg);
+    }
+  }
+}

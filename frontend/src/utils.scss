@@ -1,0 +1,9 @@
+@mixin reset-list-styles {
+  li {
+    list-style: none;
+  }
+
+  ul {
+    padding-left: 0;
+  }
+}

@@ -1,0 +1,41 @@
+<app-page-container>
+  <article class="quests">
+    <!-- Heading -->
+    <h1 class="quests__heading">Quests</h1>
+
+    <div class="mb-3 quests__create">
+      <a
+        btn
+        class="quests__create-link"
+        [routerLink]="createUrl()"
+        [kind]="'PRIMARY'"
+        [icon]="'plus'"
+        [text]="'Add quest'"
+        [hotkey]="'c'"
+        (hotkeyPressed)="$event.host.click()"
+      >
+      </a>
+    </div>
+
+    <div class="quests__tables">
+      @for (questGroup of groupedQuests(); track questGroup.key) {
+        <div class="quests__table">
+          <app-quest-table
+            [questTaker]="questGroup.key"
+            [quests]="questGroup.value"
+          ></app-quest-table>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <a
+      btn
+      class="quests__home"
+      [routerLink]="homeUrl()"
+      [kind]="'SECONDARY'"
+      [text]="'Back To Frontpage'"
+    >
+    </a>
+  </article>
+</app-page-container>

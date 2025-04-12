@@ -1,0 +1,6 @@
+export type GeneralOverviewType = "CHARACTER" 
+  | "CREATURE" 
+  | "DIARYENTRY" 
+  | "ITEM" 
+  | "LOCATION" 
+  | "ORGANIZATION"

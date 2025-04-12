@@ -1,0 +1,103 @@
+@import "/src/screens.scss";
+
+.container {
+  width: 100vw;
+  min-height: 100dvh; //Ensures the campaigns take up at least the whole screen, maybe more
+  max-width: unset !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bs-black);
+}
+
+.campaign {
+  &__heading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 10%;
+  }
+
+  &__empty-frame {
+    height: 90%;
+    width: 100%;
+  }
+}
+
+.heading {
+  background-color: var(--wiki-bg-transparent);
+  display: flex;
+  flex-direction: column;
+
+  &__buttons {
+    width: 100%;
+
+    @include media-breakpoint-up(sm) {
+      width: unset;
+    }
+  }
+
+  &__button {
+    margin-top: var(--spacer-1);
+    margin-bottom: var(--spacer-1);
+    display: inline-block;
+    width: 100%;
+
+    @include media-breakpoint-up(sm) {
+      width: unset;
+      margin: var(--spacer-2);
+    }
+  }
+
+  &__text {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.body {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &__images {
+    height: 100%;
+    display: flex;
+  }
+}
+
+.empty-frame {
+  display: flex;
+  position: relative;
+  justify-content: center;
+
+  &__icon {
+    font-size: 40px;
+  }
+
+  &__image {
+    width: 100%;
+    height: 88.5vh;
+  }
+
+  &__text {
+    text-align: center;
+    width: 100%;
+    position: absolute;
+    padding: var(--spacer-2) var(--spacer-3);
+    background-color: var(--bs-dark);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: calc(var(--spacer-5) * 5);
+    border-radius: var(--bs-border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-2);
+  }
+}
+
+button {
+  width: 100%;
+}

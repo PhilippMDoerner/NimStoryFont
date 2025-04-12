@@ -1,0 +1,22 @@
+.search{
+  &__heading{
+    text-align: center;
+  }
+  
+  &__results{
+    margin-top: var(--spacer-5);
+    margin-bottom: var(--spacer-5);
+  }
+  
+  &__home{
+    display: inline-block;
+    width: fit-content;
+  }
+  
+  &__empty-results{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
+}

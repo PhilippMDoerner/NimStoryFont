@@ -1,0 +1,73 @@
+/*
+ * To customize styling of entries, i.e. for background-color and color, use: 
+ * ::ng-deep li.entry.drag-and-drop-list-entry {
+ *    ... your rules ...
+ * }
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  :first-child {
+    border-top-left-radius: var(--bs-border-radius);
+    border-top-right-radius: var(--bs-border-radius);
+  }
+
+  :last-child {
+    border-bottom-left-radius: var(--bs-border-radius);
+    border-bottom-right-radius: var(--bs-border-radius);
+  }
+}
+
+.list {
+  &__entry {
+    width: 100%;
+    border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  }
+}
+
+.entry {
+  padding: var(--spacer-2);
+  color: var(--bs-black);
+  font-weight: bold;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  &__placeholder {
+    background: var(--bs-gray-300);
+    border: dashed 2px var(--bs-gray-800);
+    min-height: var(--spacer-5);
+    transition: transform 250ms ease-out;
+    color: var(--bs-black);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+  }
+
+  &__handler {
+    padding-left: var(--spacer-2);
+    padding-right: var(--spacer-3);
+    cursor: grab;
+  }
+
+  &__buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacer-2);
+  }
+}
+
+.placeholder {
+  &__icon {
+    margin-left: var(--spacer-2);
+  }
+}

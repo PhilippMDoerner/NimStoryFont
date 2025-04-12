@@ -1,0 +1,35 @@
+<div class="graph-container" #graphContainer data-swipe-ignore>
+  <div class="graph-container__controls controls">
+    <div class="controls__slider-container">
+      <button
+        btn
+        class="controls__slider-button"
+        [kind]="'SECONDARY'"
+        [icon]="'plus'"
+        [size]="'SMALL'"
+        aria-label="'zoom in to graph'"
+        (clicked)="onZoomButtonClick(1)"
+      ></button>
+      <input
+        #zoomControl
+        type="range"
+        aria-label="'Zoom level of graph'"
+        [min]="graphSettings().minZoom"
+        [max]="graphSettings().maxZoom"
+        [value]="(zoomLevel$ | async) ?? graphSettings().minZoom"
+        [step]="0.1"
+        (input)="zoomSliderEvents$.next(zoomControl.value)"
+        class="controls__slider"
+      />
+      <button
+        btn
+        class="controls__slider-button"
+        [kind]="'SECONDARY'"
+        [icon]="'minus'"
+        [size]="'SMALL'"
+        aria-label="'zoom out of graph'"
+        (clicked)="onZoomButtonClick(-1)"
+      ></button>
+    </div>
+  </div>
+</div>

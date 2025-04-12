@@ -1,0 +1,76 @@
+@import "/src/screens.scss";
+
+.campaign {
+  &__edit-container {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__user-group {
+    height: fit-content;
+  }
+
+  &__settings {
+    display: block;
+    margin-bottom: var(--spacer-4);
+    margin-top: var(--spacer-4);
+  }
+}
+
+.user-group {
+  margin-top: var(--spacer-4);
+  margin-bottom: var(--spacer-4);
+
+  &__heading {
+    text-align: center;
+  }
+
+  &__user {
+    display: inline-block;
+  }
+
+  &__remove-button {
+    --confirmation-bg-color: var(--wiki-bg-solid);
+    float: right;
+  }
+
+  &__add-user {
+    margin-top: var(--spacer-3);
+    width: 100%;
+  }
+}
+
+.settings {
+  &__images {
+    display: flex;
+    flex-direction: column;
+
+    @include media-breakpoint-up(md) {
+      flex-direction: row;
+    }
+  }
+
+  &__image-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  &__image {
+    max-height: 20rem;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  &__icon {
+    max-height: 128px;
+    max-width: 128px;
+    object-fit: contain;
+  }
+
+  &__data {
+    margin-top: var(--spacer-4);
+  }
+}

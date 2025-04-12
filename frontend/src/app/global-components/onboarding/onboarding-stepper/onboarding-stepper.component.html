@@ -1,0 +1,316 @@
+<app-stepper
+  [orientation]="'horizontal'"
+  (selectionChange)="selectionChange.emit($event.selectedStep)"
+>
+  <cdk-step #firstStep [label]="'Welcome to Aldrune!'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          class="stepper__image"
+          [src]="'/assets/onboarding/home.webp'"
+          alt="Dark page with a runic bird as a background. A sidebar to the left as well as a semi-transparent foreground containing the campaign's icon and a feed of recently updated articles of the campaign"
+        />
+        <figcaption aria-hidden="true">
+          Fig 1. Example campaign home page
+        </figcaption>
+      </figure>
+      <p>
+        Welcome to Aldrune, your new tool for managing your Tabletop RPG
+        campaigns. This guide will walk you through how to use the app.
+      </p>
+      <p>
+        Press <strong>Alt + O</strong> if you want to look at it again later.
+        Now let's get started!
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Write Articles!'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          class="stepper__image"
+          [src]="'/assets/onboarding/articles_edit.webp'"
+          alt="The first interactable item on article pages is going to be an edit button for the articles metadata, such as its name"
+        />
+        <figcaption aria-hidden="true">
+          Fig 2. Edit Button for metadata in a creature article
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          class="stepper__image"
+          [src]="'/assets/onboarding/description_edit.webp'"
+          alt="Separate from the metadata you can update the article's text also known as description. Every description comes with an edit button that will open a text-editor on the same page if you press it."
+        />
+        <figcaption aria-hidden="true">
+          Fig 3. Edit button for the content of a creature article
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          class="stepper__image"
+          [src]="'/assets/onboarding/articles_delete.webp'"
+          alt="Among the last interactable items on article pages is going to be a delete button. These will always open a modal to ask you if you want to delete the article."
+        />
+        <figcaption aria-hidden="true">
+          Fig 4. Delete button in a creature article
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          class="stepper__image"
+          src="/assets/onboarding/articles_create.webp"
+          alt="You can create article on the overview pages that you can reach directly through the sidebar navigation."
+        />
+        <figcaption aria-hidden="true">
+          Fig 5. Create button for creature articles
+        </figcaption>
+      </figure>
+      <p>
+        You can create short articles about various aspects of your campaign,
+        such as characters, monsters, locations, items, organizations, and
+        quests.
+      </p>
+      <p>If you have the necessary permissions, you can:</p>
+      <ul>
+        <li>
+          Edit the article's text by clicking the text or using the "Edit Text"
+          button.
+        </li>
+        <li>
+          Edit the meta-data, like name of a creature or title of a character,
+          by clicking the "Edit" button in the top-right corner.
+        </li>
+        <li>
+          Delete articles if you have permission (button at the bottom-right).
+        </li>
+      </ul>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Manage Your Sessions'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          src="/assets/onboarding/sessions.webp"
+          alt=""
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">Fig 6. Link to Sessions page</figcaption>
+      </figure>
+
+      <p>You can record individual sessions in the Sessions section.</p>
+      <p>
+        For each session, you can write a "Diaryentry" with detailed notes. Each
+        campaign member can write one diaryentry per session. To write a
+        diaryentry, the session must first be added.
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Diaryentries & Encounters'">
+    <div role="slide" aria-roledescription="slide">
+      <div class="d-flex flex-row">
+        <figure class="h-100">
+          <img
+            src="/assets/onboarding/diaryentry_menu.webp"
+            alt="The edit button for diaryentry is a menu, as you can either edit the Diaryentry metadata *or* the contents of the Diaryentry."
+            class="stepper__image"
+          />
+          <figcaption aria-hidden="true">
+            Fig 7. Diaryentry edit menu
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/assets/onboarding/diaryentry_edit.webp"
+            alt="Diaryentries are a list of individual encounter that each represent a single scene during the tabletop if they're used as intended. While the diaryentry is in edit mode for encounters, it shows one section of controls to rearrange the order of those encounters and a second displaying the encounters themselves, allowing to edit or delete them. In between each encounter is also an add Encounter button."
+            class="stepper__image"
+          />
+          <figcaption aria-hidden="true">
+            Fig 8. Encounter edit view in diaryentries
+          </figcaption>
+        </figure>
+      </div>
+
+      <p>
+        A diaryentry is a list of individual scenes or "encounters" from your
+        campaign.
+      </p>
+      <p>
+        After adding a diaryentry, you can start adding encounters by clicking
+        "Edit Encounters" in the edit menu at the top-right corner of the
+        diaryentry.
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Record the Moments'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          src="/assets/onboarding/recordings.webp"
+          alt=""
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 9. Overview over recordings
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="/assets/onboarding/audio_player.webp"
+          alt="Aldrune generally supports uploading and streaming audio recordings of your sessions, but whether your campaign has access to it depends on your DM and your page's Admin. No support for captions exists at this time."
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 10. Playing an audio file
+        </figcaption>
+      </figure>
+      <p>
+        Upload recordings of your tabletop adventures and relive every moment!
+        You can stream or download them anytime.
+      </p>
+      <p>Want to highlight key moments? Add timestamps while listening!</p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Map your world'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          src="/assets/onboarding/map.webp"
+          alt="Maps can contain markers that are interactable. At this time, screenreader support is limited."
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 11. Campaign map with various marked locations
+        </figcaption>
+      </figure>
+      <p>
+        Upload a campaign map and mark important locations on it to keep track
+        of your journey.
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Make it yours'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          src="/assets/onboarding/configuration.webp"
+          alt="The config page provides tables for managing meta-entries like map markers and relationship types."
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 12. Campaign configuration with various custom types of
+          relationship between articles
+        </figcaption>
+      </figure>
+      <p>
+        Customize your wiki with meta-entries like unique map markers and
+        relationship types.
+      </p>
+      <p>
+        Head over to the wiki-configuration page to tweak things just the way
+        you like!
+      </p>
+    </div>
+  </cdk-step>
+  @if (isCampaignAdmin()) {
+    <cdk-step [label]="'Shape your Campaign'">
+      <div role="slide" aria-roledescription="slide">
+        <figure>
+          <img
+            src="/assets/onboarding/admin.webp"
+            alt=""
+            class="stepper__image"
+          />
+          <figcaption aria-hidden="true">
+            Fig 13. Campaign admin page with current settings and configured
+            campaign members and their roles
+          </figcaption>
+        </figure>
+        <p>
+          In the campaign admin section, you’re in control! Manage the campaign
+          settings and make it truly yours.
+        </p>
+        <ul>
+          <li>Set a cool campaign icon</li>
+          <li>Choose an epic background image</li>
+          <li>Add or remove guests, members, or admins</li>
+          <li>Set the default map shown when opening the map section</li>
+          <li>... and more !</li>
+        </ul>
+      </div>
+    </cdk-step>
+  }
+  <cdk-step [label]="'Speed it up with Hotkeys'">
+    <div role="slide" aria-roledescription="slide">
+      <figure>
+        <img
+          src="/assets/onboarding/hotkeys.webp"
+          alt=""
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 14. Hotkey tooltips show up as you hold down "Alt"
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="/assets/onboarding/hotkey_modal.webp"
+          alt="Example of a hotkey usage in a list. While in a list, a specific hotkey will perform the action on the item currently in focus, not all items."
+          class="stepper__image"
+        />
+        <figcaption aria-hidden="true">
+          Fig 15. Alt + H shows an overview over hotkey actions
+        </figcaption>
+      </figure>
+      <p>
+        Save time with handy hotkeys! Just hold <strong>Alt</strong> to see
+        which buttons or other elements on the screen react to a hotkey. Press
+        "Alt" + the key to perform the action!
+      </p>
+      <p>
+        Need a cheat sheet? Press <strong>Alt + H</strong> to see all available
+        shortcuts.
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Help make it better!'">
+    <div role="slide" aria-roledescription="slide">
+      <p>Oops! Something not working right? Let us know!</p>
+      <p>
+        You can report issues directly to the developer or file a bug report on
+        GitHub:
+      </p>
+      <p>
+        <a
+          [externalHref]="
+            'https://github.com/PhilippMDoerner/nimstoryfont-gui/issues'
+          "
+          [text]="'Github Issue Tracker'"
+        ></a>
+      </p>
+    </div>
+  </cdk-step>
+  <cdk-step [label]="'Adventure Awaits!'">
+    <div role="slide" aria-roledescription="slide">
+      <div class="d-flex justify-content-center mb-3">
+        <app-success-animation
+          class="stepper__done"
+          (animationend)="$event.stopPropagation()"
+        />
+      </div>
+      <p>
+        You're ready to dive into your campaign and start creating an amazing
+        world!
+      </p>
+      <p>Explore, create, and collaborate with your group. Have fun!</p>
+      <div class="d-flex justify-content-center">
+        <button
+          btn
+          [kind]="'PRIMARY'"
+          [text]="'Get Started!'"
+          (clicked)="finished.emit()"
+        ></button>
+      </div>
+    </div>
+  </cdk-step>
+</app-stepper>

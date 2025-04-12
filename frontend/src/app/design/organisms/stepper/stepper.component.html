@@ -1,0 +1,58 @@
+<div class="stepper__content-container">
+  <div
+    class="stepper__body"
+    [class.stepper__body--animate-slide-in]="animationState() === 'ENTER'"
+    [class.stepper__body--animate-slide-out]="animationState() === 'EXIT'"
+    [class.stepper__body--animate-forward]="animationDirection() === 'FORWARD'"
+    [class.stepper__body--animate-backward]="
+      animationDirection() === 'BACKWARD'
+    "
+    [id]="contentId"
+    [attr.aria-busy]="animationState() !== 'NONE'"
+    aria-roledescription="carousel"
+    #stepContentContainer
+    (animationend)="animationEnd$.next(animationState())"
+  >
+    <ng-container [ngTemplateOutlet]="selected ? selected.content : null" />
+  </div>
+</div>
+
+<footer class="stepper__footer">
+  <button
+    btn
+    [kind]="'NONE'"
+    [icon]="'chevron-left'"
+    [size]="'SMALL'"
+    [disabled]="selectedIndex === 0"
+    aria-label="Show prior step"
+    [attr.aria-controls]="contentId"
+    class="stepper__nav-button"
+    cdkStepperPrevious
+    #priorButton
+    (window:keydown.ArrowLeft)="selectPriorStep()"
+    (click)="selectPriorStep()"
+  ></button>
+  @for (step of steps; track step) {
+    <app-icon
+      class="stepper__marker"
+      [class.stepper__marker--active]="selectedIndex === $index"
+      [icon]="'circle'"
+    ></app-icon>
+  }
+  @let lastStepIndex = steps.length - 1;
+
+  <button
+    btn
+    [kind]="'NONE'"
+    [icon]="'chevron-right'"
+    [size]="'SMALL'"
+    [disabled]="selectedIndex === lastStepIndex"
+    aria-label="Show next step"
+    [attr.aria-controls]="contentId"
+    class="stepper__nav-button"
+    cdkStepperNext
+    #nextButton
+    (window:keydown.ArrowRight)="selectNextStep()"
+    (click)="selectNextStep()"
+  ></button>
+</footer>

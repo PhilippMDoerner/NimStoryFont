@@ -1,0 +1,130 @@
+@let toast = currentToast();
+@let onToastClick = toast?.onToastClick;
+@if (toast && onToastClick) {
+  <button
+    class="button-container"
+    (click)="onToastClick(dismissCurrentToast.bind(this))"
+  >
+    <ng-container *ngTemplateOutlet="toastOverlay" />
+  </button>
+} @else if (toast) {
+  <ng-container *ngTemplateOutlet="toastOverlay" />
+}
+
+<ng-template #toastOverlay>
+  @if (toast) {
+    @if (toast.header) {
+      <ngb-toast
+        class="toast toast--{{ toast.type.toLocaleLowerCase() }}"
+        data-bs-theme="dark"
+        [autohide]="!!toast.dismissMs && toast.dismissMs > 0"
+        [delay]="toast.dismissMs ? toast.dismissMs : 0"
+        [animation]="true"
+        (hidden)="dismissCurrentToast()"
+        (shown)="toast.onShow ? toast.onShow() : undefined"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+      >
+        <ng-template ngbToastHeader>
+          <span class="toast-header__text">
+            @let headerIcon = icon();
+            @if (headerIcon) {
+              <app-icon
+                class="toast-header__icon"
+                [icon]="headerIcon"
+              ></app-icon>
+            }
+            <span
+              class="toast-header__text-container"
+              [innerHTML]="toast.header.text"
+            ></span>
+          </span>
+        </ng-template>
+        <ng-container *ngTemplateOutlet="timer"></ng-container>
+        <ng-container *ngTemplateOutlet="body" />
+      </ngb-toast>
+    } @else {
+      <ngb-toast
+        class="toast toast--{{ toast.type.toLocaleLowerCase() }}"
+        data-bs-theme="dark"
+        [autohide]="!!toast.dismissMs && toast.dismissMs > 0"
+        [delay]="toast.dismissMs ? toast.dismissMs : 0"
+        [ariaLive]="toast.important ? 'alert' : 'polite'"
+        [animation]="true"
+        (hidden)="dismissCurrentToast()"
+        (shown)="toast.onShow ? toast.onShow() : undefined"
+      >
+        <div class="d-flex flex-column w-100">
+          <ng-container *ngTemplateOutlet="timer"></ng-container>
+          <ng-container *ngTemplateOutlet="body" />
+        </div>
+      </ngb-toast>
+    }
+  }
+</ng-template>
+
+<ng-template #body>
+  @let hasHeader = !!toast?.header;
+  <div class="toast__body body">
+    <span class="body__text">
+      @let bodyIcon = toast?.body?.icon;
+      @if (bodyIcon) {
+        <app-icon class="body__icon" [icon]="bodyIcon" />
+      }
+
+      @if (toast?.body?.text) {
+        <div class="body__text-container" [innerHTML]="toast?.body?.text"></div>
+      }
+
+      @if (!hasHeader) {
+        <button
+          btn
+          class="fs-3"
+          [kind]="'NONE'"
+          [size]="'SMALL'"
+          [icon]="'times'"
+          aria-label="'Close toast'"
+          (clicked)="dismissCurrentToast()"
+        ></button>
+      }
+    </span>
+
+    <div class="body__button-container">
+      @let firstButton = toast?.body?.buttons?.[0];
+      @if (firstButton) {
+        <button
+          btn
+          class="body__button"
+          [text]="firstButton.label"
+          [icon]="firstButton.icon"
+          [size]="'SMALL'"
+          [kind]="'PRIMARY'"
+          (clicked)="firstButton.onClick(dismissCurrentToast.bind(this))"
+        ></button>
+      }
+      @let secondButton = toast?.body?.buttons?.[1];
+      @if (secondButton) {
+        <button
+          btn
+          class="body__button"
+          [text]="secondButton.label"
+          [icon]="secondButton.icon"
+          [size]="'SMALL'"
+          [kind]="'SECONDARY'"
+          (clicked)="secondButton.onClick(dismissCurrentToast.bind(this))"
+        ></button>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #timer>
+  <span
+    class="toast__timer-bar"
+    [ngClass]="{
+      'toast__timer-bar--short-animation': toast?.dismissMs === 1500,
+      'toast__timer-bar--medium-animation': toast?.dismissMs === 3000,
+      'toast__timer-bar--long-animation': toast?.dismissMs === 5000,
+    }"
+  ></span>
+</ng-template>

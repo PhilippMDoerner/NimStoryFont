@@ -1,0 +1,9 @@
+.modal {
+  &-header {
+    justify-content: space-between;
+  }
+
+  &-close-btn {
+    border-radius: var(--bs-border-radius);
+  }
+}

@@ -1,0 +1,11 @@
+.stepper {
+  &__image {
+    margin-bottom: var(--spacer-2);
+    width: 100%;
+  }
+
+  &__done {
+    width: 250px;
+    height: 250px;
+  }
+}

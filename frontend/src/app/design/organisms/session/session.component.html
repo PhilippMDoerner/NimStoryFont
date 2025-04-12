@@ -1,0 +1,144 @@
+<!-- Heading -->
+<div class="heading__container">
+  <div class="h4 card__heading heading">
+    @switch (state()) {
+      @case ("DISPLAY") {
+        <ng-container [ngTemplateOutlet]="displayHeading" />
+      }
+      @case ("UPDATE") {
+        <ng-container [ngTemplateOutlet]="updateHeading" />
+      }
+      @case ("CREATE") {
+        <ng-container [ngTemplateOutlet]="createHeading" />
+      }
+      @case ("OUTDATED_UPDATE") {
+        <ng-container [ngTemplateOutlet]="updateHeading" />
+      }
+    }
+  </div>
+  <!-- Edit Toggler -->
+  @if (canUpdate()) {
+    <app-edit-toggle
+      [buttonKind]="'DARK'"
+      [toggled]="state() !== 'DISPLAY'"
+      [disabledHotkey]="disabledHotkeys()"
+      [title]="'Edit ' + session().name"
+      (toggleEdit)="onToggle($event)"
+    ></app-edit-toggle>
+  }
+</div>
+
+@switch (state()) {
+  @case ("DISPLAY") {
+    <ng-container [ngTemplateOutlet]="displayBody" />
+  }
+  @case ("UPDATE") {
+    <ng-container [ngTemplateOutlet]="updateBody" />
+  }
+  @case ("CREATE") {
+    <ng-container [ngTemplateOutlet]="createBody" />
+  }
+  @case ("OUTDATED_UPDATE") {
+    <ng-container [ngTemplateOutlet]="outdatedUpdateBody" />
+  }
+}
+
+<ng-template #displayHeading>
+  {{ session().name }}
+
+  @if (session() && session().start_day != null && session().end_day != null) {
+    <span class="heading__subtext">
+      (Days {{ session().start_day }}-{{ session().end_day }})
+    </span>
+  }
+</ng-template>
+
+<ng-template #displayBody>
+  <!-- Body -->
+  <div class="card__body body">
+    @if (diaryEntries().length > 0) {
+      <div class="body__entry">
+        <div class="h5 body__subheading">
+          <app-icon [icon]="'book-open'"></app-icon>
+          Diaryentries
+        </div>
+
+        <ul
+          class="body__subbody body__subbody--list"
+          [attr.aria-label]="'Diaryentries of ' + session().name"
+        >
+          @for (diaryEntry of diaryEntries(); track diaryEntry.link) {
+            <li>
+              <a [routerLink]="diaryEntry.link" class="body__link">
+                {{ diaryEntry.author_name }} - {{ diaryEntry.name }}
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (session() && session().has_recording) {
+      <div class="body__entry">
+        <h5 class="body__subheading">
+          <a [routerLink]="sessionAudioUrl()" class="body__link">
+            <app-icon [icon]="'file-audio'"></app-icon>
+            Recording
+          </a>
+        </h5>
+      </div>
+    }
+  </div>
+  <!-- Delete Toggler -->
+  @if (canDelete()) {
+    <app-confirmation-toggle-button
+      class="card__delete-confirmer"
+      [itemToDelete]="session().name ?? 'This Session'"
+      [icon]="'trash'"
+      [enableHotkey]="!disabledHotkeys()"
+      (confirm)="onSessionDelete()"
+    ></app-confirmation-toggle-button>
+  }
+</ng-template>
+<!-- Sessions Panel Content -->
+
+<ng-template #updateHeading> Updating '{{ session().name }}' </ng-template>
+
+<ng-template #updateBody>
+  <!-- Form -->
+  <app-form
+    [model]="userModel()"
+    [fields]="formlyFields"
+    [cancelButtonType]="'DARK'"
+    [disabledHotkeys]="disabledHotkeys()"
+    (formlySubmit)="onSubmit()"
+    (formlyCancel)="changeState('DISPLAY', undefined)"
+  ></app-form>
+</ng-template>
+
+<ng-template #createHeading> Create new Session </ng-template>
+
+<ng-template #createBody>
+  <!-- Form -->
+  <app-form
+    [model]="userModel()"
+    [fields]="formlyFields"
+    [cancelButtonType]="'DARK'"
+    (formlySubmit)="onSubmit()"
+    (formlyCancel)="onCreateCancel()"
+  ></app-form>
+</ng-template>
+
+<ng-template #outdatedUpdateBody>
+  @let userModelVal = userModel();
+  @if (userModelVal) {
+    <app-compare-form
+      [fields]="formlyFields"
+      [modelFromUser]="userModelVal"
+      [modelFromServer]="serverModel()"
+      [displayVertically]="true"
+      (updateSubmit)="onSubmit()"
+      (cancel)="changeState('DISPLAY', undefined)"
+    ></app-compare-form>
+  }
+</ng-template>

@@ -1,0 +1,9 @@
+<audio
+  #audioPlayer
+  (keydown)="triggerHotkeyAction($event)"
+  (keypress)="$event.stopPropagation()"
+  (keyup)="$event.stopPropagation()"
+  [src]="serverUrl() + '/' + audioSource()"
+  [preload]="'metadata'"
+  [controls]="false"
+></audio>

@@ -1,0 +1,17 @@
+:host {
+  --bs-dropdown-item-border-radius: var(--bs-border-radius);
+  --menu-text-size: var(--bs-btn-font-size);
+  --menu-option-text-size: var(--bs-dropdown-font-size);
+}
+
+.dropdown-toggle {
+  --bs-btn-font-size: var(--menu-text-size);
+}
+
+.dropdown-item {
+  font-size: var(--menu-option-text-size);
+}
+
+.dropdown-menu {
+  --bs-dropdown-item-padding-y: var(--spacer-2);
+}

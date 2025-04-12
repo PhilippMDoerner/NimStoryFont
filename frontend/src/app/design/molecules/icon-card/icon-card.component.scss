@@ -1,0 +1,44 @@
+:host {
+  --icon-height: 6rem;
+  --icon-size: 4rem;
+}
+
+.card {
+  position: relative;
+  overflow: clip;
+
+  &:hover {
+    box-shadow: inset 0 0 30px var(--bs-link-hover-color);
+  }
+
+  &-decoration {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    transform: rotate(45deg);
+    width: 120px;
+    height: 20px;
+    top: 16px;
+    right: -30px;
+    font-weight: bold;
+    text-align: center;
+    background-color: var(--bs-dark);
+  }
+
+  &-icon-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--icon-height);
+    font-size: var(--icon-size);
+  }
+
+  &-title {
+    height: 4rem;
+  }
+
+  &-subtitle {
+    margin-bottom: var(--spacer-2);
+  }
+}

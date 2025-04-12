@@ -1,0 +1,61 @@
+:host {
+  background-color: var(--bs-black);
+  height: 100dvh;
+  width: 100dvw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 4;
+}
+
+.splash-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 33%;
+
+  &__icon-container {
+    padding: var(--spacer-3);
+    // include a pseudo element right where the border would sit, and animate the color of the background property
+    position: relative;
+    margin-bottom: var(--spacer-3);
+
+    &:before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      bottom: -2px;
+      left: -2px;
+      background-color: var(--bs-light);
+      border-radius: 50%;
+      // position the pseudo element below the element itself
+      z-index: -5;
+      animation: pulse 1.5s infinite ease-out;
+    }
+  }
+
+  &__icon {
+    max-width: 128px;
+    max-height: 128px;
+  }
+}
+
+@keyframes pulse {
+  // change the background color to gradient and "increase" the size of the border
+  // showing a disappearing circular background
+  70%,
+  100% {
+    top: -1.5rem;
+    right: -1.5rem;
+    bottom: -1.5rem;
+    left: -1.5rem;
+    background-color: rgba(var(--bs-light-rgba), 0);
+  }
+}

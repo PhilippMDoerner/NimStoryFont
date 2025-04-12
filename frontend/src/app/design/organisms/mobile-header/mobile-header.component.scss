@@ -1,0 +1,42 @@
+.navbar {
+  --bs-navbar-padding-y: var(--spacer-1);
+  --bs-navbar-color: var(--bs-white);
+  --bs-navbar-brand-color: var(--bs-white);
+  --bs-navbar-brand-hover-color: var(--bs-white);
+  --bs-navbar-hover-color: var(--bs-white);
+  --bs-navbar-active-color: var(--bs-white);
+  --bs-navbar-toggler-padding-x: var(--spacer-3);
+  --bs-navbar-toggler-padding-y: var(--spacer-2);
+
+  .navbar-brand {
+    flex: 1;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: center;
+    margin-right: unset;
+
+    .navbar-brand-icon {
+      --brand-height: calc(var(--navbar-height) - 6px);
+      height: var(--brand-height);
+      width: var(--brand-height);
+      border-radius: var(--bs-border-radius);
+      margin-right: var(--spacer-2);
+      margin-left: var(--spacer-2);
+    }
+  }
+
+  &__offline-indicator {
+    border: var(--bs-border-style) 2px var(--bs-border-color);
+  }
+}
+
+.navbar-toggler {
+  &:focus {
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}

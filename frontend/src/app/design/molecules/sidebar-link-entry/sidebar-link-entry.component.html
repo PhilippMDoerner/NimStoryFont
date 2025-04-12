@@ -1,0 +1,13 @@
+@let isEntryDisabled = (online$ | async) === false && !entry().availableOffline;
+<a
+  [routerLink]="isEntryDisabled ? '' : entry().route"
+  class="entry__link"
+  [ariaDisabled]="isEntryDisabled"
+  [class.entry__link--disabled]="isEntryDisabled"
+>
+  <app-icon class="entry__icon" [icon]="entry().iconClass"></app-icon>
+  {{ entry().title }}
+  @if (isEntryDisabled) {
+    <app-icon class="entry__icon" [icon]="'ban'"></app-icon>
+  }
+</a>

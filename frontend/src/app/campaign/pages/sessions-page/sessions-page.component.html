@@ -1,0 +1,18 @@
+@let sessions = store.sessions();
+@let campaignName = globalStore.campaignName();
+@let campaignId = globalStore.currentCampaign()?.pk;
+
+@if (campaignId && campaignName && sessions) {
+  <app-sessions-template
+    [sessions]="sessions"
+    [serverModel]="store.sessionServerModel()"
+    [campaignId]="campaignId"
+    [campaignName]="campaignName"
+    [canCreate]="store.hasWritePermission()"
+    [canUpdate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    (sessionDelete)="store.deleteSession($event.pk!)"
+    (sessionCreate)="store.createSession($event)"
+    (sessionUpdate)="store.updateSession($event)"
+  ></app-sessions-template>
+}

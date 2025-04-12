@@ -1,0 +1,98 @@
+@let isOffline = (online$ | async) === false;
+@let offlineTooltip = "Not available offline";
+@if (campaign()) {
+  <div class="offcanvas-header">
+    <div class="sidebar__brand brand">
+      <div class="brand__back" [ngbTooltip]="'campaign-overview'">
+        <a
+          [routerLink]="campaignOverviewUrl"
+          class="brand__back-link"
+          aria-label="'To campaign overview'"
+        >
+          <app-icon class="brand__back-icon" [icon]="'chevron-left'"></app-icon>
+        </a>
+      </div>
+
+      <div
+        class="brand__home"
+        [ngbTooltip]="campaign()?.name + '-Home'"
+        [class.disabled-entry]="campaign() == null"
+      >
+        <a class="brand__home-link" [routerLink]="homeUrl()">
+          <div class="h4 brand__home-link-text" [id]="headerId">
+            <img
+              class="brand__icon"
+              [ngSrc]="serverUrl + campaign()?.icon"
+              alt=""
+              priority
+              [width]="32"
+              [height]="32"
+            />
+            <div class="brand__home-link-text-text">
+              {{ campaign()?.name }}
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="offcanvas-body">
+    <ul class="sidebar__entries">
+      <!-- Campaign Overview Entries -->
+      @for (entry of sidebarEntries(); track entry.title) {
+        @let isDisabledEntry = isOffline && !entry.availableOffline;
+        <li
+          class="sidebar__entry"
+          [class.sidebar__entry--active]="entry.isActiveTab"
+          sidebar-link-entry
+          [entry]="entry"
+          [ngbTooltip]="isDisabledEntry ? offlineTooltip : undefined"
+        ></li>
+      }
+
+      @if ((pwaService.canInstall$ | async) === true) {
+        <li
+          class="sidebar__entry sidebar__entry--install-button"
+          sidebar-button-entry
+          [icon]="'file-arrow-down'"
+          [label]="'Install App'"
+          (entryClicked)="pwaService.showInstallPrompt()"
+        ></li>
+      }
+    </ul>
+
+    <!-- Logout -->
+    <ul class="sidebar__footer footer">
+      <li
+        class="sidebar__entry"
+        sidebar-link-entry
+        [entry]="{
+          title: 'Profile',
+          iconClass: 'circle-user',
+          route: profileUrl,
+          availableOffline: true,
+        }"
+      ></li>
+      <li
+        class="sidebar__entry"
+        sidebar-button-entry
+        [label]="'Logout'"
+        [icon]="'right-from-bracket'"
+        (entryClicked)="logout.emit()"
+      ></li>
+    </ul>
+  </div>
+}
+
+<ng-template #nonCampaignBrand>
+  <ul class="brand-line d-flex">
+    <li class="flex-1">
+      <a class="ps-0" [routerLink]="campaignOverviewUrl">
+        <h3 class="d-flex align-items-center justify-content-center" id="brand">
+          <span class="fas fa-chevron-left"></span>
+          <span class="ms-2 on-hover-show"> To campaigns</span>
+        </h3>
+      </a>
+    </li>
+  </ul>
+</ng-template>

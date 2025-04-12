@@ -1,0 +1,24 @@
+@import "/src/screens.scss";
+
+:host {
+  --icon-btn-size: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacer-1);
+
+  min-width: 40px;
+  min-height: 40px;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}
+
+.btn {
+  &__text {
+    &--large {
+      font-weight: bold;
+    }
+  }
+}

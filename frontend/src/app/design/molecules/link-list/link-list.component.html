@@ -1,0 +1,60 @@
+<section class="list">
+  <!-- Heading -->
+  <div class="list__heading">
+    <div class="fs-4 fw-bold" [heading]="ariaLevel()">{{ heading() }}</div>
+    @let option = createOption();
+    @switch (option.kind) {
+      @case ("button") {
+        <button
+          btn
+          class="ms-3"
+          [attr.aria-label]="'Create ' + heading()"
+          [kind]="'PRIMARY'"
+          [size]="'SMALL'"
+          [icon]="'plus'"
+          (clicked)="createButtonClick.emit()"
+        ></button>
+      }
+      @case ("link") {
+        <a
+          btn
+          class="ms-3"
+          [attr.aria-label]="'Create ' + heading()"
+          [kind]="'PRIMARY'"
+          [size]="'SMALL'"
+          [icon]="'plus'"
+          [routerLink]="option.url"
+          [queryParams]="option.queryParams"
+          [fragment]="option.fragment"
+        ></a>
+      }
+      @case ("menu") {
+        <app-context-menu
+          [menuItems]="option.menuItems"
+          [menuButtonIcon]="'plus'"
+          [menuButtonSize]="'SMALL'"
+          [menuButtonAriaLabel]="'Create ' + heading()"
+          [menuButtonKind]="'PRIMARY'"
+          (actionTriggered)="menuOptionClick.emit($event)"
+        />
+      }
+    }
+  </div>
+
+  <!-- List -->
+  @if (entries() && entries().length > 0) {
+    <ul class="list__list">
+      @for (entry of entries(); track $index) {
+        <li class="list__entry">
+          <a class="fw-normal" [routerLink]="entry.link">
+            {{ entry.label }}
+          </a>
+        </li>
+      }
+    </ul>
+  } @else {
+    <div>
+      {{ emptyListText() }}
+    </div>
+  }
+</section>

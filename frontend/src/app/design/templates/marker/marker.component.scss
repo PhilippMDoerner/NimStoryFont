@@ -1,0 +1,24 @@
+.marker{
+  &__edit-container{
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  &__heading{
+  }
+  
+  &__subheading{
+    margin-bottom: var(--spacer-3);
+    text-align: center;
+  } 
+}
+
+.heading{
+  text-align: center;
+}
+
+.hint{
+  margin-left: var(--spacer-3);
+  color: var(--bs-gray);
+}

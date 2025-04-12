@@ -1,0 +1,14 @@
+.overview {
+  display: flex;
+  flex-direction: column;
+}
+
+.heading {
+  margin-bottom: var(--spacer-4);
+  border-bottom: var(--bs-border-width) var(--bs-border-style)
+    var(--bs-border-color);
+}
+
+.create-button {
+  margin-bottom: var(--spacer-4);
+}

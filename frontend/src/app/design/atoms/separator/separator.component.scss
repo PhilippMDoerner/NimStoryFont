@@ -1,0 +1,15 @@
+:host {
+  --separator-color: var(--bs-white);
+  --separator-thickness: 1px;
+  --separator-margin-top: var(--spacer-3);
+  --separator-margin-bottom: var(--spacer-3);
+}
+
+.separator {
+  opacity: 0.25;
+  background-color: var(--separator-color);
+  height: var(--separator-thickness);
+  width: 100%;
+  margin: var(--separator-margin-top) var(--spacer-0)
+    var(--separator-margin-bottom) var(--spacer-0);
+}

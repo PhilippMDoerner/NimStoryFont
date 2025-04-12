@@ -1,0 +1,47 @@
+.heading {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+
+  &__text {
+    flex: 1;
+  }
+}
+
+.create-update {
+  &__heading {
+  }
+
+  &__form {
+  }
+}
+
+.form {
+  &__character-data {
+    margin-bottom: var(--spacer-4);
+  }
+
+  &__player-classes {
+    margin-bottom: var(--spacer-5);
+  }
+
+  &__memberships {
+    margin-bottom: var(--spacer-5);
+  }
+
+  &__heading-separator {
+    --separator-margin-top: var(--spacer-0);
+  }
+
+  &__heading {
+    margin-bottom: var(--spacer-0);
+  }
+
+  &__add-membership-badge {
+    border-radius: var(--bs-border-radius);
+    &:focus,
+    &:hover {
+      outline: var(--focus-outline);
+    }
+  }
+}
