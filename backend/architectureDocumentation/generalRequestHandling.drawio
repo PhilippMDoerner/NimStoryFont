@@ -1,0 +1,99 @@
+<mxfile host="65bd71144e">
+    <diagram id="65-hci4jrc_aQn1XimkI" name="Page-1">
+        <mxGraphModel dx="1388" dy="349" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="9" value="JWTContext/Context" style="edgeStyle=none;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="2" target="4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="HttpRequest" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="40" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="HttpResponse&lt;br&gt;JSON" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="40" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="jsonyResponse" style="edgeStyle=none;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;labelBackgroundColor=default;" parent="1" source="4" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" style="edgeStyle=none;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="4" target="6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="DbConn,&lt;br&gt;Params" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=default;" vertex="1" connectable="0" parent="11">
+                    <mxGeometry x="-0.26" y="-4" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="4" value="&amp;lt;X&amp;gt;Controller.nim&lt;br&gt;&lt;br&gt;Takes request, extract necessary url params/request body + settings and passes it on to service.&lt;br&gt;Receives data as object from service and passes it to jsonyResponse, which parses the json" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="160" width="320" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" style="edgeStyle=none;html=1;exitX=0.185;exitY=1.027;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;labelBackgroundColor=default;" parent="1" source="6" target="8" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="569" y="460"/>
+                            <mxPoint x="395" y="460"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="15" style="edgeStyle=none;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;labelBackgroundColor=default;" parent="1" source="6" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="590" y="580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="19" value="Serializable" style="edgeStyle=none;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="6" target="4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="36" value="Model" style="edgeStyle=none;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="6" target="35" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="&amp;lt;X&amp;gt;Service.nim&lt;br&gt;&lt;br&gt;Receives the parameter it requires and queries data from/performs actions on the DB, using procs from the application-specific repository or the generic repository." style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="350" width="320" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Model" style="edgeStyle=none;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="7" target="6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" style="edgeStyle=none;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.145;entryY=0;entryDx=0;entryDy=4.35;entryPerimeter=0;labelBackgroundColor=default;" parent="1" source="7" target="17" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="genericArticleRepository.nim&lt;br&gt;(uses norm to query the database and triggers signals)" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="580" width="320" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="8" target="7" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="395" y="570"/>
+                            <mxPoint x="590" y="570"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="8" value="&amp;lt;X&amp;gt;Repository.nim&lt;br&gt;&lt;br&gt;(For more compplicated queries using the generic repository as base)" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="290" y="470" width="210" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" style="edgeStyle=none;html=1;exitX=0.855;exitY=0;exitDx=0;exitDy=4.35;exitPerimeter=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="17" target="7" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="SQLite" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="650" y="740" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" style="edgeStyle=none;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="27" target="6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="&amp;lt;X&amp;gt;Utils.nim (optional)&lt;br&gt;&lt;br&gt;Helper functions for dealing with models" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="310" y="332" width="148" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="&amp;lt;X&amp;gt;Model.nim&lt;br&gt;&lt;br&gt;Define the data structures that the data of a given table can be converted into.&lt;br&gt;Is used or has its instances passed to all levels in the Controller-Service-Repository stack" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="-10" y="335" width="240" height="135" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;strokeWidth=3;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="140" width="20" height="520" as="geometry"/>
+                </mxCell>
+                <mxCell id="37" value="Serializable" style="edgeStyle=none;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;labelBackgroundColor=default;" parent="1" source="35" target="6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="35" value="Serialization.nim&lt;br&gt;&lt;br&gt;Transforms the received data into the right data-format, not serializing to json but changing field names and the like" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="352" width="270" height="85" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
