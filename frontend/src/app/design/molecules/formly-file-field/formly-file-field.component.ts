@@ -14,7 +14,6 @@ import { FieldType, FieldTypeConfig, FormlyModule } from '@ngx-formly/core';
 import { filter, fromEvent, map } from 'rxjs';
 import { FileFieldKind } from 'src/app/_models/formly';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { IconComponent } from '../../atoms/icon/icon.component';
 
 // WARNING: DO NOT USE IN FORMS THAT UPDATE
 // THIS FIELD DOES NOT TOLERATE RECEIVING EXISTING VALUES
@@ -23,7 +22,6 @@ import { IconComponent } from '../../atoms/icon/icon.component';
   templateUrl: './formly-file-field.component.html',
   styleUrls: ['./formly-file-field.component.scss'],
   imports: [
-    IconComponent,
     FormlyModule,
     FormlyBootstrapModule,
     ReactiveFormsModule,
