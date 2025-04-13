@@ -20,7 +20,8 @@ requires "smtp >= 0.1.0"
 requires "nimword >= 1.0.1"
 
 import std/strformat
-let domain = "aldrune.com"
+#let domain ="172.105.82.139" # prior server
+let domain ="172.105.79.155"
 
 let nginx_container = "production_nginx"
 let nginx_image = "nimstoryfont-proxy"
