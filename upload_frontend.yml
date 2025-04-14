@@ -2,11 +2,13 @@
 - hosts: 127.0.0.1
   pre_tasks:
     - name: build frontend
+      tags: build
       ansible.builtin.command:
         chdir: ./frontend
         cmd: npm run build
   tasks:
     - name: zip frontend
+      tags: build
       ansible.builtin.archive:
         path: ./frontend/dist
         dest: ./frontend/dist.zip
@@ -14,6 +16,7 @@
 - hosts: web_server
   tasks:
     - name: unpack frontend
+      tags: upload
       ansible.builtin.unarchive:
         src: ./frontend/dist.zip
-        dest: ~/frontend
+        dest: /home/isofruit/frontend
