@@ -1,0 +1,19 @@
+---
+- hosts: 127.0.0.1
+  pre_tasks:
+    - name: build frontend
+      ansible.builtin.command:
+        chdir: ./frontend
+        cmd: npm run build
+  tasks:
+    - name: zip frontend
+      ansible.builtin.archive:
+        path: ./frontend/dist
+        dest: ./frontend/dist.zip
+        format: zip
+- hosts: web_server
+  tasks:
+    - name: unpack frontend
+      ansible.builtin.unarchive:
+        src: ./frontend/dist.zip
+        dest: ~/frontend
