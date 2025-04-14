@@ -2,30 +2,31 @@
   @if (!isUpdatingGlobally()) {
     <!-- Diaryentry - Encounters -->
     <ul class="list__inner" aria-label="Diaryentry Encounters">
+      <li class="list__encounter-item encounter-item">
+        @if (state() === "EDIT" && (canCreate() || canUpdate())) {
+          @if (canCreate()) {
+            <div class="encounter-item__button-container">
+              <button
+                btn
+                class="encounter-item__button encounter-item__button--first"
+                aria-label="Add First Encounter to Diaryentry"
+                [kind]="'PRIMARY'"
+                [size]="'LARGE'"
+                [icon]="'plus'"
+                [text]="'Add First Encounter'"
+                [disabled]="isUpdatingAnything()"
+                [isLoading]="isUpdatingAnything()"
+                (clicked)="addEmptyEncounterAtIndex(-1)"
+              ></button>
+            </div>
+          }
+        }
+      </li>
       @for (
         entryEncounter of diaryEntryEncounters();
         track entryEncounter.encounter.title
       ) {
         <li class="list__encounter-item encounter-item">
-          @if ($first && state() === "EDIT" && (canCreate() || canUpdate())) {
-            @if (canCreate()) {
-              <div class="encounter-item__button-container">
-                <button
-                  btn
-                  class="encounter-item__button encounter-item__button--first"
-                  aria-label="Add First Encounter to Diaryentry"
-                  [kind]="'PRIMARY'"
-                  [size]="'LARGE'"
-                  [icon]="'plus'"
-                  [text]="'Add First Encounter'"
-                  [disabled]="isUpdatingAnything()"
-                  [isLoading]="isUpdatingAnything()"
-                  (clicked)="addEmptyEncounterAtIndex(-1)"
-                ></button>
-              </div>
-            }
-          }
-
           @let disabled =
             isUpdatingAnything() || entryEncounter.requestState === "loading";
 
