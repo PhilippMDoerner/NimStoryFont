@@ -20,8 +20,9 @@ requires "smtp >= 0.1.0"
 requires "nimword >= 1.0.1"
 
 import std/strformat
-#let domain ="172.105.82.139" # prior server
-let domain ="172.105.79.155"
+let domain ="aldrune.com"
+#let serverIp ="172.105.82.139" # prior server
+let serverIp ="172.105.79.155"
 
 let nginx_container = "production_nginx"
 let nginx_image = "nimstoryfont-proxy"
@@ -203,13 +204,13 @@ task prod_deploy, "Stops and removes prior container and images, recompiles the 
   exec("nimble save_images")
   exec("nimble disabledev")
 
-  exec(fmt"scp {nginx_image_tarname} isofruit@{domain}:~/")
-  exec(fmt"scp {ns_image_tarname} isofruit@{domain}:~/")
+  exec(fmt"scp {nginx_image_tarname} isofruit@{serverIp}:~/")
+  exec(fmt"scp {ns_image_tarname} isofruit@{serverIp}:~/")
   #exec(fmt"ssh isofruit@aldrune.com 'bash startNimstoryfont.sh'")
 
 task job_prod_deploy, "Compiles and copies job binaries to prod":
   exec("nimble compileDataExporterJob")
-  exec(fmt"scp buildFiles/nimstoryfont/jobs/* isofruit@{domain}:~/jobs")
+  exec(fmt"scp buildFiles/nimstoryfont/jobs/* isofruit@{serverIp}:~/jobs")
 
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
