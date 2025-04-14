@@ -13,16 +13,9 @@ RUN apk add nginx nginx-mod-http-upload-progress openssl --no-cache
 COPY ./nginx_prod.conf /etc/nginx/nginx.conf
 COPY ./50x.html /usr/share/nginx/html/50x.html
 # Setup necessary directories
-RUN mkdir -p /run/nginx
-RUN mkdir -p /cert/live/www.aldrune.com
-RUN mkdir -p /cert/archive/www.aldrune.com
-RUN mkdir /imagemedia
-RUN mkdir /tmpfiles
+RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
-RUN mkdir /session_audio
 RUN ln -s /session_audio /audiodownloads
-RUN mkdir /frontend
-RUN echo nginx -v
 
 # Mount external directories
 CMD ["nginx", "-g", "daemon off;"]
