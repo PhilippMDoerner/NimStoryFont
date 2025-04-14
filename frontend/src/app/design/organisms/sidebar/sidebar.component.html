@@ -13,11 +13,7 @@
         </a>
       </div>
 
-      <div
-        class="brand__home"
-        [ngbTooltip]="campaign()?.name + '-Home'"
-        [class.disabled-entry]="campaign() == null"
-      >
+      <div class="brand__home" [class.disabled-entry]="campaign() == null">
         <a class="brand__home-link" [routerLink]="homeUrl()">
           <div class="h4 brand__home-link-text" [id]="headerId">
             <img
