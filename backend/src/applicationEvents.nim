@@ -3,19 +3,18 @@ import prologue
 
 const LOG_FORMAT = "[$date $time] - $levelname: "
 
-proc addLogger*(logFilePath: string) =
+proc addLogger*() =
     when defined(normdebug):
         addHandler(newConsoleLogger(fmtStr = LOG_FORMAT, levelThreshold = lvlDebug))
-        addHandler(newRollingFileLogger(fmtStr = LOG_FORMAT, filename = logFilePath))
         logging.setLogFilter(lvlDebug)
     else:
-        addHandler(newRollingFileLogger(fmtStr = LOG_FORMAT, filename = logFilePath))
+        addHandler(newConsoleLogger(fmtStr = LOG_FORMAT))
         logging.setLogFilter(lvlInfo)
 
 
 
-proc getStartUpEvents*(logFilePath: string): seq[Event] =
-    result.add(initEvent(() => addLogger(logFilePath)))
+proc getStartUpEvents*(): seq[Event] =
+    result.add(initEvent(() => addLogger()))
 
 proc getShutDownEvents*(): seq[Event] =
     result = @[]

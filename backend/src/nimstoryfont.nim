@@ -30,14 +30,6 @@ proc addGlobalMiddlewares(app: var Prologue) =
         )
     )
 
-proc getLogFilePath*(): string =
-    var i = 0
-
-    result = fmt"{LOGGER_DIRECTORY}/prologue_{i}.log"
-    while fileExists(result):
-        i += 1
-        result = fmt"{LOGGER_DIRECTORY}/prologue_{i}.log"
-
 proc initializeDirectory(directoryPath: string) =
     if not dirExists(directoryPath):
         log(lvlInfo, fmt"The directory '{directoryPath}' does not exist. It was created")
@@ -48,8 +40,7 @@ proc initializeMediaDirectories(settings: Settings) =
     settings.getSetting(SettingName.snAudioDir).getStr().initializeDirectory()
 
 proc main() =
-    let logFilePath = getLogFilePath()
-    addLogger(logFilePath)
+    addLogger()
 
     let connectionPoolSize: int = settings.getSetting(SettingName.snConnectionLimit).getInt()
     let databasePath: string = settings.getSetting(SettingName.snDatabasePath).getStr()
@@ -59,7 +50,7 @@ proc main() =
 
     var app: Prologue = newApp(
         settings, 
-        startup = getStartUpEvents(logFilePath), 
+        startup = getStartUpEvents(), 
         shutdown = getShutDownEvents()
     )
     
