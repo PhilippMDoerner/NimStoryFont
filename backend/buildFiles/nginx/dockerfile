@@ -1,8 +1,7 @@
 FROM alpine
 
 # Install dependencies
-RUN apk update
-RUN apk add nginx nginx-mod-http-upload-progress openssl --no-cache
+RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
 
 # Expose Ports -- Mostly documentation for later
 #EXPOSE 80/tcp
@@ -13,7 +12,7 @@ RUN apk add nginx nginx-mod-http-upload-progress openssl --no-cache
 COPY ./nginx_prod.conf /etc/nginx/nginx.conf
 COPY ./50x.html /usr/share/nginx/html/50x.html
 # Setup necessary directories
-RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend
+# RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend # These files aren't needed apparently?
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 RUN ln -s /session_audio /audiodownloads
 
