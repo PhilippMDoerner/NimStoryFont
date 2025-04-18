@@ -149,28 +149,11 @@ task rebuildFTS5Table, "":
   exec "nim r --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault --path:/home/philipp/.nimble/pkgs2/norm-2.7.0-00a93c0f5628651c98c933909f3c3c3cd17696f0 ./sql/rebuild_fts5_table.nim"
 
 task build_images, "Builds an nginx docker image for this project to use with docker compose":
-  echo "\nRemoving old containers"
-  echo staticExec(fmt"sudo docker container stop {nginx_container}")
-  echo staticExec(fmt"sudo docker container stop {ns_container}")
-  echo staticExec(fmt"sudo docker container rm {nginx_container}")
-  echo staticExec(fmt"sudo docker container rm {ns_container}")
-
-  echo "\nRemoving old images"
-  echo staticExec(fmt"sudo docker image rm {nginx_image}")
-  echo staticExec(fmt"sudo docker image rm {ns_image}")
-
   echo "\nCreating new images"
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
   exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
 task build_nginx, "Builds an nginx docker image for this project to use with docker compose":
-  echo "\nRemoving old container"
-  echo staticExec(fmt"sudo docker container stop {nginx_container}")
-  echo staticExec(fmt"sudo docker container rm {nginx_container}")
-
-  echo "\nRemoving old images"
-  echo staticExec(fmt"sudo docker image rm {nginx_image}")
-
   echo "\nCreating new images"
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
 
