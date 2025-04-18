@@ -29,7 +29,7 @@ let nginx_image = "nimstoryfont-proxy"
 let nginx_image_tarname = "nginx_image.tar"
 
 let ns_container = "nswebserver"
-let ns_image = "nimstoryfont-nimstoryfont"
+let ns_image = "backend"
 let ns_image_tarname = "ns_image.tar"
 
 # Tasks
@@ -154,9 +154,12 @@ task build_images, "Builds an nginx docker image for this project to use with do
   exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
 task build_nginx, "Builds an nginx docker image for this project to use with docker compose":
-  echo "\nCreating new images"
+  echo "\nCreating proxy image"
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
 
+task build_backend, "Builds a backend docker image for this project to use with docker compose":
+  echo "\nCreating backend image"
+  exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
 task save_images, "Store images as tar files for current nginx and nimstoryfont images":
   echo staticExec(fmt"sudo docker save -o {nginx_image_tarname} {nginx_image}")
