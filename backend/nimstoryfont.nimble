@@ -159,8 +159,7 @@ task build_nginx, "Builds an nginx docker image for this project to use with doc
 
 task build_backend, "Builds a backend docker image for this project to use with docker compose. Specifically for usage with github actions.":
   echo "\nCreating backend image"
-  exec "nimble alpine"
-  exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
+  exec(fmt"sudo docker build --file ./buildFiles/dockerfile --tag {ns_image} ../")
 
 task save_images, "Store images as tar files for current nginx and nimstoryfont images":
   echo staticExec(fmt"sudo docker save -o {nginx_image_tarname} {nginx_image}")
