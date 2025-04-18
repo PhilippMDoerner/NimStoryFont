@@ -35,8 +35,8 @@ let ns_image_tarname = "ns_image.tar"
 # Tasks
 task alpine, "Build an alpine release":
   --verbose
-  --gcc.exe:"musl-gcc"
-  --gcc.linkerexe:"musl-gcc"
+  # --gcc.exe:"musl-gcc" # no longer necessary while compiling inside alpine
+  # --gcc.linkerexe:"musl-gcc" # no longer necessary while compiling inside alpine
   --forceBuild:on
   --deepcopy:on
   --passc:"-fpermissive"
