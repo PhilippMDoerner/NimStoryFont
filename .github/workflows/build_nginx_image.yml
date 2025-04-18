@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: "./backend"
+        working-directory: "./frontend"
     steps:
       - name: "Checkout GitHub Action"
         uses: actions/checkout@main
@@ -27,5 +27,5 @@ jobs:
 
       - name: "Build and push backend Image"
         run: |
-          sudo docker build --file ./buildFiles/dockerfile --tag ghcr.io/philippmdoerner/backend-dev:latest ../
-          docker push ghcr.io/philippmdoerner/backend-dev:latest
+          sudo docker build --file ./buildFiles/dockerfile --tag ghcr.io/philippmdoerner/nginx_frontend-dev:latest ../
+          docker push ghcr.io/philippmdoerner/nginx_frontend-dev:latest

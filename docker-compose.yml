@@ -1,7 +1,7 @@
 services:
   #Nginx Reverse Proxy
   proxy:
-    image: nimstoryfont-proxy
+    image: ghcr.io/philippmdoerner/nginx-dev:latest
     ports:
       - "443:443"
       - "80:80"
