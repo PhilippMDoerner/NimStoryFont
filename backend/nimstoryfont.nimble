@@ -25,11 +25,11 @@ let domain ="aldrune.com"
 let serverIp ="172.105.79.155"
 
 let nginx_container = "production_nginx"
-let nginx_image = "nimstoryfont-proxy"
+let nginx_image = "ghcr.io/philippmdoerner/nginx-dev:latest"
 let nginx_image_tarname = "nginx_image.tar"
 
 let ns_container = "nswebserver"
-let ns_image = "backend"
+let ns_image = "ghcr.io/philippmdoerner/backend-dev:latest"
 let ns_image_tarname = "ns_image.tar"
 
 # Tasks
