@@ -1,30 +1,31 @@
 services:
-    #Nginx Reverse Proxy
-    proxy:
-        image: nimstoryfont-proxy
-        ports:
-            - "443:443"
-            - "80:80"
-        volumes:
-            - /etc/nginx/certificates:/cert/live/www.aldrune.com
-            - /etc/nginx/certificates:/cert/archive/www.aldrune.com
-            - /home/isofruit/dev/nimstoryfont/frontend/dist/nimstoryfont-gui:/frontend # new prod frontend
-            - /home/isofruit/dev/nimstoryfont/backend/media:/imagemedia # To serve images
-            - /home/isofruit/dev/nimstoryfont/backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
-            - /home/isofruit/Music/session_audio_backup:/session_audio # To serve audio files
-            - /home/isofruit/Music/session_audio_backup/extended:/session_audio/extended # To serve audio files
-            - /tmp:/var/log/nginx # For nginx logs
-        container_name: production_nginx
-        restart: on-failure
+  #Nginx Reverse Proxy
+  proxy:
+    image: nimstoryfont-proxy
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - /etc/nginx/certificates:/cert/live/www.aldrune.com
+      - /etc/nginx/certificates:/cert/archive/www.aldrune.com
+      - /home/isofruit/dev/nimstoryfont/frontend/dist/nimstoryfont-gui:/frontend # new prod frontend
+      - /home/isofruit/dev/nimstoryfont/backend/media:/imagemedia # To serve images
+      - /home/isofruit/dev/nimstoryfont/backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
+      - /home/isofruit/dev/nimstoryfont/backend/buildFiles/nimstoryfont:/configs
+      - /home/isofruit/Music/session_audio_backup:/session_audio # To serve audio files
+      - /home/isofruit/Music/session_audio_backup/extended:/session_audio/extended # To serve audio files
+      - /tmp:/var/log/nginx # For nginx logs
+    container_name: production_nginx
+    restart: on-failure
 
-    #NimStoryfont backend webserver that receives requests on port 8080
-    nimstoryfont:
-        image: nimstoryfont-nimstoryfont
-        expose:
-            - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
-        volumes:
-            - /home/isofruit/dev/nimstoryfont/backend/media:/imagemedia
-            - /home/isofruit/dev/nimstoryfont/backend/:/database # For database access
-            - /tmp:/server_logs # For prologue logs
-        container_name: nswebserver
-        restart: on-failure
+  #NimStoryfont backend webserver that receives requests on port 8080
+  nimstoryfont:
+    image: nimstoryfont-nimstoryfont
+    expose:
+      - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
+    volumes:
+      - /home/isofruit/dev/nimstoryfont/backend/media:/imagemedia
+      - /home/isofruit/dev/nimstoryfont/backend/:/database # For database access
+      - /tmp:/server_logs # For prologue logs
+    container_name: nswebserver
+    restart: on-failure
