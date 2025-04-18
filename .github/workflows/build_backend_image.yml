@@ -1,0 +1,38 @@
+name: Deploy Images to GHCR
+
+env:
+  DOTNET_VERSION: "6.0.x"
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  push-store-image:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: "./backend"
+    steps:
+      - name: "Checkout GitHub Action"
+        uses: actions/checkout@main
+      - name: "Setup nim + nimble "
+        uses: iffy/install-nim@v5
+        with:
+          version: 2.2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Login to GitHub Container Registry"
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: "Build and push backend Image"
+        run: |
+          nimble build_backend
+          docker push ghcr.io/philippmdoerner/backend-dev:latest
