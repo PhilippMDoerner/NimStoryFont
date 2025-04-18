@@ -148,17 +148,18 @@ task compileDataExporterJob, "Compiles the data exporter job for local developme
 task rebuildFTS5Table, "":
   exec "nim r --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault --path:/home/philipp/.nimble/pkgs2/norm-2.7.0-00a93c0f5628651c98c933909f3c3c3cd17696f0 ./sql/rebuild_fts5_table.nim"
 
-task build_images, "Builds an nginx docker image for this project to use with docker compose":
+task build_images, "Builds an nginx docker image for this project to use with docker compose. Specifically for usage for development":
   echo "\nCreating new images"
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
   exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
-task build_nginx, "Builds an nginx docker image for this project to use with docker compose":
+task build_nginx, "Builds an nginx docker image for this project to use with docker compose. Specifically for usage with github actions.":
   echo "\nCreating proxy image"
   exec(fmt"sudo docker build --file ./buildFiles/nginx/dockerfile --tag {nginx_image} ./buildFiles/nginx")
 
-task build_backend, "Builds a backend docker image for this project to use with docker compose":
+task build_backend, "Builds a backend docker image for this project to use with docker compose. Specifically for usage with github actions.":
   echo "\nCreating backend image"
+  exec "nimble alpine"
   exec(fmt"sudo docker build --file ./buildFiles/nimstoryfont/dockerfile --tag {ns_image} ./buildFiles/nimstoryfont")
 
 task save_images, "Store images as tar files for current nginx and nimstoryfont images":
