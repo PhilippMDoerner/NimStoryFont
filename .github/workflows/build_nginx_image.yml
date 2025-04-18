@@ -27,5 +27,5 @@ jobs:
 
       - name: "Build and push backend Image"
         run: |
-          sudo docker build --file ./buildFiles/dockerfile --tag ghcr.io/philippmdoerner/nginx_frontend-dev:latest ../
+          sudo docker build --file ./buildFiles/nginx/dockerfile --tag ghcr.io/philippmdoerner/nginx_frontend-dev:latest ../
           docker push ghcr.io/philippmdoerner/nginx_frontend-dev:latest
