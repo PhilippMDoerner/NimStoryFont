@@ -31,7 +31,7 @@ let ns_container = "nswebserver"
 # let ns_image = staticRead("../frontend/buildFiles/nimstoryfont-image-name.txt")
 
 # Tasks
-task alpine, "Build an alpine release":
+task alpine, "Build an alpine release for use in an alpine container":
   --verbose
   # --gcc.exe:"musl-gcc" # no longer necessary while compiling inside alpine
   # --gcc.linkerexe:"musl-gcc" # no longer necessary while compiling inside alpine
@@ -54,29 +54,11 @@ task alpine, "Build an alpine release":
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 
-task debug, "Build a normal debug build":
-  --verbose
-  --deepcopy:on
-  --threads:on
-  --mm:orc
-  --define:enableTinyPoolLogging
-  --define:normDebug
-  --define:ssl
-  --stackTrace:on
-  --lineTrace:on
-  --styleCheck:usages
-  --spellSuggest:50
-  --excessiveStackTrace:on
-  --define:appsettings
-  --outdir:"buildFiles/nimstoryfont"
-  setCommand "c", "src/nimstoryfont.nim"
-
-task alpine_debug, "Build a release for debugging":
-  exec "nim -v"
+task alpine_debug, "Build an alpine release for debugging for use in an alpine container":
   --passc:"-fpermissive"
   --passl:"-fpermissive"
-  --gcc.exe:"musl-gcc"
-  --gcc.linkerexe:"musl-gcc"
+  # --gcc.exe:"musl-gcc" # no longer necessary while compiling inside alpine
+  # --gcc.linkerexe:"musl-gcc" # no longer necessary while compiling inside alpine
   --threads:on
   --mm:orc
   --deepcopy:on
@@ -96,28 +78,6 @@ task alpine_debug, "Build a release for debugging":
   #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
   #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
   #--debugger:native
-  --outdir:"buildFiles/nimstoryfont"
-  setCommand "c", "src/nimstoryfont.nim"
-
-task normal_debug, "Build a release for debugging":
-  --threads:on
-  --mm:orc
-  --deepcopy:on
-  --define:ssl
-  --define:enableTinyPoolLogging
-  --define:normDebug
-  --define:appsettings
-  --stackTrace:on
-  --lineTrace:on
-  --styleCheck:usages
-  #--styleCheck:error
-  --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
-  --spellSuggest:50
-  --excessiveStackTrace:on
-  --warning:"BareExcept:off"
-  #--hintAsError[XDeclaredButNotUsed]:on #Can't be used because systems.nim itself has screwy stuff
-  #--warningAsError[UnusedImport]:on #Can't be used because systems.nim itself has screwy stuff
-  --debugger:native
   --outdir:"buildFiles/nimstoryfont"
   setCommand "c", "src/nimstoryfont.nim"
 

@@ -8,8 +8,7 @@ FROM alpine AS build
 COPY ./frontend /frontend
 WORKDIR /frontend
 RUN apk -U add nodejs npm
-RUN npm i
-RUN npm run build
+RUN npm i && npm run build
 
 # Phase 1) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest

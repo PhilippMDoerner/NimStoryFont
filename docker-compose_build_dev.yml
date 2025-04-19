@@ -1,0 +1,36 @@
+# LOCAL BUILD-FROM-SCRATCH DEPLOYMENT
+# This docker-compose file is for local development.
+# It builds the entire project from scratch with the backend using a debug build.
+# Usecase: General development.
+
+services:
+  #Nginx Reverse Proxy
+  proxy:
+    build:
+      context: .
+      dockerfile: ./frontend/buildFiles/nginx/dockerfile
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./frontend/buildFiles/nginx/local_only/certificates:/cert/live/www.aldrune.com
+      - ./frontend/buildFiles/nginx/local_only/certificates:/cert/archive/www.aldrune.com
+      - ./frontend/buildFiles/nginx/local_only/session_audio_backup:/session_audio # To serve audio files
+      - ./backend/media:/imagemedia # To serve images
+      - ./backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
+    container_name: production_nginx
+    restart: on-failure
+
+  #NimStoryfont backend webserver that receives requests on port 8080
+  nimstoryfont:
+    build:
+      context: .
+      dockerfile: ./backend/buildFiles/dockerfile_dev
+    expose:
+      - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
+    volumes:
+      - ./backend/buildFiles/nimstoryfont:/configs
+      - ./backend/media:/imagemedia
+      - ./backend/:/database # For database access
+    container_name: nswebserver
+    restart: on-failure
