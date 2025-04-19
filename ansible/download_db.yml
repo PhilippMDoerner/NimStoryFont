@@ -1,8 +1,10 @@
 ---
 - hosts: web_server
+  vars:
+    backend_path: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}/backend"
   tasks:
     - name: Download DB
       fetch:
         src: "{{lookup('ansible.builtin.env', 'DB_PATH')}}"
         flat: true
-        dest: ../backend/
+        dest: "{{ backend_path }}/"
