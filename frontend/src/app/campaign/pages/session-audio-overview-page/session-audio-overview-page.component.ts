@@ -11,7 +11,6 @@ import { SessionaudioCardComponent } from 'src/app/design//organisms/sessionaudi
 import { ButtonLinkComponent } from 'src/app/design/atoms/button-link/button-link.component';
 import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { SessionAudioOverviewPageStore } from './session-audio-overview-page.store';
 
 @Component({
@@ -28,7 +27,7 @@ import { SessionAudioOverviewPageStore } from './session-audio-overview-page.sto
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionAudioOverviewPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   store = inject(SessionAudioOverviewPageStore);
   globalStore = inject(GlobalStore);
   routingService = inject(RoutingService);

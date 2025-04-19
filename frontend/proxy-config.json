@@ -2,5 +2,17 @@
   "/wiki1/api": {
     "target": "https://aldrune.com",
     "secure": false
+  },
+  "/media": {
+    "target": "https://aldrune.com",
+    "secure": false
+  },
+  "/session_audio": {
+    "target": "https://aldrune.com",
+    "secure": false
+  },
+  "/campaign_icons": {
+    "target": "https://aldrune.com",
+    "secure": false
   }
 }

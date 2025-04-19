@@ -27,7 +27,6 @@ import { AuthStore } from 'src/app/auth.store';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { hasRoleOrBetter } from 'src/app/global.store';
 import { NavigationStore } from 'src/app/navigation.store';
-import { environment } from 'src/environments/environment';
 import { componentId } from 'src/utils/DOM';
 import { SidebarButtonEntryComponent } from '../../molecules/sidebar-button-entry/sidebar-button-entry.component';
 import { SidebarLinkEntryComponent } from '../../molecules/sidebar-link-entry/sidebar-link-entry.component';
@@ -74,7 +73,7 @@ export class SidebarComponent {
   readonly logout = output<void>();
   readonly closeSidebar = output<void>();
 
-  readonly serverUrl = environment.backendDomain;
+  readonly serverUrl = '';
   readonly sidebarEntries: Signal<ArticleMetaData[]> = computed(() => {
     const campaignName = this.campaign()?.name;
     if (!campaignName) return [];

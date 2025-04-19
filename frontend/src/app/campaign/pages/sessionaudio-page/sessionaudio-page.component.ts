@@ -8,7 +8,6 @@ import {
 import { Observable } from 'rxjs';
 import { SessionaudioComponent } from 'src/app/design//templates/sessionaudio/sessionaudio.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { SessionaudioPageStore } from './sessionaudio-page.store';
 
 @Component({
@@ -19,7 +18,7 @@ import { SessionaudioPageStore } from './sessionaudio-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   globalStore = inject(GlobalStore);
   store = inject(SessionaudioPageStore);
 

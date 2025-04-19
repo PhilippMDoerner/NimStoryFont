@@ -11,7 +11,6 @@ import { RouterLink } from '@angular/router';
 import { NgbModal, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { OnlineService } from 'src/app/_services/online.service';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { environment } from 'src/environments/environment';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
 @Component({
@@ -34,7 +33,7 @@ export class MobileHeaderComponent {
   canShowSidebar = input.required<boolean>();
 
   openSidebar = output<void>();
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
 
   online$ = inject(OnlineService).online$;
   modalService = inject(NgbModal);

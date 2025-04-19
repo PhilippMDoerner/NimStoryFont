@@ -20,7 +20,6 @@ import { BaseService } from 'src/app/_services/base.service';
 import { GeneralOverviewType } from 'src/app/design/templates/_models/generalOverviewType';
 import { GeneralOverviewComponent } from 'src/app/design/templates/general-overview/general-overview.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { filterNil } from 'src/utils/rxjs-operators';
 
 @Component({
@@ -42,7 +41,7 @@ export class GeneralOverviewPageComponent {
     ORGANIZATION: inject(OrganizationService),
   };
 
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
 
   campaignName$ = toObservable(this.globalStore.campaignName).pipe(filterNil());
   canCreate = this.globalStore.canPerformActionsOfRole('member');

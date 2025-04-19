@@ -2,7 +2,6 @@ import { Component, computed, inject } from '@angular/core';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { HomeComponent } from 'src/app/design//templates/home/home.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { HomePageStore } from './home-page.store';
 
 @Component({
@@ -16,7 +15,7 @@ export class HomePageComponent {
   store = inject(HomePageStore);
   routingService = inject(RoutingService);
 
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   campaignData = this.globalStore.currentCampaign;
   currentCampaignName = computed(
     () => this.globalStore.currentCampaign()?.name,

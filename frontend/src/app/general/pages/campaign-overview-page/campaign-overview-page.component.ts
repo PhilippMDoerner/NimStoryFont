@@ -5,7 +5,6 @@ import { CampaignOverviewComponent } from 'src/app/design//templates/campaign-ov
 import { slideInOut } from 'src/app/design/animations/slideInOut';
 import { showSidebarSignal } from 'src/app/design/organisms/page/page.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-campaign-overview-page',
@@ -21,7 +20,7 @@ import { environment } from 'src/environments/environment';
 export class CampaignOverviewPageComponent {
   public readonly authStore = inject(AuthStore);
   public readonly globalStore = inject(GlobalStore);
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
 
   @HostListener('@slideInOut.start', ['$event'])
   @HostListener('@slideInOut.done', ['$event'])

@@ -12,7 +12,6 @@ import { Item } from 'src/app/_models/item';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { ItemComponent } from 'src/app/design/templates/item/item.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { ItemPageStore } from './item-page.store';
 
 @Component({
@@ -23,7 +22,7 @@ import { ItemPageStore } from './item-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   globalStore = inject(GlobalStore);
   store = inject(ItemPageStore);
   routingService = inject(RoutingService);
