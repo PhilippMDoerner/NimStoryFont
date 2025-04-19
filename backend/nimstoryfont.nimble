@@ -20,7 +20,6 @@ requires "smtp >= 0.1.0"
 requires "nimword >= 1.0.1"
 
 import std/strformat
-let domain ="aldrune.com"
 
 # Tasks
 task alpine, "Build an alpine release for use in an alpine container":
@@ -95,15 +94,6 @@ task compileDataExporterJob, "Compiles the data exporter job for local developme
   
 task rebuildFTS5Table, "":
   exec "nim r --define:ssl --outdir:sql --deepcopy:on --undef:nimPreviewRangeDefault --path:/home/philipp/.nimble/pkgs2/norm-2.7.0-00a93c0f5628651c98c933909f3c3c3cd17696f0 ./sql/rebuild_fts5_table.nim"
-
-task enabledev, "Changes the hosts file to change DNS lookups to the 'aldrune.com' domain get routed to localhost":
-  exec(fmt"""sudo sh -c "echo '127.0.0.1       {domain}' >> /etc/hosts"""")
-  exec(fmt"""sudo sh -c "echo '127.0.0.1       www.{domain}' >> /etc/hosts"""")
-
-#TODO: Migrate this to somehow be called when somebody runs the docker-compose files
-task disabledev, "Changes the hosts file so that DNS lookups to the 'aldrune.com' domain get routed to the internet":
-  exec(fmt"sudo sed -i /'127.0.0.1       {domain}'/d  /etc/hosts")
-  exec(fmt"sudo sed -i /'127.0.0.1       www.{domain}'/d  /etc/hosts")
 
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
