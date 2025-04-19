@@ -2,7 +2,6 @@ import std/[os, logging, strformat]
 import prologue
 import prologue/middlewares/[cors]
 import ./applicationSettings
-import ./applicationConstants
 import ./applicationEvents
 import ./database
 import ./utils/jwtContext
