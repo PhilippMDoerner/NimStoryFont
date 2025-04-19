@@ -1,10 +1,14 @@
-FROM alpine as build
+# THIS IMAGE IS A 2 PHASE IMAGE. It first builds the project, then within the same dockerfiles swaps to a new image, discarding the old one, then setting it up to run nginx and copying the dist from the old file.
+
+# Phase 1) Build the frontend
+FROM alpine AS build
 COPY ./frontend /frontend
 WORKDIR /frontend
 RUN apk -U add nodejs npm
 RUN npm i
 RUN npm run build
 
+# Phase 1) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
 # Install dependencies
 RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
