@@ -56,4 +56,4 @@ nimstoryfontSettings.json
 inventory
 ansible.cfg
 steps_for_initial_setup.md
-.env
+*.env
