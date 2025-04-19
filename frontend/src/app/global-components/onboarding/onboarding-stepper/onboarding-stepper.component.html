@@ -2,7 +2,7 @@
   [orientation]="'horizontal'"
   (selectionChange)="selectionChange.emit($event.selectedStep)"
 >
-  <cdk-step #firstStep [label]="'Welcome to Aldrune!'">
+  <cdk-step #firstStep [label]="'Welcome to ' + host + ' !'">
     <div role="slide" aria-roledescription="slide">
       <figure>
         <img
