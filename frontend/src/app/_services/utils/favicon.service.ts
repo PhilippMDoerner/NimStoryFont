@@ -1,7 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { effect, inject, Injectable } from '@angular/core';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -11,7 +10,6 @@ export class FaviconService {
   private readonly FAVICON_ELEMENT_ID = 'favicon';
   private readonly DEFAULT_FAVICON = '/assets/icons/icon-72x72.png';
   private readonly document = inject(DOCUMENT);
-  private readonly defaultTitle: string = environment.defaultTitle;
   private readonly globalStore = inject(GlobalStore);
 
   constructor() {
