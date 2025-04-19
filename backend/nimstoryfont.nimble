@@ -44,7 +44,6 @@ task alpine, "Build an alpine release for use in an alpine container":
   --define:release
   --define:lto
   --define:ssl
-  --define:appsettings
   --undef:nimPreviewRangeDefault # This is extremely unstable and exists solely so that constructor doesn't explode when using fields with type "Natural" or ranges
   --hint:"XCannotRaiseY:off"
   --warning:"BareExcept:off"
@@ -66,7 +65,6 @@ task alpine_debug, "Build an alpine release for debugging for use in an alpine c
   --define:enableTinyPoolLogging
   --define:normDebug
   --define:nimDebugDlOpen
-  --define:appsettings
   --stackTrace:on
   --lineTrace:on
   --styleCheck:usages
