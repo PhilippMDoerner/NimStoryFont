@@ -11,6 +11,7 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { ExternalLinkComponent } from 'src/app/design/atoms/external-link/external-link.component';
 import { SuccessAnimationComponent } from 'src/app/design/atoms/success-animation/success-animation.component';
 import { StepperComponent } from 'src/app/design/organisms/stepper/stepper.component';
+import { capitalize } from 'src/utils/string';
 
 @Component({
   selector: 'app-onboarding-stepper',
@@ -31,6 +32,8 @@ export class OnboardingStepperComponent {
   selectionChange = output<CdkStep>();
   finished = output<void>();
   firstStep = viewChild.required<CdkStep>('firstStep');
+
+  host = window ? capitalize(window.location.hostname) : 'Nimstoryfont';
 
   constructor() {
     effect(() => this.selectionChange.emit(this.firstStep()));
