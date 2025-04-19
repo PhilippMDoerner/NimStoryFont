@@ -1,4 +1,6 @@
-# THIS IMAGE IS A 2 PHASE IMAGE. It first builds the binary, then within the same dockerfiles swaps to a new image, discarding the old one, then setting it up to run the binary and copying the binary from the old file.
+# THIS IMAGE IS A 2 PHASE IMAGE
+# 1) Builds the binary
+# 2) Swap to new image which discards the old one, install libraries for the binary and copy the binary from 1)
 
 # Phase 1) Build the binary for alpine
 FROM docker.io/nimlang/nim:2.2.2-alpine AS build 

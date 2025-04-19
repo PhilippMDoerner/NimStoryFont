@@ -1,6 +1,8 @@
 # LOCAL BUILD-PROD-FROM-SCRATCH DEPLOYMENT
 # This docker-compose file is for local development.
 # It builds the entire project from scratch with the same configs as production.
+# Usecase: Final development/manual testing. You want to test out a feature in an environment as close to prod as possible.
+
 services:
   #Nginx Reverse Proxy
   proxy:
