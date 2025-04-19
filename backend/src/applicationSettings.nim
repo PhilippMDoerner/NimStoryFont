@@ -77,8 +77,7 @@ proc loadNimstoryfontSettings(): Settings =
     settings.validateSettings()
     result = settings
 
-when defined(appsettings):
-    let settings*: Settings = loadNimstoryfontSettings()
+let settings*: Settings = loadNimstoryfontSettings()
 
 #Custom Settings
 const MEDIA_URL* = "/media/"
