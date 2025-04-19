@@ -2,6 +2,13 @@
 
 TODO: Write in here what this is about. Some merger of frontend/README.md and backend/README.md.
 
+## Dependencies / Programs this relies on
+
+You'll need to have the following programs installed for this repository to work properly:
+
+- ansible: Enables all commands available via `./ns run`
+- flyway: Handles database migrations
+
 ## Infrastructure Setup
 
 ### General
