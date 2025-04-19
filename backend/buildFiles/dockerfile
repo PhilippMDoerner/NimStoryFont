@@ -6,7 +6,11 @@
 FROM docker.io/nimlang/nim:2.2.2-alpine AS build 
 COPY ./backend /backend
 WORKDIR /backend
-RUN nimble alpine
+# The --mount options here are cache-layers for local development. 
+# They cache the nim-cache and nimble dir when re-running docker commands.
+RUN --mount=type=cache,target=/root/.cache/nim \
+  --mount=type=cache,target=/root/.nimble \
+  nimble alpine
 
 # Phase 2) Swap to fresh alpine image, install necessary libraries and copy binary from prior image
 FROM docker.io/library/alpine:latest
