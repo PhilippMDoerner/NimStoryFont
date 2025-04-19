@@ -10,7 +10,6 @@ import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { CharacterComponent } from 'src/app/design/templates/character/character.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { CharacterStore } from './character-page.store';
 
 @Component({
@@ -24,7 +23,7 @@ export class CharacterPageComponent {
   private globalStore = inject(GlobalStore);
   private routingService = inject(RoutingService);
 
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.character() == null);

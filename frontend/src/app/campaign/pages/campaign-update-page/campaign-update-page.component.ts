@@ -5,7 +5,6 @@ import { Campaign, CampaignRaw } from 'src/app/_models/campaign';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { CampaignUpdateComponent } from 'src/app/design//templates/campaign-update/campaign-update.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { takeFirstNonNil } from 'src/utils/rxjs-operators';
 import { CampaignUpdatePageStore } from './campaign-update-page.store';
 
@@ -20,7 +19,7 @@ export class CampaignUpdatePageComponent {
   globalStore = inject(GlobalStore);
   campaignUpdatePageStore = inject(CampaignUpdatePageStore);
 
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   campaign = this.campaignUpdatePageStore.campaign;
   campaign$ = toObservable(this.campaign);
   mapOptions = this.campaignUpdatePageStore.mapOptions;

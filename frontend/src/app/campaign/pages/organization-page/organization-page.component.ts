@@ -8,7 +8,6 @@ import {
 import { Observable } from 'rxjs';
 import { OrganizationComponent } from 'src/app/design/templates/organization/organization.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { OrganizationStore } from './organization-page.store';
 
 @Component({
@@ -19,7 +18,7 @@ import { OrganizationStore } from './organization-page.store';
   styleUrl: './organization-page.component.scss',
 })
 export class OrganizationPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   store = inject(OrganizationStore);
   globalStore = inject(GlobalStore);
 

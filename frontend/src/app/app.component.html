@@ -19,11 +19,7 @@
   </a>
 }
 
-<app-page
-  [serverUrl]="serverUrl"
-  [contentId]="contentId"
-  (logout)="logout()"
-></app-page>
+<app-page [contentId]="contentId" (logout)="logout()"></app-page>
 <app-toast-overlay></app-toast-overlay>
 
 <app-onboarding-modal

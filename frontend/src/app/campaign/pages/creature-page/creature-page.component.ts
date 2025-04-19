@@ -11,7 +11,6 @@ import { Creature } from 'src/app/_models/creature';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { CreatureComponent } from 'src/app/design/templates/creature/creature.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { CreaturePageStore } from './creature-page.store';
 
 @Component({
@@ -22,7 +21,7 @@ import { CreaturePageStore } from './creature-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreaturePageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   globalStore = inject(GlobalStore);
   store = inject(CreaturePageStore);
   routingService = inject(RoutingService);

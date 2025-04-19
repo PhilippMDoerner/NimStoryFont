@@ -11,7 +11,6 @@ import { Location } from 'src/app/_models/location';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { LocationTemplateComponent } from 'src/app/design/templates/location-template/location-template.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { LocationPageStore } from './location-page.store';
 
 @Component({
@@ -22,7 +21,7 @@ import { LocationPageStore } from './location-page.store';
   styleUrl: './location-page.component.scss',
 })
 export class LocationPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   globalStore = inject(GlobalStore);
   store = inject(LocationPageStore);
   routingService = inject(RoutingService);

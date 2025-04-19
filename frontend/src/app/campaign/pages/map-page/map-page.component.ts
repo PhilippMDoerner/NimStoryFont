@@ -10,7 +10,6 @@ import { OverviewItem } from 'src/app/_models/overview';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { MapComponent } from 'src/app/design/templates/map/map.component';
 import { GlobalStore } from 'src/app/global.store';
-import { environment } from 'src/environments/environment';
 import { MapPageStore } from './map-page.store';
 
 @Component({
@@ -21,7 +20,7 @@ import { MapPageStore } from './map-page.store';
   imports: [MapComponent],
 })
 export class MapPageComponent {
-  serverUrl = environment.backendDomain;
+  serverUrl = '';
   store = inject(MapPageStore);
   globalStore = inject(GlobalStore);
   routingService = inject(RoutingService);

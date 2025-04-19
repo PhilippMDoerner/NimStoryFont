@@ -54,7 +54,6 @@ export const showSidebarSignal = signal(true);
   providers: [NgbOffcanvas],
 })
 export class PageComponent {
-  serverUrl = input.required<string>();
   contentId = input.required<string>();
 
   readonly logout = output<void>();

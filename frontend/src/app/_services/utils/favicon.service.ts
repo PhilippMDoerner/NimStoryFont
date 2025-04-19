@@ -7,7 +7,7 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root',
 })
 export class FaviconService {
-  private readonly serverUrl = environment.backendDomain;
+  private readonly serverUrl = '';
   private readonly FAVICON_ELEMENT_ID = 'favicon';
   private readonly DEFAULT_FAVICON = '/assets/icons/icon-72x72.png';
   private readonly document = inject(DOCUMENT);
