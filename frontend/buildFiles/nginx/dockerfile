@@ -1,4 +1,7 @@
 # THIS IMAGE IS A 2 PHASE IMAGE. It first builds the project, then within the same dockerfiles swaps to a new image, discarding the old one, then setting it up to run nginx and copying the dist from the old file.
+# THIS IMAGE IS A 2 PHASE IMAGE
+# 1) Builds the project to /dist
+# 2) Swap to new image which discards the old one, install nginx and copy the build-artifact from 1)
 
 # Phase 1) Build the frontend
 FROM alpine AS build
@@ -10,7 +13,6 @@ RUN npm run build
 
 # Phase 1) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
-# Install dependencies
 RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
 
 # Expose Ports -- Mostly documentation for later
@@ -25,7 +27,7 @@ COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
 # Setup necessary directories
 # RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend # These files aren't needed apparently?
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
-RUN ln -s /session_audio /audiodownloads
+# RUN ln -s /session_audio /audiodownloads
 
 # Mount external directories
 CMD ["nginx", "-g", "daemon off;"]
