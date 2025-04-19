@@ -1,0 +1,12 @@
+---
+- hosts: web_server
+  tasks:
+    - name: Basic usage
+      ansible.builtin.debug:
+        msg: "'{{ lookup('ansible.builtin.env', 'DB_PATH') }}' is the DB_PATH environment variable."
+
+    - name: Download DB
+      fetch:
+        src: "{{lookup('ansible.builtin.env', 'DB_PATH')}}"
+        flat: true
+        dest: ../backend/
