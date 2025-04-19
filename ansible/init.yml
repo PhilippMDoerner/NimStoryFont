@@ -1,0 +1,67 @@
+---
+- hosts: 127.0.0.1
+  gather_facts: false
+  vars_prompt:
+    - name: domain
+      prompt: Enter your server's domain name
+      private: false
+
+    - name: db_path
+      prompt: Enter your desired path to your database file on your server
+      private: false
+      default: "~/database/db.sqlite3"
+
+    - name: server_ip
+      prompt: Enter your server's IP address
+      private: false
+
+    - name: has_custom_ssh_key
+      prompt: Do you want to generate a custom SSH key? (true/false)
+      private: false
+      default: true
+
+  vars:
+    ssh_key_path: ~/.ssh/nimstoryfont_ansible
+
+  tasks:
+    - name: Create ansible ssh key in ~/.ssh
+      tags: ssh
+      when: has_custom_ssh_key
+      community.crypto.openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: ed25519
+        comment: "nimstoryfont ansible user"
+        mode: 0644
+
+    - name: Get current working directory
+      tags: env
+      set_fact:
+        project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
+
+    - name: Create .env file
+      tags: env
+      ansible.builtin.copy:
+        content: |
+          PROJECT_ROOT={{ project_root }}
+          NS_DOMAIN={{ domain }}
+          DB_PATH={{ db_path }}
+          SERVER_IP={{ server_ip }}
+        dest: "{{ project_root }}/.env"
+
+    - name: Create inventory file
+      tags: inventory, ansible
+      ansible.builtin.copy:
+        content: |
+          [web_server]
+          {{ server_ip }}
+        dest: "{{ project_root }}/inventory"
+
+    - name: Create ansible.cfg file
+      tags: ansible
+      ansible.builtin.copy:
+        content: |
+          [defaults]
+          inventory = inventory
+          private_key_file = {{ ssh_key_path }}
+
+# TODO: Install
