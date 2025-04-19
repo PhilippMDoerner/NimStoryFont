@@ -21,14 +21,6 @@ requires "nimword >= 1.0.1"
 
 import std/strformat
 let domain ="aldrune.com"
-#let serverIp ="172.105.82.139" # prior server
-let serverIp ="172.105.79.155"
-
-let nginx_container = "production_nginx"
-# let nginx_image = staticRead("./buildFiles/nimstoryfont-image-name.txt")
-
-let ns_container = "nswebserver"
-# let ns_image = staticRead("../frontend/buildFiles/nimstoryfont-image-name.txt")
 
 # Tasks
 task alpine, "Build an alpine release for use in an alpine container":
@@ -112,10 +104,6 @@ task enabledev, "Changes the hosts file to change DNS lookups to the 'aldrune.co
 task disabledev, "Changes the hosts file so that DNS lookups to the 'aldrune.com' domain get routed to the internet":
   exec(fmt"sudo sed -i /'127.0.0.1       {domain}'/d  /etc/hosts")
   exec(fmt"sudo sed -i /'127.0.0.1       www.{domain}'/d  /etc/hosts")
-
-task job_prod_deploy, "Compiles and copies job binaries to prod":
-  exec("nimble compileDataExporterJob")
-  exec(fmt"scp buildFiles/nimstoryfont/jobs/* isofruit@{serverIp}:~/jobs")
 
 task createCert, "Creates a self-signed SSL certificate":
   exec("openssl req -newkey rsa:4096  -x509  -sha512  -days 3650 -nodes -out fullchain.pem -keyout privkey.pem")
