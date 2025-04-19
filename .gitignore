@@ -1,0 +1,58 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+frontend/dist
+frontend/dist.zip
+frontend/tmp
+frontend/out-tsc
+frontend/bazel-out
+
+# Node
+frontend/node_modules
+frontend/npm-debug.log
+frontend/yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Miscellaneous
+frontend/.angular/cache
+frontend/.github
+frontend/.storybook
+frontend/.vscode
+frontend/buildFiles/nginx/local_only
+backend/buildFiles/nimstoryfont
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+/backend/db.sqlite3
+# System files
+.DS_Store
+Thumbs.db
+todo.txt
+android*
+*_image.tar
+
+*nimbledeps*
+*letsencrypt*
+*server_logs*
+nimstoryfontSettings.json
+inventory
+ansible.cfg
+steps_for_initial_setup.md
