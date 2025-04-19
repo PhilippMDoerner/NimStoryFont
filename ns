@@ -1,0 +1,31 @@
+#!/bin/bash
+## This bash script is the central manager for this repository.
+case $1 in
+  run)
+    if [ -z "$2" ]; then
+      echo "Available commands:"
+      find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
+      exit 0
+    fi
+    env $(cat ./.env) ansible-playbook ./ansible/$2.yml
+    exit 0
+    ;;
+  compose)
+    if [ -z "$2" ]; then
+      echo "Available compose files:"
+      find ./ -maxdepth 1 -type f -name "docker-compose**.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
+      exit 0
+    elif [ -z "$3" ]; then
+      echo "Specify what docker-compose command you want to run."
+      echo "For more info, run 'docker-compose -h'"
+      exit 0
+    fi
+    
+    sudo docker-compose -f ./$2.yml $3
+    exit 0
+    ;;
+  help|*)
+    #TODO: Add help text that specifies what each command does
+    echo "Helping..."
+    ;;
+esac
