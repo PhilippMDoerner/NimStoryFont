@@ -1,10 +1,12 @@
-# LOCAL GHCR REFERENCE
-# This docker-compose file is for local development and for reference for writing your own.
-# It pulls the images from the github container registry instead of building from scratch
+# LOCAL BUILD-PROD-FROM-SCRATCH DEPLOYMENT
+# This docker-compose file is for local development.
+# It builds the entire project from scratch with the same configs as production.
 services:
   #Nginx Reverse Proxy
   proxy:
-    image: ghcr.io/philippmdoerner/nginx_frontend-dev:latest
+    build:
+      context: .
+      dockerfile: ./frontend/buildFiles/nginx/dockerfile
     ports:
       - "443:443"
       - "80:80"
@@ -19,7 +21,9 @@ services:
 
   #NimStoryfont backend webserver that receives requests on port 8080
   nimstoryfont:
-    image: ghcr.io/philippmdoerner/backend-dev:latest
+    build:
+      context: .
+      dockerfile: ./backend/buildFiles/dockerfile
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
