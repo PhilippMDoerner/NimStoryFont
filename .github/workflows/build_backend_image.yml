@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - "backend/**" # Only runs when a file in the backend directory is changed
   workflow_dispatch:
 
 jobs:
