@@ -1,0 +1,4 @@
+# Rename this to .env and use for your deployment
+PROJECT_ROOT=/path/to/root/dir/of/nimstoryfont
+NS_DOMAIN=yourdomain.com
+DB_PATH=~/path/to/db/file/on/server/database/db.sqlite3
