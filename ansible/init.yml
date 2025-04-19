@@ -15,28 +15,26 @@
       prompt: Enter your server's IP address
       private: false
 
-    - name: has_custom_ssh_key
-      prompt: Do you want to generate a custom SSH key? (true/false)
-      private: false
-      default: true
-
-  vars:
-    ssh_key_path: ~/.ssh/nimstoryfont_ansible
-
   tasks:
-    - name: Create ansible ssh key in ~/.ssh
-      tags: ssh
-      when: has_custom_ssh_key
-      community.crypto.openssh_keypair:
-        path: "{{ ssh_key_path }}"
-        type: ed25519
-        comment: "nimstoryfont ansible user"
-        mode: 0644
-
     - name: Get current working directory
       tags: env
       set_fact:
         project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
+        ssh_key_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/nimstoryfont_ansible"
+
+    - name: Create ansible ssh key in ~/.ssh
+      tags: ssh
+      community.crypto.openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: ed25519
+        comment: "nimstoryfont ansible user"
+        mode: 0600
+
+    - name: Set permissions for public key
+      tags: ssh
+      file:
+        path: "{{ ssh_key_path }}.pub"
+        mode: 0644
 
     - name: Create .env file
       tags: env
@@ -63,5 +61,5 @@
           [defaults]
           inventory = inventory
           private_key_file = {{ ssh_key_path }}
-
-# TODO: Install
+        dest: "{{ project_root }}/ansible.cfg"
+# TODO: Install dependencies like flyway
