@@ -7,7 +7,7 @@ case $1 in
       find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
       exit 0
     fi
-    env $(cat ./.env) ansible-playbook ./ansible/$2.yml
+    env $(cat ./.env) ansible-playbook ./ansible/$2.yml --ask-become-pass
     exit 0
     ;;
   compose)
