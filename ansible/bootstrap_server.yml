@@ -1,0 +1,145 @@
+---
+- hosts: web_server
+  vars_prompt:
+    - name: username
+      prompt: Enter your desired Admin username
+      private: false
+
+    - name: password
+      prompt: Enter your desired Admin Password
+      confirm: true
+      private: true
+      
+    - name: email
+      prompt: Enter the email address to register for your domain's SSH certificate
+      private: false
+    
+  vars:
+    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    host: "{{ domain.split('.')[0] }}"
+    server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
+
+  tasks:
+    - name: Adds an admin with a home directory and sudo privileges to the host server
+      tags: user, admin
+      user:
+        name: "{{username}}"
+        password: "{{password}}"
+        groups: sudo
+        createhome: true
+        state: present
+        append: true
+
+    - name: Upgrade host server to latest
+      apt:
+        update_cache: true
+        upgrade: dist
+        name:
+          - sqlite3
+          - ufw
+          - certbot
+          - docker.io
+          - docker-compose
+          - nginx
+          - zip
+          - unzip
+        state: present
+
+    - name: Configure SSH security settings
+      tags: ssh
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        state: present
+
+    - name: Configure SSH password authentication
+      tags: ssh
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+
+    - name: Reload SSH service so that settings take effect
+      tags: ssh
+      service:
+        name: sshd
+        state: reloaded
+
+    - name: UFW config - Allow outgoing traffic
+      tags: ufw
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: UFW config - Deny incoming traffic
+      tags: ufw
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: UFW config - Allow incoming SSH traffic
+      tags: ufw
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+      with_items:
+        - 22 # ssh
+        - 80 # http
+        - 443 # https
+
+    - name: Set hostname via hostnamectl
+      tags: host
+      ansible.builtin.hostname:
+        use: systemd
+        name: "{{ domain }}"
+
+    - name: Add host to /etc/host
+      tags: host
+      blockinfile:
+        dest: /etc/hosts
+        state: present
+        append_newline: true
+        create: true
+        insertafter: "^# /etc/hosts"
+        block: |
+          127.0.0.1       localhost
+          {{ server_ip }}  {{ host }}
+
+    - name: Disable nginx
+      tags: nginx
+      service:
+        name: nginx
+        state: stopped
+        enabled: false
+        
+    - name: Register certbot
+      tags: certbot
+      ansible.builtin.shell: |
+        certbot -n register --agree-tos --email {{ email }}
+        touch /etc/letsencrypt/.registered
+      args:
+        creates: /etc/letsencrypt/.registered
+      tags:
+        - nginx
+        - certbot
+  
+    - name: Setup cronjob for renewal
+      cron:
+        name: certbot-renewal
+        job: "/bin/bash -lc '/usr/local/bin/certbot -q renew'"
+        minute: "0"
+        hour: "14"
+      tags:
+        - nginx
+        - certbot
+    
+    - name: 'Get certificate'
+      command: '/usr/local/bin/certbot -n --nginx certonly -d {{ domain }}'
+      args:
+        creates: '/etc/letsencrypt/live/{{ domain }}'
+      ignore_errors: true
+      tags:
+        - nginx
+        - certbot
