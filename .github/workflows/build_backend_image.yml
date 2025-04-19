@@ -1,4 +1,4 @@
-name: Deploy Images to GHCR
+name: Build & Deploy backend Image to GHCR
 
 on:
   push:
