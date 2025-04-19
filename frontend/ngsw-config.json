@@ -27,53 +27,5 @@
         ]
       }
     }
-  ],
-  "dataGroups": [
-    {
-      "name": "aldruneWikiOverview",
-      "urls": [
-        "https://www.aldrune.com/wiki1/api/campaign/",
-        "https://www.aldrune.com/wiki1/api/campaign/overview/",
-        "https://www.aldrune.com/wiki1/api/character/*/overview/",
-        "https://www.aldrune.com/wiki1/api/location/*/overview/",
-        "https://www.aldrune.com/wiki1/api/item/*/overview/",
-        "https://www.aldrune.com/wiki1/api/organization/*/overviewv",
-        "https://www.aldrune.com/wiki1/api/diaryentry/*/overview/",
-        "https://www.aldrune.com/wiki1/api/creature/*/overview/",
-        "https://www.aldrune.com/wiki1/api/quest/*/overview/",
-        "https://www.aldrune.com/wiki1/api/sessionaudio/*/overview/",
-        "https://www.aldrune.com/wiki1/api/spell/*/overview/",
-        "https://www.aldrune.com/wiki1/api/rule/*/overview/"
-      ],
-      "cacheConfig": {
-        "maxSize": 50,
-        "maxAge": "4d",
-        "timeout": "1s",
-        "strategy": "freshness"
-      }
-    },
-    {
-      "name": "aldruneWikiArticles",
-      "urls": [
-        "https://www.aldrune.com/wiki1/api/campaign/**",
-        "https://www.aldrune.com/wiki1/api/character/**",
-        "https://www.aldrune.com/wiki1/api/location/**",
-        "https://www.aldrune.com/wiki1/api/organization/**",
-        "https://www.aldrune.com/wiki1/api/item/**",
-        "https://www.aldrune.com/wiki1/api/diaryentry/**",
-        "https://www.aldrune.com/wiki1/api/creature/**",
-        "https://www.aldrune.com/wiki1/api/map/**",
-        "https://www.aldrune.com/wiki1/api/randomquote/**",
-        "https://www.aldrune.com/wiki1/api/recentupdates/**",
-        "https://www.aldrune.com/wiki1/api/timestamp/**",
-        "https://www.aldrune.com/wiki1/api/admin/statistics/**"
-      ],
-      "cacheConfig": {
-        "maxSize": 5000,
-        "maxAge": "90d",
-        "timeout": "1s",
-        "strategy": "freshness"
-      }
-    }
   ]
 }
