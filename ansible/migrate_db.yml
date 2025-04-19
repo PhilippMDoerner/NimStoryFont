@@ -1,0 +1,40 @@
+---
+- hosts: web_server
+  gather_facts: false
+  vars:
+    backend_path: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}/backend"
+
+  tasks:
+    - name: Download DB
+      fetch:
+        src: "{{lookup('ansible.builtin.env', 'DB_PATH')}}"
+        flat: true
+        dest: "{{ backend_path }}/"
+
+- hosts: 127.0.0.1 #local
+  gather_facts: false
+  vars:
+    backend_path: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}/backend"
+
+  tasks:
+    - name: Apply flyway migration
+      ansible.builtin.shell:
+        chdir: "{{ backend_path }}"
+        cmd: "flyway -url='jdbc:sqlite:./db.sqlite3' -locations=filesystem:./sql migrate"
+
+- hosts: web_server
+  gather_facts: false
+  vars:
+    backend_path: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}/backend"
+
+  tasks:
+    - name: Upload updated DB
+      ansible.builtin.copy:
+        src: "{{ backend_path }}/db.sqlite3"
+        dest: "{{lookup('ansible.builtin.env', 'DB_PATH')}}"
+
+    - name: Restart server
+      become: true
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: restarted
