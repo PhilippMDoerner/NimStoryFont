@@ -23,7 +23,6 @@ RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-ngin
 #EXPOSE 8080 ##Only for Debug purposes
 
 # Copy necessary files
-COPY --from=build /frontend/buildFiles/nginx/nginx_prod.conf /etc/nginx/nginx.conf
 COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
 COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
 # Setup necessary directories
