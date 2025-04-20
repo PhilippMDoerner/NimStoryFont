@@ -1,0 +1,19 @@
+---
+- hosts: 127.0.0.1
+  gather_facts: false
+  vars:
+    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    host: "{{ domain.split('.')[0] }}"
+    server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
+    project_root: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}"
+    ssh_key_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/nimstoryfont_ansible"
+    nginx_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/frontend/buildFiles/nginx"
+    country: "{{ lookup('ansible.builtin.env', 'COUNTRY') }}"
+    state: "{{ lookup('ansible.builtin.env', 'LOCAL_CERT_COUNTRY') }}"
+    locality: "{{ lookup('ansible.builtin.env', 'LOCAL_CERT_LOCALITY') }}"
+    organization: "{{ lookup('ansible.builtin.env', 'LOCAL_CERT_ORGANIZATION') }}"
+
+  tasks:
+    - name: Re-generate files from .env
+      import_role:
+        name: generate-files
