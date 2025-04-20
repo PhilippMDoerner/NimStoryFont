@@ -32,6 +32,6 @@
 - name: Generate backend settings json
   tags: backend
   ansible.builtin.template:
-    src: templates/settings.json.j2
+    src: templates/backend_settings.json.j2
     dest: "{{ project_root }}/backend/buildFiles/nimstoryfont/settings.json"
     mode: 0644

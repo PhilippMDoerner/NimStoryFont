@@ -1,6 +1,10 @@
 #!/bin/bash
 ## This bash script is the central manager for this repository.
 case $1 in
+  init)
+    ansible-playbook ./ansible/init.yml --ask-become-pass
+    exit 0
+    ;;
   run)
     if [ -z "$2" ]; then
       echo "Available commands:"

@@ -63,7 +63,7 @@
       default: "Nimstoryfont"
 
   vars:
-    secret_key: lookup('community.general.random_string', length=50)
+    secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
   tasks:
     - name: Get current working directory
