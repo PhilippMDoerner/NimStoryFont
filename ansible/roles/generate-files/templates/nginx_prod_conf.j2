@@ -177,10 +177,12 @@ http {
         
         # Serves the frontend which is an angular application        
         location /wiki2 {
+            if ($request_filename ~* ".html$") {
+                add_header Link '<https://{{ domain }}>; rel="preconnect"';
+            }
             # CORS
             # Cache headers
             add_header Cache-Control 'public, max-age=86400';  # cache for 1 day
-
             try_files /index.html =404;
         }
         #error_page  404              /404.html;
