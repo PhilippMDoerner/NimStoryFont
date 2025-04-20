@@ -15,6 +15,7 @@ services:
     volumes:
       - ./frontend/buildFiles/nginx/local_only/certificates:/etc/letsencrypt
       - ./frontend/buildFiles/nginx/local_only/session_audio_backup:/session_audio # To serve audio files
+      - ./frontend/buildFiles/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/media:/imagemedia # To serve images
       - ./backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
     container_name: production_nginx
