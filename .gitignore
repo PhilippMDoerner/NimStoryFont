@@ -60,3 +60,4 @@ steps_for_initial_setup.md
 nimstoryfont_ansible
 nimstoryfont_ansible.pub
 nginx.conf
+docker-compose_server.yml

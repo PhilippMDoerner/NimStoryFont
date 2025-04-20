@@ -15,11 +15,12 @@
     secret_key: "{{ lookup('ansible.builtin.env', 'SECRET_KEY') }}"
     nginx_path: "{{ lookup('ansible.builtin.env', 'NGINX_PATH') }}"
     media_path: "{{ lookup('ansible.builtin.env', 'MEDIA_PATH') }}"
+    audio_path: "{{ lookup('ansible.builtin.env', 'AUDIO_PATH') }}"
     server_email_name: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_NAME') }}"
     server_email_password: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_PASSWORD') }}"
     smtp_domain: "{{ lookup('ansible.builtin.env', 'SMTP_DOMAIN') }}"
     smtp_port: "{{ lookup('ansible.builtin.env', 'SMTP_PORT') }}"
-
+    db_path: "{{ lookup('ansible.builtin.env', 'DB_PATH') }}"
   tasks:
     - name: Re-generate files from .env
       import_role:

@@ -9,17 +9,22 @@
     - name: db_path
       prompt: Enter your desired path to your database file on your server
       private: false
-      default: "~/database/db.sqlite3"
+      default: "./database/db.sqlite3"
 
-    - name: nginx_config_path
+    - name: nginx_path
       prompt: Enter your desired path to your nginx config file on your server
       private: false
-      default: "~/nginx.conf"
+      default: "./nginx.conf"
 
     - name: media_path
-      prompt: Enter your desired path to your media files (images, icons, server recordings etc.) on your server
+      prompt: Enter your desired path to your media files (images, icons etc.) on your server
       private: false
-      default: "~/media"
+      default: "./media"
+
+    - name: audio_path
+      prompt: Enter your desired path to your audio files (server recordings etc.) on your server
+      private: false
+      default: "./audio"
 
     - name: server_email_name
       prompt: Enter your server's email address (Required for password reset emails)
@@ -94,8 +99,9 @@
           PROJECT_ROOT={{ project_root }}
           NS_DOMAIN={{ domain }}
           DB_PATH={{ db_path }}
-          NGINX_PATH={{ nginx_config_path }}
+          NGINX_PATH={{ nginx_path }}
           MEDIA_PATH={{ media_path }}
+          AUDIO_PATH={{ audio_path }}
           SERVER_IP={{ server_ip }}
           SECRET_KEY={{ secret_key }}
           SERVER_EMAIL_NAME={{ server_email_name }}

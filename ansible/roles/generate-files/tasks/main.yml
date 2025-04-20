@@ -35,3 +35,10 @@
     src: templates/backend_settings.json.j2
     dest: "{{ project_root }}/backend/buildFiles/nimstoryfont/settings.json"
     mode: 0644
+
+- name: Generate sample docker-compose file for server
+  tags: docker, docker-compose
+  ansible.builtin.template:
+    src: templates/docker-compose_server.j2
+    dest: "{{ project_root }}/docker-compose_server.yml"
+    mode: 0644
