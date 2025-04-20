@@ -37,7 +37,7 @@
 
   tasks:
     - name: Get current working directory
-      tags: env
+      tags: env, nginx_config
       set_fact:
         project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
         ssh_key_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/nimstoryfont_ansible"
@@ -85,7 +85,7 @@
         dest: "{{ project_root }}/ansible.cfg"
 
     - name: Generate nginx config
-      tags: nginx
+      tags: nginx, nginx_config
       ansible.builtin.template:
         src: templates/nginx_prod_conf.j2
         dest: "{{ nginx_buildfiles_path }}/nginx_prod.conf"
