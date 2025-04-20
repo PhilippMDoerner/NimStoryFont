@@ -59,3 +59,4 @@ steps_for_initial_setup.md
 *.env
 nimstoryfont_ansible
 nimstoryfont_ansible.pub
+nginx.conf
