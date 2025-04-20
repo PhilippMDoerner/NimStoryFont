@@ -67,36 +67,9 @@
           SERVER_IP={{ server_ip }}
         dest: "{{ project_root }}/.env"
 
-    - name: Create inventory file
-      tags: inventory, ansible
-      ansible.builtin.copy:
-        content: |
-          [web_server]
-          {{ server_ip }}
-        dest: "{{ project_root }}/inventory"
-
-    - name: Create ansible.cfg file
-      tags: ansible
-      ansible.builtin.copy:
-        content: |
-          [defaults]
-          inventory = inventory
-          private_key_file = {{ ssh_key_path }}
-        dest: "{{ project_root }}/ansible.cfg"
-
-    - name: Generate nginx config
-      tags: nginx
-      ansible.builtin.template:
-        src: templates/nginx_prod_conf.j2
-        dest: "{{ nginx_buildfiles_path }}/nginx_prod.conf"
-        mode: 0644
-
-    - name: Generate openssl config
-      tags: nginx, certbot, openssl
-      ansible.builtin.template:
-        src: templates/openssl_conf.j2
-        dest: "{{ nginx_buildfiles_path }}/local_only/openssl.conf"
-        mode: 0644
+    - name: Generate files from environment
+      ansible.builtin.include_role:
+        name: generate-files
 
     - name: Generate dummy cert
       become: true
