@@ -28,3 +28,10 @@
     src: templates/openssl_conf.j2
     dest: "{{ nginx_buildfiles_path }}/local_only/openssl.conf"
     mode: 0644
+
+- name: Generate backend settings json
+  tags: backend
+  ansible.builtin.template:
+    src: templates/settings.json.j2
+    dest: "{{ project_root }}/backend/buildFiles/nimstoryfont/settings.json"
+    mode: 0644

@@ -11,6 +11,33 @@
       private: false
       default: "~/database/db.sqlite3"
 
+    - name: nginx_config_path
+      prompt: Enter your desired path to your nginx config file on your server
+      private: false
+      default: "~/nginx.conf"
+
+    - name: media_path
+      prompt: Enter your desired path to your media files (images, icons, server recordings etc.) on your server
+      private: false
+      default: "~/media"
+
+    - name: server_email_name
+      prompt: Enter your server's email address (Required for password reset emails)
+      private: false
+
+    - name: server_email_password
+      prompt: Enter your server's email password (Required for password reset emails)
+      private: true
+
+    - name: smtp_domain
+      prompt: Enter the SMTP domain of your email provider (Required for password reset emails) (i.e. "smtp.gmail.com")
+      private: false
+
+    - name: smtp_port
+      prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "587")
+      private: false
+      default: 587
+
     - name: server_ip
       prompt: Enter your server's IP address
       private: false
@@ -34,6 +61,9 @@
       prompt: Enter your server's organization (for your local SSH certificate)
       private: false
       default: "Nimstoryfont"
+
+  vars:
+    secret_key: lookup('community.general.random_string', length=50)
 
   tasks:
     - name: Get current working directory
@@ -64,7 +94,14 @@
           PROJECT_ROOT={{ project_root }}
           NS_DOMAIN={{ domain }}
           DB_PATH={{ db_path }}
+          NGINX_PATH={{ nginx_config_path }}
+          MEDIA_PATH={{ media_path }}
           SERVER_IP={{ server_ip }}
+          SECRET_KEY={{ secret_key }}
+          SERVER_EMAIL_NAME={{ server_email_name }}
+          SERVER_EMAIL_PASSWORD={{ server_email_password }}
+          SMTP_DOMAIN={{ smtp_domain }}
+          SMTP_PORT={{ smtp_port }}
           LOCAL_CERT_COUNTRY={{ country }}
           LOCAL_CERT_STATE={{ state }}
           LOCAL_CERT_LOCALITY={{ locality }}
