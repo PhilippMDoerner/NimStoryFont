@@ -11,8 +11,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./frontend/buildFiles/nginx/local_only/certificates:/cert/live/${NS_DOMAIN}
-      - ./frontend/buildFiles/nginx/local_only/certificates:/cert/archive/${NS_DOMAIN}
+      - ./frontend/buildFiles/nginx/local_only/certificates:/etc/letsencrypt
       - ./frontend/buildFiles/nginx/local_only/session_audio_backup:/session_audio # To serve audio files
       - ./backend/media:/imagemedia # To serve images
       - ./backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
