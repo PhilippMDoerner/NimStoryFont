@@ -19,7 +19,7 @@
   tags: nginx
   ansible.builtin.template:
     src: templates/nginx_prod_conf.j2
-    dest: "{{ nginx_buildfiles_path }}/nginx_prod.conf"
+    dest: "{{ nginx_buildfiles_path }}/nginx.conf"
     mode: 0644
 
 - name: Generate openssl config
