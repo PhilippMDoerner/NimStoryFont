@@ -65,6 +65,10 @@
           NS_DOMAIN={{ domain }}
           DB_PATH={{ db_path }}
           SERVER_IP={{ server_ip }}
+          LOCAL_CERT_COUNTRY={{ country }}
+          LOCAL_CERT_STATE={{ state }}
+          LOCAL_CERT_LOCALITY={{ locality }}
+          LOCAL_CERT_ORGANIZATION={{ organization }}
         dest: "{{ project_root }}/.env"
 
     - name: Generate files from environment
