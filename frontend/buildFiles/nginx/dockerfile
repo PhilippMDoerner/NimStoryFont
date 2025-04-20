@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=./node_modules npm i && npm run build
 
 # Phase 1) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
-RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
+RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-nginx --no-cache
 # TODO: Add a way to generate SSL certs regularly in here
 
 # Expose Ports -- Mostly documentation for later
@@ -31,5 +31,4 @@ COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 # RUN ln -s /session_audio /audiodownloads
 
-# Mount external directories
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "-c", "/etc/nginx/mountconfig/nginx.conf" "daemon off;"]
