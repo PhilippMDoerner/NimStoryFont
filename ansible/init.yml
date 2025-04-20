@@ -15,12 +15,33 @@
       prompt: Enter your server's IP address
       private: false
 
+    - name: country
+      prompt: Enter your server's country (for your local SSH certificate)
+      private: false
+      default: "DE"
+
+    - name: state
+      prompt: Enter your server's state (for your local SSH certificate)
+      private: false
+      default: "Berlin"
+
+    - name: locality
+      prompt: Enter your server's locality (for your local SSH certificate)
+      private: false
+      default: "Berlin"
+
+    - name: organization
+      prompt: Enter your server's organization (for your local SSH certificate)
+      private: false
+      default: "Nimstoryfont"
+
   tasks:
     - name: Get current working directory
       tags: env
       set_fact:
         project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
         ssh_key_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/nimstoryfont_ansible"
+        nginx_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/frontend/buildFiles/nginx"
 
     - name: Create ansible ssh key in ~/.ssh
       tags: ssh
@@ -62,4 +83,25 @@
           inventory = inventory
           private_key_file = {{ ssh_key_path }}
         dest: "{{ project_root }}/ansible.cfg"
+
+    - name: Generate nginx config
+      tags: nginx
+      ansible.builtin.template:
+        src: templates/nginx_prod_conf.j2
+        dest: "{{ nginx_buildfiles_path }}/nginx_prod.conf"
+        mode: 0644
+
+    - name: Generate openssl config
+      tags: nginx, certbot, openssl
+      ansible.builtin.template:
+        src: templates/openssl_conf.j2
+        dest: "{{ nginx_buildfiles_path }}/local_only/openssl.conf"
+        mode: 0644
+
+    - name: Generate dummy cert
+      become: true
+      tags: nginx, local
+      ansible.builtin.shell: |
+        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ nginx_buildfiles_path }}/local_only/certificates/openssl.cnf -out {{ nginx_buildfiles_path }}/local_only/certificates/live/{{domain}}/fullchain.pem -keyout  {{ nginx_buildfiles_path}}/local_only/certificates/live/{{domain}}/privkey.pem
+
 # TODO: Install dependencies like flyway
