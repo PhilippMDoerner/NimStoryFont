@@ -1,0 +1,25 @@
+{
+  "prologue": {
+    "address": "",
+    "port": 8080,
+    "debug": true,
+    "reusePort": true,
+    "appName": "",
+    "secretKey": "{{ secret_key }}",
+    "bufSize": 409600
+  },
+  "name": "production",
+  "accessTokenLifetimeInDays": 1,
+  "refreshTokenLifetimeInDays": 30,
+  "databaseConnectionLimit": 8,
+  "databasePath": "/database/db.sqlite3",
+  "baseDir": "/",
+  "imageDir": "/imagemedia",
+  "audioDir": "/session_audio",
+  "audioUploadDir": "session_audio/extended",
+  "pageSize": 24,
+  "smtp": "{{ smtp_domain }}",
+  "smtpPort": {{ smtp_port }},
+  "emailName": "{{ server_email_name }}",
+  "emailPassword": "{{server_email_password }}"
+}
