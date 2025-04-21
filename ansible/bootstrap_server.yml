@@ -126,7 +126,8 @@
 
     - name: Add systemd timer for certbot renewals
       tags: certbot
-      systemd:
+      ansible.builtin.systemd-service:
         state: started
         name: certbot.timer
         enabled: true
+        daemon_reload: true
