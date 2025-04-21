@@ -1,7 +1,12 @@
 ---
 # Adds the necessary steps for setting up this project on the host server
 - hosts: web_server
-  gather_facts: false
+  become: true
+  vars_prompt:
+    - name: cert_email
+      prompt: "Enter email under which to register your SSL certificates"
+      private: false
+
   vars:
     project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
     frontend_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/frontend/buildFiles/nginx"
@@ -14,7 +19,7 @@
     compose_path: "{{ lookup('ansible.builtin.env', 'COMPOSE_PATH') }}"
     feature_config_path: "{{ lookup('ansible.builtin.env', 'FEATURE_CONFIG_PATH') }}"
     dumps_path: "{{ lookup('ansible.builtin.env', 'DUMPS_PATH') }}"
-
+    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
   tasks:
     - name: Upgrade host server to latest
       apt:
@@ -27,12 +32,18 @@
           - sqlite3
           - curl
           - ca-certificates
+          - certbot
         state: present
 
     - name: Install docker
       tags: docker
       include_role:
         name: install-docker
+
+    - name: Fetch SSL certificates
+      tags: ssl, nginx, certbot
+      become: true
+      command: "certbot certonly --standalone -d {{ domain }} -n -m {{ cert_email }}"
 
     - name: Create media dir
       tags: media
