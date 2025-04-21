@@ -1,0 +1,9 @@
+[Unit]
+Description=Certbot Renew Timer
+
+[Timer]
+OnCalendar=monthly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
