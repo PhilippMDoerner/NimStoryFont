@@ -2,15 +2,6 @@
 - hosts: web_server
   become: true
   vars_prompt:
-    - name: username
-      prompt: Enter your desired Admin username
-      private: false
-
-    - name: password
-      prompt: Enter your desired Admin Password
-      confirm: true
-      private: true
-
     - name: email
       prompt: Enter the email address to register for your domain's SSH certificate
       private: false
@@ -21,16 +12,6 @@
     server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
 
   tasks:
-    - name: Adds an admin with a home directory and sudo privileges to the host server
-      tags: user, admin
-      user:
-        name: "{{username}}"
-        password: "{{password}}"
-        groups: sudo
-        createhome: true
-        state: present
-        append: true
-
     - name: Upgrade host server to latest
       apt:
         update_cache: true
