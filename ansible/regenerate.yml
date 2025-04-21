@@ -3,7 +3,6 @@
   gather_facts: false
   vars:
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
-    host: "{{ domain.split('.')[0] }}"
     server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
     project_root: "{{ lookup('ansible.builtin.env', 'PROJECT_ROOT') }}"
     ssh_key_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/nimstoryfont_ansible"

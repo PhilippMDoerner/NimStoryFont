@@ -19,6 +19,7 @@
       [defaults]
       inventory = inventory
       private_key_file = {{ ssh_key_path }}
+      remote_user = ansible
     dest: "{{ project_root }}/ansible.cfg"
 
 - name: Generate nginx config

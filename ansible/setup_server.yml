@@ -1,14 +1,9 @@
 ---
 - hosts: web_server
   become: true
-  vars_prompt:
-    - name: email
-      prompt: Enter the email address to register for your domain's SSH certificate
-      private: false
 
   vars:
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
-    host: "{{ domain.split('.')[0] }}"
     server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
 
   tasks:
@@ -16,6 +11,9 @@
       apt:
         update_cache: true
         upgrade: dist
+
+    - name: Install general dependencies
+      apt:
         name:
           - sqlite3
           - ufw
@@ -76,22 +74,7 @@
         insertafter: "^# /etc/hosts"
         block: |
           127.0.0.1       localhost
-          {{ server_ip }}  {{ host }}
-
-    - name: Disable nginx
-      tags: nginx
-      service:
-        name: nginx
-        state: stopped
-        enabled: false
-
-    - name: Register certbot
-      tags: certbot
-      ansible.builtin.shell: |
-        certbot -n register --agree-tos --email {{ email }}
-        touch /etc/letsencrypt/.registered
-      args:
-        creates: /etc/letsencrypt/.registered
+          {{ server_ip }}  {{ domain }}
 
     - name: Copy certbot.timer file for certbot renewals
       tags: certbot
@@ -107,7 +90,7 @@
 
     - name: Add systemd timer for certbot renewals
       tags: certbot
-      ansible.builtin.systemd-service:
+      ansible.builtin.systemd_service:
         state: started
         name: certbot.timer
         enabled: true
