@@ -1,4 +1,4 @@
-import { NgOptimizedImage } from '@angular/common';
+import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -7,8 +7,13 @@ import {
   inject,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
   debounceTime,
@@ -18,16 +23,25 @@ import {
   merge,
   startWith,
   Subject,
+  switchMap,
 } from 'rxjs';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { componentId } from 'src/utils/DOM';
+import { filterNil } from 'src/utils/rxjs-operators';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 
 @Component({
   selector: 'app-image-card',
   templateUrl: './image-card.component.html',
   styleUrls: ['./image-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ButtonComponent, NgOptimizedImage],
+  imports: [
+    RouterLink,
+    ButtonComponent,
+    NgOptimizedImage,
+    AsyncPipe,
+    SpinnerComponent,
+  ],
   host: {
     '[class.card--active]': 'inFocus()',
   },
@@ -44,6 +58,8 @@ export class ImageCardComponent {
   link = input<string>();
   text = input.required<string>();
   alt = input.required<string>();
+
+  imgElement = viewChild<ElementRef<HTMLImageElement>>('img');
 
   currentImageIndex = signal(0);
   currentImage = computed(
@@ -83,6 +99,16 @@ export class ImageCardComponent {
       this.openBtnClicked$.pipe(map(() => true)),
       this.closeBtnClicked$.pipe(map(() => false)),
     ).pipe(debounceTime(50), startWith(false)),
+  );
+
+  isImageLoading$ = merge(
+    toObservable(this.imgElement).pipe(
+      filterNil(),
+      switchMap((element) =>
+        fromEvent(element.nativeElement, 'load').pipe(map(() => false)),
+      ),
+    ),
+    toObservable(this.currentImageIndex).pipe(map(() => true)),
   );
 
   id = componentId();

@@ -9,6 +9,7 @@
         [attr.aria-label]="text()"
       >
         <img
+          #img
           class="card-img-top"
           [id]="imageId"
           [ngSrc]="serverUrl() + currentImage()"
@@ -17,6 +18,11 @@
           [width]="100"
           priority
         />
+        @if ((isImageLoading$ | async) === true) {
+          <div class="card__loading-spinner">
+            <app-spinner />
+          </div>
+        }
         <div class="card__title-link fs-5">
           {{ text() }}
         </div>
