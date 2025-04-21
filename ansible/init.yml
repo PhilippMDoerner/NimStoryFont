@@ -65,14 +65,14 @@
       set_fact:
         ssh_key_path: "{{ project_root }}/nimstoryfont_ansible"
         nginx_buildfiles_path: "{{ project_root }}/frontend/buildFiles/nginx"
-        db_path: "{{ server_project_dir }}/db.sqlite3"
-        media_path: "{{ server_project_dir }}/media"
-        audio_path: "{{ server_project_dir }}/audio"
-        dumps_path: "{{ server_project_dir }}/dumps"
-        nginx_path: "{{ server_project_dir }}/nginx.conf"
-        backend_settings_path: "{{ server_project_dir }}/settings.json"
-        compose_path: "{{ server_project_dir }}/docker-compose.yml"
-        feature_config_path: "{{ server_project_dir }}/featureConfig.json"
+        db_path: "db.sqlite3"
+        media_path: "media"
+        audio_path: "audio"
+        dumps_path: "dumps"
+        nginx_path: "nginx.conf"
+        backend_settings_path: "settings.json"
+        compose_path: "docker-compose.yml"
+        feature_config_path: "featureConfig.json"
 
     - name: Create ansible ssh key in ~/.ssh
       tags: ssh
@@ -100,14 +100,15 @@
         content: |
           PROJECT_ROOT={{ project_root }}
           NS_DOMAIN={{ domain }}
-          DB_PATH={{ server_project_dir }}/db.sqlite3
-          NGINX_PATH={{ nginx_path }}
-          MEDIA_PATH={{ media_path }}
-          AUDIO_PATH={{ audio_path }}
-          COMPOSE_PATH={{ compose_path }}
-          BACKEND_SETTINGS_PATH={{ backend_settings_path }}
-          DUMPS_PATH={{ dumps_path }}
-          FEATURE_CONFIG_PATH={{ feature_config_path }}
+          SERVER_PROJECT_DIR={{ server_project_dir }}
+          SERVER_DB_PATH={{ db_path }}
+          SERVER_NGINX_PATH={{ nginx_path }}
+          SERVER_MEDIA_PATH={{ media_path }}
+          SERVER_AUDIO_PATH={{ audio_path }}
+          SERVER_COMPOSE_PATH={{ compose_path }}
+          SERVER_BACKEND_SETTINGS_PATH={{ backend_settings_path }}
+          SERVER_DUMPS_PATH={{ dumps_path }}
+          SERVER_FEATURE_CONFIG_PATH={{ feature_config_path }}
           SERVER_IP={{ server_ip }}
           SECRET_KEY={{ secret_key }}
           SERVER_EMAIL_NAME={{ server_email_name }}

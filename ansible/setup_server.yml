@@ -1,7 +1,6 @@
 ---
 # Adds the necessary steps for setting up this project on the host server
 - hosts: web_server
-  become: true
   vars_prompt:
     - name: cert_email
       prompt: "Enter email under which to register your SSL certificates"
@@ -11,22 +10,25 @@
     project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
     frontend_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/frontend/buildFiles/nginx"
     backend_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/backend/buildFiles"
-    nginx_path: "{{ lookup('ansible.builtin.env', 'NGINX_PATH') }}"
-    media_path: "{{ lookup('ansible.builtin.env', 'MEDIA_PATH') }}"
-    audio_path: "{{ lookup('ansible.builtin.env', 'AUDIO_PATH') }}"
+    nginx_path: "{{ lookup('ansible.builtin.env', 'SERVER_NGINX_PATH') }}"
+    media_path: "{{ lookup('ansible.builtin.env', 'SERVER_MEDIA_PATH') }}"
+    audio_path: "{{ lookup('ansible.builtin.env', 'SERVER_AUDIO_PATH') }}"
     db_path: "{{ lookup('ansible.builtin.env', 'DB_PATH') }}"
-    backend_settings_path: "{{ lookup('ansible.builtin.env', 'BACKEND_SETTINGS_PATH') }}"
-    compose_path: "{{ lookup('ansible.builtin.env', 'COMPOSE_PATH') }}"
-    feature_config_path: "{{ lookup('ansible.builtin.env', 'FEATURE_CONFIG_PATH') }}"
-    dumps_path: "{{ lookup('ansible.builtin.env', 'DUMPS_PATH') }}"
+    backend_settings_path: "{{ lookup('ansible.builtin.env', 'SERVER_BACKEND_SETTINGS_PATH') }}"
+    compose_path: "{{ lookup('ansible.builtin.env', 'SERVER_COMPOSE_PATH') }}"
+    feature_config_path: "{{ lookup('ansible.builtin.env', 'SERVER_FEATURE_CONFIG_PATH') }}"
+    dumps_path: "{{ lookup('ansible.builtin.env', 'SERVER_DUMPS_PATH') }}"
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    server_project_dir: "{{ lookup('ansible.builtin.env', 'SERVER_PROJECT_DIR') }}"
   tasks:
     - name: Upgrade host server to latest
+      become: true
       apt:
         update_cache: true
         upgrade: dist
 
     - name: Install general dependencies
+      become: true
       apt:
         name:
           - sqlite3
@@ -43,26 +45,26 @@
     - name: Fetch SSL certificates
       tags: ssl, nginx, certbot
       become: true
-      command: "certbot certonly --standalone -d {{ domain }} -n -m {{ cert_email }}"
+      command: "certbot certonly --standalone -d {{ domain }} -n -m {{ cert_email }} --agree-tos"
 
     - name: Create media dir
       tags: media
       ansible.builtin.file:
-        path: "{{ media_path }}"
+        path: "{{server_project_dir}}/{{ media_path }}"
         state: directory
         mode: 0755
 
     - name: Create audio dir
       tags: media
       ansible.builtin.file:
-        path: "{{ audio_path }}"
+        path: "{{server_project_dir}}/{{ audio_path }}"
         state: directory
         mode: 0755
 
     - name: Create dump dir
       tags: media
       ansible.builtin.file:
-        path: "{{ dumps_path }}"
+        path: "{{server_project_dir}}/{{ dumps_path }}"
         state: directory
         mode: 0755
 
@@ -70,31 +72,31 @@
       tags: nginx, frontend, config
       copy:
         src: "{{ frontend_buildfiles_path }}/nginx.conf"
-        dest: "{{ nginx_path }}"
+        dest: "{{server_project_dir}}/{{ nginx_path }}"
 
     - name: Copy database
       tags: backend, database
       copy:
         src: "{{ project_root }}/backend/db.sqlite3"
-        dest: "{{ db_path }}"
+        dest: "{{server_project_dir}}/{{ db_path }}"
 
     - name: Copy backend configuration
       tags: backend, config
       copy:
         src: "{{ backend_buildfiles_path }}/nimstoryfont/settings.json"
-        dest: "{{ backend_settings_path }}"
+        dest: "{{server_project_dir}}/{{ backend_settings_path }}"
 
     - name: Copy Docker compose sample
       tags: docker
       copy:
         src: "{{ project_root }}/docker-compose_server.yml"
-        dest: "{{ compose_path }}"
+        dest: "{{server_project_dir}}/{{ compose_path }}"
 
     - name: Copy feaure config json
       tags: backend, frontend, config
       copy:
         src: "{{ project_root }}/feature_config.json"
-        dest: "{{ feature_config_path }}"
+        dest: "{{server_project_dir}}/{{ feature_config_path }}"
 
     - name: Copy certbot.timer file for certbot renewals
       tags: nginx, certbot, config

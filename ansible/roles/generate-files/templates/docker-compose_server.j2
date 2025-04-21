@@ -12,11 +12,11 @@ services:
       - "80:80"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt # For certbot
-      - {{ media_path }}:/imagemedia # To serve images
-      - {{ audio_path }}:/session_audio # To serve audio files
-      - {{ nginx_path }}:/etc/nginx/nginx.conf
-      - {{ dumps_path }}:/db_dumps # For database access
-      - {{ feature_config_path }}:/feature_config.json
+      - ./{{ media_path }}:/imagemedia # To serve images
+      - ./{{ audio_path }}:/session_audio # To serve audio files
+      - ./{{ nginx_path }}:/etc/nginx/nginx.conf
+      - ./{{ dumps_path }}:/db_dumps # For database access
+      - ./{{ feature_config_path }}:/feature_config.json
     container_name: production_nginx
     restart: on-failure
 
@@ -26,9 +26,9 @@ services:
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
-      - {{ backend_settings_path }}:/configs/settings.json
-      - {{ feature_config_path }}:/configs/feature_config.json
-      - {{ media_path }}:/imagemedia
-      - {{ db_path }}:/database/db.sqlite3 # For database access
+      - ./{{ backend_settings_path }}:/configs/settings.json
+      - ./{{ feature_config_path }}:/configs/feature_config.json
+      - ./{{ media_path }}:/imagemedia
+      - ./{{ db_path }}:/database/db.sqlite3 # For database access
     container_name: nswebserver
     restart: on-failure
