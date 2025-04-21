@@ -50,9 +50,9 @@
     dest: "{{ project_root }}/docker-compose_server.yml"
     mode: 0644
 
-- name: Generate bootstrap server script for setting up ansible user
+- name: Generate optional script for setting up ansible user on server
   tags: ansible, bash
   ansible.builtin.template:
-    src: templates/bootstrap_server.j2
-    dest: "{{ project_root }}/bootstrap_server.sh"
+    src: templates/provision_user.j2
+    dest: "{{ project_root }}/provision_user.sh"
     mode: 0755
