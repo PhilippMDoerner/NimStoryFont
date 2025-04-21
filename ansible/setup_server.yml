@@ -16,6 +16,22 @@
     dumps_path: "{{ lookup('ansible.builtin.env', 'DUMPS_PATH') }}"
 
   tasks:
+    - name: Upgrade host server to latest
+      apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Install general dependencies
+      apt:
+        name:
+          - ufw
+          - sqlite3
+          - docker.io
+          - docker-compose
+          - curl
+          - ca-certificates
+        state: present
+
     - name: Create media dir
       tags: media
       ansible.builtin.file:
@@ -69,12 +85,14 @@
 
     - name: Copy certbot.timer file for certbot renewals
       tags: nginx, certbot, config
+      become: true
       copy:
         src: files/certbot.timer
         dest: /etc/systemd/system/certbot.timer
 
     - name: Copy certbot.service file for certbot renewals
       tags: nginx, certbot, config
+      become: true
       copy:
         src: files/certbot.service
         dest: /etc/systemd/system/certbot.service
