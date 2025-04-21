@@ -3,7 +3,7 @@ Description=Certbot Renew Service
 
 [Service]
 Type=oneshot
-ExecStart=sudo docker exec production_nginx certbot renew
+ExecStart=docker exec production_nginx certbot renew
 
 [Install]
 WantedBy=multi-user.target
