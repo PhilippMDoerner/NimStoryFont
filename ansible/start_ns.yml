@@ -8,4 +8,4 @@
     - name: Start docker compose of nimstoryfont
       ansible.builtin.shell:
         chdir: "{{ server_project_dir }}"
-        cmd: "docker compose up"
+        cmd: "docker compose up --detach"
