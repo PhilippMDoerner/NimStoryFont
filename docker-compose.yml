@@ -25,7 +25,7 @@ services:
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
-      - ./backend/buildFiles/nimstoryfont:/configs
+      - ./backend/buildFiles/nimstoryfont/settings.json:/configs/settings.json
       - ./backend/media:/imagemedia
       - ./backend/:/database # For database access
     container_name: nswebserver
