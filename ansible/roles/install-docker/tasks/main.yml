@@ -1,5 +1,6 @@
 ---
 - name: Install packages using apt
+  become: true
   apt:
     name:
       - apt-transport-https
@@ -11,29 +12,34 @@
     cache_valid_time: 86400
 
 - name: Add Docker GPG apt Key
+  become: true
   apt_key:
     url: "{{ docker_apt_gpg_key }}"
     state: present
 
 - name: Add Docker Repository
+  become: true
   apt_repository:
     repo: "{{ docker_apt_repository }}"
     state: present
     update_cache: true
 
 - name: Install docker-ce
+  become: true
   apt:
     name: docker-ce
     state: present
     cache_valid_time: 86400
 
 - name: Run and enable docker
+  become: true
   service:
     name: docker
     state: started
     enabled: true
 
 - name: Install docker compose
+  become: true
   apt:
     name: docker-compose-plugin
     state: present
