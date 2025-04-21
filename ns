@@ -11,7 +11,7 @@ case $1 in
       find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
       exit 0
     fi
-    set -a && source .env && set +a && ansible-playbook ./ansible/$2.yml --ask-become-pass
+    set -a && source .env && set +a && ansible-playbook -v ./ansible/$2.yml --ask-become-pass
     exit 0
     ;;
   compose)
@@ -26,6 +26,11 @@ case $1 in
     fi
     
     sudo docker-compose -f ./$2.yml $3
+    exit 0
+    ;;
+  server)
+    set -a && source .env && set +a 
+    ssh -i $PROJECT_ROOT/nimstoryfont_ansible ansible@$SERVER_IP
     exit 0
     ;;
   help|*)
