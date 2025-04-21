@@ -24,13 +24,15 @@
     - name: Install general dependencies
       apt:
         name:
-          - ufw
           - sqlite3
-          - docker.io
-          - docker-compose
           - curl
           - ca-certificates
         state: present
+
+    - name: Install docker
+      tags: docker
+      include_role:
+        name: install-docker
 
     - name: Create media dir
       tags: media

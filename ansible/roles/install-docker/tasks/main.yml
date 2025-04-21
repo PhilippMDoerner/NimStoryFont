@@ -1,0 +1,40 @@
+---
+- name: Install packages using apt
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg2
+      - software-properties-common
+    state: present
+    cache_valid_time: 86400
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: "{{ docker_apt_gpg_key }}"
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: present
+    update_cache: true
+
+- name: Install docker-ce
+  apt:
+    name: docker-ce
+    state: present
+    cache_valid_time: 86400
+
+- name: Run and enable docker
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Install docker compose
+  apt:
+    name: docker-compose-plugin
+    state: present
+    cache_valid_time: 86400
