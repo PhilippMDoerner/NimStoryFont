@@ -1,0 +1,80 @@
+---
+# Sets up a server that solely runs this project
+# Configures ssh, firewall setup and more.
+# If you already have a fully set up server that can run docker container, then don't run this script.
+
+- hosts: web_server
+  become: true
+  vars:
+    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
+
+  tasks:
+    - name: Upgrade host server to latest
+      apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Install general dependencies
+      apt:
+        name:
+          - sqlite3
+          - ufw
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Set sshd_config config settings
+      tags: ssh
+      ansible.builtin.copy:
+        src: files/sshd_config
+        dest: /etc/ssh/sshd_config
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Reload SSH service so that settings take effect
+      tags: ssh
+      service:
+        name: sshd
+        state: reloaded
+
+    - name: UFW config - Allow outgoing traffic
+      tags: ufw
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: UFW config - Deny incoming traffic
+      tags: ufw
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: UFW config - Allow incoming SSH traffic
+      tags: ufw
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+      with_items:
+        - 22 # ssh
+        - 80 # http
+        - 443 # https
+
+    - name: Set hostname via hostnamectl
+      tags: host
+      ansible.builtin.hostname:
+        use: systemd
+        name: "{{ domain }}"
+
+    - name: Add host to /etc/host
+      tags: host
+      blockinfile:
+        dest: /etc/hosts
+        state: present
+        append_newline: true
+        create: true
+        insertafter: "^# /etc/hosts"
+        block: |
+          127.0.0.1       localhost
+          {{ server_ip }}  {{ domain }}

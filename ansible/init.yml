@@ -27,25 +27,10 @@
       private: false
       default: 587
 
-    - name: db_path
-      prompt: Enter your desired path to your database file on your server
+    - name: server_project_dir
+      prompt: Enter the path the project directory shall have on your server (config files, job-binaries, database, media directories etc.)
       private: false
-      default: "./database/db.sqlite3"
-
-    - name: nginx_path
-      prompt: Enter your desired path to your nginx config file on your server
-      private: false
-      default: "./nginx.conf"
-
-    - name: media_path
-      prompt: Enter your desired path to your media files (images, icons etc.) on your server
-      private: false
-      default: "./media"
-
-    - name: audio_path
-      prompt: Enter your desired path to your audio files (server recordings etc.) on your server
-      private: false
-      default: "./audio"
+      default: ./nimstoryfont
 
     - name: country
       prompt: Enter your server's country (for your local SSH certificate)
@@ -92,16 +77,26 @@
         path: "{{ ssh_key_path }}.pub"
         mode: 0600
 
+    - name: Copy feature config json into root
+      tags: config
+      copy:
+        src: files/featureConfig.json
+        dest: "{{ project_root }}/featureConfig.json"
+
     - name: Create .env file
       tags: env
       ansible.builtin.copy:
         content: |
           PROJECT_ROOT={{ project_root }}
           NS_DOMAIN={{ domain }}
-          DB_PATH={{ db_path }}
-          NGINX_PATH={{ nginx_path }}
-          MEDIA_PATH={{ media_path }}
-          AUDIO_PATH={{ audio_path }}
+          DB_PATH={{ server_project_dir }}/db.sqlite3
+          NGINX_PATH={{ server_project_dir }}/nginx.conf
+          MEDIA_PATH={{ server_project_dir }}/media
+          AUDIO_PATH={{ server_project_dir }}/audio
+          COMPOSE_PATH={{ server_project_dir }}/docker-compose.yml
+          BACKEND_SETTINGS_PATH={{ server_project_dir }}/settings.json
+          DUMPS_PATH={{ server_project_dir }}/dumps
+          FEATURE_CONFIG_PATH={{ server_project_dir }}/featureConfig.json
           SERVER_IP={{ server_ip }}
           SECRET_KEY={{ secret_key }}
           SERVER_EMAIL_NAME={{ server_email_name }}
