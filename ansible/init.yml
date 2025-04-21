@@ -6,6 +6,27 @@
       prompt: Enter your server's domain name
       private: false
 
+    - name: server_ip
+      prompt: Enter your server's IP address
+      private: false
+
+    - name: server_email_name
+      prompt: Enter your server's email address (Required for password reset emails)
+      private: false
+
+    - name: server_email_password
+      prompt: Enter your server's email password (Required for password reset emails)
+      private: true
+
+    - name: smtp_domain
+      prompt: Enter the SMTP domain of your email provider (Required for password reset emails) (i.e. "smtp.gmail.com")
+      private: false
+
+    - name: smtp_port
+      prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "587")
+      private: false
+      default: 587
+
     - name: db_path
       prompt: Enter your desired path to your database file on your server
       private: false
@@ -25,27 +46,6 @@
       prompt: Enter your desired path to your audio files (server recordings etc.) on your server
       private: false
       default: "./audio"
-
-    - name: server_email_name
-      prompt: Enter your server's email address (Required for password reset emails)
-      private: false
-
-    - name: server_email_password
-      prompt: Enter your server's email password (Required for password reset emails)
-      private: true
-
-    - name: smtp_domain
-      prompt: Enter the SMTP domain of your email provider (Required for password reset emails) (i.e. "smtp.gmail.com")
-      private: false
-
-    - name: smtp_port
-      prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "587")
-      private: false
-      default: 587
-
-    - name: server_ip
-      prompt: Enter your server's IP address
-      private: false
 
     - name: country
       prompt: Enter your server's country (for your local SSH certificate)
@@ -122,6 +122,6 @@
       become: true
       tags: nginx, local
       ansible.builtin.shell: |
-        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ nginx_buildfiles_path }}/local_only/certificates/openssl.cnf -out {{ nginx_buildfiles_path }}/local_only/certificates/live/{{domain}}/fullchain.pem -keyout  {{ nginx_buildfiles_path}}/local_only/certificates/live/{{domain}}/privkey.pem
+        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ nginx_buildfiles_path }}/local_only/certificates/openssl.conf -out {{ nginx_buildfiles_path }}/local_only/certificates/live/{{domain}}/fullchain.pem -keyout  {{ nginx_buildfiles_path}}/local_only/certificates/live/{{domain}}/privkey.pem
 
 # TODO: Install dependencies like flyway
