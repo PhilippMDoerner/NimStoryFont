@@ -112,21 +112,21 @@
       args:
         creates: /etc/letsencrypt/.registered
 
-    - name: Setup cronjob for renewal
-      cron:
-        name: certbot-renewal
-        job: "/bin/bash -lc '/usr/local/bin/certbot -q renew'"
-        minute: "0"
-        hour: "14"
-      tags:
-        - nginx
-        - certbot
+    - name: Copy certbot.timer file for certbot renewals
+      tags: certbot
+      copy:
+        src: files/certbot.timer
+        dest: /etc/systemd/system/certbot.timer
 
-    - name: "Get certificate"
-      command: "/usr/local/bin/certbot -n --nginx certonly -d {{ domain }}"
-      args:
-        creates: "/etc/letsencrypt/live/{{ domain }}"
-      ignore_errors: true
-      tags:
-        - nginx
-        - certbot
+    - name: Copy certbot.service file for certbot renewals
+      tags: certbot
+      copy:
+        src: files/certbot.service
+        dest: /etc/systemd/system/certbot.service
+
+    - name: Add systemd timer for certbot renewals
+      tags: certbot
+      systemd:
+        state: started
+        name: certbot.timer
+        enabled: true
