@@ -61,3 +61,4 @@ nimstoryfont_ansible
 nimstoryfont_ansible.pub
 nginx.conf
 docker-compose_server.yml
+feature_config.json
