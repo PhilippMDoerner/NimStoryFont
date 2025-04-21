@@ -62,6 +62,10 @@
     padding: var(--spacer-3);
   }
 
+  &__img-link {
+    position: relative;
+  }
+
   &__title-link {
     text-align: center;
     font-weight: normal;
@@ -122,5 +126,15 @@
     &--active {
       background-color: var(--bs-dark);
     }
+  }
+
+  &__loading-spinner {
+    background-color: var(--bs-dark);
+    padding: var(--spacer-3);
+    border-radius: var(--bs-border-radius);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 }
