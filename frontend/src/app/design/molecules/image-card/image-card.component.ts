@@ -66,29 +66,23 @@ export class ImageCardComponent {
     () => this.imageUrls()[this.currentImageIndex()] ?? this.fallbackUrl(),
   );
 
-  elementRef = inject(ElementRef);
+  element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   selectorClicked$ = new Subject<{ index: number; event: MouseEvent }>();
   closeBtnClicked$ = new Subject<MouseEvent>();
   openBtnClicked$ = new Subject<MouseEvent>();
   inFocus = toSignal(
     merge(
-      fromEvent<FocusEvent>(this.elementRef.nativeElement, 'focusin').pipe(
-        map(() => true),
-      ),
-      fromEvent<FocusEvent>(this.elementRef.nativeElement, 'focusout').pipe(
+      fromEvent<FocusEvent>(this.element, 'focusin').pipe(map(() => true)),
+      fromEvent<FocusEvent>(this.element, 'focusout').pipe(
         filter((event) =>
           this.hasDataAttributeInTree(event, '[data-register-focus]'),
         ),
         map(() => false),
       ),
-      fromEvent(this.elementRef.nativeElement, 'mouseenter').pipe(
-        map(() => true),
-      ),
-      fromEvent(this.elementRef.nativeElement, 'mouseleave').pipe(
-        map(() => false),
-      ),
-      fromEvent<MouseEvent>(this.elementRef.nativeElement, 'click').pipe(
+      fromEvent(this.element, 'mouseenter').pipe(map(() => true)),
+      fromEvent(this.element, 'mouseleave').pipe(map(() => false)),
+      fromEvent<MouseEvent>(this.element, 'click').pipe(
         filter(
           (event: MouseEvent) =>
             !this.hasDataAttributeInTree(event, '[data-ignore-click]'),
