@@ -83,7 +83,7 @@
       community.crypto.openssh_keypair:
         path: "{{ ssh_key_path }}"
         type: ed25519
-        comment: "nimstoryfont ansible user"
+        comment: "ansible"
         mode: 0600
 
     - name: Set permissions for public key
