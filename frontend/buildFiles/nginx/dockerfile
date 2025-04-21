@@ -12,15 +12,12 @@ RUN apk -U add nodejs npm
 # It caches the node_modules dir when re-running docker commands.
 RUN --mount=type=cache,target=./node_modules npm i && npm run build
 
-# Phase 1) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
+# Phase 2) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
+# Explain each dependency:
+# - nginx + nginx-mod-http-upload-progress: Reverse Proxy
+# - certbot + certbot-nginx + openssl: SSL cert generation
 RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-nginx --no-cache
-# TODO: Add a way to generate SSL certs regularly in here
-
-# Expose Ports -- Mostly documentation for later
-#EXPOSE 80/tcp
-#EXPOSE 443/tcp
-#EXPOSE 8080 ##Only for Debug purposes
 
 # Copy necessary files
 COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
