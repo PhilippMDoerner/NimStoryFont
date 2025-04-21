@@ -90,7 +90,7 @@
       tags: ssh
       file:
         path: "{{ ssh_key_path }}.pub"
-        mode: 0644
+        mode: 0600
 
     - name: Create .env file
       tags: env
