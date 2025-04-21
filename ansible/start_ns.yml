@@ -1,0 +1,11 @@
+---
+- hosts: web_server
+  gather_facts: false
+  become: true
+  vars:
+    server_project_dir: "{{ lookup('ansible.builtin.env', 'SERVER_PROJECT_DIR') }}"
+  tasks:
+    - name: Start docker compose of nimstoryfont
+      ansible.builtin.shell:
+        chdir: "{{ server_project_dir }}"
+        cmd: "docker compose up"
