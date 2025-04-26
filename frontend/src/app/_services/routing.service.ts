@@ -121,7 +121,7 @@ export class RoutingService {
   }
 
   private hasPathVariables(routePath: string): boolean {
-    return routePath.includes('/:');
+    return routePath.includes('/:') || routePath.startsWith(':');
   }
 
   public hasRoutePath(routeName: string): boolean {

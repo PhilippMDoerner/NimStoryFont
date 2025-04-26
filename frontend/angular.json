@@ -42,6 +42,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "baseHref": "/wiki2",
             "outputPath": {
               "base": "dist/nimstoryfont-gui",
               "browser": "",

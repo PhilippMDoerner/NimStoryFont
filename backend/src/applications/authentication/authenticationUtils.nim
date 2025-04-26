@@ -1,11 +1,11 @@
-import authenticationModels
+import std/[options, tables, strformat, logging, sysrand, strutils, sequtils]
 import norm/model
 import prologue
+import ./authenticationModels
 import ../genericArticleRepository
-import std/[options, tables, strformat, logging, sysrand, base64]
-import ../../utils/[jwtContext]
 import ../allUrlParams
 import ../campaign/campaignModel
+import ../../utils/[jwtContext]
 
 type UnauthorizedError* = object of CatchableError
 type CampaignPermissionError* = object of CatchableError
@@ -111,7 +111,7 @@ proc checkCampaignReadListPermission*[T: Model](ctx: JWTContext, entries: seq[T]
 proc checkNoPermission*[T](ctx: JWTContext, entries: seq[T]) = 
   return
 
-proc generateToken*(): string = urandom(30).encode()
+proc generateToken*(): string = urandom(50).mapIt(it.toHex()).join("")
 
 proc checkCampaignOrGlobalWritePermission*[T](ctx: JWTContext, entry: T) =
   ## Use for articles that may either be used across campaigns or within a single campaign

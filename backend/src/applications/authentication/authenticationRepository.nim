@@ -1,11 +1,13 @@
-import ../genericRawRepository
-import std/[strformat, options]
+import std/[strformat, options, logging, sequtils]
 import norm/sqlite
-import ../../applicationSettings
 import constructor/defaults
+import ./authenticationUtils
+import ./authenticationModels
+import ./authenticationConstants
+import ../genericRawRepository
+import ../../applicationSettings
 import ../../utils/tokenTypes
-import authenticationUtils
-import authenticationModels
+import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
 
 
 proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
@@ -107,3 +109,29 @@ proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, u
   )  
 
   connection.rawInsert(tokenEntry, TOKEN_TABLE)
+
+proc getWorkflowConfirmation*(connection: DbConn, user_id: int64, token: string, workflow: WorkflowType, workflowLifetimeInSeconds: int): Confirmation =
+  var entry = new(Confirmation)
+  
+  const condition = """
+    user_id = ?
+    AND workflow = ?
+    AND workflow_token = ?
+    AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
+  """
+  let queryParams: array[4, DbValue] = [
+    user_id.dbValue(), 
+    workflow.dbValue(), 
+    token.dbValue(), 
+    workflowLifetimeInSeconds.dbValue()
+  ]
+  try:
+    connection.select(
+      entry, 
+      condition, 
+      queryParams
+    )
+  except DbError:
+    raise newException(NotFoundError, fmt"There is no active '{workflow}' process", getCurrentException())
+
+  result = entry

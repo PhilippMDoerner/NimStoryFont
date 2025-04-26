@@ -4,7 +4,7 @@ import authentication/authenticationUtils
 import ../utils/errorResponses
 import ../database
 
-template debugErrorLog(msg: string) =
+template debugErrorLog*(msg: string) =
      debug(msg & " : ", getCurrentException().name, getCurrentExceptionMsg(), getCurrentException().getStackTraceEntries()) 
  
 
