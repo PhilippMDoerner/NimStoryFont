@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import {
   ActivatedRoute,
-  NavigationBehaviorOptions,
+  NavigationExtras,
   Route,
   Router,
   Routes,
@@ -30,13 +30,13 @@ export class RoutingService {
   public routeToPath(
     routeName: string,
     params?: { [key: string]: string | number | undefined },
-    extras?: NavigationBehaviorOptions,
+    extras?: NavigationExtras,
   ): void {
     log(RoutingService.name, `Routing to ${routeName}`);
     const routePath: string = this.getRoutePath(routeName, params);
     const cleanedObjectUrl: string =
       this.replaceSpecialUnicodeCharacters(routePath);
-    this.router.navigateByUrl(cleanedObjectUrl, extras);
+    this.router.navigate(cleanedObjectUrl.split('/'), extras);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -5,16 +5,12 @@ import { Observable } from 'rxjs';
 import { OverviewItem } from 'src/app/_models/overview';
 import { User, UserRaw } from 'src/app/_models/user';
 import { BaseService } from '../base.service';
-import { TokenService } from '../utils/token.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserService extends BaseService<UserRaw, User> {
-  constructor(
-    http: HttpClient,
-    private tokenService: TokenService,
-  ) {
+  constructor(http: HttpClient) {
     super(http, 'user');
   }
 
