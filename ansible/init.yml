@@ -74,6 +74,11 @@
         compose_path: "docker-compose.yml"
         feature_config_path: "featureConfig.json"
 
+    - name: Get email domain
+      tags: env, email
+      set_fact:
+        email_domain: "no-reply.{{ domain }}"
+
     - name: Create ansible ssh key in ~/.ssh
       tags: ssh
       community.crypto.openssh_keypair:
@@ -113,6 +118,7 @@
           SECRET_KEY={{ secret_key }}
           SERVER_EMAIL_NAME={{ server_email_name }}
           SERVER_EMAIL_PASSWORD={{ server_email_password }}
+          EMAIL_DOMAIN={{ email_domain }}
           SMTP_DOMAIN={{ smtp_domain }}
           SMTP_PORT={{ smtp_port }}
           LOCAL_CERT_COUNTRY={{ country }}

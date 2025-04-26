@@ -1,7 +1,7 @@
 import nimword
 import ./userModel
 import ../../applicationSettings
-import ../../utils/[jwtContext]
+import ../../utils/[jwtContext, emailUtils]
 import ../authentication/[authenticationUtils]
 
 proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
@@ -31,3 +31,4 @@ proc createPasswordDatabaseRepresentation*(password: string): string =
     algorithm = NimwordHashingAlgorithm.nhaArgon2id
   )
 
+proc toEmail*(user: User): Email = createEmail(user.email, user.username)
