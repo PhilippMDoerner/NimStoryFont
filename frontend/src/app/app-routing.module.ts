@@ -1,6 +1,5 @@
 import { inject, NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { environment } from 'src/environments/environment';
 import { loginGuard } from './_guards/login.guard';
 import {
   campaignSetResolver,
@@ -17,20 +16,14 @@ import { PreferencesStore } from './preferences.store';
 const redirectRoutes: Routes = [
   //Redirect Routes
   {
-    path: environment.frontendPrefix,
-    redirectTo: `${environment.frontendPrefix}/campaigns`,
-    pathMatch: 'full',
-    data: { name: 'start' },
-  },
-  {
     path: '',
-    redirectTo: `${environment.frontendPrefix}/campaigns`,
+    redirectTo: `/campaigns`,
     pathMatch: 'full',
     data: { name: 'start' },
   },
   {
     path: `home`,
-    redirectTo: `${environment.frontendPrefix}/campaigns`,
+    redirectTo: `/campaigns`,
     pathMatch: 'full',
     data: { name: 'no-campaigns' },
   },
@@ -59,6 +52,7 @@ export const ROUTES: Routes = [
   {
     path: '',
     children: [
+      ...redirectRoutes,
       {
         path: 'campaigns/create',
         pathMatch: 'full',
@@ -70,9 +64,8 @@ export const ROUTES: Routes = [
         data: { name: 'campaign-create' },
         providers: [SiteAdministrationPageStore],
       },
-      ...redirectRoutes,
       {
-        path: environment.frontendPrefix,
+        path: '',
         children: [
           ...generalRoutes,
           {

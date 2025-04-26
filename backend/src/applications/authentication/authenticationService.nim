@@ -6,11 +6,13 @@ import ./authenticationRepository
 import ./authenticationConstants
 import ./authenticationModels
 import ./authenticationUtils
+import ./authenticationDTO
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService, campaignUtils]
 import ../allUrlParams
 import ../user/[userUtils, userService]
 import ../../utils/[emailUtils, tokenTypes, myStrutils]
+import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
 
 
@@ -103,25 +105,42 @@ proc removeCampaignMember*(connection: DbConn, campaign: CampaignRead, role: Cam
   let campaignGroup: Group = getCampaignGroupForRole(campaign, role)
   connection.deleteGroupMembership(member.id, campaignGroup.id)
 
-proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) {.async.}=
-    if user.email == "":
-      raise newException(MissingEmailError, fmt"User '{user.username}' does not have an email address")
-  
-    let domain = settings.getSetting(SettingName.snServerDomain).getStr()
-  
-    let subject = getPasswordResetMailSubject(user.username, domain)
-    let body = getPasswordResetMailBody(newPassword, domain)
-    await sendSystemEmail(subject, body, user.toEmail(), settings)
-    
-    info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
+proc sendPasswordResetConfirmationRequestEmail*(workflowDto: WorfklowStartResetDTO, confirmationRequestEntry: Confirmation) {.async.}=
+  if workflowDto.user.email == "":
+    raise newException(MissingEmailError, fmt"User '{workflowDto.user.username}' does not have an email address")
 
-proc resetUserPassword*(connection: DbConn, user: User): Future[User] {.async.} =
-  let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)  
-  await sendPasswordResetEmail(user, newPassword, settings)
+  let domain = settings.getSetting(SettingName.snServerDomain).getStr()
+
+  let (subject, body) = getPasswordResetConfirmationRequestEmail(
+    domain, 
+    workflowDto.user.username, 
+    workflowDto.user.id,
+    confirmationRequestEntry.workflow_token
+  )
+  await sendSystemEmail(subject, body, workflowDto.user.toEmail(), settings)
   
+  info fmt"User '{workflowDto.user.username}' requested a password reset. Email was sent to '{workflowDto.user.email}'"
+
+
+proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings) {.async.}=
+  if user.email == "":
+    raise newException(MissingEmailError, fmt"User '{user.username}' does not have an email address")
+
+  let domain = settings.getSetting(SettingName.snServerDomain).getStr()
+
+  let (subject, body) = getPasswordResetMail(newPassword, user.username, domain)
+  await sendSystemEmail(subject, body, user.toEmail(), settings)
+  
+  info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
+
+proc resetUserPassword*(connection: DbConn, user: User): User =
+  let newPassword = myStrutils.randomString(DEFAULT_RESET_PASSWORD_LENGTH)  
   var userMut = user
   return connection.updateUserPassword(userMut, newPassword)
 
+proc resetUserPassword*(connection: DbConn, user_id: int64): User =
+  var user: User = connection.getEntryById(user_id, User)
+  return connection.resetUserPassword(user)
 
 proc getAccessTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string): TokenData =
   result = connection.getTokenData(tokenLifetimeInDays, token, access)
@@ -154,3 +173,28 @@ proc createAuthToken*(connection: DbConn, userId: int64, tokenType: TokenType): 
 
 proc createAuthToken*(connection: DbConn, user: User, tokenType: TokenType): TokenContainer =
   result = connection.createAuthToken(user.id, tokenType)
+
+proc createConfirmationRequest*(connection: DbConn, workflowDto: WorfklowStartResetDTO): Confirmation =
+  let token = generateToken()
+  var confirmation = Confirmation(
+    user_id: workflowDto.user.id,
+    workflow: workflowDto.workflow,
+    workflow_token: token,
+    creation_datetime: djangoDateTimeType.now(),
+    update_datetime: djangoDateTimeType.now()
+  )
+  connection.insert(confirmation)
+  return confirmation
+
+proc getCurrentConfirmationState*(connection: DbConn, workflowDto: WorkflowConfirmDTO): Confirmation =
+  result = connection.getWorkflowConfirmation(
+    workflowDto.user_id, 
+    workflowDto.token, 
+    workflowDto.workflow, 
+    workflowDto.workflowLifetimeInSeconds
+  )
+
+proc confirmWorkflow*(connection: DbConn, confirmationEntry: var Confirmation) =
+  confirmationEntry.confirmed = true
+  confirmationEntry.update_datetime = djangoDateTimeType.now()
+  discard connection.updateEntryInTransaction(confirmationEntry)

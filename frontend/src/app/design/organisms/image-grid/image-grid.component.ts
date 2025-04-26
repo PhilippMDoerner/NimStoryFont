@@ -22,7 +22,6 @@ export class ImageGridComponent {
   EMPTY_IMAGE_URL = '';
 
   entries = input.required<ImageGridEntry[]>();
-  serverUrl = input.required<string>();
 
   columnCount = computed<ColumnCount>(() => {
     switch (this.entries().length) {

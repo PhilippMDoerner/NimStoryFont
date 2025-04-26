@@ -1,4 +1,5 @@
-import std/sequtils
+import std/[strutils, sequtils]
+import norm/sqlite
 
 const CAMPAIGN_GUEST_PERMISSIONS*: seq[string] = @[
     "view_session",
@@ -154,3 +155,10 @@ type CampaignRole* = enum
   crMEMBER = "member"
   crADMIN = "admin"
   crGUEST = "guest"
+
+type WorkflowType* = enum
+  wtPASSWORD_RESET = "password_reset"
+
+func dbType*(T: typedesc[WorkflowType]): string = "TEXT"
+func dbValue*(val: WorkflowType): DbValue = dbValue($val)
+proc to*(dbVal: DbValue, T: typedesc[WorkflowType]): T = parseEnum[WorkflowType](dbVal.s)

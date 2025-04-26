@@ -1,10 +1,11 @@
-import std/[json, strutils, times, strformat, logging]
+import std/[json, sequtils, strutils, times, strformat, logging, uri]
 import prologue
 import jsony
 import nimword
 import ./authenticationService
 import ./authenticationModels
 import ./authenticationSerialization
+import ./authenticationDTO
 import ../allUrlParams
 import ../controllerTemplates
 import ../genericArticleRepository
@@ -13,26 +14,29 @@ import ../../applicationSettings
 import ../../database
 import ../../utils/[tokenTypes, jwtContext, errorResponses, customResponses]
 
+proc setAuthCookies(response: var Response, accessToken, refreshToken: TokenSerializable) =
+    response.setCookie(
+        "refreshToken", 
+        refreshToken.token, 
+        expires = refreshToken.exp.fromUnix().utc,
+        httpOnly = true,
+        secure = true,
+        sameSite = SameSite.None,
+        path="/"
+    )
+    response.setCookie(
+        "accessToken", 
+        accessToken.token, 
+        expires = accessToken.exp.fromUnix().utc,
+        httpOnly = true,
+        secure = true,
+        sameSite = SameSite.None,
+        path="/"
+    )
+
 proc createAuthResponse(ctx: Context, authData: AuthDataSerializable): Response =
     result = jsonyResponse(ctx, authData)
-    result.setCookie(
-        "refreshToken", 
-        authData.refreshToken.token, 
-        expires = authData.refreshToken.exp.fromUnix().utc,
-        httpOnly = true,
-        secure = true,
-        sameSite = SameSite.None,
-        path="/"
-    )
-    result.setCookie(
-        "accessToken", 
-        authData.accessToken.token, 
-        expires = authData.accessToken.exp.fromUnix().utc,
-        httpOnly = true,
-        secure = true,
-        sameSite = SameSite.None,
-        path="/"
-    )
+    result.setAuthCookies(authData.accessToken, authData.refreshToken)
 
 proc deleteAuthCookies(resp: var Response, ctx: JWTContext) =
     for authCookieName in ["accessToken", "refreshToken"]:
@@ -114,7 +118,7 @@ proc logout*(ctx: Context) {.async.} =
     response.deleteAuthCookies(ctx)
     resp response
 
-proc resetPassword*(ctx: Context) {.async, gcsafe.} =
+proc startPasswordResetWorkflow*(ctx: Context) {.async, gcsafe.} =
     let ctx = JWTContext(ctx)
     let requestBody: JsonNode = ctx.request.body().parseJson()
     
@@ -124,18 +128,22 @@ proc resetPassword*(ctx: Context) {.async, gcsafe.} =
         return
         
     let userName = requestBody["username"].getStr()
-    let settings = ctx.gScope.settings
     
     withDbConn(connection):
         var user: User = getUserByName(userName)
-
+        let dto = WorfklowStartResetDTO(
+            user: user,
+            workflow: WorkflowType.wtPASSWORD_RESET
+        )
         try:
-            discard await connection.resetUserPassword(user)
+            let confirmation = connection.createConfirmationRequest(dto)
+            await sendPasswordResetConfirmationRequestEmail(dto, confirmation)
+            
         except MissingEmailError as e:
             resp(code = Http400, body = fmt"User '{userName}' has no email address to send reset passwords to")
             return
         except MailAuthenticationError as e:
-            log(lvlError, fmt"The server is unable to send emails at this time", e.repr)
+            debugErrorLog(fmt"The server is unable to send emails at this time. The authentication configuration for email is likely wrong")
             resp(code = Http500, body = fmt"The server is unable to send emails at this time")
             return
 
@@ -156,3 +164,78 @@ proc getAuthData*(ctx: Context) {.async.} =
     withDbConn(con):
         let authData: AuthDataSerializable2 = serializeAuthData(ctx.tokenData)
         resp jsonyResponse(ctx, authData)
+        
+type WorkflowState = enum
+    wsSuccess = "success"
+    wsFailureMissingEmail = "failure-missing-email"
+    wsFailureCanNotConfirm = "failure-general"
+    wsFailureServerMailMisconfigured = "failure-server-mail-misconfigured"
+
+proc getClientUrl*(ctx: Context, queryParams: varargs[(string, string)]): string =
+    let domain = ctx.getSetting(snServerDomain).getStr()
+    let hasQueryParams = queryParams.len > 0
+    return if hasQueryParams:
+        let queryParamsStr = queryParams.mapIt(fmt"{it[0]}={it[1]}").join("&")
+        fmt"https://{domain}?{queryParamsStr}"
+      else:
+        fmt"https://{domain}"
+
+proc getQueryParams*(ctx: Context): Table[string, string] =
+    let queryParamsStr = ctx.request.query
+    for (key, value) in queryParamsStr.decodeQuery():
+        result[key] = value
+    
+proc getKeyOption*(tbl: Table[string, string], key: string): Option[string] =
+    if tbl.hasKey(key):
+        return some(tbl[key])
+    else:
+        return none(string)
+
+proc confirmPasswordReset*(ctx: Context) {.async.} =
+    const workflowLifetimeInSeconds = 15 * 60 # 15 minutes
+    
+    let queryParams = ctx.getQueryParams()  
+    let workflowToken = queryParams.getKeyOption("token")
+    let workflow = queryParams.getKeyOption("workflow")
+    let user_id = queryParams.getKeyOption("user")
+    let canConfirm = workflowToken.isSome() and workflow.isSome() and user_id.isSome()
+    var workflowState = WorkflowState.wsFailureCanNotConfirm
+    
+    ctx.response = initResponse(HttpVer11, Http302, initResponseHeaders())
+    
+    if canConfirm:
+        let workflowToken = workflowToken.get()
+        let workflow = parseEnum[WorkflowType](workflow.get())
+        let user_id = user_id.get().parseInt()
+        let dto = WorkflowConfirmDTO(
+            token: workflowToken, 
+            workflow: workflow, 
+            user_id: user_id, 
+            workflowLifetimeInSeconds: workflowLifetimeInSeconds
+        )
+        
+        withDbConn(connection):
+            try:
+                var confirmation = connection.getCurrentConfirmationState(dto) # Being able to get this means you can reset your password
+                connection.confirmWorkflow(confirmation)
+                
+                let user = connection.getEntryById(user_id, User)
+                let authData = connection.createAndSerializeAuthData(ctx, user)
+                ctx.response.setAuthCookies(
+                    authData.accessToken,
+                    authData.refreshToken
+                )
+                workflowState = WorkflowState.wsSuccess
+
+            except MissingEmailError as e:
+                debugErrorLog(fmt"User '{user_id}' has no email address to send reset passwords to")
+                workflowState = WorkflowState.wsFailureMissingEmail
+            except MailAuthenticationError as e:
+                debugErrorLog(fmt"The server is unable to send emails at this time. The authentication configuration for email is likely wrong")
+                workflowState = WorkflowState.wsFailureServerMailMisconfigured
+            except CatchableError:
+                debugErrorLog("Could not confirm password reset")
+                workflowState = WorkflowState.wsFailureCanNotConfirm
+    
+    let redirectTarget = ctx.getClientUrl(("source", $WorkflowType.wtPASSWORD_RESET), ("state", $workflowState))
+    ctx.response.setHeader("location", redirectTarget)

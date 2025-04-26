@@ -1,0 +1,13 @@
+local_only
+dist
+.github
+.idea
+.storybook
+.vscode
+db.sqlite3
+exampleStuff
+letsencrypt
+local_only_db_dumps
+architectureDocumentation
+ansible
+node_modules

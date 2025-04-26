@@ -6,6 +6,7 @@
     "start": "ng serve",
     "startNoHMR": "ng serve --no-hmr",
     "build": "NG_BUILD_OPTIMIZE_CHUNKS=1 ng build",
+    "build:dev": "NG_BUILD_OPTIMIZE_CHUNKS=1 ng build --configuration development",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "storybook": "ng run nimstoryfont-gui:storybook",

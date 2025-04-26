@@ -1,0 +1,31 @@
+# THIS IMAGE IS A 2 PHASE IMAGE. It first builds the project, then within the same dockerfiles swaps to a new image, discarding the old one, then setting it up to run nginx and copying the dist from the old file.
+# THIS IMAGE IS A 2 PHASE IMAGE
+# 1) Builds the project to /dist
+# 2) Swap to new image which discards the old one, install nginx and copy the build-artifact from 1)
+
+# Phase 1) Build the frontend
+FROM alpine AS build
+COPY ./frontend /frontend
+WORKDIR /frontend
+RUN apk -U add nodejs npm
+# The --mount option here is a cache-layer for local development. 
+# It caches the node_modules dir when re-running docker commands.
+RUN --mount=type=cache,target=./node_modules \
+  npm i && npm run build
+
+# Phase 2) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
+FROM docker.io/library/alpine:latest
+# Explain each dependency:
+# - nginx + nginx-mod-http-upload-progress: Reverse Proxy
+# - certbot + certbot-nginx + openssl: SSL cert generation
+RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-nginx --no-cache
+
+# Copy necessary files
+COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
+COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
+# Setup necessary directories
+# RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend # These files aren't needed apparently?
+        # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
+# RUN ln -s /session_audio /audiodownloads
+
+CMD ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
