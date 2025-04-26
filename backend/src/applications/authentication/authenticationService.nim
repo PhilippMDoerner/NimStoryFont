@@ -9,7 +9,7 @@ import ./authenticationUtils
 import ../genericArticleRepository
 import ../campaign/[campaignModel, campaignService, campaignUtils]
 import ../allUrlParams
-import ../user/userService
+import ../user/[userUtils, userService]
 import ../../utils/[emailUtils, tokenTypes, myStrutils]
 import ../../applicationSettings
 
@@ -107,9 +107,11 @@ proc sendPasswordResetEmail*(user: User, newPassword: string, settings: Settings
     if user.email == "":
       raise newException(MissingEmailError, fmt"User '{user.username}' does not have an email address")
   
-    let subject = getPasswordResetMailSubject(user.username)
-    let body = getPasswordResetMailBody(newPassword)
-    await sendSystemEmail(subject, body, user.email, settings)
+    let domain = settings.getSetting(SettingName.snServerDomain).getStr()
+  
+    let subject = getPasswordResetMailSubject(user.username, domain)
+    let body = getPasswordResetMailBody(newPassword, domain)
+    await sendSystemEmail(subject, body, user.toEmail(), settings)
     
     info fmt"User '{user.username}' reset password and sent email to '{user.email}'"
 

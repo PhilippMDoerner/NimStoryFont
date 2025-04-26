@@ -20,15 +20,17 @@ type SettingName* = enum
     snPageSize = "pageSize", # The amount of entries to send to the frontend as one "page" if number of entries sent must be limited
     snSmtpName = "smtp",
     snSmtpPort = "smtpPort",
-    snEmailName = "emailName",
-    snEmailPassword = "emailPassword"
+    snEmailName = "emailAuthName",
+    snEmailPassword = "emailAuthPassword"
+    snEmailDomain = "emailDomain"
+    snServerDomain = "serverDomain"
 
 type CoreSettingName* = enum
     csnSecretKey = "secretKey"
 
 
 const INT_SETTINGS = [snAccesTokenLifetime, snRefreshTokenLifetime, snConnectionLimit, snPageSize, snSmtpPort].toHashSet
-const STRING_SETTINGS = [snSettingSetName, snSecretKey, snDatabasePath, snBaseDir, snImageDir, snAudioDir, snAudioUploadDir, snSmtpName, snEmailName, snEmailPassword].toHashSet()
+const STRING_SETTINGS = [snSettingSetName, snSecretKey, snDatabasePath, snBaseDir, snImageDir, snAudioDir, snAudioUploadDir, snSmtpName, snEmailName, snEmailPassword, snEmailDomain, snServerDomain].toHashSet()
 
 proc getSetting*(ctx: Context, setting: SettingName): JsonNode = ctx.getSettings($setting)
 proc getCoreSetting(settings: Settings, setting: CoreSettingName): JsonNode = settings.getOrDefault("prologue")[$setting]
