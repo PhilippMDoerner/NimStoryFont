@@ -63,3 +63,4 @@ nginx.conf
 docker-compose_server.yml
 feature_config.json
 provision_user.sh
+tasks.json
