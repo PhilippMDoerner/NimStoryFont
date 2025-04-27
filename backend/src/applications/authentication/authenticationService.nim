@@ -186,6 +186,8 @@ proc createConfirmationRequest*(connection: DbConn, workflowDto: WorfklowStartRe
   connection.insert(confirmation)
   return confirmation
 
+export authenticationRepository.hasActiveWorkflowConfirmation
+
 proc getCurrentConfirmationState*(connection: DbConn, workflowDto: WorkflowConfirmDTO): Confirmation =
   result = connection.getWorkflowConfirmation(
     workflowDto.user_id, 

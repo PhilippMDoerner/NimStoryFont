@@ -4,7 +4,15 @@ import { ToastConfig } from '../_models/toast';
 import { RoutingService } from '../_services/routing.service';
 import { ToastService } from '../design/organisms/toast-overlay/toast-overlay.component';
 
-function toPasswordResetToast(state: string): ToastConfig | undefined {
+function toPasswordResetToast(
+  state: string,
+  expiryTimestamp: number | undefined,
+): ToastConfig | undefined {
+  const expiryDate = expiryTimestamp
+    ? new Date(expiryTimestamp * 1000)
+    : undefined;
+  const expiryTime = `${expiryDate?.getHours()}:${expiryDate?.getMinutes()}`;
+
   switch (state) {
     case 'success':
       return {
@@ -13,7 +21,7 @@ function toPasswordResetToast(state: string): ToastConfig | undefined {
         body: {
           text: `
           Triggered password reset process.<br>
-          You can now freely reset your password for the next 15 minutes.
+          You can now freely reset your password until ${expiryTime}.
         `,
         },
       };
@@ -35,12 +43,16 @@ function toPasswordResetToast(state: string): ToastConfig | undefined {
 
 const passwordResetRedirect = (
   passwordResetState: string,
+  expiryTimestampInSeconds: number | undefined,
   queryParams: Params,
 ): UrlTree => {
   const routingService = inject(RoutingService);
   const toastService = inject(ToastService);
 
-  const toast = toPasswordResetToast(passwordResetState);
+  const toast = toPasswordResetToast(
+    passwordResetState,
+    expiryTimestampInSeconds,
+  );
   if (toast) {
     toastService.addToast(toast);
   }
@@ -50,13 +62,25 @@ const passwordResetRedirect = (
 
 export const rootRedirect: RedirectFunction = (activatedRoute) => {
   const routingService = inject(RoutingService);
-  const { source, state } = activatedRoute.queryParams as {
+  const {
+    source,
+    state,
+    expires: expiryTimestamp,
+  } = activatedRoute.queryParams as {
     [key: string]: string;
   };
 
   switch (source) {
-    case 'password_reset':
-      return passwordResetRedirect(state, activatedRoute.queryParams);
+    case 'password_reset': {
+      const expiryTimestampSeconds = expiryTimestamp
+        ? Number(expiryTimestamp)
+        : undefined;
+      return passwordResetRedirect(
+        state,
+        expiryTimestampSeconds,
+        activatedRoute.queryParams,
+      );
+    }
     default:
       return routingService.getRouteUrlTree('campaign-overview');
   }

@@ -5,10 +5,16 @@
     [user]="user"
     [memberships]="memberships$() ?? []"
     [canDeleteProfile]="isCurrentUser$()"
+    [canResetWithoutPassword]="(canResetWithoutPassword$ | async) ?? false"
     [campaignName]="campaignName$()"
     [backUrl]="backUrl()"
     (campaignLeave)="profilePageStore.leaveCampaign($event)"
-    (passwordUpdate)="profilePageStore.passwordUpdate($event)"
+    (passwordUpdate)="
+      authStore.patchPassword({
+        oldPassword: $event.oldPassword,
+        newPassword: $event.password,
+      })
+    "
     (profileDelete)="profilePageStore.profileDelete()"
     (profileUpdate)="profilePageStore.profileUpdate($event)"
   ></app-profile>

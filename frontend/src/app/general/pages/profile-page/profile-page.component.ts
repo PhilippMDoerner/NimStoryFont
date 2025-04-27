@@ -1,4 +1,7 @@
+import { AsyncPipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { AuthData, CampaignRole } from 'src/app/_models/token';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { TokenService } from 'src/app/_services/utils/token.service';
@@ -13,7 +16,7 @@ import { ProfilePageStore } from './profile-page.store';
   templateUrl: './profile-page.component.html',
   styleUrls: ['./profile-page.component.scss'],
   providers: [ProfilePageStore],
-  imports: [ProfileComponent],
+  imports: [ProfileComponent, AsyncPipe],
 })
 export class ProfilePageComponent {
   authStore = inject(AuthStore);
@@ -34,6 +37,15 @@ export class ProfilePageComponent {
     () =>
       this.navStore.priorUrl() ??
       this.routingService.getRoutePath('campaign-overview'),
+  );
+  canResetWithoutPassword$ = inject(ActivatedRoute).queryParams.pipe(
+    map((params) => {
+      const { source, state, expires: expiryTimestampSeconds } = params;
+      const triggeredPasswordReset = source === 'password_reset';
+      const hadSuccess = state === 'success';
+      const isExpired = Date.now() > expiryTimestampSeconds * 1000;
+      return triggeredPasswordReset && hadSuccess && !isExpired;
+    }),
   );
 
   constructor(private tokenService: TokenService) {

@@ -89,11 +89,9 @@ proc patchUser*(connection: DbConn, requestData: UpdateParams, entry: User): Use
   if isGroupUpdatePatch:
     result = connection.updateUserGroups(requestData, entry)
   
-  elif isPasswordUpdatePatch:
-    var user = entry
-    let newPassword: string = requestData.body.parseJson()["password"].getStr()
-    result = connection.updateUserPassword(user, newPassword)
-
+  elif isPasswordUpdatePatch: # We don't do password updates via patch
+    raise newException(ValueError, "Password updates are not allowed via patch on user. Use /authdata/patch-password")
+  
   else:
     result = connection.patchEntry(requestData, entry)
 

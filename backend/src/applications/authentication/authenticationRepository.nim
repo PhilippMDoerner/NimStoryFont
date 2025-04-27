@@ -110,20 +110,53 @@ proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, u
 
   connection.rawInsert(tokenEntry, TOKEN_TABLE)
 
-proc getWorkflowConfirmation*(connection: DbConn, user_id: int64, token: string, workflow: WorkflowType, workflowLifetimeInSeconds: int): Confirmation =
+proc hasActiveWorkflowConfirmation*(
+  connection: DbConn, 
+  user_id: int64, 
+  workflow: WorkflowType, 
+  workflowLifetimeInSeconds: int
+): bool =
+  const condition = """
+    user_id = ?
+    AND workflow = ?
+    AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
+    AND confirmed = TRUE
+    ORDER BY creation_datetime DESC
+  """
+  let queryParams: array[3, DbValue] = [
+    user_id.dbValue(), 
+    workflow.dbValue(),
+    workflowLifetimeInSeconds.dbValue()
+  ]
+  let activeConfirmationCount = connection.count(
+    Confirmation, 
+    cond = condition, 
+    params = queryParams
+  )
+  
+  return activeConfirmationCount > 0
+  
+
+proc getWorkflowConfirmation*(
+  connection: DbConn, 
+  user_id: int64, 
+  token: string, 
+  workflow: WorkflowType, 
+  workflowLifetimeInSeconds: int
+): Confirmation =
   var entry = new(Confirmation)
   
   const condition = """
     user_id = ?
     AND workflow = ?
     AND workflow_token = ?
-    AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
   """
-  let queryParams: array[4, DbValue] = [
+    # AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
+  let queryParams: array[3, DbValue] = [
     user_id.dbValue(), 
     workflow.dbValue(), 
     token.dbValue(), 
-    workflowLifetimeInSeconds.dbValue()
+    # workflowLifetimeInSeconds.dbValue()
   ]
   try:
     connection.select(

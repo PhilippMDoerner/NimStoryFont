@@ -89,6 +89,18 @@ export const AuthStore = signalStore(
           }),
         ),
       ),
+      patchPassword: rxMethod<{ oldPassword?: string; newPassword: string }>(
+        pipe(
+          switchMap(({ oldPassword, newPassword }) =>
+            tokenService.patchMyPassword(newPassword, oldPassword),
+          ),
+          tapResponse({
+            next: (authData) => patchState(state, { authData }),
+            error: (err: HttpErrorResponse) =>
+              toastService.addToast(httpErrorToast(err)),
+          }),
+        ),
+      ),
     };
   }),
 );
