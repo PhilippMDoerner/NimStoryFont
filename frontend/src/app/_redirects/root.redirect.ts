@@ -1,11 +1,11 @@
 import { inject } from '@angular/core';
-import { CanActivateFn } from '@angular/router';
+import { Params, RedirectFunction, UrlTree } from '@angular/router';
 import { ToastConfig } from '../_models/toast';
 import { RoutingService } from '../_services/routing.service';
 import { ToastService } from '../design/organisms/toast-overlay/toast-overlay.component';
 
-function toToast(passwordResetState: string): ToastConfig | undefined {
-  switch (passwordResetState) {
+function toPasswordResetToast(state: string): ToastConfig | undefined {
+  switch (state) {
     case 'success':
       return {
         type: 'PRIMARY',
@@ -33,19 +33,31 @@ function toToast(passwordResetState: string): ToastConfig | undefined {
   }
 }
 
-export const passwordResetRedirect: CanActivateFn = (route) => {
+const passwordResetRedirect = (
+  passwordResetState: string,
+  queryParams: Params,
+): UrlTree => {
   const routingService = inject(RoutingService);
   const toastService = inject(ToastService);
 
-  const isBackendRedirectFromPasswordReset =
-    route.queryParams['source'] === 'password_reset';
-  if (!isBackendRedirectFromPasswordReset) return true;
-
-  const passwordResetState = route.queryParams['state'];
-  const toast = toToast(passwordResetState);
+  const toast = toPasswordResetToast(passwordResetState);
   if (toast) {
     toastService.addToast(toast);
   }
 
-  return routingService.getRouteUrlTree('direct-profile', {});
+  return routingService.getRouteUrlTree('direct-profile', {}, queryParams);
+};
+
+export const rootRedirect: RedirectFunction = (activatedRoute) => {
+  const routingService = inject(RoutingService);
+  const { source, state } = activatedRoute.queryParams as {
+    [key: string]: string;
+  };
+
+  switch (source) {
+    case 'password_reset':
+      return passwordResetRedirect(state, activatedRoute.queryParams);
+    default:
+      return routingService.getRouteUrlTree('campaign-overview');
+  }
 };

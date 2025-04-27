@@ -1,6 +1,8 @@
 import { inject, NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { loginGuard } from './_guards/login.guard';
+import { rootRedirect } from './_redirects/root.redirect';
+import { redirectWithQueryParams } from './_redirects/with-query-params.redirect';
 import {
   campaignSetResolver,
   resetTracking,
@@ -17,13 +19,13 @@ const redirectRoutes: Routes = [
   //Redirect Routes
   {
     path: '',
-    redirectTo: `/campaigns`,
+    redirectTo: rootRedirect,
     pathMatch: 'full',
     data: { name: 'start' },
   },
   {
     path: `home`,
-    redirectTo: `/campaigns`,
+    redirectTo: redirectWithQueryParams('campaign-overview'),
     pathMatch: 'full',
     data: { name: 'no-campaigns' },
   },
