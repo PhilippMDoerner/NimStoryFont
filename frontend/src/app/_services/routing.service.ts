@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import {
   ActivatedRoute,
   NavigationExtras,
+  Params,
   Route,
   Router,
   Routes,
@@ -33,20 +34,30 @@ export class RoutingService {
     extras?: NavigationExtras,
   ): void {
     log(RoutingService.name, `Routing to ${routeName}`);
-    const routePath: string = this.getRoutePath(routeName, params);
+    const routePath: string = this.getRoutePath(
+      routeName,
+      params,
+      extras?.queryParams ?? {},
+    );
     const cleanedObjectUrl: string =
       this.replaceSpecialUnicodeCharacters(routePath);
     this.router.navigate(cleanedObjectUrl.split('/'), extras);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public getRouteUrlTree(routeName: string, params: any = {}): UrlTree {
-    const routePath = this.getRoutePath(routeName, params);
+  public getRouteUrlTree(
+    routeName: string,
+    params: Params = {},
+    queryParams: Params = {},
+  ): UrlTree {
+    const routePath = this.getRoutePath(routeName, params, queryParams);
     return this.router.parseUrl(routePath);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public getRoutePath(routeName: string, params: any = {}): string {
+  public getRoutePath(
+    routeName: string,
+    params: Params = {},
+    queryParams: Params = {},
+  ): string {
     let variableRoutePath = this.getVariableRoutePathByName(routeName);
 
     if (this.hasPathVariables(variableRoutePath)) {
@@ -71,8 +82,16 @@ export class RoutingService {
         );
       }
     }
+    const hasQueryParams = Object.keys(queryParams).length > 0;
 
-    return `/${variableRoutePath}`;
+    if (hasQueryParams) {
+      const searchString = Object.keys(queryParams)
+        .map((key) => `${key}=${queryParams[key]}`)
+        .join('&');
+      return `/${variableRoutePath}?${searchString}`;
+    } else {
+      return `/${variableRoutePath}`;
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
