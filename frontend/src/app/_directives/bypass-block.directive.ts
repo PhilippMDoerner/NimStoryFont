@@ -1,3 +1,4 @@
+import { APP_BASE_HREF } from '@angular/common';
 import { computed, Directive, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -19,11 +20,13 @@ export class BypassBlockDirective {
 
   isInFocus = signal(false);
   private readonly router = inject(Router);
+  private readonly baseHref = inject(APP_BASE_HREF);
 
   private readonly currentUrl$ = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     map((event) => event.url),
     startWith(this.router.url),
+    map((url) => `${this.baseHref}${url}`),
     map((url) => url.split('#')[0]), //Remove any fragment it might have
     filterNil(),
   );

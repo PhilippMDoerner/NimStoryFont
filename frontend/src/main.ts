@@ -1,5 +1,6 @@
 /// <reference types="@angular/localize" />
 
+import { APP_BASE_HREF } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   importProvidersFrom,
@@ -26,6 +27,7 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(FORMLY_MODULE),
     provideRouter(ROUTES, withViewTransitions()),
     { provide: TINYMCE_SCRIPT_SRC, useValue: 'tinymce/tinymce.min.js' },
+    { provide: APP_BASE_HREF, useValue: '/wiki2' },
     provideHttpClient(withInterceptors([offlineInterceptor, errorInterceptor])),
     GlobalStore,
     NavigationStore,
