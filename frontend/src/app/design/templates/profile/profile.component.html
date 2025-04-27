@@ -13,8 +13,10 @@
           btn
           class="heading__button"
           [kind]="'SECONDARY'"
-          [icon]="showProfileEditForm ? 'times' : 'pencil'"
-          [text]="showProfileEditForm ? 'Cancel Profile Edit' : 'Edit Profile'"
+          [icon]="showProfileEditForm() ? 'times' : 'pencil'"
+          [text]="
+            showProfileEditForm() ? 'Cancel Profile Edit' : 'Edit Profile'
+          "
           (clicked)="toggleProfileEditState()"
         ></button>
 
@@ -22,9 +24,9 @@
           btn
           class="heading__button"
           [kind]="'SECONDARY'"
-          [icon]="showPasswordEditForm ? 'times' : 'pencil'"
+          [icon]="showPasswordEditForm() ? 'times' : 'pencil'"
           [text]="
-            showPasswordEditForm ? 'Cancel Password Edit' : 'Edit Password'
+            showPasswordEditForm() ? 'Cancel Password Edit' : 'Edit Password'
           "
           (clicked)="togglePasswordEditState()"
         ></button>
@@ -34,20 +36,24 @@
     <app-separator></app-separator>
 
     <!-- Profile -->
-    @if (!showProfileEditForm) {
+    @if (!showProfileEditForm()) {
       <div class="row profile__data">
         <h2 class="h3">Profile Data</h2>
         <div class="col-4">Username</div>
-        <div class="col-8">{{ user.username }}</div>
+        <div class="col-8">{{ user().username }}</div>
         <div class="col-4">Email</div>
-        <div class="col-8">{{ user.email }}</div>
+        <div class="col-8">{{ user().email }}</div>
       </div>
       <section
         class="row profile__memberships"
         aria-labelledby="campaign-membership-label"
       >
         <h2 id="campaign-membership-label" class="h3">Campaign Memberships</h2>
-        @for (membership of memberships; track membership; let i = $index) {
+        @for (
+          membership of memberships();
+          track membership.campaignName && membership.role;
+          let i = $index
+        ) {
           <div class="row pe-0">
             <div class="col-5">{{ membership.campaignName | titlecase }}</div>
             <div class="col-4">{{ membership.role | titlecase }}</div>
@@ -83,14 +89,14 @@
     }
 
     <!-- Password Form -->
-    @if (showPasswordEditForm) {
+    @if (showPasswordEditForm()) {
       <app-card>
         <app-form
           [model]="passwordModel"
-          [fields]="passwordFields"
+          [fields]="passwordFields()"
           [cancelButtonType]="'DARK'"
           (formlyCancel)="togglePasswordEditState()"
-          (formlySubmit)="updatePassword()"
+          (formlySubmit)="updatePassword($event)"
         ></app-form>
       </app-card>
     }
@@ -98,11 +104,11 @@
     <app-article-footer
       class="mt-5 d-block"
       [buttonLabel]="
-        campaignName ? 'Back To ' + campaignName : 'Back to Campaigns'
+        campaignName() ? 'Back To ' + campaignName() : 'Back to Campaigns'
       "
       [buttonLink]="backUrl()"
       [deleteMessage]="'your account'"
-      (delete)="profileDelete.emit(user)"
+      (delete)="profileDelete.emit(user())"
     ></app-article-footer>
   </article>
 </app-page-container>

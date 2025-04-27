@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { Login } from 'src/app/_models/login';
 import {
   AuthData,
@@ -41,6 +42,16 @@ export class TokenService {
     log(this.fetchAuthData.name);
 
     return this.http.get<AuthData>(`${this.apiUrl}/authdata`);
+  }
+
+  public patchMyPassword(
+    newPassword: string,
+    oldPassword?: string,
+  ): Observable<AuthData> {
+    return this.http.patch<AuthData>(`${this.apiUrl}/authdata/patch-password`, {
+      password: newPassword,
+      old_password: oldPassword,
+    });
   }
 
   public getCampaignRole(

@@ -1,8 +1,17 @@
 import { TitleCasePipe } from '@angular/common';
-import { Component, input, Input, output } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { User } from 'src/app/_models/user';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
+import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
@@ -15,7 +24,7 @@ import { CampaignMembership } from '../_models/campaign-membership';
 
 export interface PasswordModel {
   password: string;
-  oldPassword: string;
+  oldPassword?: string;
 }
 
 @Component({
@@ -35,12 +44,11 @@ export interface PasswordModel {
   ],
 })
 export class ProfileComponent {
-  @Input() user!: User;
-  @Input() memberships!: CampaignMembership[];
-  @Input() canDeleteProfile = false;
-  @Input() showProfileEditForm = false;
-  @Input() showPasswordEditForm = false;
-  @Input() campaignName?: string;
+  user = input.required<User>();
+  memberships = input.required<CampaignMembership[]>();
+  canDeleteProfile = input<boolean>(false);
+  campaignName = input.required<string | undefined>();
+  canResetWithoutPassword = input<boolean>(false);
   backUrl = input.required<string>();
 
   readonly profileUpdate = output<Partial<User>>();
@@ -48,16 +56,29 @@ export class ProfileComponent {
   readonly campaignLeave = output<CampaignMembership>();
   readonly profileDelete = output<User>();
 
-  passwordModel: Partial<PasswordModel> = {};
-  passwordFields: FormlyFieldConfig[] = [
+  formlyService = inject(FormlyService);
+
+  showPasswordEditForm = signal<boolean>(false);
+  showProfileEditForm = signal<boolean>(false);
+  passwordModel: Partial<PasswordModel & { passwordConfirm: string }> = {};
+  oldPasswordField: FormlyFieldConfig =
     this.formlyService.buildSinglePasswordConfig({
       key: 'oldPassword',
       label: 'Your old password',
-    }),
-    this.formlyService.buildConfirmedPasswordConfig({
-      label: 'New Password',
-    }),
-  ];
+    });
+  passwordFields = computed<FormlyFieldConfig[]>(() => {
+    const fields = [
+      this.formlyService.buildConfirmedPasswordConfig({
+        label: 'New Password',
+      }),
+    ];
+
+    if (!this.canResetWithoutPassword()) {
+      fields.push(this.oldPasswordField);
+    }
+
+    return fields;
+  });
 
   profileModel: Partial<User> = {};
   profileFields: FormlyFieldConfig[] = [
@@ -72,41 +93,51 @@ export class ProfileComponent {
     }),
   ];
 
-  constructor(private formlyService: FormlyService) {}
+  constructor() {
+    const showPasswordEditFormOnInit$ = toObservable(
+      this.canResetWithoutPassword,
+    );
+    showPasswordEditFormOnInit$
+      .pipe(takeOnceOrUntilDestroyed())
+      .subscribe((canResetWithoutPassword) => {
+        this.showPasswordEditForm.set(canResetWithoutPassword);
+      });
+  }
 
   toggleProfileEditState(): void {
-    this.showProfileEditForm = !this.showProfileEditForm;
+    this.showProfileEditForm.set(!this.showProfileEditForm());
 
-    if (this.showProfileEditForm) {
+    if (this.showProfileEditForm()) {
       this.profileModel = {
-        username: this.user.username,
-        email: this.user.email,
+        username: this.user().username,
+        email: this.user().email,
       };
     }
   }
 
   submitProfileUpdate(): void {
     this.profileUpdate.emit(this.profileModel);
-    this.showProfileEditForm = false;
+    this.showProfileEditForm.set(false);
   }
 
   togglePasswordEditState(): void {
-    this.showPasswordEditForm = !this.showPasswordEditForm;
+    this.showPasswordEditForm.set(!this.showPasswordEditForm());
 
-    if (this.showPasswordEditForm) {
+    if (this.showPasswordEditForm()) {
       this.passwordModel = {};
     }
   }
 
-  updatePassword(): void {
+  updatePassword(model: Partial<PasswordModel>): void {
     const hasNewPassword = this.passwordModel.password != null;
     const hasOldPassword = this.passwordModel.oldPassword != null;
-    if (!hasNewPassword || !hasOldPassword) {
+    const requiresOldPassword = !this.canResetWithoutPassword();
+    if (!hasNewPassword || (!hasOldPassword && requiresOldPassword)) {
       return;
     }
 
-    this.passwordUpdate.emit(this.passwordModel as PasswordModel);
-    this.showPasswordEditForm = false;
+    this.passwordUpdate.emit(model as PasswordModel);
+    this.showPasswordEditForm.set(false);
   }
 
   leaveCampaign(membership: CampaignMembership): void {

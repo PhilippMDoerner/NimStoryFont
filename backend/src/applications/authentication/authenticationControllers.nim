@@ -86,7 +86,34 @@ proc refreshTokens*(ctx: Context) {.async.} =
             
             resp response
 
+proc patchPassword*(ctx: Context) {.async, gcsafe.} =
+    let ctx = JWTContext(ctx)
+    const workflowLifetimeInSeconds = 15 * 60 # 15 minutes
+    
+    let userId = ctx.tokenData.userId
+    
+    let requestBody: JsonNode = parseJson(ctx.request.body())
+    respondOnError():
+        withDbConn(connection):
+            let hasActiveWorkflow = connection.hasActiveWorkflowConfirmation(
+                user_id, 
+                WorkflowType.wtPASSWORD_RESET, 
+                workflowLifetimeInSeconds
+            )
+            var user: User = connection.getEntryById(user_Id, User)
+            
+            let requiresOldPasswordCheck = not hasActiveWorkflow
+            if requiresOldPasswordCheck:
+                let oldPlainPassword: string = requestBody.fields["old_password"].getStr()
+                if not oldPlainPassword.isValidPassword(user.password):
+                    resp get401UnauthorizedResponse(ctx)
+                    return
+            
+            let newPassword: string = requestBody.fields["password"].getStr()
+            discard connection.updateUserPassword(user, newPassword)
 
+            let authData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
+            resp createAuthResponse(ctx, authData)
 
 proc login*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -108,9 +135,7 @@ proc login*(ctx: Context) {.async.} =
     respondOnError():
         withDbConn(connection):
             let loginData: AuthDataSerializable = connection.createAndSerializeAuthData(ctx, user)
-            let response = createAuthResponse(ctx, loginData)
-            
-            resp response
+            resp createAuthResponse(ctx, loginData)
 
 proc logout*(ctx: Context) {.async.} =
     let ctx = JWTContext(ctx)
@@ -202,7 +227,7 @@ proc confirmPasswordReset*(ctx: Context) {.async.} =
     var workflowState = WorkflowState.wsFailureCanNotConfirm
     
     ctx.response = initResponse(HttpVer11, Http302, initResponseHeaders())
-    
+    var confirmation: Confirmation
     if canConfirm:
         let workflowToken = workflowToken.get()
         let workflow = parseEnum[WorkflowType](workflow.get())
@@ -217,7 +242,7 @@ proc confirmPasswordReset*(ctx: Context) {.async.} =
         withDbConn(connection):
             try:
                 # Being able to get this is both authentication and authorization (the token is valid, therefore you are the user).
-                var confirmation = connection.getCurrentConfirmationState(dto)
+                confirmation = connection.getCurrentConfirmationState(dto)
                 # Immediately add auth cookies in case something goes wrong
                 let user = connection.getEntryById(user_id, User)
                 let authData = connection.createAndSerializeAuthData(ctx, user)
@@ -239,5 +264,13 @@ proc confirmPasswordReset*(ctx: Context) {.async.} =
                 debugErrorLog("Could not confirm password reset")
                 workflowState = WorkflowState.wsFailureCanNotConfirm
     
-    let redirectTarget = ctx.getClientUrl(("source", $WorkflowType.wtPASSWORD_RESET), ("state", $workflowState))
+    var redirectQueryParams = @[
+        ("source", $WorkflowType.wtPASSWORD_RESET), 
+        ("state", $workflowState)
+    ]
+    if workflowState == WorkflowState.wsSuccess and not confirmation.isNil():
+        let creationUnixTimestamp = DateTime(confirmation.creation_datetime).toTime().toUnix().int64
+        let expirationTimestamp = creationUnixTimestamp + workflowLifetimeInSeconds
+        redirectQueryParams.add(("expires", $expirationTimestamp))
+    let redirectTarget = ctx.getClientUrl(redirectQueryParams)
     ctx.response.setHeader("location", redirectTarget)

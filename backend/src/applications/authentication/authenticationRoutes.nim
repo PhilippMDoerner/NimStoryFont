@@ -55,6 +55,13 @@ proc addAuthenticationRoutes*(app: Prologue) =
     )
     
     app.addRoute(
+        "/authdata/patch-password",
+        patchPassword,
+        httpMethod = HttpPatch,
+        middlewares = @[loginMiddleware()]
+    )
+    
+    app.addRoute(
         "/authdata",
         getAuthData,
         httpMethod = HttpGet,
