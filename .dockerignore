@@ -14,3 +14,4 @@ frontend/buildFiles/nginx/local_only
 backend/buildFiles/nimstoryfont/local_only_db_dumps
 backend/buildFiles/nimstoryfont/jobs
 backend/exampleStuff
+.git
