@@ -216,15 +216,17 @@ proc confirmPasswordReset*(ctx: Context) {.async.} =
         
         withDbConn(connection):
             try:
-                var confirmation = connection.getCurrentConfirmationState(dto) # Being able to get this means you can reset your password
-                connection.confirmWorkflow(confirmation)
-                
+                # Being able to get this is both authentication and authorization (the token is valid, therefore you are the user).
+                var confirmation = connection.getCurrentConfirmationState(dto)
+                # Immediately add auth cookies in case something goes wrong
                 let user = connection.getEntryById(user_id, User)
                 let authData = connection.createAndSerializeAuthData(ctx, user)
                 ctx.response.setAuthCookies(
                     authData.accessToken,
                     authData.refreshToken
                 )
+                
+                connection.confirmWorkflow(confirmation)
                 workflowState = WorkflowState.wsSuccess
 
             except MissingEmailError as e:
