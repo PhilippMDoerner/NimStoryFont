@@ -11,7 +11,6 @@ RUN apk -U add nodejs npm
 # The --mount option here is a cache-layer for local development. 
 # It caches the node_modules dir when re-running docker commands.
 RUN --mount=type=cache,target=./node_modules \
-  --mount=type=cache,target=./dist \
   npm i && npm run build
 
 # Phase 2) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
