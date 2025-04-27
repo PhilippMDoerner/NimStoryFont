@@ -176,9 +176,9 @@ proc getClientUrl*(ctx: Context, queryParams: varargs[(string, string)]): string
     let hasQueryParams = queryParams.len > 0
     return if hasQueryParams:
         let queryParamsStr = queryParams.mapIt(fmt"{it[0]}={it[1]}").join("&")
-        fmt"https://{domain}?{queryParamsStr}"
+        fmt"https://{domain}/wiki2?{queryParamsStr}"
       else:
-        fmt"https://{domain}"
+        fmt"https://{domain}/wiki2"
 
 proc getQueryParams*(ctx: Context): Table[string, string] =
     let queryParamsStr = ctx.request.query
