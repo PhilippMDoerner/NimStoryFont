@@ -13,6 +13,11 @@ export type ToastButtons = [] | [ToastButton] | [ToastButton, ToastButton];
 
 export type ToastType = ElementKind | 'SUCCESS';
 
+// 900_000ms ^= 15 minutes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const VALID_TIMEOUT_MS = [1500, 3000, 5000, 900_000] as const;
+export type ToastTimeout = (typeof VALID_TIMEOUT_MS)[number];
+
 export interface ToastConfig {
   type: ToastType;
   important?: boolean;
@@ -25,7 +30,7 @@ export interface ToastConfig {
     icon?: Icon;
     buttons?: ToastButtons;
   };
-  dismissMs?: 1500 | 3000 | 5000;
+  dismissMs?: ToastTimeout;
   onHide?: () => void;
   onShow?: () => void;
   onToastClick?: (dismiss: () => void) => void;

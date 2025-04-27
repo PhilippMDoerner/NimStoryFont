@@ -102,6 +102,10 @@
     &--long-animation {
       animation-duration: 5000ms;
     }
+
+    &--very-long-animation {
+      animation-duration: 900000ms;
+    }
   }
 }
 
