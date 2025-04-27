@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
+import { CanActivateFn } from '@angular/router';
 import { map } from 'rxjs';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { log } from 'src/utils/logging';
@@ -7,7 +8,7 @@ import { filterNil } from 'src/utils/rxjs-operators';
 import { AuthStore } from '../auth.store';
 import { GlobalStore } from '../global.store';
 
-export const siteAdminGuard = () => {
+export const siteAdminGuard: CanActivateFn = () => {
   const routingService = inject(RoutingService);
   const authStore = inject(AuthStore);
   const globalStore = inject(GlobalStore);
