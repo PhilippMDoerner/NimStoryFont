@@ -25,7 +25,7 @@ case $1 in
       exit 0
     fi
     
-    sudo docker-compose -f ./$2.yml $3
+    sudo docker-compose -f ./$2.yml "${@:3}"
     exit 0
     ;;
   server)
