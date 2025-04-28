@@ -22,8 +22,8 @@
     backend_settings_path: "{{ lookup('ansible.builtin.env', 'SERVER_BACKEND_SETTINGS_PATH') }}"
     dumps_path: "{{ lookup('ansible.builtin.env', 'SERVER_DUMPS_PATH') }}"
     feature_config_path: "{{ lookup('ansible.builtin.env', 'SERVER_FEATURE_CONFIG_PATH') }}"
-    server_email_name: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_NAME') }}"
-    server_email_password: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_PASSWORD') }}"
+    server_email_auth_name: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_AUTH_NAME') }}"
+    server_email_auth_password: "{{ lookup('ansible.builtin.env', 'SERVER_EMAIL_AUTH_PASSWORD') }}"
     smtp_domain: "{{ lookup('ansible.builtin.env', 'SMTP_DOMAIN') }}"
     smtp_port: "{{ lookup('ansible.builtin.env', 'SMTP_PORT') }}"
   tasks:

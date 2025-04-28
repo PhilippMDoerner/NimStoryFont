@@ -10,47 +10,27 @@
       prompt: Enter your server's IP address
       private: false
 
-    - name: server_email_name
-      prompt: Enter your server's email address (Required for password reset emails)
+    - name: server_email_auth_name
+      prompt: Enter your smtp account-name for your server's email account (Required for password reset emails)
       private: false
 
-    - name: server_email_password
-      prompt: Enter your server's email password (Required for password reset emails)
+    - name: server_email_auth_password
+      prompt: Enter your smtp password for your server's email account (Required for password reset emails)
       private: true
 
     - name: smtp_domain
-      prompt: Enter the SMTP domain of your email provider (Required for password reset emails) (i.e. "smtp.gmail.com")
+      prompt: Enter the SMTP domain of your email provider (Required for password reset emails) (i.e. "prod-mta-06.swg-srv.net")
       private: false
 
     - name: smtp_port
-      prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "587")
+      prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "2525")
       private: false
       default: 587
 
     - name: server_project_dir
-      prompt: Enter the path the project directory shall have on your server (config files, job-binaries, database, media directories etc.)
+      prompt: Enter the path the project directory shall have on your server (contains config files, job-binaries, database, media directories etc.)
       private: false
       default: ./nimstoryfont
-
-    - name: country
-      prompt: Enter your server's country (for your local SSH certificate)
-      private: false
-      default: "DE"
-
-    - name: state
-      prompt: Enter your server's state (for your local SSH certificate)
-      private: false
-      default: "Berlin"
-
-    - name: locality
-      prompt: Enter your server's locality (for your local SSH certificate)
-      private: false
-      default: "Berlin"
-
-    - name: organization
-      prompt: Enter your server's organization (for your local SSH certificate)
-      private: false
-      default: "Nimstoryfont"
 
   vars:
     secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
@@ -73,6 +53,13 @@
         backend_settings_path: "settings.json"
         compose_path: "docker-compose.yml"
         feature_config_path: "featureConfig.json"
+
+    - name: Set default local certificate values
+      set_fact:
+        country: "DE"
+        state: "Berlin"
+        locality: "Berlin"
+        organization: "Nimstoryfont"
 
     - name: Get email domain
       tags: env, email
@@ -116,8 +103,8 @@
           SERVER_FEATURE_CONFIG_PATH={{ feature_config_path }}
           SERVER_IP={{ server_ip }}
           SECRET_KEY={{ secret_key }}
-          SERVER_EMAIL_NAME={{ server_email_name }}
-          SERVER_EMAIL_PASSWORD={{ server_email_password }}
+          SERVER_EMAIL_AUTH_NAME={{ server_email_auth_name }}
+          SERVER_EMAIL_AUTH_PASSWORD={{ server_email_auth_password }}
           EMAIL_DOMAIN={{ email_domain }}
           SMTP_DOMAIN={{ smtp_domain }}
           SMTP_PORT={{ smtp_port }}
