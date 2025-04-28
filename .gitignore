@@ -61,6 +61,8 @@ nimstoryfont_ansible
 nimstoryfont_ansible.pub
 nginx.conf
 docker-compose_server.yml
+docker-compose_local.yml
 feature_config.json
 provision_user.sh
 tasks.json
+local_only

@@ -3,18 +3,18 @@
   gather_facts: false
   vars_prompt:
     - name: domain
-      prompt: Enter your server's domain name
+      prompt: Enter your host's domain name
       private: false
 
-    - name: server_ip
-      prompt: Enter your server's IP address
+    - name: host_ip
+      prompt: Enter your host's IP address
       private: false
 
-    - name: server_email_auth_name
+    - name: email_auth_name
       prompt: Enter your smtp account-name for your server's email account (Required for password reset emails)
       private: false
 
-    - name: server_email_auth_password
+    - name: email_auth_password
       prompt: Enter your smtp password for your server's email account (Required for password reset emails)
       private: true
 
@@ -25,10 +25,10 @@
     - name: smtp_port
       prompt: Enter the SMTP port of your email provider (Required for password reset emails) (i.e. "2525")
       private: false
-      default: 587
+      default: 2525
 
-    - name: server_project_dir
-      prompt: Enter the path the project directory shall have on your server (contains config files, job-binaries, database, media directories etc.)
+    - name: host_project_dir
+      prompt: Enter the path the project directory shall have on your host (contains config files, job-binaries, database, media directories etc.)
       private: false
       default: ./nimstoryfont
 
@@ -36,35 +36,65 @@
     secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
   tasks:
-    - name: Get local project root
+    - name: Get local directories
       set_fact:
-        project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
+        local_project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
+        local_config_dir: "{{ lookup('ansible.builtin.env', 'PWD') }}/local_only"
 
-    - name: Get current working directory
+    - name: Create local config dir directory
+      file:
+        path: "{{ local_config_dir }}"
+        state: directory
+        mode: 0755
+
+    - name: Set general default sub-paths for use with other values
       tags: env, nginx_config
       set_fact:
-        ssh_key_path: "{{ project_root }}/nimstoryfont_ansible"
-        nginx_buildfiles_path: "{{ project_root }}/frontend/buildFiles/nginx"
         db_path: "db.sqlite3"
         media_path: "media"
         audio_path: "audio"
         dumps_path: "dumps"
         nginx_path: "nginx.conf"
         backend_settings_path: "settings.json"
-        compose_path: "docker-compose.yml"
-        feature_config_path: "featureConfig.json"
+        feature_config_path: "feature_config.json"
 
-    - name: Set default local certificate values
-      set_fact:
-        country: "DE"
-        state: "Berlin"
-        locality: "Berlin"
-        organization: "Nimstoryfont"
-
-    - name: Get email domain
-      tags: env, email
+    - name: Infer all env variables
+      tags: env, local
       set_fact:
         email_domain: "no-reply.{{ domain }}"
+        ssh_key_path: "{{ local_project_root }}/nimstoryfont_ansible"
+
+        local_cert_path: "{{local_config_dir}}/certificates"
+        local_openssl_conf_path: "{{local_config_dir}}/certificates/openssl.conf"
+        local_db_path: "{{ local_config_dir }}/{{ db_path }}"
+        local_nginx_path: "{{local_config_dir}}/{{ nginx_path }}"
+        local_media_path: "{{local_config_dir}}/{{ media_path }}"
+        local_audio_path: "{{local_config_dir}}/{{ audio_path }}"
+        local_compose_path: "{{local_project_root}}/docker-compose_local.yml"
+        local_server_compose_path: "{{local_project_root}}/docker-compose_server.yml"
+        local_backend_settings_path: "{{local_config_dir}}/{{ backend_settings_path }}"
+        local_dumps_path: "{{local_config_dir}}/{{ dumps_path }}"
+        local_feature_config_path: "{{local_config_dir}}/{{ feature_config_path }}"
+        local_cert_country: "DE"
+        local_cert_state: "Berlin"
+        local_cert_locality: "Berlin"
+        local_cert_organization: "Nimstoryfont"
+
+        host_db_path: "{{ host_project_dir }}/{{ db_path }}"
+        host_nginx_path: "{{host_project_dir}}/{{ nginx_path }}"
+        host_media_path: "{{host_project_dir}}/{{ media_path }}"
+        host_audio_path: "{{host_project_dir}}/{{ audio_path }}"
+        host_compose_path: "{{host_project_dir}}/docker-compose.yml"
+        host_backend_settings_path: "{{host_project_dir}}/{{ backend_settings_path }}"
+        host_dumps_path: "{{host_project_dir}}/{{ dumps_path }}"
+        host_feature_config_path: "{{host_project_dir}}/{{ feature_config_path }}"
+
+    - name: Create local certificate directory
+      tags: local
+      file:
+        path: "{{ local_cert_path }}/live/{{domain}}"
+        state: directory
+        mode: 0755
 
     - name: Create ansible ssh key in ~/.ssh
       tags: ssh
@@ -75,7 +105,7 @@
         mode: 0600
 
     - name: Set permissions for public key
-      tags: ssh
+      tags: ssh, local
       file:
         path: "{{ ssh_key_path }}.pub"
         mode: 0600
@@ -84,37 +114,53 @@
       tags: config
       copy:
         src: files/feature_config.json
-        dest: "{{ project_root }}/feature_config.json"
+        dest: "{{ local_feature_config_path }}"
 
     - name: Create .env file
       tags: env
       ansible.builtin.copy:
         content: |
-          PROJECT_ROOT={{ project_root }}
+          # Project global configs
           NS_DOMAIN={{ domain }}
-          SERVER_PROJECT_DIR={{ server_project_dir }}
-          SERVER_DB_PATH={{ db_path }}
-          SERVER_NGINX_PATH={{ nginx_path }}
-          SERVER_MEDIA_PATH={{ media_path }}
-          SERVER_AUDIO_PATH={{ audio_path }}
-          SERVER_COMPOSE_PATH={{ compose_path }}
-          SERVER_BACKEND_SETTINGS_PATH={{ backend_settings_path }}
-          SERVER_DUMPS_PATH={{ dumps_path }}
-          SERVER_FEATURE_CONFIG_PATH={{ feature_config_path }}
-          SERVER_IP={{ server_ip }}
           SECRET_KEY={{ secret_key }}
-          SERVER_EMAIL_AUTH_NAME={{ server_email_auth_name }}
-          SERVER_EMAIL_AUTH_PASSWORD={{ server_email_auth_password }}
+          HOST_IP={{ host_ip }}
           EMAIL_DOMAIN={{ email_domain }}
           SMTP_DOMAIN={{ smtp_domain }}
           SMTP_PORT={{ smtp_port }}
-          LOCAL_CERT_COUNTRY={{ country }}
-          LOCAL_CERT_STATE={{ state }}
-          LOCAL_CERT_LOCALITY={{ locality }}
-          LOCAL_CERT_ORGANIZATION={{ organization }}
-        dest: "{{ project_root }}/.env"
+          EMAIL_AUTH_NAME={{ email_auth_name }}
+          EMAIL_AUTH_PASSWORD={{ email_auth_password }}
+
+          # Local Project configs
+          LOCAL_PROJECT_ROOT={{ local_project_root }}
+          LOCAL_DB_PATH={{ local_db_path }}
+          LOCAL_NGINX_PATH={{ local_nginx_path }}
+          LOCAL_MEDIA_PATH={{ local_media_path }}
+          LOCAL_AUDIO_PATH={{ local_audio_path }}
+          LOCAL_COMPOSE_PATH={{ local_compose_path }}
+          LOCAL_SERVER_COMPOSE_PATH={{ local_server_compose_path }}
+          LOCAL_BACKEND_SETTINGS_PATH={{ local_config_dir }}/{{ backend_settings_path }}
+          LOCAL_DUMPS_PATH={{ local_config_dir}}/{{ dumps_path }}
+          LOCAL_FEATURE_CONFIG_PATH={{ local_config_dir}}/{{ feature_config_path }}
+          LOCAL_CERT_PATH={{ local_cert_path }}
+          LOCAL_CERT_COUNTRY={{ local_cert_country }}
+          LOCAL_CERT_STATE={{ local_cert_state }}
+          LOCAL_CERT_LOCALITY={{ local_cert_locality }}
+          LOCAL_CERT_ORGANIZATION={{ local_cert_organization }}
+          LOCAL_OPENSSL_CONF_PATH={{ local_openssl_conf_path }}
+
+          # Host Configs
+          HOST_DB_PATH={{ host_db_path }}
+          HOST_NGINX_PATH={{ host_nginx_path }}
+          HOST_MEDIA_PATH={{ host_media_path }}
+          HOST_AUDIO_PATH={{ host_audio_path }}
+          HOST_COMPOSE_PATH={{ host_compose_path }}
+          HOST_BACKEND_SETTINGS_PATH={{ host_backend_settings_path }}
+          HOST_DUMPS_PATH={{ host_dumps_path }}
+          HOST_FEATURE_CONFIG_PATH={{ host_feature_config_path }}
+        dest: "{{ local_project_root }}/.env"
 
     - name: Generate files from environment
+      tags: generate_files
       ansible.builtin.include_role:
         name: generate-files
 
@@ -122,6 +168,6 @@
       become: true
       tags: nginx, local
       ansible.builtin.shell: |
-        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ nginx_buildfiles_path }}/local_only/certificates/openssl.conf -out {{ nginx_buildfiles_path }}/local_only/certificates/live/{{domain}}/fullchain.pem -keyout  {{ nginx_buildfiles_path}}/local_only/certificates/live/{{domain}}/privkey.pem
+        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ local_openssl_conf_path }} -out {{ local_cert_path }}/live/{{domain}}/fullchain.pem -keyout  {{ local_cert_path}}/live/{{domain}}/privkey.pem
 
 # TODO: Install dependencies like flyway

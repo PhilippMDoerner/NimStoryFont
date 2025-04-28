@@ -3,7 +3,7 @@
 KEY=$(cat {{ssh_key_path}}.pub)
 USR=ansible
 
-ssh root@{{server_ip}} "adduser --comment '' $USR && \
+ssh root@{{host_ip}} "adduser --comment '' $USR && \
   adduser $USR sudo && \
   mkdir /home/$USR/.ssh && \
   echo "$KEY" >> /home/$USR/.ssh/authorized_keys && \

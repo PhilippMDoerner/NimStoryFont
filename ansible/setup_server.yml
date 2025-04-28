@@ -7,19 +7,28 @@
       private: false
 
   vars:
-    project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
-    frontend_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/frontend/buildFiles/nginx"
-    backend_buildfiles_path: "{{ lookup('ansible.builtin.env', 'PWD') }}/backend/buildFiles"
-    nginx_path: "{{ lookup('ansible.builtin.env', 'SERVER_NGINX_PATH') }}"
-    media_path: "{{ lookup('ansible.builtin.env', 'SERVER_MEDIA_PATH') }}"
-    audio_path: "{{ lookup('ansible.builtin.env', 'SERVER_AUDIO_PATH') }}"
-    db_path: "{{ lookup('ansible.builtin.env', 'DB_PATH') }}"
-    backend_settings_path: "{{ lookup('ansible.builtin.env', 'SERVER_BACKEND_SETTINGS_PATH') }}"
-    compose_path: "{{ lookup('ansible.builtin.env', 'SERVER_COMPOSE_PATH') }}"
-    feature_config_path: "{{ lookup('ansible.builtin.env', 'SERVER_FEATURE_CONFIG_PATH') }}"
-    dumps_path: "{{ lookup('ansible.builtin.env', 'SERVER_DUMPS_PATH') }}"
+    local_project_root: "{{ lookup('ansible.builtin.env', 'LOCAL_PROJECT_ROOT') }}"
+    local_db_path: "{{ lookup('ansible.builtin.env', 'LOCAL_DB_PATH') }}"
+    local_nginx_path: "{{ lookup('ansible.builtin.env', 'LOCAL_NGINX_PATH') }}"
+    local_media_path: "{{ lookup('ansible.builtin.env', 'LOCAL_MEDIA_PATH') }}"
+    local_audio_path: "{{ lookup('ansible.builtin.env', 'LOCAL_AUDIO_PATH') }}"
+    local_compose_path: "{{ lookup('ansible.builtin.env', 'LOCAL_COMPOSE_PATH') }}"
+    local_server_compose_path: "{{ lookup('ansible.builtin.env', 'LOCAL_SERVER_COMPOSE_PATH') }}"
+    local_backend_settings_path: "{{ lookup('ansible.builtin.env', 'LOCAL_BACKEND_SETTINGS_PATH') }}"
+    local_dumps_path: "{{ lookup('ansible.builtin.env', 'LOCAL_DUMPS_PATH') }}"
+    local_feature_config_path: "{{ lookup('ansible.builtin.env', 'LOCAL_FEATURE_CONFIG_PATH') }}"
+
+    host_db_path: "{{ lookup('ansible.builtin.env', 'HOST_DB_PATH') }}"
+    host_nginx_path: "{{ lookup('ansible.builtin.env', 'HOST_NGINX_PATH') }}"
+    host_media_path: "{{ lookup('ansible.builtin.env', 'HOST_MEDIA_PATH') }}"
+    host_audio_path: "{{ lookup('ansible.builtin.env', 'HOST_AUDIO_PATH') }}"
+    host_compose_path: "{{ lookup('ansible.builtin.env', 'HOST_COMPOSE_PATH') }}"
+    host_backend_settings_path: "{{ lookup('ansible.builtin.env', 'HOST_BACKEND_SETTINGS_PATH') }}"
+    host_dumps_path: "{{ lookup('ansible.builtin.env', 'HOST_DUMPS_PATH') }}"
+    host_feature_config_path: "{{ lookup('ansible.builtin.env', 'HOST_FEATURE_CONFIG_PATH') }}"
+
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
-    server_project_dir: "{{ lookup('ansible.builtin.env', 'SERVER_PROJECT_DIR') }}"
+
   tasks:
     - name: Upgrade host server to latest
       become: true
@@ -50,53 +59,53 @@
     - name: Create media dir
       tags: media
       ansible.builtin.file:
-        path: "{{server_project_dir}}/{{ media_path }}"
+        path: "{{ host_media_path }}"
         state: directory
         mode: 0755
 
     - name: Create audio dir
       tags: media
       ansible.builtin.file:
-        path: "{{server_project_dir}}/{{ audio_path }}"
+        path: "{{ host_audio_path }}"
         state: directory
         mode: 0755
 
     - name: Create dump dir
       tags: media
       ansible.builtin.file:
-        path: "{{server_project_dir}}/{{ dumps_path }}"
+        path: "{{ host_dumps_path }}"
         state: directory
         mode: 0755
 
     - name: Copy nginx configuration
       tags: nginx, frontend, config
       copy:
-        src: "{{ frontend_buildfiles_path }}/nginx.conf"
-        dest: "{{server_project_dir}}/{{ nginx_path }}"
+        src: "{{ local_nginx_path }}"
+        dest: "{{ host_nginx_path }}"
 
     - name: Copy database
       tags: backend, database
       copy:
-        src: "{{ project_root }}/backend/db.sqlite3"
-        dest: "{{server_project_dir}}/{{ db_path }}"
+        src: "{{ local_db_path }}"
+        dest: "{{ host_db_path }}"
 
     - name: Copy backend configuration
       tags: backend, config
       copy:
-        src: "{{ backend_buildfiles_path }}/nimstoryfont/settings.json"
-        dest: "{{server_project_dir}}/{{ backend_settings_path }}"
+        src: "{{ local_backend_settings_path }}"
+        dest: "{{ host_backend_settings_path }}"
 
-    - name: Copy Docker compose sample
+    - name: Copy Docker compose file for server to host
       tags: docker
       copy:
-        src: "{{ project_root }}/docker-compose_server.yml"
-        dest: "{{server_project_dir}}/{{ compose_path }}"
+        src: "{{ local_server_compose_path }}"
+        dest: "{{ host_compose_path }}"
 
     - name: Copy feaure config json
       tags: backend, frontend, config
       copy:
-        src: "{{ project_root }}/feature_config.json"
-        dest: "{{server_project_dir}}/{{ feature_config_path }}"
+        src: "{{ local_feature_config_path }}"
+        dest: "{{ host_feature_config_path }}"
 
     - name: Copy certbot.timer file for certbot renewals
       tags: nginx, certbot, config

@@ -7,7 +7,7 @@
   become: true
   vars:
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
-    server_ip: "{{ lookup('ansible.builtin.env', 'SERVER_IP') }}"
+    host_ip: "{{ lookup('ansible.builtin.env', 'HOST_IP') }}"
 
   tasks:
     - name: Upgrade host server to latest
@@ -74,4 +74,4 @@
         insertafter: "^# /etc/hosts"
         block: |
           127.0.0.1       localhost
-          {{ server_ip }}  {{ domain }}
+          {{ host_ip }}  {{ domain }}
