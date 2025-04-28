@@ -1,25 +1,26 @@
 #!/bin/bash
-# Note: This script defines "cmdlist" for autocompletes, but I can not be bothered to implement that.
+# Note: This script defines "cmds" for autocompletes, but I can not be bothered to implement that.
 
 ## HELP COMMANDS
+# TODO: Add dry-run, help and verbose options
 global_help_command(){
   cat <<EOF
 Usage:
-  cli-tool <group> <command> [options]
+  ./ns <group> <command> [options]
 
 Groups:
-  project   Manage local project setup and configuration
+  local   Manage local project setup and configuration
   host      Manage the remote host machine
   server    Control the remote server
   db        Manage the remote database
 
 Commands:
 
-Project Commands:
-  init                       Initialize the project locally
-  regen-configs              Regenerate local generated config files
-  dev-mode enable            Enable local development mode (update /etc/hosts)
-  dev-mode disable           Disable local development mode (restore /etc/hosts)
+Local Commands:
+  init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
+  regen-configs              Regenerate local generated config files from your .env file
+  dev-mode enable            Enable local development mode (update /etc/hosts to point localhost to your domain)
+  dev-mode disable           Disable local development mode (restore /etc/hosts to default)
 
 Host Commands:
   add-admin                  Add a host-admin user to the remote host
@@ -30,6 +31,7 @@ Host Commands:
 Server Commands:
   start                      Start the server on the host machine
   stop                       Stop the server on the host machine
+  status                     Get the status of the server on the host machine
   restart                    Restart the server on the host machine
 
 Database Commands:
@@ -37,20 +39,76 @@ Database Commands:
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
 
-Options:
-  -h, --help                  Show this help message
-  -v, --verbose               Enable verbose output
-  --dry-run                   Show what would be done, without making changes
-
 Examples:
-  cli-tool project init
-  cli-tool host bootstrap user@host.com
-  cli-tool server restart user@host.com
-  cli-tool db migrate user@host.com
-  cli-tool project dev-mode enable
+  ./ns local init
+  ./ns host bootstrap user@host.com
+  ./ns server restart user@host.com
+  ./ns db migrate user@host.com
+  ./ns local dev-mode enable
 EOF
 }
 
+local_help_command(){
+  cat <<EOF
+Usage:
+  ./ns local <command>
+
+Commands:
+  init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
+  regen-configs              Regenerate local generated config files from your .env file
+  dev-mode enable            Enable local development mode (update /etc/hosts to point localhost to your domain)
+  dev-mode disable           Disable local development mode (restore /etc/hosts to default)
+
+Description:
+  Commands to set up and maintain the local project environment.
+EOF
+}
+
+host_help_command(){
+  cat <<EOF
+Usage:
+  ./ns host <command> 
+
+Commands:
+  add-admin               Add a host-admin user to the remote host
+  ssh                     SSH into the remote host machine
+  bootstrap               Bootstrap the host (set up SSH configs, firewall, etc.)
+  setup                   Setup the host by copying configuration files
+
+Description:
+  Commands to prepare and interact with the remote host machine.
+EOF
+}
+
+server_help_command(){
+  cat <<EOF
+Usage:
+  ./ns server <command> 
+
+Commands:
+  start                   Start the server process on the host machine
+  stop                    Stop the server process on the host machine
+  status                  Get the status of the server process on the host machine
+  restart                 Restart the server process on the host machine
+
+Description:
+  Commands to control the server runtime on the remote host.
+EOF
+}
+
+db_help_command(){
+  cat <<EOF
+Usage:
+  ./ns db <command> 
+
+Commands:
+  download                Download the database from the host machine
+  migrate                 Migrate the database to a new schema version
+
+Description:
+  Commands to manage the database on the remote host.
+EOF
+}
 
 ## BACKEND_DISPATCHERS
 run_ansible_playbook() {
@@ -83,12 +141,12 @@ local_command(){
       case $3 in
         enable) run_ansible_playbook enabledev;;
         disable) run_ansible_playbook disabledev ;;
-        cmdlist) echo enable disable cmdlist help;;
-        help|*) global_help_command ;;
+        cmds) echo enable disable cmds help;;
+        help|*) local_help_command ;;
       esac
     ;;
-    cmdlist) echo init regen-configs dev-mode cmdlist help;;
-    help|*) global_help_command ;;
+    cmds) echo init regen-configs dev-mode cmds help;;
+    help|*) local_help_command ;;
   esac
 }
 
@@ -98,8 +156,8 @@ host_command(){
     ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
     bootstrap) run_ansible_playbook bootstrap_server;;
     setup) run_ansible_playbook setup_server ;;
-    cmdlist) echo add-ansible ssh bootstrap setup cmdlist help;;
-    help|*) global_help_command ;;
+    cmds) echo add-ansible ssh bootstrap setup cmds help;;
+    help|*) host_help_command ;;
   esac;
 }
 
@@ -109,8 +167,8 @@ server_command(){
     stop) run_ansible_playbook stop_ns;;
     restart) run_ansible_playbook restart_ns ;;
     status) echo "Not implemented yet" ;;
-    cmdlist) echo start stop restart status cmdlist help;;
-    help|*) global_help_command ;;
+    cmds) echo start stop restart status cmds help;;
+    help|*) server_help_command ;;
   esac
 }
 
@@ -122,12 +180,12 @@ db_command(){
       case $3 in
         local) flyway -url="jdbc:sqlite:$LOCAL_DB_PATH" -locations=filesystem:./backend/sql migrate;;
         host) run_ansible_playbook migrate_db;;
-        cmdlist) echo local host cmdlist help;;
-        help|*) global_help_command ;;
+        cmds) echo local host cmds help;;
+        help|*) db_help_command ;;
       esac
     ;;
-    cmdlist) echo download upload migrate cmdlist help;;
-    help|*) global_help_command ;;
+    cmds) echo download upload migrate cmds help;;
+    help|*) db_help_command ;;
   esac
 }
 
@@ -140,7 +198,7 @@ case $1 in
   server) server_command "$@" ;;
   db) db_command "$@" ;;
   autocomplete) source ./autocomplete.sh ;;
-  cmdlist) echo local host server db autocomplete commands help;;
+  cmds) echo local host server db autocomplete commands help;;
   help|*) global_help_command ;;
 esac
 
