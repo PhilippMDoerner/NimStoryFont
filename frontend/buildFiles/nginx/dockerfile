@@ -28,4 +28,4 @@ COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
 # RUN ln -s /session_audio /audiodownloads
 
-CMD ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
+CMD ["nginx", "-c", "/data/config/nginx.conf", "-g", "daemon off;"]

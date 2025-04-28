@@ -2,8 +2,8 @@ import prologue
 import std/[os, strformat, sets]
 
 #Prologue Settings
-const DEFAULT_SETTINGS_FILE_PATH = "./configs/settings.json"
-const SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE = "nimstoryfontsettings"
+const DEFAULT_SETTINGS_FILE_PATH = "/data/config/settings.json"
+const SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE = "NIMSTORYFONT_SETTINGS"
 
 type SettingsFileError* = object of CatchableError
 type SettingName* = enum

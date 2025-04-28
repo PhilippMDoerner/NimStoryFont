@@ -38,3 +38,24 @@ Use that file as a baseline for your own deployments if you want to make one.
 
 For development use the provided docker-compose files in the root directory.
 They describe their uses in doc comments.
+
+### Mount paths
+
+Both the frontend and the backend container rely on the following paths:
+
+Frontend only:
+
+- /data/certificates (used by nginx.conf)
+- /data/config/nginx.conf (used by nginx dockerfile)
+- /data/db_dumps (used by nginx.conf)
+
+Backend only:
+
+- /data/database/db.sqlite3 (used by settings.json)
+- /data/config/settings.json (used by backend binary)
+
+Shared:
+
+- /data/config/feature_config.json (to be used by nginx.conf + settings.json)
+- /data/media/audio (settings.json + nginx.conf)
+- /data/media/image (settings.json + nginx.conf)
