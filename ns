@@ -35,6 +35,7 @@ Server Commands:
   restart                    Restart the server on the host machine
 
 Database Commands:
+  init                        Creates an empty database file with the current schema 
   download                    Download the database from the host machine
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
@@ -174,6 +175,7 @@ server_command(){
 
 db_command(){
   case $2 in
+    init) touch $LOCAL_DB_PATH && ./ns db migrate local;;
     download) run_ansible_playbook download_db ;;
     upload) echo "Not implemented yet" ;;
     migrate) 
