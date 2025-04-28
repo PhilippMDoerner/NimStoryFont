@@ -3,9 +3,8 @@
   gather_facts: false
   become: true
   vars:
-    server_project_dir: "{{ lookup('ansible.builtin.env', 'SERVER_PROJECT_DIR') }}"
+    host_compose_path: "{{ lookup('ansible.builtin.env', 'HOST_COMPOSE_PATH') }}"
   tasks:
-    - name: Start docker compose of nimstoryfont
+    - name: Start nimstoryfont server
       ansible.builtin.shell:
-        chdir: "{{ server_project_dir }}"
-        cmd: "docker compose restart"
+        cmd: "docker compose -f {{ host_compose_path }} restart"

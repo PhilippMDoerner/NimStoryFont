@@ -30,7 +30,7 @@ case $1 in
     ;;
   server)
     set -a && source .env && set +a 
-    ssh -i $PROJECT_ROOT/nimstoryfont_ansible ansible@$SERVER_IP
+    ssh -i nimstoryfont_ansible ansible@$HOST_IP
     exit 0
     ;;
   help|*)

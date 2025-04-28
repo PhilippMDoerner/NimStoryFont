@@ -1,16 +1,10 @@
-- name: Create nginx local buildfile directory
-  file:
-    path: "{{ nginx_buildfiles_path }}/local_only/certificates/live/{{domain}}"
-    state: directory
-    mode: 0755
-
 - name: Create inventory file
   tags: inventory, ansible
   ansible.builtin.copy:
     content: |
       [web_server]
-      {{ server_ip }}
-    dest: "{{ project_root }}/inventory"
+      {{ host_ip }}
+    dest: "{{ local_project_root }}/inventory"
 
 - name: Create ansible.cfg file
   tags: ansible
@@ -20,39 +14,64 @@
       inventory = inventory
       private_key_file = {{ ssh_key_path }}
       remote_user = ansible
-    dest: "{{ project_root }}/ansible.cfg"
+    dest: "{{ local_project_root }}/ansible.cfg"
 
 - name: Generate nginx config
   tags: nginx
   ansible.builtin.template:
     src: templates/nginx_prod_conf.j2
-    dest: "{{ nginx_buildfiles_path }}/nginx.conf"
+    dest: "{{ local_nginx_path }}"
     mode: 0644
 
 - name: Generate openssl config
   tags: nginx, certbot, openssl
   ansible.builtin.template:
     src: templates/openssl_conf.j2
-    dest: "{{ nginx_buildfiles_path }}/local_only/certificates/openssl.conf"
+    dest: "{{ local_openssl_conf_path }}"
     mode: 0644
 
 - name: Generate backend settings json
   tags: backend
   ansible.builtin.template:
     src: templates/backend_settings.json.j2
-    dest: "{{ project_root }}/backend/buildFiles/nimstoryfont/settings.json"
+    dest: "{{ local_backend_settings_path }}"
     mode: 0644
 
-- name: Generate sample docker-compose file for server
-  tags: docker, docker-compose
+- name: Generate local docker-compose file
+  tags: docker, docker-compose, local
   ansible.builtin.template:
-    src: templates/docker-compose_server.j2
-    dest: "{{ project_root }}/docker-compose_server.yml"
+    src: templates/docker-compose.j2
+    dest: "{{ local_compose_path }}"
     mode: 0644
+  vars:
+    compose_cert_path: "{{ local_cert_path }}"
+    compose_media_path: "{{ local_media_path }}"
+    compose_audio_path: "{{ local_audio_path }}"
+    compose_nginx_path: "{{ local_nginx_path }}"
+    compose_dumps_path: "{{ local_dumps_path }}"
+    compose_db_path: "{{ local_db_path }}"
+    compose_feature_config_path: "{{ local_feature_config_path }}"
+    compose_backend_settings_path: "{{ local_backend_settings_path }}"
+
+- name: Generate host docker-compose file
+  tags: docker, docker-compose, host
+  ansible.builtin.template:
+    src: templates/docker-compose.j2
+    dest: "{{ local_server_compose_path }}"
+    mode: 0644
+  vars:
+    compose_cert_path: "/etc/letsencrypt"
+    compose_media_path: "./{{ host_media_path | basename }}"
+    compose_audio_path: "./{{ host_audio_path | basename }}"
+    compose_nginx_path: "./{{ host_nginx_path | basename }}"
+    compose_dumps_path: "./{{ host_dumps_path | basename }}"
+    compose_db_path: "./{{ host_db_path | basename }}"
+    compose_feature_config_path: "./{{ host_feature_config_path | basename }}"
+    compose_backend_settings_path: "./{{ host_backend_settings_path | basename }}"
 
 - name: Generate optional script for setting up ansible user on server
   tags: ansible, bash
   ansible.builtin.template:
     src: templates/provision_user.j2
-    dest: "{{ project_root }}/provision_user.sh"
+    dest: "{{ local_project_root }}/provision_user.sh"
     mode: 0755
