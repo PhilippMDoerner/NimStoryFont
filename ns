@@ -1,40 +1,147 @@
 #!/bin/bash
-## This bash script is the central manager for this repository.
+# Note: This script defines "cmdlist" for autocompletes, but I can not be bothered to implement that.
+
+## HELP COMMANDS
+global_help_command(){
+  cat <<EOF
+Usage:
+  cli-tool <group> <command> [options]
+
+Groups:
+  project   Manage local project setup and configuration
+  host      Manage the remote host machine
+  server    Control the remote server
+  db        Manage the remote database
+
+Commands:
+
+Project Commands:
+  init                       Initialize the project locally
+  regen-configs              Regenerate local generated config files
+  dev-mode enable            Enable local development mode (update /etc/hosts)
+  dev-mode disable           Disable local development mode (restore /etc/hosts)
+
+Host Commands:
+  add-admin                  Add a host-admin user to the remote host
+  bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
+  setup                      Setup the host with additional config files
+  ssh                        SSH into the remote host machine
+
+Server Commands:
+  start                      Start the server on the host machine
+  stop                       Stop the server on the host machine
+  restart                    Restart the server on the host machine
+
+Database Commands:
+  download                    Download the database from the host machine
+  upload                      Upload the database to the host machine
+  migrate                     Migrate the database to a new schema
+
+Options:
+  -h, --help                  Show this help message
+  -v, --verbose               Enable verbose output
+  --dry-run                   Show what would be done, without making changes
+
+Examples:
+  cli-tool project init
+  cli-tool host bootstrap user@host.com
+  cli-tool server restart user@host.com
+  cli-tool db migrate user@host.com
+  cli-tool project dev-mode enable
+EOF
+}
+
+
+## BACKEND_DISPATCHERS
+run_ansible_playbook() {
+  if ansible-playbook -v ./ansible/"$1".yml --ask-become-pass; then
+    return 0
+  else
+    echo "Available commands:"
+    find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
+    exit 1
+  fi
+}
+
+run_compose(){
+  if sudo docker-compose -f ./$1.yml "${@:2}"; then
+    return 0
+  else
+    echo "EXAMPLE: ns2 compose docker-compose.yml up"
+    echo "Available compose files:"
+    find ./ -maxdepth 1 -type f -name "docker-compose**.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
+    exit 1
+  fi
+}
+
+## FRONTEND_DISPATCHERS
+local_command(){
+  case $2 in
+    init) run_ansible_playbook init;;
+    regen-configs) run_ansible_playbook regenerate;;
+    dev-mode)
+      case $3 in
+        enable) run_ansible_playbook enabledev;;
+        disable) run_ansible_playbook disabledev ;;
+        cmdlist) echo enable disable cmdlist help;;
+        help|*) global_help_command ;;
+      esac
+    ;;
+    cmdlist) echo init regen-configs dev-mode cmdlist help;;
+    help|*) global_help_command ;;
+  esac
+}
+
+host_command(){
+  case $2 in
+    add-ansible) bash ./provision_user.sh ;;
+    ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
+    bootstrap) run_ansible_playbook bootstrap_server;;
+    setup) run_ansible_playbook setup_server ;;
+    cmdlist) echo add-ansible ssh bootstrap setup cmdlist help;;
+    help|*) global_help_command ;;
+  esac;
+}
+
+server_command(){
+  case $2 in
+    start) run_ansible_playbook start_ns;;
+    stop) run_ansible_playbook stop_ns;;
+    restart) run_ansible_playbook restart_ns ;;
+    status) echo "Not implemented yet" ;;
+    cmdlist) echo start stop restart status cmdlist help;;
+    help|*) global_help_command ;;
+  esac
+}
+
+db_command(){
+  case $2 in
+    download) run_ansible_playbook download_db ;;
+    upload) echo "Not implemented yet" ;;
+    migrate) 
+      case $3 in
+        local) flyway -url="jdbc:sqlite:$LOCAL_DB_PATH" -locations=filesystem:./backend/sql migrate;;
+        host) run_ansible_playbook migrate_db;;
+        cmdlist) echo local host cmdlist help;;
+        help|*) global_help_command ;;
+      esac
+    ;;
+    cmdlist) echo download upload migrate cmdlist help;;
+    help|*) global_help_command ;;
+  esac
+}
+
+
+## MAIN
+set -a && source .env && set +a # Load .env
 case $1 in
-  init)
-    ansible-playbook ./ansible/init.yml --ask-become-pass
-    exit 0
-    ;;
-  run)
-    if [ -z "$2" ]; then
-      echo "Available commands:"
-      find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
-      exit 0
-    fi
-    set -a && source .env && set +a && ansible-playbook -v ./ansible/$2.yml --ask-become-pass
-    exit 0
-    ;;
-  compose)
-    if [ -z "$2" ]; then
-      echo "Available compose files:"
-      find ./ -maxdepth 1 -type f -name "docker-compose**.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
-      exit 0
-    elif [ -z "$3" ]; then
-      echo "Specify what docker-compose command you want to run."
-      echo "For more info, run 'docker-compose -h'"
-      exit 0
-    fi
-    
-    sudo docker-compose -f ./$2.yml "${@:3}"
-    exit 0
-    ;;
-  server)
-    set -a && source .env && set +a 
-    ssh -i nimstoryfont_ansible ansible@$HOST_IP
-    exit 0
-    ;;
-  help|*)
-    #TODO: Add help text that specifies what each command does
-    echo "Helping..."
-    ;;
+  local) local_command "$@" ;;
+  host) host_command "$@" ;;
+  server) server_command "$@" ;;
+  db) db_command "$@" ;;
+  autocomplete) source ./autocomplete.sh ;;
+  cmdlist) echo local host server db autocomplete commands help;;
+  help|*) global_help_command ;;
 esac
+
+exit 0
