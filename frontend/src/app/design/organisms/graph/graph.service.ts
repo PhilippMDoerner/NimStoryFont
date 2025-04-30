@@ -233,7 +233,7 @@ export class GraphService {
       .attr('viewBox', [0, 0, settings.width, height])
       .attr(
         'style',
-        'max-width: 100%; height: auto; min-height: 300px; cursor: move;',
+        'max-width: 100%; height: auto; min-height: 300px; cursor: move; width: 100%;',
       )
       .attr('id', SELECTORS.graphId);
     const zoomContainer = graphElement.append('g');
