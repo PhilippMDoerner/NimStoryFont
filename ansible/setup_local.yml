@@ -1,0 +1,27 @@
+- hosts: 127.0.0.1
+  gather_facts: false
+
+  tasks:
+    - name: Read in environment variables
+      tags: env
+      import_role:
+        name: read-env
+
+    - name: Create ansible ssh key in project
+      tags: ssh
+      community.crypto.openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: ed25519
+        comment: "ansible"
+        mode: 0600
+
+    - name: Set permissions for public key
+      tags: ssh, local
+      file:
+        path: "{{ ssh_key_path }}.pub"
+        mode: 0600
+
+    - name: Generate files from environment
+      tags: generate_files
+      ansible.builtin.include_role:
+        name: generate-files

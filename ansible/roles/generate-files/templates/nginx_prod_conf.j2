@@ -3,10 +3,6 @@ worker_processes  1;
 
 load_module /usr/lib/nginx/modules/ngx_http_uploadprogress_module.so;
 
-#error_log  logs/error.log;
-#error_log  logs/error.log  notice;
-#error_log  logs/error.log  info;
-
 #pid        logs/nginx.pid;
 
 
@@ -28,7 +24,8 @@ http {
     #                  '$status $body_bytes_sent "$http_referer" '
     #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-    #access_log  logs/access.log  main;
+    access_log      /dev/stderr;
+    error_log       /dev/stderr;
 
     sendfile        on;
     #tcp_nopush     on;

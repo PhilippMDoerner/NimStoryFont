@@ -1,3 +1,6 @@
+- name: Create local_only directories
+  command: "mkdir -p  {{ local_config_path }} {{ local_media_path }} {{ local_audio_path }} {{ local_image_path }} {{ local_db_dir_path }} {{ local_cert_path }} {{ local_dumps_path }}"
+
 - name: Create inventory file
   tags: inventory, ansible
   ansible.builtin.copy:
@@ -37,41 +40,45 @@
     dest: "{{ local_backend_settings_path }}"
     mode: 0644
 
-- name: Generate local docker-compose file
-  tags: docker, docker-compose, local
-  ansible.builtin.template:
-    src: templates/docker-compose.j2
-    dest: "{{ local_compose_path }}"
-    mode: 0644
-  vars:
-    compose_cert_path: "{{ local_cert_path }}"
-    compose_media_path: "{{ local_media_path }}"
-    compose_audio_path: "{{ local_audio_path }}"
-    compose_nginx_path: "{{ local_nginx_path }}"
-    compose_dumps_path: "{{ local_dumps_path }}"
-    compose_db_path: "{{ local_db_path }}"
-    compose_feature_config_path: "{{ local_feature_config_path }}"
-    compose_backend_settings_path: "{{ local_backend_settings_path }}"
-
-- name: Generate host docker-compose file
-  tags: docker, docker-compose, host
-  ansible.builtin.template:
-    src: templates/docker-compose.j2
-    dest: "{{ local_server_compose_path }}"
-    mode: 0644
-  vars:
-    compose_cert_path: "/etc/letsencrypt"
-    compose_media_path: "./{{ host_media_path | basename }}"
-    compose_audio_path: "./{{ host_audio_path | basename }}"
-    compose_nginx_path: "./{{ host_nginx_path | basename }}"
-    compose_dumps_path: "./{{ host_dumps_path | basename }}"
-    compose_db_path: "./{{ host_db_path | basename }}"
-    compose_feature_config_path: "./{{ host_feature_config_path | basename }}"
-    compose_backend_settings_path: "./{{ host_backend_settings_path | basename }}"
-
 - name: Generate optional script for setting up ansible user on server
   tags: ansible, bash
   ansible.builtin.template:
     src: templates/provision_user.j2
     dest: "{{ local_project_root }}/provision_user.sh"
     mode: 0755
+
+- name: Copy feature config json into root
+  tags: config
+  copy:
+    src: files/feature_config.json
+    dest: "{{ local_feature_config_path }}"
+
+- name: Generate host.env
+  tags: host, env, config
+  ansible.builtin.copy:
+    content: |
+      VOLUME_DIR={{ host_volume_path }}
+      CONFIG_DIR={{ host_config_path }}
+    dest: "{{ local_host_env }}"
+
+- name: Generate local.env
+  tags: local, env, config
+  ansible.builtin.copy:
+    content: |
+      VOLUME_DIR={{ local_volume_path }}
+      CONFIG_DIR={{ local_config_path }}
+    dest: "{{ local_env }}"
+
+- name: Generate dummy cert
+  tags: nginx, local
+  become: true
+  ansible.builtin.shell: |
+    openssl req \
+    -newkey rsa:4096 \ 
+    -x509 \
+    -sha512 \ 
+    -days 3650 \ 
+    -nodes \
+    -config {{ local_openssl_conf_path }} \
+    -out {{ local_cert_path }}/fullchain.pem \ 
+    -keyout  {{ local_cert_path }}/privkey.pem

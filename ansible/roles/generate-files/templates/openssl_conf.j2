@@ -8,10 +8,10 @@ x509_extensions = v3_req
 prompt = no
 
 [req_distinguished_name]
-C = {{ local_cert_country }}
-ST = {{ local_cert_state }}
-L = {{ local_cert_locality }}
-O  = {{ local_cert_organization }}
+C = DE
+ST = Berlin
+L = Berlin
+O  = Nimstoryfont
 CN = *.{{ domain }}
 
 [v3_req]

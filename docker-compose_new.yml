@@ -11,7 +11,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./data:/data
+      - $VOLUME_DIR:/data
     container_name: production_nginx
     restart: on-failure
 
@@ -21,6 +21,6 @@ services:
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
-      - ./data:/data
+      - $VOLUME_DIR:/data
     container_name: nswebserver
     restart: on-failure

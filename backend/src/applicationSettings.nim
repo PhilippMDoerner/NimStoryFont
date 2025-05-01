@@ -64,6 +64,7 @@ proc validateSettings*(settings: Settings) =
 proc getSettingsFilepath(): string =
     if existsEnv(SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE):
         let filePath = getEnv(SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE)
+        echo fmt"Loading settings file from environment variable '{SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE}' with value '{filePath}'"
         if filepath == "":
             raise newException(ValueError, fmt"The environment variable '{SETTINGS_FILE_PATH_ENVIRONMENT_VARIABLE}' denotes the location of the settings file for nimstoryfont. It can not be an empty string. Either delete it to use the default location '{DEFAULT_SETTINGS_FILE_PATH}' or provide a valid path to a nimstoryfont settings file.")
         
@@ -72,6 +73,7 @@ proc getSettingsFilepath(): string =
         
         result = filepath
     else:
+        echo fmt"Loading settings file from default path '{DEFAULT_SETTINGS_FILE_PATH}'"
         result = DEFAULT_SETTINGS_FILE_PATH
 
 proc loadNimstoryfontSettings(): Settings =

@@ -1,6 +1,16 @@
 #!/bin/bash
 # Note: This script defines "cmds" for autocompletes, but I can not be bothered to implement that.
 
+load_env() {
+  # Load the .env file if it exists. Does not do this for the local init command as that one means
+  # there is no .env file yet.
+  if [[ "$1" == "local" && "$2" == "init" ]]; then
+    return
+  fi
+  set -a && source .env && set +a
+}
+
+
 ## HELP COMMANDS
 # TODO: Add dry-run, help and verbose options
 global_help_command(){
@@ -19,11 +29,10 @@ Commands:
 Local Commands:
   init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
   regen-configs              Regenerate local generated config files from your .env file
-  dev-mode enable            Enable local development mode (update /etc/hosts to point localhost to your domain)
-  dev-mode disable           Disable local development mode (restore /etc/hosts to default)
+  dev enable                 Enable local development mode (update /etc/hosts to point localhost to your domain)
+  dev disable                Disable local development mode (restore /etc/hosts to default)
 
 Host Commands:
-  add-admin                  Add a host-admin user to the remote host
   bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
   setup                      Setup the host with additional config files
   ssh                        SSH into the remote host machine
@@ -45,7 +54,7 @@ Examples:
   ./ns host bootstrap user@host.com
   ./ns server restart user@host.com
   ./ns db migrate user@host.com
-  ./ns local dev-mode enable
+  ./ns local dev enable
 EOF
 }
 
@@ -57,8 +66,8 @@ Usage:
 Commands:
   init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
   regen-configs              Regenerate local generated config files from your .env file
-  dev-mode enable            Enable local development mode (update /etc/hosts to point localhost to your domain)
-  dev-mode disable           Disable local development mode (restore /etc/hosts to default)
+  dev enable                 Enable local development mode (update /etc/hosts to point localhost to your domain)
+  dev disable                Disable local development mode (restore /etc/hosts to default)
 
 Description:
   Commands to set up and maintain the local project environment.
@@ -71,9 +80,8 @@ Usage:
   ./ns host <command> 
 
 Commands:
-  add-admin               Add a host-admin user to the remote host
   ssh                     SSH into the remote host machine
-  bootstrap               Bootstrap the host (set up SSH configs, firewall, etc.)
+  bootstrap               Bootstrap the host (add an ansible user, set up SSH configs, firewall, etc.)
   setup                   Setup the host by copying configuration files
 
 Description:
@@ -113,22 +121,19 @@ EOF
 
 ## BACKEND_DISPATCHERS
 run_ansible_playbook() {
+  echo ansible-playbook -v ./ansible/"$1".yml --ask-become-pass 
   if ansible-playbook -v ./ansible/"$1".yml --ask-become-pass; then
     return 0
   else
-    echo "Available commands:"
-    find ./ansible -maxdepth 1 -type f -name "*.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
     exit 1
   fi
 }
 
 run_compose(){
-  if sudo docker-compose -f ./$1.yml "${@:2}"; then
+  echo sudo docker compose -f ./$1.yml --env-file ./local.env "${@:2}"
+  if sudo docker compose -f ./$1.yml --env-file ./local.env "${@:2}"; then
     return 0
   else
-    echo "EXAMPLE: ns2 compose docker-compose.yml up"
-    echo "Available compose files:"
-    find ./ -maxdepth 1 -type f -name "docker-compose**.yml" -exec basename -s .yml {} \; | sed 's/^/  - /'
     exit 1
   fi
 }
@@ -136,9 +141,14 @@ run_compose(){
 ## FRONTEND_DISPATCHERS
 local_command(){
   case $2 in
-    init) run_ansible_playbook init;;
+    init) 
+      run_ansible_playbook init
+      load_env local setup
+      run_ansible_playbook setup_local
+      ./ns db init
+    ;;
     regen-configs) run_ansible_playbook regenerate;;
-    dev-mode)
+    dev)
       case $3 in
         enable) run_ansible_playbook enabledev;;
         disable) run_ansible_playbook disabledev ;;
@@ -146,18 +156,27 @@ local_command(){
         help|*) local_help_command ;;
       esac
     ;;
-    cmds) echo init regen-configs dev-mode cmds help;;
+    clear)
+      rm -r ./local_only ./.env ./host.env ./local.env ./nimstoryfont_ansible ./nimstoryfont_ansible.pub ./inventory ./provision_user.sh
+    ;;
+    compose) 
+      set -a && source local.env && set +a
+      run_compose docker-compose_new "${@:3}"
+    ;;
+    cmds) echo init regen-configs dev clear cmds help;;
     help|*) local_help_command ;;
   esac
 }
 
 host_command(){
   case $2 in
-    add-ansible) bash ./provision_user.sh ;;
     ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
-    bootstrap) run_ansible_playbook bootstrap_server;;
+    bootstrap) 
+      bash ./provision_user.sh
+      run_ansible_playbook bootstrap_server
+    ;;
     setup) run_ansible_playbook setup_server ;;
-    cmds) echo add-ansible ssh bootstrap setup cmds help;;
+    cmds) echo ssh bootstrap setup cmds help;;
     help|*) host_help_command ;;
   esac;
 }
@@ -175,25 +194,26 @@ server_command(){
 
 db_command(){
   case $2 in
-    init) touch $LOCAL_DB_PATH && ./ns db migrate local;;
+    init) touch $LOCAL_VOLUME_PATH/database/db.sqlite3 && ./ns db migrate local;;
     download) run_ansible_playbook download_db ;;
     upload) echo "Not implemented yet" ;;
     migrate) 
       case $3 in
-        local) flyway -url="jdbc:sqlite:$LOCAL_DB_PATH" -locations=filesystem:./backend/sql migrate;;
+        local) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql migrate;;
         host) run_ansible_playbook migrate_db;;
         cmds) echo local host cmds help;;
         help|*) db_help_command ;;
       esac
     ;;
-    cmds) echo download upload migrate cmds help;;
+    cmds) echo init download upload migrate cmds help;;
     help|*) db_help_command ;;
   esac
 }
 
 
-## MAIN
-set -a && source .env && set +a # Load .env
+## MAIN#
+load_env "$@"
+
 case $1 in
   local) local_command "$@" ;;
   host) host_command "$@" ;;

@@ -36,85 +36,38 @@
     secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
   tasks:
-    - name: Get local directories
+    - name: Get project directories
+      tags: env
       set_fact:
         local_project_root: "{{ lookup('ansible.builtin.env', 'PWD') }}"
-        local_config_dir: "{{ lookup('ansible.builtin.env', 'PWD') }}/local_only"
+        local_volume_dir: "{{ lookup('ansible.builtin.env', 'PWD') }}/local_only"
 
-    - name: Create local config dir directory
-      file:
-        path: "{{ local_config_dir }}"
-        state: directory
-        mode: 0755
-
-    - name: Set general default sub-paths for use with other values
+    - name: Infer path to directories
       tags: env, nginx_config
       set_fact:
-        db_path: "db.sqlite3"
-        media_path: "media"
-        audio_path: "audio"
-        dumps_path: "dumps"
-        nginx_path: "nginx.conf"
-        backend_settings_path: "settings.json"
-        feature_config_path: "feature_config.json"
+        local_media_path: "{{ local_volume_dir }}/media"
+        local_audio_path: "{{ local_volume_dir }}/media/audio"
+        local_image_path: "{{ local_volume_dir }}/media/image"
+        local_config_path: "{{ local_volume_dir }}/config"
+        local_db_dir_path: "{{ local_volume_dir }}/database"
+        local_cert_path: "{{ local_volume_dir }}/certificates"
+        local_dumps_path: "{{ local_volume_dir }}/dumps"
 
-    - name: Infer all env variables
+        host_volume_path: "{{ host_project_dir }}/data"
+
+    - name: Infer path to local files
       tags: env, local
       set_fact:
         email_domain: "no-reply.{{ domain }}"
         ssh_key_path: "{{ local_project_root }}/nimstoryfont_ansible"
 
-        local_cert_path: "{{local_config_dir}}/certificates"
-        local_openssl_conf_path: "{{local_config_dir}}/certificates/openssl.conf"
-        local_db_path: "{{ local_config_dir }}/{{ db_path }}"
-        local_nginx_path: "{{local_config_dir}}/{{ nginx_path }}"
-        local_media_path: "{{local_config_dir}}/{{ media_path }}"
-        local_audio_path: "{{local_config_dir}}/{{ audio_path }}"
-        local_compose_path: "{{local_project_root}}/docker-compose_local.yml"
-        local_server_compose_path: "{{local_project_root}}/docker-compose_server.yml"
-        local_backend_settings_path: "{{local_config_dir}}/{{ backend_settings_path }}"
-        local_dumps_path: "{{local_config_dir}}/{{ dumps_path }}"
-        local_feature_config_path: "{{local_config_dir}}/{{ feature_config_path }}"
-        local_cert_country: "DE"
-        local_cert_state: "Berlin"
-        local_cert_locality: "Berlin"
-        local_cert_organization: "Nimstoryfont"
+        local_nginx_path: "{{local_config_path}}/nginx.conf"
+        local_backend_settings_path: "{{local_config_path }}/settings.json"
+        local_feature_config_path: "{{local_config_path}}/feature_config.json"
 
-        host_db_path: "{{ host_project_dir }}/{{ db_path }}"
-        host_nginx_path: "{{host_project_dir}}/{{ nginx_path }}"
-        host_media_path: "{{host_project_dir}}/{{ media_path }}"
-        host_audio_path: "{{host_project_dir}}/{{ audio_path }}"
-        host_compose_path: "{{host_project_dir}}/docker-compose.yml"
-        host_backend_settings_path: "{{host_project_dir}}/{{ backend_settings_path }}"
-        host_dumps_path: "{{host_project_dir}}/{{ dumps_path }}"
-        host_feature_config_path: "{{host_project_dir}}/{{ feature_config_path }}"
-
-    - name: Create local certificate directory
-      tags: local
-      file:
-        path: "{{ local_cert_path }}/live/{{domain}}"
-        state: directory
-        mode: 0755
-
-    - name: Create ansible ssh key in ~/.ssh
-      tags: ssh
-      community.crypto.openssh_keypair:
-        path: "{{ ssh_key_path }}"
-        type: ed25519
-        comment: "ansible"
-        mode: 0600
-
-    - name: Set permissions for public key
-      tags: ssh, local
-      file:
-        path: "{{ ssh_key_path }}.pub"
-        mode: 0600
-
-    - name: Copy feature config json into root
-      tags: config
-      copy:
-        src: files/feature_config.json
-        dest: "{{ local_feature_config_path }}"
+        local_openssl_conf_path: "{{local_cert_path}}/openssl.conf"
+        local_db_path: "{{ local_db_dir_path }}/db.sqlite3"
+        local_compose_path: "{{local_project_root}}/docker-compose.yml"
 
     - name: Create .env file
       tags: env
@@ -132,42 +85,13 @@
 
           # Local Project configs
           LOCAL_PROJECT_ROOT={{ local_project_root }}
-          LOCAL_DB_PATH={{ local_db_path }}
-          LOCAL_NGINX_PATH={{ local_nginx_path }}
-          LOCAL_MEDIA_PATH={{ local_media_path }}
-          LOCAL_AUDIO_PATH={{ local_audio_path }}
+          LOCAL_VOLUME_PATH={{ local_volume_dir }}
           LOCAL_COMPOSE_PATH={{ local_compose_path }}
-          LOCAL_SERVER_COMPOSE_PATH={{ local_server_compose_path }}
-          LOCAL_BACKEND_SETTINGS_PATH={{ local_config_dir }}/{{ backend_settings_path }}
-          LOCAL_DUMPS_PATH={{ local_config_dir}}/{{ dumps_path }}
-          LOCAL_FEATURE_CONFIG_PATH={{ local_config_dir}}/{{ feature_config_path }}
-          LOCAL_CERT_PATH={{ local_cert_path }}
-          LOCAL_CERT_COUNTRY={{ local_cert_country }}
-          LOCAL_CERT_STATE={{ local_cert_state }}
-          LOCAL_CERT_LOCALITY={{ local_cert_locality }}
-          LOCAL_CERT_ORGANIZATION={{ local_cert_organization }}
-          LOCAL_OPENSSL_CONF_PATH={{ local_openssl_conf_path }}
 
-          # Host Configs
-          HOST_DB_PATH={{ host_db_path }}
-          HOST_NGINX_PATH={{ host_nginx_path }}
-          HOST_MEDIA_PATH={{ host_media_path }}
-          HOST_AUDIO_PATH={{ host_audio_path }}
-          HOST_COMPOSE_PATH={{ host_compose_path }}
-          HOST_BACKEND_SETTINGS_PATH={{ host_backend_settings_path }}
-          HOST_DUMPS_PATH={{ host_dumps_path }}
-          HOST_FEATURE_CONFIG_PATH={{ host_feature_config_path }}
+          # Remote project configs
+          HOST_PROJECT_ROOT={{ host_project_dir }}
+          HOST_VOLUME_PATH={{ host_volume_path }}
+          HOST_COMPOSE_PATH={{ host_project_dir }}/docker-compose.yml
+
         dest: "{{ local_project_root }}/.env"
-
-    - name: Generate files from environment
-      tags: generate_files
-      ansible.builtin.include_role:
-        name: generate-files
-
-    - name: Generate dummy cert
-      become: true
-      tags: nginx, local
-      ansible.builtin.shell: |
-        openssl req -newkey rsa:4096 -x509 -sha512 -days 3650 -nodes -config {{ local_openssl_conf_path }} -out {{ local_cert_path }}/live/{{domain}}/fullchain.pem -keyout  {{ local_cert_path}}/live/{{domain}}/privkey.pem
-
 # TODO: Install dependencies like flyway

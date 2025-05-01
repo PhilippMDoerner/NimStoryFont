@@ -1,5 +1,6 @@
 ---
 - hosts: 127.0.0.1 #localhost
+  become: true
   gather_facts: false
   vars:
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
@@ -7,5 +8,5 @@
     - name: Disable dev mode
       ansible.builtin.shell:
         cmd: |
-          sudo sed -i /'127.0.0.1       {{domain}}'/d  /etc/hosts
-          sudo sed -i /'127.0.0.1       www.{{domain}}'/d  /etc/hosts
+          sed -i /'127.0.0.1       {{domain}}'/d  /etc/hosts
+          sed -i /'127.0.0.1       www.{{domain}}'/d  /etc/hosts
