@@ -23,6 +23,8 @@ RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-ngin
 # Copy necessary files
 COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
 COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
+RUN rm /etc/nginx/nginx.conf && ln -s /data/config/nginx.conf /etc/nginx/nginx.conf
+
 # Setup necessary directories
 # RUN mkdir -p /run/nginx /cert/live/www.aldrune.com /cert/archive/www.aldrune.com /imagemedia /tmpfiles /session_audio /frontend # These files aren't needed apparently?
         # The session_audio directory will be mapped to a directory that also contains a /extended dir. That is an extra volume of Linode for storage
