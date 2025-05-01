@@ -1,0 +1,54 @@
+- name: Read environment variables
+  set_fact:
+    # Project global configs
+    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    secret_key: "{{ lookup('ansible.builtin.env', 'SECRET_KEY') }}"
+    host_ip: "{{ lookup('ansible.builtin.env', 'HOST_IP') }}"
+    email_domain: "{{ lookup('ansible.builtin.env', 'EMAIL_DOMAIN') }}"
+    smtp_domain: "{{ lookup('ansible.builtin.env', 'SMTP_DOMAIN') }}"
+    smtp_port: "{{ lookup('ansible.builtin.env', 'SMTP_PORT') }}"
+    email_auth_name: "{{ lookup('ansible.builtin.env', 'EMAIL_AUTH_NAME') }}"
+    email_auth_password: "{{ lookup('ansible.builtin.env', 'EMAIL_AUTH_PASSWORD') }}"
+
+    # Local Project configs
+    local_project_root: "{{ lookup('ansible.builtin.env', 'LOCAL_PROJECT_ROOT') }}"
+    local_volume_path: "{{ lookup('ansible.builtin.env', 'LOCAL_VOLUME_PATH') }}"
+
+    # Remote project configs
+    host_project_root: "{{ lookup('ansible.builtin.env', 'HOST_PROJECT_ROOT') }}"
+    host_volume_path: "{{ lookup('ansible.builtin.env', 'HOST_VOLUME_PATH') }}"
+    host_compose_path: "{{ lookup('ansible.builtin.env', 'HOST_COMPOSE_PATH') }}"
+
+- name: Infer variables from environment
+  set_fact:
+    ssh_key_path: "{{ local_project_root }}/nimstoryfont_ansible"
+
+    # Inferred local project configs
+    local_env: "{{ local_project_root }}/local.env"
+    local_host_env: "{{ local_project_root }}/host.env"
+    local_config_path: "{{ local_volume_path }}/config"
+    local_backend_settings_path: "{{ local_volume_path }}/config/settings.json"
+    local_feature_config_path: "{{ local_volume_path }}/config/feature_config.json"
+    local_nginx_path: "{{ local_volume_path }}/config/nginx.conf"
+    local_db_path: "{{ local_volume_path }}/database/db.sqlite3"
+    local_db_dir_path: "{{ local_volume_path }}/database"
+    local_media_path: "{{ local_volume_path }}/media"
+    local_image_path: "{{ local_volume_path }}/media/image"
+    local_audio_path: "{{ local_volume_path }}/media/audio"
+    local_dumps_path: "{{ local_volume_path }}/dumps"
+    local_cert_path: "{{ local_volume_path }}/certificates"
+    local_openssl_conf_path: "{{ local_volume_path }}/certificates/openssl.conf"
+    local_compose_path: "{{ local_project_root }}/docker-compose_new.yml"
+
+    # Inferred Remote project configs
+    host_env: "{{ host_project_root }}/host.env"
+    host_nginx_path: "{{ host_volume_path }}/config/nginx.conf"
+    host_db_path: "{{ host_volume_path }}/database/db.sqlite3"
+    host_db_dir_path: "{{ host_volume_path }}/database"
+    host_media_path: "{{ host_volume_path }}/media"
+    host_image_path: "{{ host_volume_path }}/media/image"
+    host_audio_path: "{{ host_volume_path }}/media/audio"
+    host_dumps_path: "{{ host_volume_path }}/dumps"
+    host_config_path: "{{ host_volume_path }}/config"
+    host_backend_settings_path: "{{ host_volume_path }}/config/settings.json"
+    host_feature_config_path: "{{ host_volume_path }}/config/feature_config.json"

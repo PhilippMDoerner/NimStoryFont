@@ -6,30 +6,11 @@
       prompt: "Enter email under which to register your SSL certificates"
       private: false
 
-  vars:
-    local_project_root: "{{ lookup('ansible.builtin.env', 'LOCAL_PROJECT_ROOT') }}"
-    local_db_path: "{{ lookup('ansible.builtin.env', 'LOCAL_DB_PATH') }}"
-    local_nginx_path: "{{ lookup('ansible.builtin.env', 'LOCAL_NGINX_PATH') }}"
-    local_media_path: "{{ lookup('ansible.builtin.env', 'LOCAL_MEDIA_PATH') }}"
-    local_audio_path: "{{ lookup('ansible.builtin.env', 'LOCAL_AUDIO_PATH') }}"
-    local_compose_path: "{{ lookup('ansible.builtin.env', 'LOCAL_COMPOSE_PATH') }}"
-    local_server_compose_path: "{{ lookup('ansible.builtin.env', 'LOCAL_SERVER_COMPOSE_PATH') }}"
-    local_backend_settings_path: "{{ lookup('ansible.builtin.env', 'LOCAL_BACKEND_SETTINGS_PATH') }}"
-    local_dumps_path: "{{ lookup('ansible.builtin.env', 'LOCAL_DUMPS_PATH') }}"
-    local_feature_config_path: "{{ lookup('ansible.builtin.env', 'LOCAL_FEATURE_CONFIG_PATH') }}"
-
-    host_db_path: "{{ lookup('ansible.builtin.env', 'HOST_DB_PATH') }}"
-    host_nginx_path: "{{ lookup('ansible.builtin.env', 'HOST_NGINX_PATH') }}"
-    host_media_path: "{{ lookup('ansible.builtin.env', 'HOST_MEDIA_PATH') }}"
-    host_audio_path: "{{ lookup('ansible.builtin.env', 'HOST_AUDIO_PATH') }}"
-    host_compose_path: "{{ lookup('ansible.builtin.env', 'HOST_COMPOSE_PATH') }}"
-    host_backend_settings_path: "{{ lookup('ansible.builtin.env', 'HOST_BACKEND_SETTINGS_PATH') }}"
-    host_dumps_path: "{{ lookup('ansible.builtin.env', 'HOST_DUMPS_PATH') }}"
-    host_feature_config_path: "{{ lookup('ansible.builtin.env', 'HOST_FEATURE_CONFIG_PATH') }}"
-
-    domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
-
   tasks:
+    - name: Read in environment variables
+      import_role:
+        name: read-env
+
     - name: Upgrade host server to latest
       become: true
       apt:
@@ -56,26 +37,15 @@
       become: true
       command: "certbot certonly --standalone -d {{ domain }} -n -m {{ cert_email }} --agree-tos"
 
-    - name: Create media dir
-      tags: media
-      ansible.builtin.file:
-        path: "{{ host_media_path }}"
-        state: directory
-        mode: 0755
-
-    - name: Create audio dir
-      tags: media
-      ansible.builtin.file:
-        path: "{{ host_audio_path }}"
-        state: directory
-        mode: 0755
-
-    - name: Create dump dir
-      tags: media
-      ansible.builtin.file:
-        path: "{{ host_dumps_path }}"
-        state: directory
-        mode: 0755
+    - name: Create local_only directories
+      command: |
+        mkdir -p  \ 
+        {{ host_config_path }} \
+        {{ host_media_path }} \
+        {{ host_audio_path }} \
+        {{ host_image_path }} \
+        {{ host_db_dir_path }} \
+        {{ host_dumps_path }}
 
     - name: Copy nginx configuration
       tags: nginx, frontend, config
@@ -98,10 +68,10 @@
     - name: Copy Docker compose file for server to host
       tags: docker
       copy:
-        src: "{{ local_server_compose_path }}"
+        src: "{{ local_compose_path }}"
         dest: "{{ host_compose_path }}"
 
-    - name: Copy feaure config json
+    - name: Copy feature config json
       tags: backend, frontend, config
       copy:
         src: "{{ local_feature_config_path }}"

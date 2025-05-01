@@ -1,5 +1,6 @@
 ---
 - hosts: 127.0.0.1 #localhost
+  become: true
   gather_facts: false
   vars:
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
@@ -7,5 +8,5 @@
     - name: Enable dev mode
       ansible.builtin.shell:
         cmd: |
-          sudo sh -c "echo '127.0.0.1       {{domain}}' >> /etc/hosts"
-          sudo sh -c "echo '127.0.0.1       www.{{domain}}' >> /etc/hosts"
+          sh -c "echo '127.0.0.1       {{domain}}' >> /etc/hosts"
+          sh -c "echo '127.0.0.1       www.{{domain}}' >> /etc/hosts"
