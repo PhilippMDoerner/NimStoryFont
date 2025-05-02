@@ -55,6 +55,8 @@ Database Commands:
   download                    Download the database from the host machine
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
+  connect local               Opens the local sqlite3 database file in the terminal
+  connect host                Opens the sqlite3 database file on the host machine in the terminal
 
 Examples:
   ./ns local init
@@ -275,6 +277,17 @@ db_command(){
       case $3 in
         local) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql migrate;;
         host) run_ansible_playbook migrate_db;;
+        cmds) echo local host cmds help;;
+        help|*) db_help_command ;;
+      esac
+    ;;
+    connect)
+      case $3 in
+        local) sqlite3 $LOCAL_VOLUME_PATH/database/db.sqlite3;;
+        host)
+          local cmd="sqlite3 $HOST_VOLUME_PATH/database/db.sqlite3"
+          run_on_host "$cmd"
+        ;;
         cmds) echo local host cmds help;;
         help|*) db_help_command ;;
       esac
