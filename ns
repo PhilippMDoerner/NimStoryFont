@@ -23,6 +23,7 @@ Local Commands:
   proxy stop                 Stop a proxy server for local development
   proxy reload               Reload the configs when changes to local.env or local.caddyfile were made
   proxy validate             Validate that the current combination of local.env + local.caddyfile work
+  proxy status               Check if the proxy server is running (Prints the process ID)
   dev enable                 Enable local development mode (update /etc/hosts to make your machine reroute requests your domain to localhost)
   dev disable                Disable local development mode (restore /etc/hosts to default)
   clear                      Clear all local generated config files
@@ -39,6 +40,7 @@ Host Commands:
 
 Server Commands:
   compose <cmd>              Run docker compose commands with the server-setup on the host machine.
+  status                     Check if the server is running (Prints the docker containers)
 
 Database Commands:
   init                        Creates an empty database file with the current schema 
@@ -200,11 +202,11 @@ local_command(){
     ;;
     dev)
       case $3 in
-        enable)
-          run_ansible_playbook enable_dev
+        enable|on)
+          run_ansible_playbook enabledev
         ;;
-        disable)
-          run_ansible_playbook disable_dev
+        disable|off)
+          run_ansible_playbook disabledev
         ;;
         cmds) echo start stop cmds help;;
         help|*) local_help_command ;;
@@ -243,7 +245,11 @@ host_command(){
           local cmd="sudo caddy validate --envfile $HOST_PROJECT_ROOT/host.env --config $HOST_PROJECT_ROOT/host.caddyfile"
           run_on_host "$cmd"
         ;;
-        cmds) echo start stop reload validate cmds help;;
+        status)
+          local cmd="ps aux | grep 'caddy run'"
+          run_on_host "$cmd"
+        ;;
+        cmds) echo start stop status reload validate cmds help;;
         help|*) host_help_command ;;
       esac
     ;;
@@ -264,6 +270,7 @@ server_command(){
       local cmd="sudo docker compose -f $HOST_COMPOSE_PATH --env-file $HOST_PROJECT_ROOT/host.env ${@:3}"
       run_on_host "$cmd"
     ;;
+    status) run_on_host "sudo docker ps";;
     cmds) echo compose cmds help;;
     help|*) server_help_command ;;
   esac
@@ -272,12 +279,12 @@ server_command(){
 db_command(){
   case $2 in
     init) touch $LOCAL_VOLUME_PATH/database/db.sqlite3 && ./ns db migrate local;;
-    download) run_ansible_playbook download_db ;;
-    upload) echo "Not implemented yet" ;;
+    download) scp -i ./nimstoryfont_ansible ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3 $LOCAL_VOLUME_PATH/database/db.sqlite3 ;;
+    upload) scp -i ./nimstoryfont_ansible $LOCAL_VOLUME_PATH/database/db.sqlite3 ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3;;
     migrate) 
       case $3 in
         local) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql migrate;;
-        host) run_ansible_playbook migrate_db;;
+        host|remote) run_ansible_playbook migrate_db;;
         cmds) echo local host cmds help;;
         help|*) db_help_command ;;
       esac
@@ -285,7 +292,7 @@ db_command(){
     connect)
       case $3 in
         local) sqlite3 $LOCAL_VOLUME_PATH/database/db.sqlite3;;
-        host)
+        host|remote)
           local cmd="sqlite3 $HOST_VOLUME_PATH/database/db.sqlite3"
           run_on_host "$cmd"
         ;;
@@ -304,7 +311,7 @@ load_env "$@"
 
 case $1 in
   local) local_command "$@" ;;
-  host) host_command "$@" ;;
+  host|remote) host_command "$@" ;;
   server) server_command "$@" ;;
   db) db_command "$@" ;;
   cmds) echo local host server db autocomplete commands help;;
