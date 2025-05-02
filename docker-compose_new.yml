@@ -1,15 +1,9 @@
-# LOCAL GHCR REFERENCE
-# This docker-compose file is for local development and for reference for writing your own.
-# It pulls the images from the github container registry instead of building from scratch.
-# Usecase: Debugging. You quickly want to repeat a bug in a local environment that you saw in production.
-
 services:
   #Nginx Reverse Proxy
   proxy:
     image: ghcr.io/philippmdoerner/nginx_frontend-dev:latest
     ports:
-      - "443:443"
-      - "80:80"
+      - "5123:5123"
     volumes:
       - $VOLUME_DIR:/data
     container_name: production_nginx
