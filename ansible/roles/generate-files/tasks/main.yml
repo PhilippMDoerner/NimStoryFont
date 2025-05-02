@@ -19,10 +19,10 @@
       remote_user = ansible
     dest: "{{ local_project_root }}/ansible.cfg"
 
-- name: Generate nginx config
+- name: Generate container nginx config
   tags: nginx
   ansible.builtin.template:
-    src: templates/nginx_prod_conf.j2
+    src: templates/nginx_container_conf.j2
     dest: "{{ local_nginx_path }}"
     mode: 0644
 
@@ -57,8 +57,9 @@
   tags: host, env, config
   ansible.builtin.copy:
     content: |
-      VOLUME_DIR={{ host_volume_path }}
-      CONFIG_DIR={{ host_config_path }}
+      VOLUME_DIR=./data
+      NS_DOMAIN={{ domain }}
+      NS_DOMAIN_SSL_EMAIL={{ domain_ssl_email }}
     dest: "{{ local_host_env }}"
 
 - name: Generate local.env
@@ -66,7 +67,7 @@
   ansible.builtin.copy:
     content: |
       VOLUME_DIR={{ local_volume_path }}
-      CONFIG_DIR={{ local_config_path }}
+      NS_DOMAIN={{ domain }}
     dest: "{{ local_env }}"
 
 - name: Generate dummy cert

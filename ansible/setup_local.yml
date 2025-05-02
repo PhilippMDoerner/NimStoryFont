@@ -1,6 +1,5 @@
 - hosts: 127.0.0.1
   gather_facts: false
-
   tasks:
     - name: Read in environment variables
       tags: env

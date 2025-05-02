@@ -28,20 +28,27 @@ Commands:
 
 Local Commands:
   init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
-  regen-configs              Regenerate local generated config files from your .env file
-  dev enable                 Enable local development mode (update /etc/hosts to point localhost to your domain)
+  regen                      Regenerate local generated config files from your .env file
+  proxy start                Start a proxy server for local development. Uses local.caddyfile + local.env
+  proxy stop                 Stop a proxy server for local development
+  proxy reload               Reload the configs when changes to local.env or local.caddyfile were made
+  proxy validate             Validate that the current combination of local.env + local.caddyfile work
+  dev enable                 Enable local development mode (update /etc/hosts to make your machine reroute requests your domain to localhost)
   dev disable                Disable local development mode (restore /etc/hosts to default)
-
+  clear                      Clear all local generated config files
+  compose <cmd>              Run docker compose commands with the local setup
+  
 Host Commands:
   bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
   setup                      Setup the host with additional config files
   ssh                        SSH into the remote host machine
+  proxy start                Start a proxy server on the remote host machine. Uses host.caddyfile + host.env
+  proxy stop                 Stop a proxy server on the remote host machine
+  proxy reload               Reload the configs when changes to host.env or host.caddyfile were made
+  proxy validate             Validate that the current combination of host.env + host.caddyfile work
 
 Server Commands:
-  start                      Start the server on the host machine
-  stop                       Stop the server on the host machine
-  status                     Get the status of the server on the host machine
-  restart                    Restart the server on the host machine
+  compose <cmd>              Run docker compose commands with the server-setup on the host machine.
 
 Database Commands:
   init                        Creates an empty database file with the current schema 
@@ -51,9 +58,9 @@ Database Commands:
 
 Examples:
   ./ns local init
-  ./ns host bootstrap user@host.com
-  ./ns server restart user@host.com
-  ./ns db migrate user@host.com
+  ./ns host bootstrap
+  ./ns server compose up
+  ./ns db migrate local
   ./ns local dev enable
 EOF
 }
@@ -65,12 +72,18 @@ Usage:
 
 Commands:
   init                       RUN FIRST AFTER CLONING. Initialize the project locally, creating required local configs for other commands.
-  regen-configs              Regenerate local generated config files from your .env file
-  dev enable                 Enable local development mode (update /etc/hosts to point localhost to your domain)
+  regen                      Regenerate local generated config files from your .env file
+  proxy start                Start a proxy server for local development. Uses local.caddyfile + local.env
+  proxy stop                 Stop a proxy server for local development
+  proxy reload               Reload the configs when changes to local.env or local.caddyfile were made
+  proxy validate             Validate that the current combination of local.env + local.caddyfile work
+  dev enable                 Enable local development mode (update /etc/hosts to make your machine reroute requests your domain to localhost)
   dev disable                Disable local development mode (restore /etc/hosts to default)
-
+  clear                      Clear all local generated config files
+  compose <cmd>              Run docker compose commands with the local setup
+  
 Description:
-  Commands to set up and maintain the local project environment.
+  Commands to set up, use and maintain the local project environment.
 EOF
 }
 
@@ -80,9 +93,13 @@ Usage:
   ./ns host <command> 
 
 Commands:
-  ssh                     SSH into the remote host machine
-  bootstrap               Bootstrap the host (add an ansible user, set up SSH configs, firewall, etc.)
-  setup                   Setup the host by copying configuration files
+  bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
+  setup                      Setup the host with additional config files
+  ssh                        SSH into the remote host machine
+  proxy start                Start a proxy server on the remote host machine. Uses host.caddyfile + host.env
+  proxy stop                 Stop a proxy server on the remote host machine
+  proxy reload               Reload the configs when changes to host.env or host.caddyfile were made
+  proxy validate             Validate that the current combination of host.env + host.caddyfile work
 
 Description:
   Commands to prepare and interact with the remote host machine.
@@ -95,10 +112,7 @@ Usage:
   ./ns server <command> 
 
 Commands:
-  start                   Start the server process on the host machine
-  stop                    Stop the server process on the host machine
-  status                  Get the status of the server process on the host machine
-  restart                 Restart the server process on the host machine
+  compose <cmd>              Run docker compose commands with the server-setup on the host machine.
 
 Description:
   Commands to control the server runtime on the remote host.
@@ -111,8 +125,10 @@ Usage:
   ./ns db <command> 
 
 Commands:
-  download                Download the database from the host machine
-  migrate                 Migrate the database to a new schema version
+  init                        Creates an empty database file with the current schema 
+  download                    Download the database from the host machine
+  upload                      Upload the database to the host machine
+  migrate                     Migrate the database to a new schema
 
 Description:
   Commands to manage the database on the remote host.
@@ -138,6 +154,11 @@ run_compose(){
   fi
 }
 
+run_on_host(){
+  echo "$1"
+  ssh -t -i nimstoryfont_ansible ansible@$HOST_IP "$1"
+}
+
 ## FRONTEND_DISPATCHERS
 local_command(){
   case $2 in
@@ -147,23 +168,53 @@ local_command(){
       run_ansible_playbook setup_local
       ./ns db init
     ;;
-    regen-configs) run_ansible_playbook regenerate;;
+    regen) run_ansible_playbook regenerate;;
+    proxy)
+      case $3 in
+        start) 
+          cmd="sudo caddy run --envfile $LOCAL_PROJECT_ROOT/local.env --config $LOCAL_PROJECT_ROOT/local.caddyfile"
+          echo "$cmd"
+          eval "$cmd"
+        ;;
+        stop) 
+          cmd="sudo caddy stop"
+          echo "$cmd"
+          eval "$cmd"
+        ;;
+        reload)
+          cmd="sudo caddy reload --config $LOCAL_PROJECT_ROOT/local.caddyfile"
+          echo "$cmd"
+          eval "$cmd"
+        ;;
+        validate)
+          cmd="sudo caddy validate --envfile $LOCAL_PROJECT_ROOT/local.env --config $LOCAL_PROJECT_ROOT/local.caddyfile"
+          echo "$cmd - $NS_DOMAIN - $VOLUME_DIR" 
+          eval "$cmd"
+        ;;
+        cmds) echo start stop reload validate cmds help;;
+        help|*) local_help_command ;;
+      esac
+    ;;
     dev)
       case $3 in
-        enable) run_ansible_playbook enabledev;;
-        disable) run_ansible_playbook disabledev ;;
-        cmds) echo enable disable cmds help;;
+        enable)
+          run_ansible_playbook enable_dev
+        ;;
+        disable)
+          run_ansible_playbook disable_dev
+        ;;
+        cmds) echo start stop cmds help;;
         help|*) local_help_command ;;
       esac
     ;;
     clear)
-      rm -r ./local_only ./.env ./host.env ./local.env ./nimstoryfont_ansible ./nimstoryfont_ansible.pub ./inventory ./provision_user.sh
+      rm -r ./ansible.cfg ./local_only ./.env ./host.env ./local.env ./nimstoryfont_ansible ./nimstoryfont_ansible.pub ./inventory ./provision_user.sh
     ;;
     compose) 
       set -a && source local.env && set +a
-      run_compose docker-compose_new "${@:3}"
+      run_compose ./docker-compose_new "${@:3}"
     ;;
-    cmds) echo init regen-configs dev clear cmds help;;
+    cmds) echo init regen proxy dev clear cmds help;;
     help|*) local_help_command ;;
   esac
 }
@@ -171,23 +222,46 @@ local_command(){
 host_command(){
   case $2 in
     ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
+    proxy)
+      case $3 in
+        start)
+          local cmd="sudo caddy start --envfile $HOST_PROJECT_ROOT/host.env --config $HOST_PROJECT_ROOT/host.caddyfile"
+          run_on_host "$cmd"
+        ;;
+        stop)
+          local cmd="sudo caddy stop"
+          run_on_host "$cmd"
+        ;;
+        reload)
+          local cmd="sudo caddy reload --config $HOST_PROJECT_ROOT/host.caddyfile"
+          run_on_host "$cmd"
+        ;;
+        validate)
+          local cmd="sudo caddy validate --envfile $HOST_PROJECT_ROOT/host.env --config $HOST_PROJECT_ROOT/host.caddyfile"
+          run_on_host "$cmd"
+        ;;
+        cmds) echo start stop reload validate cmds help;;
+        help|*) host_help_command ;;
+      esac
+    ;;
     bootstrap) 
       bash ./provision_user.sh
       run_ansible_playbook bootstrap_server
     ;;
     setup) run_ansible_playbook setup_server ;;
-    cmds) echo ssh bootstrap setup cmds help;;
+    cmds) echo ssh proxy bootstrap setup cmds help;;
     help|*) host_help_command ;;
   esac;
 }
 
 server_command(){
   case $2 in
-    start) run_ansible_playbook start_ns;;
-    stop) run_ansible_playbook stop_ns;;
-    restart) run_ansible_playbook restart_ns ;;
-    status) echo "Not implemented yet" ;;
-    cmds) echo start stop restart status cmds help;;
+    compose)
+      set -a && source host.env && source .env && set +a
+      local cmd="sudo docker compose -f $HOST_COMPOSE_PATH --env-file $HOST_PROJECT_ROOT/host.env ${@:3}"
+      run_on_host "$cmd"
+    ;;
+    cmds) echo compose cmds help;;
     help|*) server_help_command ;;
   esac
 }

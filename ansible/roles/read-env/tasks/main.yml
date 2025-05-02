@@ -2,6 +2,7 @@
   set_fact:
     # Project global configs
     domain: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN') }}"
+    domain_ssl_email: "{{ lookup('ansible.builtin.env', 'NS_DOMAIN_SSL_EMAIL') }}"
     secret_key: "{{ lookup('ansible.builtin.env', 'SECRET_KEY') }}"
     host_ip: "{{ lookup('ansible.builtin.env', 'HOST_IP') }}"
     email_domain: "{{ lookup('ansible.builtin.env', 'EMAIL_DOMAIN') }}"
@@ -39,9 +40,11 @@
     local_cert_path: "{{ local_volume_path }}/certificates"
     local_openssl_conf_path: "{{ local_volume_path }}/certificates/openssl.conf"
     local_compose_path: "{{ local_project_root }}/docker-compose_new.yml"
+    local_host_caddy_path: "{{ local_project_root }}/host.caddyfile"
 
     # Inferred Remote project configs
     host_env: "{{ host_project_root }}/host.env"
+    host_caddy_path: "{{ host_project_root }}/host.caddyfile"
     host_nginx_path: "{{ host_volume_path }}/config/nginx.conf"
     host_db_path: "{{ host_volume_path }}/database/db.sqlite3"
     host_db_dir_path: "{{ host_volume_path }}/database"

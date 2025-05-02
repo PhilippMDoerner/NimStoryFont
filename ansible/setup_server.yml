@@ -2,9 +2,10 @@
 # Adds the necessary steps for setting up this project on the host server
 - hosts: web_server
   vars_prompt:
-    - name: cert_email
-      prompt: "Enter email under which to register your SSL certificates"
+    - name: has_proxy_already
+      prompt: Do you already have a proxy server?
       private: false
+      default: false
 
   tasks:
     - name: Read in environment variables
@@ -24,7 +25,6 @@
           - sqlite3
           - curl
           - ca-certificates
-          - certbot
         state: present
 
     - name: Install docker
@@ -32,10 +32,18 @@
       include_role:
         name: install-docker
 
-    - name: Fetch SSL certificates
-      tags: ssl, nginx, certbot
-      become: true
-      command: "certbot certonly --standalone -d {{ domain }} -n -m {{ cert_email }} --agree-tos"
+    - name: Install caddy
+      tags: caddy
+      include_role:
+        name: install-caddy
+      when: has_proxy_already == "False"
+
+    - name: Copy host.caddyfile
+      tags: caddy, config
+      copy:
+        src: "{{ local_host_caddy_path }}"
+        dest: "{{ host_caddy_path }}"
+      when: has_proxy_already == "False"
 
     - name: Create local_only directories
       command: |
@@ -77,19 +85,11 @@
         src: "{{ local_feature_config_path }}"
         dest: "{{ host_feature_config_path }}"
 
-    - name: Copy certbot.timer file for certbot renewals
-      tags: nginx, certbot, config
-      become: true
+    - name: Copy host.env file
+      tags: host, env, config
       copy:
-        src: files/certbot.timer
-        dest: /etc/systemd/system/certbot.timer
-
-    - name: Copy certbot.service file for certbot renewals
-      tags: nginx, certbot, config
-      become: true
-      copy:
-        src: files/certbot.service
-        dest: /etc/systemd/system/certbot.service
+        src: "{{ local_host_env }}"
+        dest: "{{ host_env }}"
 
     # - name: Add systemd timer for certbot renewals
     #   tags: certbot

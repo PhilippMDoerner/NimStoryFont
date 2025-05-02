@@ -2,12 +2,16 @@
 - hosts: 127.0.0.1
   gather_facts: false
   vars_prompt:
+    - name: host_ip
+      prompt: Enter your host's IP address
+      private: false
+
     - name: domain
       prompt: Enter your host's domain name
       private: false
 
-    - name: host_ip
-      prompt: Enter your host's IP address
+    - name: domain_ssl_email
+      prompt: Enter the email address for receiving messages about your SSL certificate on
       private: false
 
     - name: email_auth_name
@@ -36,6 +40,18 @@
     secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
   tasks:
+    # - name: "Check mandatory variables are defined"
+    #   assert:
+    #     that:
+    #       - host_ip is defined
+    #       - domain is defined
+    #       - domain_ssl_email is defined
+    #       - email_auth_name is defined
+    #       - email_auth_password is defined
+    #       - smtp_domain is defined
+    #       - smtp_port is defined
+    #       - host_project_dir is defined
+
     - name: Get project directories
       tags: env
       set_fact:
@@ -75,6 +91,7 @@
         content: |
           # Project global configs
           NS_DOMAIN={{ domain }}
+          NS_DOMAIN_SSL_EMAIL={{ domain_ssl_email }}
           SECRET_KEY={{ secret_key }}
           HOST_IP={{ host_ip }}
           EMAIL_DOMAIN={{ email_domain }}
