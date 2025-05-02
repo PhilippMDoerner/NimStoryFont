@@ -1,0 +1,4 @@
+{$NS_DOMAIN} {
+	tls	{$VOLUME_DIR}/certificates/fullchain.pem {$VOLUME_DIR}/certificates/privkey.pem 
+	reverse_proxy localhost:5123
+}
