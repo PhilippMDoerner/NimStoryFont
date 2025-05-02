@@ -308,7 +308,6 @@ case $1 in
   host) host_command "$@" ;;
   server) server_command "$@" ;;
   db) db_command "$@" ;;
-  autocomplete) source ./autocomplete.sh ;;
   cmds) echo local host server db autocomplete commands help;;
   help|*) global_help_command ;;
 esac
