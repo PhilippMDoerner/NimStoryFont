@@ -1,16 +1,6 @@
 #!/bin/bash
 # Note: This script defines "cmds" for autocompletes, but I can not be bothered to implement that.
 
-load_env() {
-  # Load the .env file if it exists. Does not do this for the local init command as that one means
-  # there is no .env file yet.
-  if [[ "$1" == "local" && "$2" == "init" ]]; then
-    return
-  fi
-  set -a && source .env && set +a
-}
-
-
 ## HELP COMMANDS
 # TODO: Add dry-run, help and verbose options
 global_help_command(){
@@ -139,7 +129,16 @@ Description:
 EOF
 }
 
-## BACKEND_DISPATCHERS
+## UTILS
+load_env() {
+  # Load the .env file if it exists. Does not do this for the local init command as that one means
+  # there is no .env file yet.
+  if [[ "$1" == "local" && "$2" == "init" ]]; then
+    return
+  fi
+  set -a && source .env && set +a
+}
+
 run_ansible_playbook() {
   echo ansible-playbook -v ./ansible/"$1".yml --ask-become-pass 
   if ansible-playbook -v ./ansible/"$1".yml --ask-become-pass; then
@@ -168,7 +167,7 @@ local_command(){
   case $2 in
     init) 
       run_ansible_playbook init
-      load_env local setup
+      load_env local setup # Doesn't need to be this way, just passes the if check in load_env that this isn't before the project was initialized 
       run_ansible_playbook setup_local
       ./ns db init
     ;;
