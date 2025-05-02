@@ -32,6 +32,16 @@
       include_role:
         name: install-docker
 
+    - name: Create local_only directories
+      command: |
+        mkdir -p  \ 
+        {{ host_config_path }} \
+        {{ host_media_path }} \
+        {{ host_audio_path }} \
+        {{ host_image_path }} \
+        {{ host_db_dir_path }} \
+        {{ host_dumps_path }}
+
     - name: Install caddy
       tags: caddy
       include_role:
@@ -44,16 +54,6 @@
         src: "{{ local_host_caddy_path }}"
         dest: "{{ host_caddy_path }}"
       when: has_proxy_already == "False"
-
-    - name: Create local_only directories
-      command: |
-        mkdir -p  \ 
-        {{ host_config_path }} \
-        {{ host_media_path }} \
-        {{ host_audio_path }} \
-        {{ host_image_path }} \
-        {{ host_db_dir_path }} \
-        {{ host_dumps_path }}
 
     - name: Copy nginx configuration
       tags: nginx, frontend, config
