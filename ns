@@ -131,6 +131,8 @@ Commands:
   download                    Download the database from the host machine
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
+  connect local               Opens the local sqlite3 database file in the terminal
+  connect host                Opens the sqlite3 database file on the host machine in the terminal
 
 Description:
   Commands to manage the database on the remote host.
