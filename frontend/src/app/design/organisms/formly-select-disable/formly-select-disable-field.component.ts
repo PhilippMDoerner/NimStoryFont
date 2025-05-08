@@ -5,8 +5,8 @@ import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { FieldType } from '@ngx-formly/bootstrap/form-field';
 import {
   FieldTypeConfig,
+  FormlyFieldConfig,
   FormlyModule,
-  FormlyTemplateOptions,
 } from '@ngx-formly/core';
 import { Observable, combineLatest, map } from 'rxjs';
 import { DisabledFunction } from 'src/app/_models/formly';
@@ -42,7 +42,9 @@ export class FormlySelectDisableFieldComponent
   modelValue: any;
 
   ngOnInit(): void {
-    const templateOptions: FormlyTemplateOptions = this.props;
+    const templateOptions: Pick<FormlyFieldConfig, 'props'> = {
+      props: this.props,
+    };
     const formControl: AbstractControl = this.formControl;
     const model = this.model;
     const options$ = this.props.options as Observable<any[]>;

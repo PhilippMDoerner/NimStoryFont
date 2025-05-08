@@ -25,9 +25,6 @@ export interface PushNotification {
 export class PushNotificationService {
   readonly serviceWorkerPush = inject(SwPush);
 
-  private APP_ICON_URL = '/assets/icons/icon-72x72.webp';
-  private BADGE_IMG_URL = '/assets/icons/icon-96x96.webp';
-
   sendPushNotification(notificationConfig: PushNotification) {
     switch (Notification.permission) {
       case 'default':

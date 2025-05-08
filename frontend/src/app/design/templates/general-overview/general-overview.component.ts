@@ -45,23 +45,23 @@ export class GeneralOverviewComponent {
     };
   } = {
     CREATURE: {
-      url: '/assets/overview_images/creatures.webp',
+      url: 'assets/overview_images/creatures.webp',
       alt: 'A fox and squirrels in an idyllic forest clearing',
     },
     DIARYENTRY: {
-      url: '/assets/overview_images/diaryentries.webp',
+      url: 'assets/overview_images/diaryentries.webp',
       alt: 'An open old tome in a dusty room',
     },
     ITEM: {
-      url: '/assets/overview_images/items.webp',
+      url: 'assets/overview_images/items.webp',
       alt: 'Piles of gold and magic items in a cave',
     },
     LOCATION: {
-      url: '/assets/overview_images/locations.webp',
+      url: 'assets/overview_images/locations.webp',
       alt: 'Snowy, mountainous landscape with a towering, ancient stone ruin and a distant, shadowy castle.',
     },
     ORGANIZATION: {
-      url: '/assets/overview_images/organizations.webp',
+      url: 'assets/overview_images/organizations.webp',
       alt: 'A group gathering around a glowing, magical table, inside a grand, cathedral-like chamber.',
     },
   };

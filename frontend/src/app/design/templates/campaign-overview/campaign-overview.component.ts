@@ -72,7 +72,7 @@ export class CampaignOverviewComponent {
       ariaLabel: `Look at campaign ${campaign.name}`,
     })),
   );
-  dragonFrameUrl = '/assets/general_overview.webp';
+  dragonFrameUrl = 'assets/general_overview.webp';
 
   constructor(private routingService: RoutingService) {}
 }

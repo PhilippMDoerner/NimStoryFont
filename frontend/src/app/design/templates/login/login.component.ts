@@ -70,11 +70,17 @@ export class LoginComponent {
       key: 'username',
       placeholder: 'Username',
       inputKind: 'STRING',
+      props: {
+        autocomplete: 'username',
+      },
     }),
     this.formlyService.buildSinglePasswordConfig({
       key: 'password',
       className: 'mb-0',
       fieldGroupClassName: 'mb-0',
+      props: {
+        autocomplete: 'current-password',
+      },
     }),
   ];
 

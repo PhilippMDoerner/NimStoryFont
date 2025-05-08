@@ -8,7 +8,7 @@ import { GlobalStore } from 'src/app/global.store';
 export class FaviconService {
   private readonly serverUrl = '';
   private readonly FAVICON_ELEMENT_ID = 'favicon';
-  private readonly DEFAULT_FAVICON = '/assets/icons/icon-72x72.png';
+  private readonly DEFAULT_FAVICON = 'assets/icons/icon-72x72.png';
   private readonly document = inject(DOCUMENT);
   private readonly globalStore = inject(GlobalStore);
 

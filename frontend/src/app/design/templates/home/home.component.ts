@@ -70,7 +70,7 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
 export class HomeComponent {
   globalStore = inject(GlobalStore);
   PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
-  DEFAULT_ICON = '/assets/icons/icon-512x512.webp';
+  DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
   ARTICLE_ICON_MAP: { [key: string]: Icon } = {
     location: 'compass',
     encounter: 'comments',

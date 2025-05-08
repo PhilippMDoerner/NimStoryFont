@@ -33,7 +33,7 @@ export const TINYMCE_SETTINGS = {
   convert_urls: false,
   relative_urls: false,
   branding: false,
-  base_url: '/tinymce',
+  base_url: '/wiki2/tinymce',
   suffix: '.min',
   highlight_on_focus: false,
 };

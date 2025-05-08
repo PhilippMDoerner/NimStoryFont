@@ -7,7 +7,7 @@ import { Component, computed, input } from '@angular/core';
   imports: [],
 })
 export class PageBackgroundComponent {
-  defaultImageUrl = '/assets/default_images/background_default.webp';
+  defaultImageUrl = 'assets/default_images/background_default.webp';
 
   imageUrl = input<string>();
 
