@@ -44,7 +44,6 @@ proc deleteAuthCookies(resp: var Response, ctx: JWTContext) =
   for authCookieName in ["accessToken", "refreshToken"]:
     for domain in ["www.aldrune.com"]:
       let cookieValue = ctx.getCookie(authCookieName)
-      let path = "/"
       resp.setCookie(
         authCookieName,
         cookieValue,
@@ -165,13 +164,13 @@ proc startPasswordResetWorkflow*(ctx: Context) {.async, gcsafe.} =
     try:
       let confirmation = connection.createConfirmationRequest(dto)
       await sendPasswordResetConfirmationRequestEmail(dto, confirmation)
-    except MissingEmailError as e:
+    except MissingEmailError:
       resp(
         code = Http400,
         body = fmt"User '{userName}' has no email address to send reset passwords to",
       )
       return
-    except MailAuthenticationError as e:
+    except MailAuthenticationError:
       debugErrorLog(
         fmt"The server is unable to send emails at this time. The authentication configuration for email is likely wrong"
       )
@@ -257,12 +256,12 @@ proc confirmPasswordReset*(ctx: Context) {.async.} =
 
         connection.confirmWorkflow(confirmation)
         workflowState = WorkflowState.wsSuccess
-      except MissingEmailError as e:
+      except MissingEmailError:
         debugErrorLog(
           fmt"User '{user_id}' has no email address to send reset passwords to"
         )
         workflowState = WorkflowState.wsFailureMissingEmail
-      except MailAuthenticationError as e:
+      except MailAuthenticationError:
         debugErrorLog(
           fmt"The server is unable to send emails at this time. The authentication configuration for email is likely wrong"
         )

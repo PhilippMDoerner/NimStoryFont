@@ -1,4 +1,5 @@
-import std/[strutils, htmlparser, xmltree, algorithm, random, enumerate]
+import std/[strutils, xmltree, algorithm, random, enumerate]
+import htmlparser
 import ../applicationConstants
 
 randomize() # Necessary so that random strings are different every time

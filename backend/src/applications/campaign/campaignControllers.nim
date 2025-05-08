@@ -61,9 +61,6 @@ proc updateCampaignController*(ctx: Context) {.async.} =
   let campaignId = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64
   checkCampaignAdminPermission(ctx, campaignId)
 
-  let backgroundImage = ctx.extractFormFile("background_image")
-  let icon = ctx.extractFormFile("icon")
-
   respondOnError:
     let updateDatetime: string = ctx.getFormParamsOption("update_datetime").get()
     let userTimestamp = updateDatetime.parseDefault().toTime().toUnix()

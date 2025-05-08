@@ -1,4 +1,4 @@
-import std/[strformat, options, logging, sequtils]
+import std/[strformat, options]
 import norm/sqlite
 import constructor/defaults
 import ./authenticationUtils

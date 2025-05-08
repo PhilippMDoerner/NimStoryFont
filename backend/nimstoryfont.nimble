@@ -19,6 +19,7 @@ requires "constructor == 1.1.4"
 requires "zippy >= 0.10.6"
 requires "smtp >= 0.1.0"
 requires "nimword >= 1.0.1"
+requires "htmlparser >= 0.1.0"
 
 import std/strformat
 
