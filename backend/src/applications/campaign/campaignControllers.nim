@@ -9,7 +9,9 @@ import ./statisticsService
 import ../controllerTemplates
 import ../allUrlParams
 import ../user/userService
-import ../authentication/[authenticationUtils, authenticationService, authenticationConstants]
+import
+  ../authentication/
+    [authenticationUtils, authenticationService, authenticationConstants]
 import ../genericArticleRepository
 import ../genericArticleControllers
 import ../../utils/[jwtContext, customResponses, errorResponses]
@@ -24,31 +26,33 @@ type ChangeMembershipRequestBody = object
   user: RequestedUser
 
 type MembershipAction = enum
-  ADD="add", REMOVE="remove"
+  ADD = "add"
+  REMOVE = "remove"
 
 proc createCampaignController*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
   ctx.checkAdminPermission(Campaign())
-  
+
   let backgroundImage = ctx.extractFormFile("background_image")
   let icon = ctx.extractFormFile("icon")
-  
+
   let hasImages = backgroundImage.isSome() and icon.isSome()
   if not hasImages:
     resp get400BadRequestResponse()
-    
-  respondOnError():
+
+  respondOnError:
     let campaignFormData = CampaignDTO(
       name: ctx.getFormParamsOption("name").get(),
       subtitle: ctx.getFormParamsOption("subtitle"),
       backgroundImage: ctx.extractFormFile("background_image").get(),
       icon: ctx.extractFormFile("icon").get(),
-      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr()
+      mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr(),
     )
-  
+
     withDbConn(connection):
       let newCampaign: CampaignRead = connection.createCampaign(campaignFormData)
-      let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
+      let campaignSerializable: CampaignSerializable =
+        connection.serializeCampaignRead(newCampaign)
       resp jsonyResponse(ctx, campaignSerializable)
 
 proc updateCampaignController*(ctx: Context) {.async.} =
@@ -59,8 +63,8 @@ proc updateCampaignController*(ctx: Context) {.async.} =
 
   let backgroundImage = ctx.extractFormFile("background_image")
   let icon = ctx.extractFormFile("icon")
-  
-  respondOnError():
+
+  respondOnError:
     let updateDatetime: string = ctx.getFormParamsOption("update_datetime").get()
     let userTimestamp = updateDatetime.parseDefault().toTime().toUnix()
 
@@ -69,25 +73,28 @@ proc updateCampaignController*(ctx: Context) {.async.} =
       name: ctx.getFormParamsOption("name"),
       subtitle: ctx.getFormParamsOption("subtitle"),
       backgroundImage: ctx.extractFormFile("background_image"),
-      default_map_id: ctx.getFormParamsOption("default_map_id").map(val => val.parseInt().int64),
+      default_map_id:
+        ctx.getFormParamsOption("default_map_id").map(val => val.parseInt().int64),
       icon: ctx.extractFormFile("icon"),
       mediaDirectory: ctx.getSetting(SettingName.snImageDir).getStr(),
-      userTimestamp: userTimestamp
+      userTimestamp: userTimestamp,
     )
-    
+
     withDbTransaction(connection):
       try:
         let newCampaign: CampaignRead = connection.updateCampaign(campaignFormData)
-        let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(newCampaign)
+        let campaignSerializable: CampaignSerializable =
+          connection.serializeCampaignRead(newCampaign)
         resp jsonyResponse(ctx, campaignSerializable)
       except OutdatedDataError:
         let oldEntry = connection.getEntryById(campaignId, CampaignRead)
-        let campaignSerializable: CampaignSerializable = connection.serializeCampaignRead(oldEntry)
+        let campaignSerializable: CampaignSerializable =
+          connection.serializeCampaignRead(oldEntry)
         resp outdatedUpdateResponse(ctx, campaignSerializable)
 
-proc changeMembership*(ctx: Context) {.async, gcsafe.} = 
+proc changeMembership*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
-  
+
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
   let changeRequestParams = ctx.request.body().fromJson(ChangeMembershipRequestBody)
   let actionStr = changeRequestParams.action.split("_")[0]
@@ -95,34 +102,39 @@ proc changeMembership*(ctx: Context) {.async, gcsafe.} =
   let roleStr = changeRequestParams.action.split("_")[1]
   let role = parseEnum[CampaignRole](roleStr)
 
-  respondOnError():
+  respondOnError:
     withDbTransaction(connection):
-      let campaign: CampaignRead = connection.getEntryByFieldCaseInsensitive("name", campaignName, CampaignRead)
+      let campaign: CampaignRead =
+        connection.getEntryByFieldCaseInsensitive("name", campaignName, CampaignRead)
       # Permission check
       let isRequestForUserByUser = changeRequestParams.user.pk == ctx.tokenData.userId
       if not isRequestForUserByUser:
         checkCampaignAdminPermission(ctx, campaign.id)
-      
+
       # Action
-      var selectedUser: User = connection.getEntryById(changeRequestParams.user.pk, User)
-      
-      case action:
+      var selectedUser: User =
+        connection.getEntryById(changeRequestParams.user.pk, User)
+
+      case action
       of MembershipAction.ADD:
         connection.addCampaignMember(campaign, role, selectedUser)
       of MembershipAction.REMOVE:
         connection.removeCampaignMember(campaign, role, selectedUser)
-      
-      let campaignMemberships: seq[UserGroup] = connection.getCampaignMembersWithRole(campaign, role)
-      let data = campaignMemberships.map(membership => connection.serializeMembership(membership))
-      
+
+      let campaignMemberships: seq[UserGroup] =
+        connection.getCampaignMembersWithRole(campaign, role)
+      let data = campaignMemberships.map(
+        membership => connection.serializeMembership(membership)
+      )
+
       resp jsonyResponse(ctx, data)
 
-proc deactivateCampaignController*(ctx: Context) {.async, gcsafe.} = 
+proc deactivateCampaignController*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
-  
+
   let campaignId: int64 = ctx.getPathParamsOption(ID_PARAM).get().parseInt().int64
 
-  respondOnError():
+  respondOnError:
     withDbTransaction(connection):
       var campaign: Campaign = connection.getEntryById(campaignId, Campaign)
       checkAdminPermission(ctx, campaign)
@@ -135,7 +147,7 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
 
-  respondOnError():
+  respondOnError:
     withDbConn(connection):
       let statistics: Statistics = connection.getCampaignStatistics(campaignName)
       resp jsonyResponse(ctx, statistics)
@@ -143,7 +155,7 @@ proc getCampaignStatistics*(ctx: Context) {.async.} =
 proc getWikiStatistics*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)
 
-  respondOnError():
+  respondOnError:
     withDbConn(connection):
       let statistics: Statistics = connection.getWikiStatistics()
       resp jsonyResponse(ctx, statistics)

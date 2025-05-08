@@ -3,9 +3,12 @@ import characterEncounterModel
 import std/[sugar, sequtils, tables, strutils, strformat]
 import ../genericArticleRepository
 
-proc getEncounterConnectionsForEncounters*(connection: DbConn, encounterIds: seq[int64]): Table[int64, seq[CharacterEncounterRead]] =
+proc getEncounterConnectionsForEncounters*(
+    connection: DbConn, encounterIds: seq[int64]
+): Table[int64, seq[CharacterEncounterRead]] =
   let allEncounterIdsStr = encounterIds.map(id => id.int.intToStr()).join(",")
-  let condition = fmt"{CharacterEncounterRead.table()}.encounter_id IN ({allEncounterIdsStr})"
+  let condition =
+    fmt"{CharacterEncounterRead.table()}.encounter_id IN ({allEncounterIdsStr})"
   let encounterConnections = connection.getList(CharacterEncounterRead, condition)
 
   for encounterId in encounterIds:

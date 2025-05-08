@@ -32,12 +32,10 @@ proc getCampaignUsers*(connection: DbConn, campaignName: string): seq[User] =
 
   result = entries
 
-proc fetchUserMetadataByCategory*(connection: DbConn, userId: int64, category: string): seq[UserMetadata] =
+proc fetchUserMetadataByCategory*(
+    connection: DbConn, userId: int64, category: string
+): seq[UserMetadata] =
   const condition = "user_id = ? AND category = ?"
-  
-  return connection.getList(
-    UserMetadata, 
-    condition, 
-    userId.dbValue(), 
-    category.dbValue()
-  )
+
+  return
+    connection.getList(UserMetadata, condition, userId.dbValue(), category.dbValue())

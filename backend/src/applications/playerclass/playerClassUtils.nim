@@ -9,6 +9,7 @@ proc campaign_id*(entry: PlayerClassConnection): int64 =
   let character: Character = getEntryById(characterId, Character)
   return character.campaign_id
 
-
-proc checkPlayerClassConnectionCreatePermission*(ctx: JWTContext, entry: PlayerClassConnection) =
+proc checkPlayerClassConnectionCreatePermission*(
+    ctx: JWTContext, entry: PlayerClassConnection
+) =
   checkCreatePermission[PlayerClassConnection](ctx, entry)

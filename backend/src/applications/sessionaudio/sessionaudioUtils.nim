@@ -18,8 +18,9 @@ proc campaign_id*(sessionaudio: SessionAudio): int64 =
 proc campaign_id*(sessionaudio: SessionAudioRead): int64 =
   result = sessionaudio.session_id.campaign_id.id
 
-
-proc checkSessionAudioReadListPermission*(ctx: JWTContext, entries: seq[SessionAudioRead | SessionAudio]) =
+proc checkSessionAudioReadListPermission*(
+    ctx: JWTContext, entries: seq[SessionAudioRead | SessionAudio]
+) =
   checkCampaignReadListPermission(ctx, entries)
 
 proc getDownloadUrl*(audioFilePath: string): string =

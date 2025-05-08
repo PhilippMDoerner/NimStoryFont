@@ -10,4 +10,3 @@ type ImageDTO* = object
   image_item_fk*: Option[int64]
   image_location_fk*: Option[int64]
   image_organization_fk*: Option[int64]
-

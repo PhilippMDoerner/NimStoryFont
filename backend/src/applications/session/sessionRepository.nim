@@ -3,17 +3,20 @@ import sessionModel
 import ../../utils/djangoDateTime/[normConversion]
 import std/[strformat, strutils]
 
-proc getSession*(connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool): SessionRead =
+proc getSession*(
+    connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool
+): SessionRead =
   var entry = new(SessionRead)
 
-  const condition = """
+  const condition =
+    """
     campaign_id.name LIKE ? 
     AND session_number = ? 
     AND is_main_session = ?
   """
 
   connection.select(entry, condition, campaignName, sessionNumber, isMainSession)
-  
+
   result = entry
 
 proc getSessionsById*(connection: DbConn, sessionIds: seq[int64]): seq[SessionRead] =

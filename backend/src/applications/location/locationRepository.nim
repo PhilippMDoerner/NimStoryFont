@@ -4,7 +4,7 @@ import norm/[sqlite, model]
 import locationModel
 
 proc parseParentIdRow(value: DbValue): string =
-  case value.kind:
+  case value.kind
   of dvkInt:
     result = value.i.int.intToStr()
   of dvkString:
@@ -12,7 +12,9 @@ proc parseParentIdRow(value: DbValue): string =
   else:
     result = ""
 
-proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Table[int64, Option[string]] =
+proc getParentLocationIdStrings(
+    connection: DbConn, locationIds: seq[int64]
+): Table[int64, Option[string]] =
   let locationIdsDed = locationIds.deduplicate()
   let locationIdStr: string = locationIdsDed.map(id => id.int.intToStr).join(",")
   let parentLocationIdQuery: SqlQuery = sql fmt"""
@@ -34,10 +36,13 @@ proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Ta
     FROM locationpath
     WHERE id IN ({locationIdStr})
   """
-  
+
   let rawParentLocationIdRows: seq[Row] = connection.getAllRows(parentLocationIdQuery)
 
-  assert(locationIdsDed.len() == rawParentLocationIdRows.len(), fmt"Failed to fetch an id_path for every id when fetching parent locations! Started with '{locationIdsDed}' ids, got '{rawParentLocationIdRows}' rows back!")
+  assert(
+    locationIdsDed.len() == rawParentLocationIdRows.len(),
+    fmt"Failed to fetch an id_path for every id when fetching parent locations! Started with '{locationIdsDed}' ids, got '{rawParentLocationIdRows}' rows back!",
+  )
 
   for row in rawParentLocationIdRows:
     let rowLocationId: string = $row[0]
@@ -50,27 +55,30 @@ proc getParentLocationIdStrings(connection: DbConn, locationIds: seq[int64]): Ta
       result[rowLocationId.parseInt().int64] = some(rowParentLocationIdStr)
 
 proc getParentLocationIdString(connection: DbConn, locationId: int64): Option[string] =
-  let idStrings: Table[int64, Option[string]] = connection.getParentLocationIdStrings(@[locationId])
+  let idStrings: Table[int64, Option[string]] =
+    connection.getParentLocationIdStrings(@[locationId])
   if idStrings.len() == 1:
     for key in idStrings.keys:
       result = idStrings[key]
-
   elif idStrings.len() == 0:
     result = none(string)
-
   else:
-    raise newException(ValueError, fmt"Received 2 sets of parentLocations for the single location id {locationId}")
+    raise newException(
+      ValueError,
+      fmt"Received 2 sets of parentLocations for the single location id {locationId}",
+    )
 
 proc parseIdString(idStr: string): seq[int64] =
-  return idStr
-    .split(',')
-    .map(idStr => idStr.parseInt().int64)
-    .deduplicate()
+  return idStr.split(',').map(idStr => idStr.parseInt().int64).deduplicate()
 
-proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int64, seq[Location]] =
-  let parentLocationIdStrings: Table[int64, Option[string]] = connection.getParentLocationIdStrings(locationIds)
-  
-  var parentLocationIdSets: Table[int64, HashSet[int64]] = initTable[int64, HashSet[int64]]()
+proc getParentLocations*(
+    connection: DbConn, locationIds: seq[int64]
+): Table[int64, seq[Location]] =
+  let parentLocationIdStrings: Table[int64, Option[string]] =
+    connection.getParentLocationIdStrings(locationIds)
+
+  var parentLocationIdSets: Table[int64, HashSet[int64]] =
+    initTable[int64, HashSet[int64]]()
   var totalIdSet: HashSet[int64] = initHashSet[int64]()
   for locationId in parentLocationIdStrings.keys:
     let parentLocationIdString: Option[string] = parentLocationIdStrings[locationId]
@@ -78,7 +86,7 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
       continue
 
     var idSet: HashSet[int64] = parentLocationIdString.get().parseIdString().toHashSet()
-    
+
     parentLocationIdSets[locationId] = idSet
     totalIdSet.incl(idSet)
 
@@ -95,7 +103,8 @@ proc getParentLocations*(connection: DbConn, locationIds: seq[int64]): Table[int
   for locationId in locationIds:
     if parentLocationIdSets.hasKey(locationId):
       let parentIds: HashSet[int64] = parentLocationIdSets[locationId]
-      let parentLocationsForId: seq[Location] = parentLocations.filter(loc => parentIds.contains(loc.id))
+      let parentLocationsForId: seq[Location] =
+        parentLocations.filter(loc => parentIds.contains(loc.id))
       result[locationId] = parentLocationsForId
     else:
       result[locationId] = @[]
@@ -111,34 +120,37 @@ proc sortById[T: Model](list: seq[T], ids: seq[int64]): seq[T] =
     .map(id => list.find(item => item.id == id))
     .filter(item => item.isSome())
     .map(item => item.get())
-  
-  assert(result.len() == ids.len(), fmt"Failed to sort parent locations! Got only '{result.len()}' entries in 'sorted' list but expected it to have '{ids.len()}'")
+
+  assert(
+    result.len() == ids.len(),
+    fmt"Failed to sort parent locations! Got only '{result.len()}' entries in 'sorted' list but expected it to have '{ids.len()}'",
+  )
 
 proc getParentLocations*(connection: DbConn, locationId: int64): seq[Location] =
-  let parentLocationIdStr: Option[string] = connection.getParentLocationIdString(locationId)
+  let parentLocationIdStr: Option[string] =
+    connection.getParentLocationIdString(locationId)
   let hasParents = parentLocationIdStr.isSome()
   if not hasParents:
     return @[]
 
   let condition = fmt"id IN ({parentLocationIdStr.get()})"
   let parentLocations = connection.getList(Location, condition)
-  
+
   let parentLocationIds: seq[int64] = parentLocationIdStr.get().parseIdString()
   result = parentLocations.sortById(parentLocationIds)
-  
 
 proc getParentLocationReads*(connection: DbConn, locationId: int64): seq[LocationRead] =
-  let parentLocationIdStr: Option[string] = connection.getParentLocationIdString(locationId)
+  let parentLocationIdStr: Option[string] =
+    connection.getParentLocationIdString(locationId)
   let hasParentLocations = parentLocationIdStr.isSome()
   if not hasParentLocations:
     return @[]
 
   let condition = fmt"{LocationRead.table()}.id IN ({parentLocationIdStr.get()})"
   let parentLocations = connection.getList(LocationRead, condition)
-  
+
   let parentLocationIds: seq[int64] = parentLocationIdStr.get().parseIdString()
   result = parentLocations.sortById(parentLocationIds)
-  
 
 proc getSubLocations*(connection: DbConn, locationId: int64): seq[Location] =
   const condition = fmt"{Location.table()}.parent_location_id = ?"

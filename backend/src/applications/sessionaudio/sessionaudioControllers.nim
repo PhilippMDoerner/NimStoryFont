@@ -13,40 +13,44 @@ import ../../utils/djangoDateTime/[djangoDateTimeType, serialization]
 import ../../applicationSettings
 import ../../database
 
-proc extractFileFromContext(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
+proc extractFileFromContext(
+    ctx: JWTContext, fileFieldName: string
+): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
   if hasFile:
-      result = some(ctx.getUploadFile(fileFieldName))
+    result = some(ctx.getUploadFile(fileFieldName))
   else:
-      result = none(UploadFile)
+    result = none(UploadFile)
 
-proc createSessionAudioController*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
-    let jsonBody = ctx.request.body().parseJson()
-    let campaignId: int64 = jsonBody["campaign"].getInt().int64
-    checkCreatePermission(ctx, campaignId)
+proc createSessionAudioController*(ctx: Context) {.async, gcsafe.} =
+  let ctx = JWTContext(ctx)
+  let jsonBody = ctx.request.body().parseJson()
+  let campaignId: int64 = jsonBody["campaign"].getInt().int64
+  checkCreatePermission(ctx, campaignId)
 
-    let sessionId: int64 = jsonBody["session"].getInt().int64
-    let audioDirectory: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
+  let sessionId: int64 = jsonBody["session"].getInt().int64
+  let audioDirectory: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
 
-    let audioFile: string = jsonBody["audio_file"].getStr()
+  let audioFile: string = jsonBody["audio_file"].getStr()
 
-    var sessionaudioFormData = SessionAudioDTO(
-        sessionaudioFileName: some(audioFile),
-        audioDirectory: audioDirectory,
-        sessionId: some(sessionId),
-        entryId: none(int64)
-    )
+  var sessionaudioFormData = SessionAudioDTO(
+    sessionaudioFileName: some(audioFile),
+    audioDirectory: audioDirectory,
+    sessionId: some(sessionId),
+    entryId: none(int64),
+  )
 
-    respondOnError():
-      withDbTransaction(connection):
-        let newEntry: Option[SessionAudioRead] = connection.createSessionAudio(sessionaudioFormData)
-        if newEntry.isSome():
-          let data = connection.serializeSessionAudioRead(newEntry.get())
-          resp jsonyResponse(ctx, data)
-
-        else:
-          resp get400BadRequestResponse("The sent sessionaudio could not be saved, because there was no sessionaudio file in the sent form under the 'sessionaudio' key.")
+  respondOnError:
+    withDbTransaction(connection):
+      let newEntry: Option[SessionAudioRead] =
+        connection.createSessionAudio(sessionaudioFormData)
+      if newEntry.isSome():
+        let data = connection.serializeSessionAudioRead(newEntry.get())
+        resp jsonyResponse(ctx, data)
+      else:
+        resp get400BadRequestResponse(
+          "The sent sessionaudio could not be saved, because there was no sessionaudio file in the sent form under the 'sessionaudio' key."
+        )
 
 type PatchSessionOfAudio* = object
   session: int64
@@ -58,39 +62,45 @@ proc parseJSONPatchBody(ctx: JWTContext): SessionAudioDTO =
   let newSessionId: int64 = parsedBody.session
 
   result = SessionAudioDTO(
-      sessionaudioFileName: none(string),
-      audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
-      sessionId: some(newSessionId),
-      entryId: some(parsedBody.pk)
+    sessionaudioFileName: none(string),
+    audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
+    sessionId: some(newSessionId),
+    entryId: some(parsedBody.pk),
   )
 
 proc parseFormPatchBody(ctx: JWTContext): SessionAudioDTO =
   let sessionId: int64 = ctx.getFormParamsOption("session").get().parseInt().int64
   let entryId: int64 = ctx.getFormParamsOption("sessionaudio").get().parseInt().int64
-  
+
   result = SessionAudioDTO(
-      sessionaudioFileName: some(""),
-      audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
-      sessionId: some(sessionId),
-      entryId: some(entryId)
+    sessionaudioFileName: some(""),
+    audioDirectory: ctx.getSetting(SettingName.snAudioDir).getStr(),
+    sessionId: some(sessionId),
+    entryId: some(entryId),
   )
 
-proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.}=
-    let ctx = JWTContext(ctx)
+proc patchSessionAudioController*(ctx: Context) {.async, gcsafe.} =
+  let ctx = JWTContext(ctx)
 
-    let isFormRequest = ctx.extractFileFromContext("audio_file").isSome()
-    var sessionaudioUpdateParams = if isFormRequest: ctx.parseFormPatchBody() else: ctx.parseJSONPatchBody()
+  let isFormRequest = ctx.extractFileFromContext("audio_file").isSome()
+  var sessionaudioUpdateParams =
+    if isFormRequest:
+      ctx.parseFormPatchBody()
+    else:
+      ctx.parseJSONPatchBody()
 
-    respondOnError():
-      withDbTransaction(connection):
-        var oldEntry: SessionAudio = connection.getEntryById(sessionaudioUpdateParams.entryId.get(), SessionAudio)
-        checkUpdatePermission(ctx, oldEntry)
+  respondOnError:
+    withDbTransaction(connection):
+      var oldEntry: SessionAudio =
+        connection.getEntryById(sessionaudioUpdateParams.entryId.get(), SessionAudio)
+      checkUpdatePermission(ctx, oldEntry)
 
-        let updatedEntry = connection.patchSessionAudio(sessionaudioUpdateParams, oldEntry)
-        let data = connection.serializeSessionAudio(updatedEntry)
-        resp jsonyResponse(ctx, data)
+      let updatedEntry =
+        connection.patchSessionAudio(sessionaudioUpdateParams, oldEntry)
+      let data = connection.serializeSessionAudio(updatedEntry)
+      resp jsonyResponse(ctx, data)
 
-proc moveAudioFileAfterUpload*(ctx: Context) {.async, gcsafe.} = 
+proc moveAudioFileAfterUpload*(ctx: Context) {.async, gcsafe.} =
   let tmpFilePath: string = ctx.request.getHeader(TEMPORARY_FILENAME_HEADER)[0]
 
   let audioUploadDir: string = ctx.getSetting(SettingName.snAudioUploadDir).getStr()
@@ -98,4 +108,4 @@ proc moveAudioFileAfterUpload*(ctx: Context) {.async, gcsafe.} =
 
   let finalAudioFilePath = moveAudioFile(tmpFilePath, targetFileName, audioUploadDir)
 
-  resp jsonResponse(%* finalAudioFilePath)
+  resp jsonResponse(%*finalAudioFilePath)

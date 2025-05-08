@@ -31,14 +31,19 @@ import ../applications/contentUpdates/contentUpdateDataExporter
 proc merge(nodes: varargs[JsonNode]): JsonNode =
   for node in nodes:
     if not (node.kind == JObject):
-      raise newException(JsonParsingError, "All nodes must be of type JObject in order to merge them")
-  
+      raise newException(
+        JsonParsingError, "All nodes must be of type JObject in order to merge them"
+      )
+
   result = newJObject()
-  
+
   for node in nodes:
     for key, value in node:
       if result.hasKey(key):
-        raise newException(JsonParsingError, fmt"The key '{key}' already exists in the json and cannot be overwritten")
+        raise newException(
+          JsonParsingError,
+          fmt"The key '{key}' already exists in the json and cannot be overwritten",
+        )
       result[key] = value
 
 proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
@@ -62,7 +67,7 @@ proc getCampaignData(con: DbConn, campaign: CampaignRead): JsonNode =
     con.exportSpellData(campaign),
     con.exportRecentUpdatesData(campaign),
   )
-  
+
   result = newJObject()
   for key, value in data.pairs:
     result[fmt"/wiki1/api{key}"] = value
@@ -72,10 +77,11 @@ proc main() =
   let outputPath: string = commandLineParams()[1]
   initConnectionPool(databasePath, 4)
 
-  withDbConn(con): 
+  withDbConn(con):
     let campaigns = getAllCampaignReads()
     for campaign in campaigns:
       let totalCampaignData = con.getCampaignData(campaign)
-      
+
       writeFile(fmt"{outputPath}/{campaign.name}-data.json", $totalCampaignData)
+
 main()

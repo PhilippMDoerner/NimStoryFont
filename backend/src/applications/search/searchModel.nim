@@ -15,11 +15,8 @@ type Search* {.defaults.} = ref object
   record*: string = ""
   campaign_id*: int64 = MODEL_INIT_ID
   guid*: string = ""
+
 implDefaults(Search, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-
-
-
-
 
 type SearchHit* {.defaults.} = ref object
   title*: string = ""
@@ -27,6 +24,7 @@ type SearchHit* {.defaults.} = ref object
   campaign_id*: int64 = MODEL_INIT_ID
   record_id*: int64 = MODEL_INIT_ID
   record*: string = ""
+
 implDefaults(SearchHit, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type SearchSerializable* = JsonNode

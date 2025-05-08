@@ -13,7 +13,7 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
   if isDeletingNormalUser:
     checkAdminPermission(ctx, entry)
     return
-  
+
   let isDeletingAdmin = entry.is_staff and not entry.is_superuser
   if isDeletingAdmin:
     checkSuperUserPermission(ctx, entry)
@@ -26,9 +26,8 @@ proc checkNoUserMetaPermission*(ctx: JWTContext, entry: UserMetadata) =
 
 proc createPasswordDatabaseRepresentation*(password: string): string =
   result = hashEncodePassword(
-    password, 
-    DEFAULT_HASH_ITERATIONS,
-    algorithm = NimwordHashingAlgorithm.nhaArgon2id
+    password, DEFAULT_HASH_ITERATIONS, algorithm = NimwordHashingAlgorithm.nhaArgon2id
   )
 
-proc toEmail*(user: User): Email = createEmail(user.email, user.username)
+proc toEmail*(user: User): Email =
+  createEmail(user.email, user.username)

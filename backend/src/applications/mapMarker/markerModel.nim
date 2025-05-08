@@ -22,15 +22,12 @@ type Marker* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
 
 implDefaults(Marker, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
 type MarkerMap* {.defaults, readOnly, tableName: MAP_TABLE.} = ref object of Model
   campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
   icon*: Option[string] = some("")
   name*: string = ""
 
 implDefaults(MarkerMap, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-
 
 type MarkerRead* {.defaults, readOnly, tableName: MARKER_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
@@ -44,4 +41,3 @@ type MarkerRead* {.defaults, readOnly, tableName: MARKER_TABLE.} = ref object of
   color*: Option[string] = some("")
 
 implDefaults(MarkerRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-

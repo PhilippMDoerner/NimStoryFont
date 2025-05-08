@@ -1,4 +1,3 @@
-
 const MODEL_INIT_ID*: int64 = -1
 const NONE_STRING*: string = "none"
 const ID_STRING_PREFIX*: string = "id_"
@@ -14,19 +13,17 @@ const SHORT_DESCRIPTION_WORD_COUNT*: int = 30
 # CSP_EXCLUDE_URL_PREFIXES = ("/api/swagger", "/api/openapi")
 
 type QuestState* = enum
-  qsInProgress = "In progress", 
-  qsCompleted = "Completed", 
-  qsFailed = "Failed", 
+  qsInProgress = "In progress"
+  qsCompleted = "Completed"
+  qsFailed = "Failed"
   qsOnHold = "On Hold"
 
 type SpellSchool* = enum
-  ssAbjuration = "Abjuration", 
-  ssConjuration = "Conjuration", 
-  ssDivination = "Divination", 
-  ssEnchantment = "Enchantment", 
-  ssEvocation = "Evocation", 
-  ssIllusion = "Illusion", 
-  ssNecromancy = "Necromancy", 
+  ssAbjuration = "Abjuration"
+  ssConjuration = "Conjuration"
+  ssDivination = "Divination"
+  ssEnchantment = "Enchantment"
+  ssEvocation = "Evocation"
+  ssIllusion = "Illusion"
+  ssNecromancy = "Necromancy"
   ssTransmutation = "Transmutation"
-
-

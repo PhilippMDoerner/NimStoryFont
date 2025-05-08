@@ -8,7 +8,7 @@ import ../../applicationSettings
 import ../../utils/myStrutils
 import ../../database
 
-proc toTitleQueryParam(tokens: seq[string]): string = 
+proc toTitleQueryParam(tokens: seq[string]): string =
   let joinedTokens = tokens.join("* OR ")
   result.add(fmt"{joinedTokens}*")
 
@@ -16,7 +16,9 @@ proc toBodyQueryParam(tokens: seq[string]): string =
   let joinedTokens = tokens.join("* AND ")
   result.add(fmt"{joinedTokens}*")
 
-proc search*(campaignName: string, searchText: string, searchLimit: int = 100): seq[SearchHit] =
+proc search*(
+    campaignName: string, searchText: string, searchLimit: int = 100
+): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
   let searchSQLStatement: string = fmt """
       SELECT 
@@ -44,21 +46,19 @@ proc search*(campaignName: string, searchText: string, searchLimit: int = 100): 
 
   let queryParams: array[6, DbValue] = [
     campaign.id.dbValue(),
-    tokens.toTitleQueryParam().dbValue(), 
-    tokensRev.toTitleQueryParam().dbValue(), 
-    tokens.toBodyQueryParam().dbValue(), 
+    tokens.toTitleQueryParam().dbValue(),
+    tokensRev.toTitleQueryParam().dbValue(),
+    tokens.toBodyQueryParam().dbValue(),
     tokensRev.toBodyQueryParam().dbValue(),
-    searchLimit.dbValue()
+    searchLimit.dbValue(),
   ]
 
   withDbConn(connection):
-    result = connection.rawSelectRows(
-      searchSQLStatement,
-      SearchHit,
-      queryParams
-    )
+    result = connection.rawSelectRows(searchSQLStatement, SearchHit, queryParams)
 
-proc search*(campaignName: string, searchText: string, table: ArticleTable, searchLimit: int = 20): seq[SearchHit] =
+proc search*(
+    campaignName: string, searchText: string, table: ArticleTable, searchLimit: int = 20
+): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
 
   const searchSQLStatement: string = fmt """
@@ -89,20 +89,16 @@ proc search*(campaignName: string, searchText: string, table: ArticleTable, sear
   let queryParams: array[7, DbValue] = [
     campaign.id.dbValue(),
     ($table).dbValue(),
-    tokens.toTitleQueryParam().dbValue(), 
-    tokensRev.toTitleQueryParam().dbValue(), 
-    tokens.toBodyQueryParam().dbValue(), 
+    tokens.toTitleQueryParam().dbValue(),
+    tokensRev.toTitleQueryParam().dbValue(),
+    tokens.toBodyQueryParam().dbValue(),
     tokensRev.toBodyQueryParam().dbValue(),
-    searchLimit.dbValue()
+    searchLimit.dbValue(),
   ]
-  
+
   withDbConn(connection):
-    result = connection.rawSelectRows(
-      searchSQLStatement,
-      SearchHit,
-      queryParams
-    )
-    
+    result = connection.rawSelectRows(searchSQLStatement, SearchHit, queryParams)
+
 proc searchByGuid*(articleGuid: string): SearchHit =
   const searchSQLStatement: string = fmt """
     SELECT 
@@ -117,17 +113,20 @@ proc searchByGuid*(articleGuid: string): SearchHit =
   """
 
   let queryParams: array[1, DbValue] = [articleGuid.dbValue()]
-  
+
   withDbConn(connection):
-    let searchHit = connection.rawSelectRow(
-      searchSQLStatement,
-      SearchHit,
-      queryParams
-    )
+    let searchHit = connection.rawSelectRow(searchSQLStatement, SearchHit, queryParams)
     result = searchHit
 
-
-proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string, tableName: string, record_id: int64, record: string, campaign_id: int64) =
+proc addSearchEntry*(
+    connection: DbConn,
+    searchTitle: string,
+    searchBody: string,
+    tableName: string,
+    record_id: int64,
+    record: string,
+    campaign_id: int64,
+) =
   let guid = fmt"{tableName}_{record_id}"
   let searchHit = Search(
     title: searchTitle,
@@ -138,13 +137,20 @@ proc addSearchEntry*(connection: DbConn, searchTitle: string, searchBody: string
     record_id: record_id,
     record: record,
     campaign_id: campaign_id,
-    guid: guid  
+    guid: guid,
   )
 
   connection.rawInsert(searchHit, SEARCH_TABLE)
 
-proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: string, searchBody: string, record: string) =  
-  const updateSearchEntryQuery = fmt"""
+proc updateSearchEntryContent*(
+    connection: DbConn,
+    guid: string,
+    searchTitle: string,
+    searchBody: string,
+    record: string,
+) =
+  const updateSearchEntryQuery =
+    fmt"""
     UPDATE {SEARCH_TABLE} 
     SET
       title = ?,
@@ -161,22 +167,16 @@ proc updateSearchEntryContent*(connection: DbConn, guid: string, searchTitle: st
     searchBody.dbValue(),
     searchBody.reverseString().dbValue(),
     record.dbValue(),
-    guid.dbValue()
+    guid.dbValue(),
   ]
 
-  connection.rawExec(
-    updateSearchEntryQuery,
-    queryParams
-  )
-
+  connection.rawExec(updateSearchEntryQuery, queryParams)
 
 proc deleteSearchEntry*(connection: DbConn, guid: string) =
-    let deleteSearchEntryQuery = fmt"""
+  let deleteSearchEntryQuery =
+    fmt"""
       DELETE FROM {SEARCH_TABLE}
       WHERE guid = ?
     """
 
-    connection.rawExec(
-      deleteSearchEntryQuery,
-      guid.dbValue()
-    )
+  connection.rawExec(deleteSearchEntryQuery, guid.dbValue())

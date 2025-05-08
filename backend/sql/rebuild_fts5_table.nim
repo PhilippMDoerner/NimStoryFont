@@ -18,7 +18,8 @@ import ../src/applications/search/searchService
 import ../src/applications/[articleModel, articleUtils, genericArticleRepository]
 import ../src/database
 
-const ADD_NEW_FTS_TABLE = """
+const ADD_NEW_FTS_TABLE =
+  """
   CREATE VIRTUAL TABLE search_article_content USING fts5(
     title,
     title_rev,

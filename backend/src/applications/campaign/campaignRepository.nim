@@ -16,7 +16,7 @@ proc readCampaignMembers*(connection: DbConn, campaign: Campaign): seq[UserGroup
   let campaignGroupIds: array[3, int64] = [
     campaign.guest_group_id.get(),
     campaign.member_group_id.get(),
-    campaign.admin_group_id.get()
+    campaign.admin_group_id.get(),
   ]
   result = connection.getGroupMembers(campaignGroupIds)
 
@@ -24,7 +24,7 @@ proc readCampaignMembers*(connection: DbConn, campaign: CampaignRead): seq[UserG
   let campaignGroupIds: array[3, int64] = [
     campaign.guest_group_id.get().id,
     campaign.member_group_id.get().id,
-    campaign.admin_group_id.get().id
+    campaign.admin_group_id.get().id,
   ]
   result = connection.getGroupMembers(campaignGroupIds)
 
@@ -33,7 +33,9 @@ proc getCampaigns*(connection: DbConn, campaignIds: varargs[int64]): seq[Campaig
   let sqlCondition = fmt"{CampaignRead.table()}.id IN ({campaignIdStr})"
   result = connection.getList(CampaignRead, sqlCondition)
 
-proc trackCampaignVisit*(connection: DbConn, userId: int64, campaignName: string, lastVisit: DjangoDateTime) =
+proc trackCampaignVisit*(
+    connection: DbConn, userId: int64, campaignName: string, lastVisit: DjangoDateTime
+) =
   let campaign: Campaign = connection.getEntryByField("name", campaignName, Campaign)
   const upsertCampaignVisitCommand = fmt """
     INSERT INTO {CAMPAIGN_VISIT_TABLE} (campaign_id, user_id, last_visit)
@@ -41,17 +43,15 @@ proc trackCampaignVisit*(connection: DbConn, userId: int64, campaignName: string
     ON CONFLICT(campaign_id, user_id)
     DO UPDATE SET last_visit = ?
   """
-  
-  let commandParams: array[4, DbValue] = [
-    campaign.id.dbValue(),
-    userId.dbValue(),
-    lastVisit.dbValue(),
-    lastVisit.dbValue()
-  ]
-  
+
+  let commandParams: array[4, DbValue] =
+    [campaign.id.dbValue(), userId.dbValue(), lastVisit.dbValue(), lastVisit.dbValue()]
+
   connection.rawExec(upsertCampaignVisitCommand, commandParams)
 
-proc getLastCampaignVisit*(connection: DbConn, userId: int64, campaignName: string): Option[DjangoDateTime] =
+proc getLastCampaignVisit*(
+    connection: DbConn, userId: int64, campaignName: string
+): Option[DjangoDateTime] =
   const getLastCampaignVisitQuery = fmt """
     SELECT 
       wikientries_campaignvisit.campaign_id, 
@@ -63,16 +63,13 @@ proc getLastCampaignVisit*(connection: DbConn, userId: int64, campaignName: stri
     WHERE wikientries_campaign.name = ?
     AND wikientries_campaignvisit.user_id = ?
   """
-  
-  let queryParams: array[2, DbValue] =  [
-    campaignName.dbValue(),
-    userId.dbValue()
-  ]
-  
-  let campaignVisits: seq[CampaignVisit] = connection.rawSelectRows(getLastCampaignVisitQuery, CampaignVisit, queryParams)
-  
+
+  let queryParams: array[2, DbValue] = [campaignName.dbValue(), userId.dbValue()]
+
+  let campaignVisits: seq[CampaignVisit] =
+    connection.rawSelectRows(getLastCampaignVisitQuery, CampaignVisit, queryParams)
+
   if campaignVisits.len() == 0:
     return none(DjangoDateTime)
   else:
     return some(campaignVisits[0].last_visit)
-  

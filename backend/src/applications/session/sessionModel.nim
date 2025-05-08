@@ -6,7 +6,7 @@ import ../../applicationSettings
 import ../../applicationConstants
 import ../campaign/campaignModel
 
-type Session* {.defaults, tableName: SESSION_TABLE} = ref object of Model
+type Session* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
@@ -18,11 +18,7 @@ type Session* {.defaults, tableName: SESSION_TABLE} = ref object of Model
 
 implDefaults(Session, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
-
-
-type SessionRead* {.defaults, readOnly, tableName: SESSION_TABLE} = ref object of Model
+type SessionRead* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
   is_main_session*: bool = true
@@ -33,4 +29,3 @@ type SessionRead* {.defaults, readOnly, tableName: SESSION_TABLE} = ref object o
   campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
 implDefaults(SessionRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-

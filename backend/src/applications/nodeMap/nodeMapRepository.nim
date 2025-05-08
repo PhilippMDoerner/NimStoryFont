@@ -18,19 +18,19 @@ proc getNodes*(con: DbConn, campaignId: int64): seq[Node] =
         "wikientries_location"
       )
   """
-  
+
   let queryParams: array[1, DbValue] = [campaignId.dbValue()]
   return con.rawSelectRows(getNodesSQLStatement, Node, queryParams)
 
 proc getLinks*(
-  con: DbConn,
-  campaignId: int64, 
-  itemOwnershipWeight: int64 = 1, 
-  organizationMembershipWeight: int64 = 1,
-  organizationHeadquarterWeight: int64 = 1,
-  locationPlacementWeight: int64 = 1,
-  sublocationWeight: int64 = 1,
-  suborganizationWeight: int64 = 1
+    con: DbConn,
+    campaignId: int64,
+    itemOwnershipWeight: int64 = 1,
+    organizationMembershipWeight: int64 = 1,
+    organizationHeadquarterWeight: int64 = 1,
+    locationPlacementWeight: int64 = 1,
+    sublocationWeight: int64 = 1,
+    suborganizationWeight: int64 = 1,
 ): seq[Link] =
   const getLinksSQLStatement: string = fmt """
     SELECT 
@@ -137,14 +137,14 @@ proc getLinks*(
     WHERE 
       relationship.campaign_id = ?
   """
-  
+
   let queryParams: array[11, DbValue] = [
     # Organization - Character Links
-    organizationMembershipWeight.dbValue(), 
+    organizationMembershipWeight.dbValue(),
     campaignId.dbValue(),
     # Item - Character Links
-    itemOwnershipWeight.dbValue(), 
-    campaignId.dbValue(), 
+    itemOwnershipWeight.dbValue(),
+    campaignId.dbValue(),
     # Location - Character Links
     locationPlacementWeight.dbValue(),
     campaignId.dbValue(),
@@ -155,14 +155,10 @@ proc getLinks*(
     organizationHeadquarterWeight.dbValue(),
     campaignId.dbValue(),
     # Custom Links
-    campaignId.dbValue()
+    campaignId.dbValue(),
   ]
-    
-  return con.rawSelectRows(
-    getLinksSQLStatement, 
-    Link, 
-    queryParams
-  )
+
+  return con.rawSelectRows(getLinksSQLStatement, Link, queryParams)
 
 proc getLinkTypes*(con: DbConn, campaignName: string): seq[CustomLinkType] =
   const getLinkTypesSQL: string = fmt """
@@ -180,6 +176,6 @@ proc getLinkTypes*(con: DbConn, campaignName: string): seq[CustomLinkType] =
     WHERE 
       camp.name = ? OR typ.campaign_id IS NULL
   """
-  
+
   let queryParams: array[1, DbValue] = [campaignName.dbValue()]
   return con.rawSelectRows(getLinkTypesSQL, CustomLinkType, queryParams)

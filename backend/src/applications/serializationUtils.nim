@@ -5,37 +5,15 @@ import ../utils/macroUtils
 
 ##This is the global module for all jsony hook procs
 
-const fkFieldNames = toHashSet([
-  "author", 
-  "campaign",
-  "character", 
-  "creature",
-  "current_location",
-  "diaryentry",
-  "encounter",
-  "end_session",
-  "giver",
-  "headquarter",
-  "item",
-  "location",
-  "map",
-  "marker",
-  "markertype",
-  "organization",
-  "owner",
-  "parentlocation",
-  "parent_location",
-  "player_class",
-  "quest",
-  "rule",
-  "session",
-  "sessionaudio",
-  "session_audio",
-  "start_session",
-  "spell",
-  "taker",
-  "type",
-])
+const fkFieldNames = toHashSet(
+  [
+    "author", "campaign", "character", "creature", "current_location", "diaryentry",
+    "encounter", "end_session", "giver", "headquarter", "item", "location", "map",
+    "marker", "markertype", "organization", "owner", "parentlocation",
+    "parent_location", "player_class", "quest", "rule", "session", "sessionaudio",
+    "session_audio", "start_session", "spell", "taker", "type",
+  ]
+)
 
 proc renameHook*[T: Model](entry: var T, fieldName: var string) =
   ## Contains a mapping for all parts where the incoming fieldname does not
@@ -45,7 +23,6 @@ proc renameHook*[T: Model](entry: var T, fieldName: var string) =
     fieldName.add("_id")
   elif fieldName == "pk":
     fieldName = "id"
-
 
 template setOptionalsToNone[T: Model](entry: var T) =
   ## Takes an initialized model-type and sets all its optional fields to none()
@@ -58,7 +35,7 @@ proc newHook*[T: Model](entry: var T) =
   ## These default values are the current DateTime for update- and creation
   ## date as well as "none" values for all Optional values of the Article.
   entry = new(T)
-  
+
   let currentDateTime: DjangoDateTime = djangoDateTimeType.now()
   when entry.hasField("creation_datetime"):
     entry.creation_datetime = currentDateTime

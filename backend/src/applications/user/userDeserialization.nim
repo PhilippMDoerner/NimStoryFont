@@ -4,7 +4,6 @@ include ../serializationUtils
 
 const JSON_TO_MODEL_FIELD_NAME_MAP: Table[string, string] = initTable[string, string]()
 
-
 ## PROCS FOR DESERIALIZING ENTRY CREATION JSON
 proc renameHook*(v: var User, fieldName: var string) =
   ##  A jsony renameHook the converts fieldNames that differ between the 
@@ -23,7 +22,8 @@ proc newHook*(entry: var User) =
   setOptionalsToNone[User](entry)
 
 ## PROC FOR DESERIALIZING ENTRY UPDATE JSON
-proc deserializeEntry*(jsonStr: string, modelType: typedesc[User]): User = jsonStr.fromJson(User)
+proc deserializeEntry*(jsonStr: string, modelType: typedesc[User]): User =
+  jsonStr.fromJson(User)
 
 ## PROC FOR DESERIALIZING ENTRY PATCHING JSON
 
@@ -34,12 +34,15 @@ proc updateEntryWithJson*[T: Model](entry: var User, json: JsonNode) =
   const jsonToModelFieldNameMap = JSON_TO_MODEL_FIELD_NAME_MAP.invertTable()
 
   for modelFieldName, fieldValue in entry[].fieldPairs:
-    const jsonFieldName = if jsonToModelFieldNameMap.hasKey(modelFieldName): jsonToModelFieldNameMap[modelFieldName] else: modelFieldName
-    
+    const jsonFieldName =
+      if jsonToModelFieldNameMap.hasKey(modelFieldName):
+        jsonToModelFieldNameMap[modelFieldName]
+      else:
+        modelFieldName
+
     if json.hasKey(jsonFieldName):
       when fieldValue is Option:
         #fieldValue.T is the inner type of the Option type
         transferJsonValue(entry, modelFieldName, fieldValue.T, json[jsonFieldName])
       else:
         transferJsonValue(entry, modelFieldName, fieldValue.type(), json[jsonFieldName])
-

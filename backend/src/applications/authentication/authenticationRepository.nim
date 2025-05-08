@@ -9,9 +9,9 @@ import ../../applicationSettings
 import ../../utils/tokenTypes
 import ../../utils/djangoDateTime/[normConversion, djangoDateTimeType]
 
-
 proc deleteGroupMembership*(connection: DbConn, userId: int64, groupId: int64) =
-  let query = fmt"""
+  let query =
+    fmt"""
     DELETE FROM {USER_GROUP_TABLE} 
     WHERE user_id = {userId} AND group_id = {groupId}
   """
@@ -29,12 +29,15 @@ type UserTokenRow {.defaults.} = ref object
   memberCampaignId*: Option[int64] = none(int64)
   adminCampaignName*: Option[string] = none(string)
   adminCampaignId*: Option[int64] = none(int64)
-implDefaults(UserTokenRow, {DefaultFlag.defExported, DefaultFlag.defTypeConstr}) 
 
+implDefaults(UserTokenRow, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string, tokenType: TokenType): TokenData =
+proc getTokenData*(
+    connection: DbConn, tokenLifetimeInDays: int64, token: string, tokenType: TokenType
+): TokenData =
   let tokenLifetimeInSeconds = tokenLifetimeInDays * 24 * 60 * 60
-  let query = fmt"""
+  let query =
+    fmt"""
     SELECT 
       user.id,
       user.is_staff AS isAdmin,
@@ -59,16 +62,14 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
       AND token.created + ? > CAST(strftime('%s', 'now') AS INT)
       AND token.tokenType = ?
   """
-  let queryParams: array[3, DbValue] = [
-    token.dbValue(),
-    tokenLifetimeInSeconds.dbValue(),
-    ($tokenType).dbValue()
-  ]
+  let queryParams: array[3, DbValue] =
+    [token.dbValue(), tokenLifetimeInSeconds.dbValue(), ($tokenType).dbValue()]
 
-  let rows: seq[UserTokenRow] = connection.rawSelectRows(query, UserTokenRow, queryParams)
+  let rows: seq[UserTokenRow] =
+    connection.rawSelectRows(query, UserTokenRow, queryParams)
   if rows.len() == 0:
     raise newException(UnauthorizedError, fmt"There is no valid token '{token}'")
-  
+
   result = TokenData(
     isAdmin: rows[0].isStaff,
     isSuperUser: rows[0].isSuperUser,
@@ -76,95 +77,97 @@ proc getTokenData*(connection: DbConn, tokenLifetimeInDays: int64, token: string
     userId: rows[0].id,
     jti: token,
     exp: rows[0].created + tokenLifetimeInSeconds,
-    campaignMemberships: newMembershipTable()
+    campaignMemberships: newMembershipTable(),
   )
 
   for row in rows:
     if row.guestCampaignName.isSome():
-      result.campaignMemberships[row.guestCampaignName.get()] = CampaignAccessLevel.GUEST
+      result.campaignMemberships[row.guestCampaignName.get()] =
+        CampaignAccessLevel.GUEST
       result.campaignMemberships[row.guestCampaignId.get()] = CampaignAccessLevel.GUEST
     elif row.memberCampaignName.isSome():
-      result.campaignMemberships[row.memberCampaignName.get()] = CampaignAccessLevel.MEMBER
-      result.campaignMemberships[row.memberCampaignId.get()] = CampaignAccessLevel.MEMBER
+      result.campaignMemberships[row.memberCampaignName.get()] =
+        CampaignAccessLevel.MEMBER
+      result.campaignMemberships[row.memberCampaignId.get()] =
+        CampaignAccessLevel.MEMBER
     elif row.adminCampaignName.isSome():
-      result.campaignMemberships[row.adminCampaignName.get()] = CampaignAccessLevel.ADMIN
+      result.campaignMemberships[row.adminCampaignName.get()] =
+        CampaignAccessLevel.ADMIN
       result.campaignMemberships[row.adminCampaignId.get()] = CampaignAccessLevel.ADMIN
 
-
 proc blacklistToken*(connection: DbConn, token: string) =
-  const query = fmt"""
+  const query =
+    fmt"""
     UPDATE {TOKEN_TABLE}
     SET blacklisted = TRUE
     WHERE key = ?
   """
   connection.rawExec(query, token.dbValue())
 
-proc insertToken*(connection: DbConn, token: string, creationTimestamp: int64, userId: int64, tokenType: TokenType) =
+proc insertToken*(
+    connection: DbConn,
+    token: string,
+    creationTimestamp: int64,
+    userId: int64,
+    tokenType: TokenType,
+) =
   let tokenEntry = TokenEntry(
-      key: token,
-      created: creationTimestamp,
-      user_id: userId,
-      blacklisted: false,
-      tokenType: $tokenType
-  )  
+    key: token,
+    created: creationTimestamp,
+    user_id: userId,
+    blacklisted: false,
+    tokenType: $tokenType,
+  )
 
   connection.rawInsert(tokenEntry, TOKEN_TABLE)
 
 proc hasActiveWorkflowConfirmation*(
-  connection: DbConn, 
-  user_id: int64, 
-  workflow: WorkflowType, 
-  workflowLifetimeInSeconds: int
+    connection: DbConn,
+    user_id: int64,
+    workflow: WorkflowType,
+    workflowLifetimeInSeconds: int,
 ): bool =
-  const condition = """
+  const condition =
+    """
     user_id = ?
     AND workflow = ?
     AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
     AND confirmed = TRUE
     ORDER BY creation_datetime DESC
   """
-  let queryParams: array[3, DbValue] = [
-    user_id.dbValue(), 
-    workflow.dbValue(),
-    workflowLifetimeInSeconds.dbValue()
-  ]
-  let activeConfirmationCount = connection.count(
-    Confirmation, 
-    cond = condition, 
-    params = queryParams
-  )
-  
+  let queryParams: array[3, DbValue] =
+    [user_id.dbValue(), workflow.dbValue(), workflowLifetimeInSeconds.dbValue()]
+  let activeConfirmationCount =
+    connection.count(Confirmation, cond = condition, params = queryParams)
+
   return activeConfirmationCount > 0
-  
 
 proc getWorkflowConfirmation*(
-  connection: DbConn, 
-  user_id: int64, 
-  token: string, 
-  workflow: WorkflowType, 
-  workflowLifetimeInSeconds: int
+    connection: DbConn,
+    user_id: int64,
+    token: string,
+    workflow: WorkflowType,
+    workflowLifetimeInSeconds: int,
 ): Confirmation =
   var entry = new(Confirmation)
-  
-  const condition = """
+
+  const condition =
+    """
     user_id = ?
     AND workflow = ?
     AND workflow_token = ?
   """
     # AND CAST(strftime('%s', creation_datetime) AS INT) + ? > CAST(strftime('%s', 'now') AS INT) 
   let queryParams: array[3, DbValue] = [
-    user_id.dbValue(), 
-    workflow.dbValue(), 
-    token.dbValue(), 
-    # workflowLifetimeInSeconds.dbValue()
+    user_id.dbValue(),
+    workflow.dbValue(),
+    token.dbValue(), # workflowLifetimeInSeconds.dbValue()
   ]
   try:
-    connection.select(
-      entry, 
-      condition, 
-      queryParams
-    )
+    connection.select(entry, condition, queryParams)
   except DbError:
-    raise newException(NotFoundError, fmt"There is no active '{workflow}' process", getCurrentException())
+    raise newException(
+      NotFoundError, fmt"There is no active '{workflow}' process", getCurrentException()
+    )
 
   result = entry

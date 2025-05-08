@@ -13,6 +13,5 @@ proc deleteImageFile(connection: DbConn, modelInstance: var Image) =
   let mediaDirectory: string = settings["imageDir"].getStr()
   deleteFile(imageFilepath, mediaDirectory)
 
-
 proc connectImageSignals*() =
   connect(SignalType.stPreDelete, Image, deleteImageFile)

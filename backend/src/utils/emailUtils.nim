@@ -20,10 +20,11 @@ type
     address*: string
 
   MailAuthenticationError* = object of ReplyError
-    
+
 const NEW_LINE = "\c\L"
 
-proc sender(msg: Message): Email = msg.msgSender
+proc sender(msg: Message): Email =
+  msg.msgSender
 
 proc recipients(msg: Message): seq[Email] =
   ## Retrieves all recipients of the message, which are all recipients defined for to, cc and bcc
@@ -42,16 +43,22 @@ proc createEmail*(address: string, name: string): Email =
   ## 
   ## You need to make sure that `address` and `name` (if specified) do not contain any newline characters. 
   ## Failing to do so will raise `AssertionDefect`.
-  doAssert(not address.containsNewline(), "'address' shouldn't contain any newline characters")
-  doAssert(not name.containsNewline(), "'name' shouldn't contain any newline characters")
-  
+  doAssert(
+    not address.containsNewline(), "'address' shouldn't contain any newline characters"
+  )
+  doAssert(
+    not name.containsNewline(), "'name' shouldn't contain any newline characters"
+  )
+
   result.address = address
   result.name = some(name)
-  
+
 proc createEmail*(address: string): Email =
-  doAssert(not address.containsNewline(), "'address' shouldn't contain any newline characters")
-  
-  result.address = address  
+  doAssert(
+    not address.containsNewline(), "'address' shouldn't contain any newline characters"
+  )
+
+  result.address = address
   result.name = none(string)
 
 proc toEmail(value: string | Email): Email =
@@ -61,13 +68,13 @@ proc toEmail(value: string | Email): Email =
     value
 
 proc createMessage*[T: Email | string](
-  mSubject, mBody: string;
-  sender: T;
-  mTo: seq[T] = @[];
-  mCc: seq[T] = @[];
-  mBcc: seq[T] = @[];
-  mReplyTo: seq[T] = @[];
-  otherHeaders: openArray[tuple[name, value: string]] = @[]
+    mSubject, mBody: string,
+    sender: T,
+    mTo: seq[T] = @[],
+    mCc: seq[T] = @[],
+    mBcc: seq[T] = @[],
+    mReplyTo: seq[T] = @[],
+    otherHeaders: openArray[tuple[name, value: string]] = @[],
 ): Message =
   ## Creates a new MIME compliant message.
   ##
@@ -75,11 +82,11 @@ proc createMessage*[T: Email | string](
   ## Failing to do so will raise `AssertionDefect`.
   doAssert(
     not mSubject.containsNewline(),
-    "'mSubject' shouldn't contain any newline characters"
+    "'mSubject' shouldn't contain any newline characters",
   )
-  
+
   let senderMail = sender.toEmail()
-  
+
   result.msgSubject = mSubject
   result.msgBody = mBody
   result.msgFrom = @[senderMail]
@@ -99,7 +106,7 @@ proc `$`(email: Email): string =
   else:
     result = email.address
 
-proc toSmtpField(name: string, value: string): string = 
+proc toSmtpField(name: string, value: string): string =
   fmt"{name}: {value}{NEW_LINE}"
 
 proc `$`(msg: Message): string =
@@ -115,7 +122,7 @@ proc `$`(msg: Message): string =
     result.add(toSmtpField("Cc", msg.msgCc.join(", ")))
   if msg.msgBcc.len() > 0:
     result.add(toSmtpField("Bcc", msg.msgBcc.join(", ")))
-  
+
   result.add(toSmtpField("Subject", msg.msgSubject))
   for key, value in pairs(msg.msgOtherHeaders):
     result.add(toSmtpField(key, value))
@@ -140,7 +147,9 @@ proc auth(smtp: Smtp | AsyncSmtp, settings: Settings) {.async.} =
   try:
     await smtp.auth(emailUserName, emailPassword)
   except ReplyError as e:
-    raise newException(MailAuthenticationError, "Failed to authenticate for sending system mails", e)
+    raise newException(
+      MailAuthenticationError, "Failed to authenticate for sending system mails", e
+    )
 
 proc adminEmail(settings: Settings): Email =
   let domain = settings.getSetting(SettingName.snEmailDomain).getStr()
@@ -148,23 +157,22 @@ proc adminEmail(settings: Settings): Email =
   let address = adminName & "@" & domain
   return createEmail(address, adminName)
 
-proc sendSystemEmail*(subject: string, body: string, targets: seq[Email], settings: Settings) {.async.} =  
+proc sendSystemEmail*(
+    subject: string, body: string, targets: seq[Email], settings: Settings
+) {.async.} =
   let smtpConn = newAsyncSmtp()
-  
+
   await smtpConn.connect(settings)
   await smtpConn.startTls()
   await smtpConn.auth(settings)
-  
+
   let headers = @[("Content-Type", "text/html; charset=\"ISO-8859-1\";")]
-  let msg =  createMessage(
-    subject,
-    body,
-    settings.adminEmail(),
-    targets,
-    otherHeaders = headers
-  )
-  
+  let msg =
+    createMessage(subject, body, settings.adminEmail(), targets, otherHeaders = headers)
+
   await smtpConn.sendMail(msg)
 
-proc sendSystemEmail*(subject: string, body: string, target: Email, settings: Settings) {.async.} =  
+proc sendSystemEmail*(
+    subject: string, body: string, target: Email, settings: Settings
+) {.async.} =
   await sendSystemEmail(subject, body, @[target], settings)

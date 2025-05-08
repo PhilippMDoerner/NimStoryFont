@@ -23,25 +23,27 @@ proc storeFileIn(mediaDir: string, subDir: string, file: var UploadFile): PathTu
   let absolutePath: string = saveFile(file, fileDir)
   var relativePath = absolutePath.getRelativeFilepathTo(mediaDir)
   relativePath.removePrefix("/")
-  
+
   return (relativePath, absolutePath)
 
 proc storeIcon(mediaDir: string, image: var UploadFile): PathTuple =
   return mediaDir.storeFileIn(CAMPAIGN_ICONS_SUBDIR, image)
-  
+
 proc storeBackgroundImage(mediaDir: string, image: var UploadFile): PathTuple =
   return mediaDir.storeFileIn(BACKGROUND_IMAGE_SUBDIR, image)
-  
+
 proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead =
-  let (relativeIconPath, absoluteIconPath) = campaignDTO.mediaDirectory.storeIcon(campaignDTO.icon)
-  let (relativeBackgroundImagePath, absoluteBackgroundImagePath) = campaignDTO.mediaDirectory.storeBackgroundImage(campaignDTO.backgroundImage)
-    
+  let (relativeIconPath, absoluteIconPath) =
+    campaignDTO.mediaDirectory.storeIcon(campaignDTO.icon)
+  let (relativeBackgroundImagePath, absoluteBackgroundImagePath) =
+    campaignDTO.mediaDirectory.storeBackgroundImage(campaignDTO.backgroundImage)
+
   var campaign = new(Campaign)
   campaign.name = campaignDTO.name
   campaign.subtitle = campaignDTO.subtitle
   campaign.background_image = relativeBackgroundImagePath
   campaign.icon = some relativeIconPath
-  
+
   try:
     let newCampaign = connection.createEntryInTransaction(campaign)
     result = connection.getEntryById(newCampaign.id, CampaignRead)
@@ -49,36 +51,41 @@ proc createCampaign*(connection: DbConn, campaignDTO: CampaignDTO): CampaignRead
     deleteFile(absoluteIconPath)
     deleteFile(absoluteBackgroundImagePath)
     raise
-  
+
 proc updateCampaign*(connection: DbConn, campaignDTO: CampaignUpdateDTO): CampaignRead =
   let mediaDir = campaignDTO.mediaDirectory
   var campaign = connection.getEntryById(campaignDTO.pk, Campaign)
   let serverTimestamp = campaign.update_datetime.toTime().toUnix()
   let isOutdatedUpdate = campaignDTO.userTimestamp < serverTimestamp
   if isOutdatedUpdate:
-    raise newException(OutdatedDataError, "Tried updating a campaign with data that has already been changed by another user!")
-  
+    raise newException(
+      OutdatedDataError,
+      "Tried updating a campaign with data that has already been changed by another user!",
+    )
+
   if campaignDTO.name.isSome():
     campaign.name = campaignDTO.name.get()
   if campaignDTO.subtitle.isSome():
     campaign.subtitle = campaignDTO.subtitle
   if campaignDTO.default_map_id.isSome():
     campaign.default_map_id = campaignDTO.default_map_id
-  
-  let iconPaths = if campaignDTO.icon.isSome():
+
+  let iconPaths =
+    if campaignDTO.icon.isSome():
       let paths = mediaDir.storeIcon(campaignDTO.icon.get())
       campaign.icon = some(paths.relativeFilePath)
       some(paths)
     else:
       none(PathTuple)
-  
-  let backgroundImagePaths = if campaignDTO.backgroundImage.isSome():
+
+  let backgroundImagePaths =
+    if campaignDTO.backgroundImage.isSome():
       let paths = mediaDir.storeBackgroundImage(campaignDTO.backgroundImage.get())
       campaign.backgroundImage = paths.relativeFilePath
       some(paths)
     else:
       none(PathTuple)
-  
+
   campaign.update_datetime = djangoDateTimeType.now()
   try:
     discard connection.updateEntryInTransaction(campaign)
@@ -96,16 +103,22 @@ proc getCampaignByName*(campaignName: string): Campaign =
 proc getAllCampaigns*(): seq[Campaign] =
   result = getList(Campaign)
 
-proc getAllCampaignReads*(): seq[CampaignRead] = 
+proc getAllCampaignReads*(): seq[CampaignRead] =
   result = getList(CampaignRead)
 
-proc getAllCampaignReads*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
+proc getAllCampaignReads*(
+    connection: DbConn, requestParams: ReadWithoutParams
+): seq[CampaignRead] =
   result = connection.getList(CampaignRead)
 
-proc readCampaignByName*(connection: DbConn, requestParams: CampaignNameParams): CampaignRead =
+proc readCampaignByName*(
+    connection: DbConn, requestParams: CampaignNameParams
+): CampaignRead =
   result = connection.getEntryByField("name", requestParams.campaignName, CampaignRead)
 
-proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutParams): seq[CampaignRead] =
+proc getAllCampaignOverviews*(
+    connection: DbConn, requestParams: ReadWithoutParams
+): seq[CampaignRead] =
   var campaignIdsOfUser: seq[int64] = @[]
 
   if requestParams.userToken.isAdmin or requestParams.userToken.isSuperUser:
@@ -117,32 +130,34 @@ proc getAllCampaignOverviews*(connection: DbConn, requestParams: ReadWithoutPara
 
   result = connection.getCampaigns(campaignIdsOfUser)
 
-proc getCampaignMembers*(connection: DbConn, campaign: Campaign | CampaignRead): seq[UserGroup] =
+proc getCampaignMembers*(
+    connection: DbConn, campaign: Campaign | CampaignRead
+): seq[UserGroup] =
   result = connection.readCampaignMembers(campaign)
 
-proc getCampaignMembersWithRole*(connection: DbConn, campaign: CampaignRead, role: CampaignRole): seq[UserGroup] =
-  let campaignGroup: Option[Group] = case role:
-  of CampaignRole.crADMIN:
-    campaign.admin_group_id
-  of CampaignRole.crMEMBER:
-    campaign.member_group_id
-  of CampaignRole.crGUEST:
-    campaign.guest_group_id
+proc getCampaignMembersWithRole*(
+    connection: DbConn, campaign: CampaignRead, role: CampaignRole
+): seq[UserGroup] =
+  let campaignGroup: Option[Group] =
+    case role
+    of CampaignRole.crADMIN: campaign.admin_group_id
+    of CampaignRole.crMEMBER: campaign.member_group_id
+    of CampaignRole.crGUEST: campaign.guest_group_id
 
   let campaignGroupId: Option[int64] = campaignGroup.map(group => group.id)
   if campaignGroupId.isNone():
     result = @[]
 
-  result = connection.getList(
-    UserGroup, 
-    "group_id = ?", 
-    campaignGroupId.get().dbValue(), 
-  )
+  result =
+    connection.getList(UserGroup, "group_id = ?", campaignGroupId.get().dbValue())
 
 proc deactivateCampaign*(connection: DbConn, campaign: var Campaign) =
   if campaign.is_deactivated:
-    raise newException(InvalidDatabaseManipulation, fmt"Campaigns cannot be deleted, they only get deactivated. '{campaign.name}' is already deactivated.")
-  
+    raise newException(
+      InvalidDatabaseManipulation,
+      fmt"Campaigns cannot be deleted, they only get deactivated. '{campaign.name}' is already deactivated.",
+    )
+
   campaign.is_deactivated = true
   discard connection.updateEntryInTransaction(campaign)
 
@@ -151,6 +166,8 @@ proc trackCampaignVisit*(userId: int64, campaignName: string) =
   withDbConn(con):
     con.trackCampaignVisit(userId, campaignName, lastVisitDate)
 
-proc getLastCampaignVisit*(userId: int64, campaignName: string): Option[DjangoDateTime] =
+proc getLastCampaignVisit*(
+    userId: int64, campaignName: string
+): Option[DjangoDateTime] =
   withDbConn(con):
     return con.getLastCampaignVisit(userId, campaignName)

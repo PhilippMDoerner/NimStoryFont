@@ -23,8 +23,10 @@ type MapDTO* = object
 proc createMap*(connection: DbConn, requestParams: var MapDTO): Map =
   let creationTime: DjangoDateTime = now()
 
-  let absoluteImagePath: string = saveFile(requestParams.mapImage, requestParams.mediaDirectory)
-  var relativeImagePath = absoluteImagePath.getRelativeFilepathTo(requestParams.mediaDirectory)
+  let absoluteImagePath: string =
+    saveFile(requestParams.mapImage, requestParams.mediaDirectory)
+  var relativeImagePath =
+    absoluteImagePath.getRelativeFilepathTo(requestParams.mediaDirectory)
   relativeImagePath.removePrefix("/")
 
   var map = Map(
@@ -33,7 +35,7 @@ proc createMap*(connection: DbConn, requestParams: var MapDTO): Map =
     name: requestParams.mapName,
     creationDateTime: creationTime,
     updateDateTime: creationTime,
-    campaignId: requestParams.campaignId
+    campaignId: requestParams.campaignId,
   )
 
   try:

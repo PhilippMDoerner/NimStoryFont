@@ -9,7 +9,7 @@ type ImageSerializable* = object
   name*: Option[string]
   character_article: Option[int64]
   creature_article*: Option[int64]
-  item_article*: Option[int64] 
+  item_article*: Option[int64]
   location_article*: Option[int64]
   organization_article*: Option[int64]
 
@@ -22,7 +22,7 @@ proc serializeImage*(entry: Image): ImageSerializable =
     creature_article: entry.creature_article_id,
     item_article: entry.item_article_id,
     location_article: entry.location_article_id,
-    organization_article: entry.organization_article_id
+    organization_article: entry.organization_article_id,
   )
 
 proc serializeImage*(connection: DbConn, entry: Image): ImageSerializable =

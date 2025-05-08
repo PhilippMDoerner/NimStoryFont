@@ -10,12 +10,13 @@ import ../../database
 
 proc getSettingsCategory*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
-  
+
   let userId = ctx.tokenData.userId
   let settingsCategory = ctx.getPathParams(SETTING_CATEGORY_PARAM)
-  
-  respondOnError():
+
+  respondOnError:
     withDbConn(connection):
       let settings = connection.getUserMetadataByCategory(userId, settingsCategory)
-      let serializedSettings: seq[UserMetadataSerializable] = connection.serializeUserMetadataEntries(settings)
+      let serializedSettings: seq[UserMetadataSerializable] =
+        connection.serializeUserMetadataEntries(settings)
       resp jsonyResponse(ctx, serializedSettings)

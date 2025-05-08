@@ -17,9 +17,6 @@ type DiaryEntry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
 
 implDefaults(DiaryEntry, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
-
 type DiaryEntrySession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1
   session_date*: DjangoDateTime = djangoDateTimeType.now()
@@ -28,11 +25,10 @@ type DiaryEntrySession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref o
   start_day*: Option[int] = some(-1)
   campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
 
-
 implDefaults(DiaryEntrySession, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
 type DiaryEntryUser {.defaults, readOnly, tableName: USER_TABLE.} = ref object of Model
-    username*: string = ""
+  username*: string = ""
 
 implDefaults(DiaryEntryUser, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
@@ -44,4 +40,3 @@ type DiaryEntryRead* {.defaults, readOnly, tableName: DIARYENTRY_TABLE.} = ref o
   author_id*: DiaryEntryUser = new(DiaryEntryUser)
 
 implDefaults(DiaryEntryRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-

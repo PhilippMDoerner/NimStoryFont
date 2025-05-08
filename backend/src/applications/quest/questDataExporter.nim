@@ -6,13 +6,13 @@ import ./questService
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../../utils/djangoDateTime/[serialization]
-  
+
 proc addQuestData(exportNode: JsonNode, con: DbConn, campaign: CampaignRead) =
   let campaignQuests = con.getCampaignList(campaign.name, QuestRead)
   let overviewSerializedQuests = con.overviewSerialize(campaignQuests)
   let overviewUrl = fmt"/quest/{campaign.name}/overview/"
-  exportNode[overviewUrl]= %*overviewSerializedQuests
-  
+  exportNode[overviewUrl] = %*overviewSerializedQuests
+
   for quest in campaignQuests:
     let pkUrl = fmt"/quest/pk/{quest.id}/"
     let nameUrl = fmt"/quest/{campaign.name}/{quest.name}/"

@@ -17,6 +17,6 @@ proc getPlayerClasses*(con: DbConn, campaignName: string): seq[PlayerClass] =
     WHERE 
       camp.name = ? OR typ.campaign_id IS NULL
   """
-  
+
   let queryParams: array[1, DbValue] = [campaignName.dbValue()]
   return con.rawSelectRows(getPlayerClassesSQL, PlayerClass, queryParams)

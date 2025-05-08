@@ -8,7 +8,7 @@ import ../campaign/campaignModel
 import ../character/characterModel
 import ../session/sessionModel
 
-type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
+type Quest* {.defaults, tableName: QUEST_TABLE.} = ref object of Model
   name*: string = ""
   status*: string = ""
   taker_id* {.fk: Character.}: Option[int64] = some(MODEL_INIT_ID)
@@ -23,15 +23,12 @@ type Quest* {.defaults, tableName: QUEST_TABLE} = ref object of Model
 
 implDefaults(Quest, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
-type QuestCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE} = ref object of Model
+type QuestCharacter* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
   name*: string = ""
+
 implDefaults(QuestCharacter, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
- 
-
-type QuestRead* {.defaults, readOnly, tableName: QUEST_TABLE} = ref object of Model
+type QuestRead* {.defaults, readOnly, tableName: QUEST_TABLE.} = ref object of Model
   name*: string = ""
   status*: string = ""
   taker_id*: Option[Character] = some(new(Character))

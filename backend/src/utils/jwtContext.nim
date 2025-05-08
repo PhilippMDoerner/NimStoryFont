@@ -5,12 +5,12 @@ import std/strutils
 export tokenTypes
 
 type JWTContext* = ref object of Context
-    tokenData*: TokenData
+  tokenData*: TokenData
 
-method extend(ctx: JWTContext) =    
-    ctx.tokenData = newTokenData()
+method extend(ctx: JWTContext) =
+  ctx.tokenData = newTokenData()
 
-proc hasAdminPermission*(ctx: JWTContext): bool = 
+proc hasAdminPermission*(ctx: JWTContext): bool =
   result = ctx.tokenData.isAdmin or ctx.tokenData.isSuperUser
 
 proc hasCampaignMembership*(ctx: JWTContext, campaignId: int64): bool =
@@ -22,18 +22,20 @@ proc getCampaignAccessLevel*(ctx: JWTContext, campaignId: int64): CampaignAccess
 proc extractFormFile*(ctx: JWTContext, fileFieldName: string): Option[UploadFile] =
   let hasFile: bool = ctx.request.formParams.data.hasKey(fileFieldName)
   if hasFile:
-      result = some(ctx.getUploadFile(fileFieldName))
+    result = some(ctx.getUploadFile(fileFieldName))
   else:
-      result = none(UploadFile)
+    result = none(UploadFile)
 
 proc extractIdFormParam*(ctx: JWTContext, fieldName: string): Option[int64] =
-    let idStr: Option[string] = ctx.getFormParamsOption(fieldName)
-    if idStr.isSome():
-        result = some(int64(parseInt(idStr.get())))
-    else: 
-        result = none(int64)
+  let idStr: Option[string] = ctx.getFormParamsOption(fieldName)
+  if idStr.isSome():
+    result = some(int64(parseInt(idStr.get())))
+  else:
+    result = none(int64)
 
-proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue: var T) =
+proc extractQueryParam[T](
+    ctx: JWTContext, fieldName: static string, fieldValue: var T
+) =
   ## Extracts all releavant URL parameters and the HTTP body from the request and into a defined object
   ## TODO: Figure out how to check if a url param exists at compiletime
   when fieldName == "body":
@@ -51,9 +53,14 @@ proc extractQueryParam[T](ctx: JWTContext, fieldName: static string, fieldValue:
   elif fieldValue is bool:
     fieldValue = parseBool(ctx.getPathParams(fieldName))
   else:
-    assert(false, fmt"Tried extracting query parameter '{fieldName}' of not understood type. Currently can only extract the request body and parameters of type int, int64, string, bool or an option of those types") 
+    assert(
+      false,
+      fmt"Tried extracting query parameter '{fieldName}' of not understood type. Currently can only extract the request body and parameters of type int, int64, string, bool or an option of those types",
+    )
 
-proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc[Q]): Q =
+proc extractQueryParams*[Q: object](
+    ctx: JWTContext, dataContainerType: typedesc[Q]
+): Q =
   mixin init
 
   result = init(Q)
@@ -62,15 +69,16 @@ proc extractQueryParams*[Q: object](ctx: JWTContext, dataContainerType: typedesc
     extractQueryParam(ctx, fieldName, fieldValue)
 
 proc getTokenFromCookie*(ctx: JWTContext, tokenType: TokenType): Option[string] =
-    let tokenCookie = case tokenType:
-      of TokenType.access:
-        ctx.getCookie("accessToken")
-      of TokenType.refresh:
-        ctx.getCookie("refreshToken")
-    let hasToken = tokenCookie != ""
+  let tokenCookie =
+    case tokenType
+    of TokenType.access:
+      ctx.getCookie("accessToken")
+    of TokenType.refresh:
+      ctx.getCookie("refreshToken")
+  let hasToken = tokenCookie != ""
 
-    if hasToken:
-        return some(tokenCookie)
-    
-    echo "No token found. Cookie: ", tokenCookie
-    return none(string)
+  if hasToken:
+    return some(tokenCookie)
+
+  echo "No token found. Cookie: ", tokenCookie
+  return none(string)

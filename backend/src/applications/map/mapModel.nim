@@ -5,7 +5,7 @@ import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants
 import ../campaign/campaignModel
-  
+
 type Map* {.defaults, tableName: MAP_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
   image*: string = ""
@@ -16,8 +16,6 @@ type Map* {.defaults, tableName: MAP_TABLE.} = ref object of Model
 
 implDefaults(Map, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
 
-
-
 type MapRead* {.defaults, readOnly, tableName: MAP_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
   image*: string = ""
@@ -27,5 +25,3 @@ type MapRead* {.defaults, readOnly, tableName: MAP_TABLE.} = ref object of Model
   name*: string = ""
 
 implDefaults(MapRead, {DefaultFlag.defExported, DefaultFlag.defTypeConstr})
-
-

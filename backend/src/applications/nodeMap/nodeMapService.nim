@@ -9,7 +9,7 @@ proc getNodeMap*(con: DbConn, campaignName: string): NodeMap =
   let campaign: Campaign = getCampaignByName(campaignName)
   let nodes = con.getNodes(campaign.id)
   let links = con.getLinks(campaign.id)
-  
+
   return NodeMap(nodes: nodes, links: links)
 
 proc getCampaignLinkTypes*(con: DbConn, params: ReadListParams): seq[CustomLinkType] =

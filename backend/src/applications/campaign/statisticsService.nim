@@ -22,21 +22,38 @@ proc getCampaignStatistics*(connection: DbConn, campaignName: string): Statistic
   let campaignId = connection.getEntryByField("name", campaignName, Campaign).id
 
   result = Statistics(
-    character_count: connection.count(CharacterRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
-    creature_count: connection.count(CreatureRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
+    character_count: connection.count(
+      CharacterRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
+    creature_count: connection.count(
+      CreatureRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
     diaryentry_count: connection.getDiaryEntryCount(campaignId),
     encounter_count: connection.getEncounterCount(campaignId),
-    item_count: connection.count(ItemRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
-    location_count: connection.count(LocationRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
-    map_count: connection.count(Map, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
+    item_count: connection.count(
+      ItemRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
+    location_count: connection.count(
+      LocationRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
+    map_count:
+      connection.count(Map, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
     marker_count: connection.getMarkerCount(campaignId),
-    organization_count: connection.count(OrganizationRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
-    quest_count: connection.count(QuestRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
+    organization_count: connection.count(
+      OrganizationRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
+    quest_count: connection.count(
+      QuestRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
     quote_count: connection.getQuoteCount(campaignId),
-    rule_count: connection.count(RuleRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
+    rule_count: connection.count(
+      RuleRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
     session_audio_count: connection.getSessionAudioCount(campaignId),
     timestamp_count: connection.getTimestampCount(campaignId),
-    spell_count: connection.count(SpellRead, cond = "campaign_id = ?", params = campaignId.dbValue()).int,
+    spell_count: connection.count(
+      SpellRead, cond = "campaign_id = ?", params = campaignId.dbValue()
+    ).int,
   )
 
 proc getWikiStatistics*(connection: DbConn): Statistics =

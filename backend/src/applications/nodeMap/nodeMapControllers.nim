@@ -10,10 +10,10 @@ import ../../database
 
 proc fetchNodeMap*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)
-  
+
   let campaignName: string = ctx.getPathParamsOption(CAMPAIGN_NAME_PARAM).get()
-  
-  respondOnError():
+
+  respondOnError:
     withDbConn(con):
       let nodeMap = con.getNodeMap(campaignName).serializeNodeMap()
       resp jsonyResponse(ctx, nodeMap)

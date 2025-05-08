@@ -6,9 +6,11 @@ import ../allUrlParams
 
 export markerTypeModel
 
-proc getMarkerTypes*(connection: DbConn, requestParams: ReadWithoutParams): seq[MarkerType] =
-    ## lists all campaign entries using a limited but performant representation of a MarkerType
-    result = connection.getList(MarkerType)
+proc getMarkerTypes*(
+    connection: DbConn, requestParams: ReadWithoutParams
+): seq[MarkerType] =
+  ## lists all campaign entries using a limited but performant representation of a MarkerType
+  result = connection.getList(MarkerType)
 
 proc getCampaignMarkerTypes*(con: DbConn, params: ReadListParams): seq[MarkerType] =
-    return con.getMarkerTypes(params.campaignName)
+  return con.getMarkerTypes(params.campaignName)

@@ -5,14 +5,14 @@ import ./creatureSerialization
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../../utils/djangoDateTime/[serialization]
-  
+
 proc exportCreatureData*(con: DbConn, campaign: CampaignRead): JsonNode =
   result = newJObject()
   let campaignCreatures = con.getCampaignList(campaign.name, CreatureRead)
   let overviewSerializedCreatures = con.overviewSerialize(campaignCreatures)
   let overviewUrl = fmt"/creature/{campaign.name}/overview/"
-  result[overviewUrl]= %*overviewSerializedCreatures
-  
+  result[overviewUrl] = %*overviewSerializedCreatures
+
   for creature in campaignCreatures:
     let pkUrl = fmt"/creature/pk/{creature.id}/"
     let nameUrl = fmt"/creature/{campaign.name}/{creature.name}/"

@@ -7,7 +7,6 @@ proc reverseString*(s: string): string =
   for character in reversed(s):
     result.add(character)
 
-
 proc truncate*(text: string): string =
   let cleanedString = text.parseHtml().innerText
 
@@ -18,10 +17,11 @@ proc truncate*(text: string): string =
       break
 
 proc randomString*(length: int): string =
-  for _ in 0..length:
+  for _ in 0 .. length:
     add(result, char(rand(int('A') .. int('z'))))
 
 proc removeSuffix*(s: var string, charCount: int) =
   s.setLen(s.len() - charCount)
 
-proc toLower*[T](s: typedesc[T]): string {.compileTime.} = ($T).toLower()
+proc toLower*[T](s: typedesc[T]): string {.compileTime.} =
+  ($T).toLower()

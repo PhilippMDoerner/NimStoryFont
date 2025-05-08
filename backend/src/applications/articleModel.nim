@@ -28,7 +28,10 @@ type ArticleTable* = enum
   atbSPELL = SPELL_TABLE
   atbRULE = RULES_TABLE
 
-type Article* = Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap | Organization | OrganizationRead | Quest | SessionAudio | Spell | Rule
+type Article* =
+  Character | Creature | DiaryEntry | Encounter | Item | Location | Map | MarkerMap |
+  Organization | OrganizationRead | Quest | SessionAudio | Spell | Rule
+
 type ArticleType* = enum
   atCharacter = Character.toLower()
   atCreature = Creature.toLower()

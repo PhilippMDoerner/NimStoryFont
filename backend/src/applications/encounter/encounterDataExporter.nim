@@ -9,11 +9,12 @@ import ../../utils/djangoDateTime/[serialization]
 
 proc exportEncounterData*(con: DbConn, campaign: CampaignRead): JsonNode =
   result = newJObject()
-  let campaignEncounters = con.readCampaignEncounters(ReadListParams(campaignName: campaign.name))
+  let campaignEncounters =
+    con.readCampaignEncounters(ReadListParams(campaignName: campaign.name))
   let overviewSerializedEncounters = con.overviewSerialize(campaignEncounters)
   let overviewUrl = fmt"/encounter/{campaign.name}/overview/"
-  result[overviewUrl]= %*overviewSerializedEncounters
-  
+  result[overviewUrl] = %*overviewSerializedEncounters
+
   for encounter in campaignEncounters:
     let pkUrl = fmt"/encounter/pk/{encounter.id}/"
     let serializedData = con.serializeEncounterRead(encounter)

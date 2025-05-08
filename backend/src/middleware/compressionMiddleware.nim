@@ -12,5 +12,5 @@ proc responseCompressionMiddleware*(): HandlerAsync =
       #Somehow when compiling against debug builds it does not take the encodings as an array of strings
       if "deflate" in encodings or (encodings.len() > 0 and "deflate" in encodings[0]):
         ctx.response.headers.add("Content-Encoding", "deflate")
-        ctx.response.body = compress(ctx.response.body, BestCompression, CompressedDataFormat.dfDeflate)
-
+        ctx.response.body =
+          compress(ctx.response.body, BestCompression, CompressedDataFormat.dfDeflate)
