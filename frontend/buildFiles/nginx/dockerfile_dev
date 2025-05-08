@@ -18,7 +18,7 @@ FROM docker.io/library/alpine:latest
 # Explain each dependency:
 # - nginx + nginx-mod-http-upload-progress: Reverse Proxy
 # - certbot + certbot-nginx + openssl: SSL cert generation
-RUN apk -U add nginx nginx-mod-http-upload-progress openssl certbot certbot-nginx --no-cache
+RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
 
 # Copy necessary files
 COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
