@@ -1,18 +1,22 @@
 {
-  "/wiki1/api": {
+  "/wiki1/": {
     "target": "https://aldrune.com",
-    "secure": false
+    "secure": false,
+    "changeOrigin": true
   },
   "/media": {
     "target": "https://aldrune.com",
-    "secure": false
+    "secure": false,
+    "changeOrigin": true
   },
   "/session_audio": {
     "target": "https://aldrune.com",
-    "secure": false
+    "secure": false,
+    "changeOrigin": true
   },
   "/campaign_icons": {
     "target": "https://aldrune.com",
-    "secure": false
+    "secure": false,
+    "changeOrigin": true
   }
 }
