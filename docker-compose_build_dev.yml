@@ -1,6 +1,6 @@
 # LOCAL BUILD-FROM-SCRATCH DEPLOYMENT
 # This docker-compose file is for local development.
-# It builds the entire project from scratch with the backend using a debug build.
+# It builds the entire project from scratch with the backend using a debug build, which is faster but has lower runtime performance.
 # Usecase: General development.
 
 services:

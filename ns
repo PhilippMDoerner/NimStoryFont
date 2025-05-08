@@ -217,7 +217,7 @@ local_command(){
     ;;
     compose) 
       set -a && source local.env && set +a
-      run_compose ./docker-compose_new "${@:3}"
+      run_compose $3 "${@:4}"
     ;;
     cmds) echo init regen proxy dev clear cmds help;;
     help|*) local_help_command ;;

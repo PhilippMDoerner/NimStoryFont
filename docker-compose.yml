@@ -1,22 +1,16 @@
-# LOCAL GHCR REFERENCE
-# This docker-compose file is for local development and for reference for writing your own.
-# It pulls the images from the github container registry instead of building from scratch.
-# Usecase: Debugging. You quickly want to repeat a bug in a local environment that you saw in production.
+## RUN GHCR IMAGES
+## This docker-compose file is for general deployment, either locally or remotely.
+## It fetches the latest *_dev images from GHCR and deploys them.
+## Usecases: Deplyoment, both local and remote, both staging and prod (until actual release images get built).
 
 services:
   #Nginx Reverse Proxy
   proxy:
     image: ghcr.io/philippmdoerner/nginx_frontend-dev:latest
     ports:
-      - "443:443"
-      - "80:80"
+      - "5123:5123"
     volumes:
-      - ./frontend/buildFiles/nginx/local_only/certificates:/etc/letsencrypt # For certbot
-      - ./frontend/buildFiles/nginx/local_only/session_audio_backup:/session_audio # To serve audio files
-      - ./frontend/buildFiles/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./feature_config.json:/frontend/feature_config.json
-      - ./backend/media:/imagemedia # To serve images
-      - ./backend/buildFiles/nimstoryfont/local_only_db_dumps:/db_dumps # For database access
+      - $VOLUME_DIR:/data
     container_name: production_nginx
     restart: on-failure
 
@@ -26,8 +20,6 @@ services:
     expose:
       - "8080" #Differs from ports: -"8080:8080" by not hogging the 8080 port, merely listening on it and thus not causing conflicts with production_nginx
     volumes:
-      - ./backend/buildFiles/nimstoryfont/settings.json:/configs/settings.json
-      - ./backend/media:/imagemedia
-      - ./backend/:/database # For database access
+      - $VOLUME_DIR:/data
     container_name: nswebserver
     restart: on-failure
