@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import markerService
 import std/strformat
+import prologue
+import ./markerService
+import ./markerSerialization
+import ./markerUtils
 import ../allUrlParams
 import ../genericArticleControllers
-import markerSerialization
-import markerUtils
 import ../authentication/authenticationUtils
+import ../../middleware/[loginMiddleware]
 
 
 proc addMarkerRoutes*(app: Prologue) =

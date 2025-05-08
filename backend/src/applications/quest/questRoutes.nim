@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/loginMiddleware
-import ../allUrlParams
-import questModel
-import questService
-import questControllers
-import questSerialization
 import std/strformat
+import prologue
+import ./questModel
+import ./questService
+import ./questControllers
+import ./questSerialization
+import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/loginMiddleware
 
 proc addQuestRoutes*(app: Prologue) =
     app.addRoute(

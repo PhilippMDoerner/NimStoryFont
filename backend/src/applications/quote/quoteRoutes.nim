@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import quoteService
-import quoteSerialization
-import quoteUtils
-import quoteControllers
 import std/strformat
+import prologue
+import ./quoteService
+import ./quoteSerialization
+import ./quoteUtils
+import ./quoteControllers
 import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addQuoteRoutes*(app: Prologue) =
     app.addRoute(
