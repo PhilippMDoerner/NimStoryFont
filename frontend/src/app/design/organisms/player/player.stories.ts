@@ -1,5 +1,4 @@
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { environment } from 'src/environments/environment';
 import { PlayerComponent } from './player.component';
 
 export default {
@@ -14,7 +13,7 @@ export default {
     audioSource: 'https://www.kozco.com/tech/piano2-CoolEdit.mp3',
     downloadSource: 'https://www.potato.testurl.com',
     playTime: undefined,
-    serverUrl: environment.backendDomain,
+    serverUrl: '',
   },
 } as Meta<PlayerComponent>;
 

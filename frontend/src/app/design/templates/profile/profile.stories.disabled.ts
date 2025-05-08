@@ -58,8 +58,6 @@ export default {
     campaignName: 'Aldrune',
     memberships: dummyMemberships,
     canDeleteProfile: true,
-    showProfileEditForm: false,
-    showPasswordEditForm: false,
   },
 } as Meta<ProfileComponent>;
 
