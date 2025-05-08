@@ -4,9 +4,9 @@ import norm/sqlite
 import ./mapModel
 import ../mapMarker/markerModel
 import ../mapMarkerType/markerTypeModel
+import ../genericArticleRepository
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../utils/[fileUpload]
-import ../genericArticleRepository
 import ../../database
 
 export mapModel

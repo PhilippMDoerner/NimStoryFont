@@ -1,10 +1,10 @@
+import std/options
 import norm/[model, pragmas]
+import constructor/defaults
 import ../campaign/campaignModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/options
-import constructor/defaults
 
 type ItemOwner* {.defaults, readOnly, tableName: CHARACTER_TABLE.} = ref object of Model
   name*: string = ""

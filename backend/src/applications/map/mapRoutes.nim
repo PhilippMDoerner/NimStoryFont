@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import mapService
-import mapSerialization
-import mapControllers
 import std/strformat
+import prologue
+import ./mapService
+import ./mapSerialization
+import ./mapControllers
+import ./mapModel
 import ../allUrlParams
 import ../genericArticleControllers
-import mapModel
+import ../../middleware/[loginMiddleware]
 
 proc addMapRoutes*(app: Prologue) =
   app.addRoute(

@@ -1,12 +1,12 @@
+import std/[options, sugar, sequtils, strformat]
 import norm/model
-import mapModel
+import ./mapModel
 import ../image/imageUtils
 import ../campaign/campaignModel
 import ../mapMarker/[markerSerialization, markerModel]
 import ../genericArticleRepository
-import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[options, sugar, sequtils, strformat]
 import ../articleModel
+import ../../utils/djangoDateTime/djangoDateTimeType
 
 type MapSerializable* = object
   pk: int64

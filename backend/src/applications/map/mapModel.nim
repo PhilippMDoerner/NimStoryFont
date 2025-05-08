@@ -1,10 +1,10 @@
-import norm/[model, pragmas]
 import std/[options]
+import norm/[model, pragmas]
 import constructor/defaults
+import ../campaign/campaignModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants
-import ../campaign/campaignModel
 
 type Map* {.defaults, tableName: MAP_TABLE.} = ref object of Model
   icon*: Option[string] = some("")
