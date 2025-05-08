@@ -67,3 +67,4 @@ provision_user.sh
 tasks.json
 local_only
 *.caddyfile
+*backup_configs
