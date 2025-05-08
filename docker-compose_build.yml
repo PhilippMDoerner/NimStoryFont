@@ -10,8 +10,7 @@ services:
       context: . # Project root dir
       dockerfile: ./frontend/buildFiles/nginx/dockerfile
     ports:
-      - "443:443"
-      - "80:80"
+      - "5123:5123"
     volumes:
       - ./local_only:/data
     container_name: production_nginx
