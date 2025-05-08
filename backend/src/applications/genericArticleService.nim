@@ -1,10 +1,10 @@
-import genericArticleRepository
-import genericDeserialization
-import serializationUtils
+import std/[json, tables]
 import norm/[model, sqlite]
 import jsony
+import ./genericArticleRepository
+import ./genericDeserialization
+import ./serializationUtils
 import ../utils/djangoDateTime/[djangoDateTimeType]
-import std/[json, tables]
 
 export serializationUtils
 

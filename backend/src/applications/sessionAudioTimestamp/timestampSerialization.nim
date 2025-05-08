@@ -1,7 +1,7 @@
-import timestampModel
-import norm/sqlite
-import ../genericArticleRepository
 import std/[options, sugar, sequtils]
+import norm/sqlite
+import ./timestampModel
+import ../genericArticleRepository
 
 type TimestampSerializable* = object
   pk: int64

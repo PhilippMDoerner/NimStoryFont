@@ -1,12 +1,12 @@
-import norm/[model, pragmas]
-import ../../applicationSettings
-import ../../applicationConstants
-import ../../utils/djangoDateTime/djangoDateTimeType
 import std/[options]
+import norm/[model, pragmas]
+import constructor/defaults
 import ../location/locationModel
 import ../diaryentry/diaryEntryModel
 import ../campaign/campaignModel
-import constructor/defaults
+import ../../applicationSettings
+import ../../applicationConstants
+import ../../utils/djangoDateTime/djangoDateTimeType
 
 const ORDER_INDEX_INCREMENT* = 10
 

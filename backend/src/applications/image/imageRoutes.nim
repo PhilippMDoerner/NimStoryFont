@@ -1,10 +1,10 @@
-import imageControllers
-import imageModel
+import std/strformat
 import prologue
-import imageUtils
+import ./imageControllers
+import ./imageModel
+import ./imageUtils
 import ../allUrlParams
 import ../../middleware/loginMiddleware
-import std/strformat
 import ../genericArticleControllers
 import ../genericArticleRepository
 

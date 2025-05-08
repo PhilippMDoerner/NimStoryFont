@@ -1,10 +1,10 @@
-import quoteModel
+import std/[options, sequtils, sugar, tables]
 import norm/sqlite
+import ./quoteModel
 import ../session/[sessionSerialization, sessionRepository, sessionModel]
 import ../genericArticleRepository
 import ../character/characterUtils
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/[options, sequtils, sugar, tables]
 
 type QuoteConnectionCharacter* = object
   name: string

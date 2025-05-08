@@ -1,8 +1,8 @@
-import norm/[sqlite]
-import ../../utils/djangoDateTime/djangoDateTimeType
-import playerClassModel
 import std/[sugar, sequtils]
+import norm/[sqlite]
+import ./playerClassModel
 import ../genericArticleRepository
+import ../../utils/djangoDateTime/djangoDateTimeType
 
 type PlayerClassSerializable* = object
   name*: string

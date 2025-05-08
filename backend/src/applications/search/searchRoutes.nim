@@ -1,8 +1,8 @@
-import prologue
-import ../../middleware/loginMiddleware
-import searchControllers
 import std/strformat
+import prologue
+import ./searchControllers
 import ../allUrlParams
+import ../../middleware/loginMiddleware
 
 proc addSearchRoutes*(app: Prologue) =
   app.addRoute(

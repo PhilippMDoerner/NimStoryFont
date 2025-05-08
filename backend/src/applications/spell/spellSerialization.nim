@@ -1,13 +1,13 @@
-import spellModel
-import spellUtils
+import std/[options, sugar, sequtils, tables]
 import norm/[model, sqlite]
+import ./spellModel
+import ./spellUtils
+import ./spellConstants
+import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../playerclass/[playerClassSerialization]
-import std/[options, sugar, sequtils, tables]
-import ../campaign/campaignModel
-import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 import ../articleModel
-import spellConstants
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 
 type SpellConnectionSerializable* = object
   pk: int64

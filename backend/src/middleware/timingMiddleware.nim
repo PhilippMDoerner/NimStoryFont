@@ -1,5 +1,5 @@
-import prologue
 import std/[strutils, times]
+import prologue
 
 proc timingMiddleware*(): HandlerAsync =
   ## time the response

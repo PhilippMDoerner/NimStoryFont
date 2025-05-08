@@ -1,3 +1,3 @@
-import organizationModel
+import ./organizationModel
 
 export organizationModel

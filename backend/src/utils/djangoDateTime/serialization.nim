@@ -1,6 +1,6 @@
-import jsony
-import djangoDateTimeType
 import std/json
+import jsony
+import ./djangoDateTimeType
 import ../../applicationSettings
 
 proc dumpHook*(s: var string, value: DjangoDateTime) =

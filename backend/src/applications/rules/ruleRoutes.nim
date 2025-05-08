@@ -1,11 +1,11 @@
-import prologue
-import ../../middleware/loginMiddleware
-import ../allUrlParams
-import ruleModel
-import ruleSerialization
-import ruleService
 import std/strformat
+import prologue
+import ./ruleModel
+import ./ruleSerialization
+import ./ruleService
+import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/loginMiddleware
 
 proc addRuleRoutes*(app: Prologue) =
   app.addRoute(

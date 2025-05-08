@@ -1,13 +1,13 @@
-import questModel
-import questUtils
+import std/[options, sugar]
 import norm/sqlite
+import ./questModel
+import ./questUtils
 import ../genericArticleRepository
 import ../session/[sessionUtils, sessionModel]
 import ../campaign/campaignModel
 import ../character/[characterModel, characterUtils]
-import std/[options, sugar]
-import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
+import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 
 type QuestCharacter* = object
   name: string

@@ -1,3 +1,3 @@
-import ruleModel
+import ./ruleModel
 
 export ruleModel

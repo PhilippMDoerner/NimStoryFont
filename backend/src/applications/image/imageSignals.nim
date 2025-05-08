@@ -1,10 +1,10 @@
+import std/[json]
+import norm/sqlite
+import prologue
+import ./imageModel
 import ../core/signalSystem
 import ../../applicationSettings
 import ../../utils/fileUpload
-import std/[json]
-import norm/sqlite
-import imageModel
-import prologue
 
 proc deleteImageFile(connection: DbConn, modelInstance: var Image) =
   ## Deletes an image file off the harddrive if the corresponding image entry

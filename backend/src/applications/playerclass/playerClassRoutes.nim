@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import playerClassService
-import playerClassSerialization
-import playerClassModel
-import playerClassUtils
 import std/strformat
+import prologue
+import ./playerClassService
+import ./playerClassSerialization
+import ./playerClassModel
+import ./playerClassUtils
 import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addPlayerClassRoutes*(app: Prologue) =
   app.addRoute(

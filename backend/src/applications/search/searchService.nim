@@ -1,5 +1,5 @@
-import norm/[sqlite, model]
 import std/[strutils, json, sequtils, strformat]
+import norm/[sqlite, model]
 import ./searchModel
 import ./searchUtils
 import ./searchRepository

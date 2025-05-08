@@ -1,13 +1,13 @@
-import norm/[model, pragmas]
 import std/[options]
+import norm/[model, pragmas]
 import constructor/defaults
-import ../../utils/djangoDateTime/[djangoDateTimeType]
-import ../../applicationSettings
-import ../../applicationConstants
 import ../mapMarkerType/markerTypeModel
 import ../map/mapModel
 import ../location/locationModel
 import ../campaign/campaignModel
+import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../applicationSettings
+import ../../applicationConstants
 
 type Marker* {.defaults, tableName: MARKER_TABLE.} = ref object of Model
   icon*: Option[string] = some("")

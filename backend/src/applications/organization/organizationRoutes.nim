@@ -1,9 +1,9 @@
-import prologue
-import organizationModel
-import organizationSerialization
-import organizationService
-import organizationUtils
 import std/strformat
+import prologue
+import ./organizationModel
+import ./organizationSerialization
+import ./organizationService
+import ./organizationUtils
 import ../allUrlParams
 import ../genericArticleControllers
 import ../../middleware/loginMiddleware

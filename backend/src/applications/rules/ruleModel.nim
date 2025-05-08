@@ -1,10 +1,10 @@
-import ../../applicationSettings
-import ../../applicationConstants
-import ../../utils/djangoDateTime/djangoDateTimeType
-import ../campaign/campaignModel
 import std/[options]
 import constructor/defaults
 import norm/[model, pragmas]
+import ../campaign/campaignModel
+import ../../applicationSettings
+import ../../applicationConstants
+import ../../utils/djangoDateTime/djangoDateTimeType
 
 type Rule* {.defaults, tableName: RULES_TABLE.} = ref object of Model
   name*: string = ""

@@ -1,6 +1,6 @@
-import prologue
-import tokenTypes
 import std/strutils
+import prologue
+import ./tokenTypes
 
 export tokenTypes
 

@@ -1,7 +1,8 @@
+import std/[options, sugar, sequtils]
 import norm/model
-import locationModel
-import locationUtils
-import locationRepository
+import ./locationModel
+import ./locationUtils
+import ./locationRepository
 import ../articleModel
 import ../image/[imageModel, imageSerialization]
 import ../mapMarker/[markerModel]
@@ -10,7 +11,6 @@ import ../character/[characterModel, characterUtils]
 import ../campaign/campaignModel
 import ../genericArticleRepository
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
-import std/[options, sugar, sequtils]
 import ../../applicationConstants
 
 type LocationCharacter* = object

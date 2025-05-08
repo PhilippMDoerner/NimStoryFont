@@ -1,5 +1,5 @@
-import timestampModel
-import timestampRepository
+import ./timestampModel
+import ./timestampRepository
 import ../genericArticleRepository
 import ../allUrlParams
 

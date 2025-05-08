@@ -1,10 +1,10 @@
+import prologue except Session
+import ./quoteModel
 import ../session/sessionModel
-import quoteModel
 import ../genericArticleRepository
 import ../authentication/authenticationUtils
-import ../../utils/jwtContext
 import ../allUrlParams
-import prologue except Session
+import ../../utils/jwtContext
 
 proc campaign_id*(entry: Quote): int64 =
   result = getEntryById(entry.session_id, Session).campaign_id

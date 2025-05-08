@@ -1,5 +1,5 @@
+import ./markerModel
 import ../genericArticleRepository
-import markerModel
 import ../map/mapModel
 
 proc campaign_id*(entry: Marker): int64 =

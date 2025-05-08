@@ -1,13 +1,13 @@
-import norm/model
-import encounterModel
-import encounterUtils
-import ../genericArticleRepository
 import std/[options, sequtils, sugar, strformat, strutils]
+import norm/model
+import ./encounterModel
+import ./encounterUtils
+import ../articleModel
+import ../genericArticleRepository
 import ../campaign/campaignModel
 import ../character/[characterUtils, characterEncounterModel]
 import ../location/[locationModel, locationRepository]
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
-import ../articleModel
 
 type EncounterLocationSerializable* = object
   name: string

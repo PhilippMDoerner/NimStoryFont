@@ -1,9 +1,9 @@
 import std/options
 import norm/[model, pragmas]
+import constructor/defaults
 import ../campaign/campaignModel
 import ../../applicationSettings
 import ../../utils/djangoDateTime/djangoDateTimeType
-import constructor/defaults
 
 type CustomLinkType* {.defaults, tableName: RELATIONSHIP_KIND_TABLE.} = ref object of Model
   name*: string = ""

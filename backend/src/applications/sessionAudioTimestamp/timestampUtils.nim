@@ -1,10 +1,10 @@
-import timestampModel
-import ../genericArticleRepository
+import std/[strutils]
 import prologue
-import ../../utils/jwtContext
+import ./timestampModel
+import ../genericArticleRepository
 import ../allUrlParams
 import ../authentication/authenticationUtils
-import std/[strutils]
+import ../../utils/jwtContext
 
 proc campaign_id*(entry: Timestamp): int64 =
   result = getEntryById(entry.session_audio_id, TimestampSessionAudio).session_id.campaign_id.id

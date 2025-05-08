@@ -1,12 +1,12 @@
-import sessionModel
+import std/[options, sequtils, strformat, sugar, tables]
 import norm/[model, sqlite]
+import ./sessionModel
+import ./sessionUtils
 import ../campaign/campaignModel
 import ../diaryentry/[diaryEntryModel]
 import ../sessionaudio/sessionaudioModel
 import ../genericArticleRepository
-import sessionUtils
 import ../../utils/djangoDateTime/[djangoDateTimeType]
-import std/[options, sequtils, strformat, sugar, tables]
 
 type SessionDiaryEntrySerializable* = object
   author_name: string

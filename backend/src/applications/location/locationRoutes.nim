@@ -1,8 +1,8 @@
-import prologue
-import ../../middleware/loginMiddleware
-import locationService
-import locationSerialization
 import std/strformat
+import prologue
+import ./locationService
+import ./locationSerialization
+import ../../middleware/loginMiddleware
 import ../allUrlParams
 import ../genericArticleControllers
 import ../authentication/authenticationUtils

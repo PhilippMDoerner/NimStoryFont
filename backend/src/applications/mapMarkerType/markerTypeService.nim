@@ -1,6 +1,6 @@
 import norm/sqlite
-import markerTypeModel
-import markerTypeRepository
+import ./markerTypeModel
+import ./markerTypeRepository
 import ../genericArticleRepository
 import ../allUrlParams
 

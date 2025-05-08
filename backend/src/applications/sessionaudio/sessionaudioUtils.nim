@@ -1,9 +1,9 @@
-import ../session/[sessionModel]
-import sessionaudioModel
-import ../genericArticleRepository
 import std/[strformat, strutils]
-import ../../utils/jwtContext
+import ./sessionaudioModel
+import ../session/[sessionModel]
+import ../genericArticleRepository
 import ../authentication/authenticationUtils
+import ../../utils/jwtContext
 
 proc `$`*(entry: SessionAudioSession): string =
   result.add(if entry.is_main_session: "Main" else: "Side")

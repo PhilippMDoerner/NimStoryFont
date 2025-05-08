@@ -1,7 +1,7 @@
 import std/[strformat, strutils, sugar, options, sequtils, tables, sets]
-import ../genericArticleRepository
 import norm/[sqlite, model]
-import locationModel
+import ./locationModel
+import ../genericArticleRepository
 
 proc parseParentIdRow(value: DbValue): string =
   case value.kind

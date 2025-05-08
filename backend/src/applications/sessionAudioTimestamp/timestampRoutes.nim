@@ -1,13 +1,13 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import timestampService
-import timestampSerialization
-import timestampUtils
 import std/strformat
+import prologue
+import ./timestampService
+import ./timestampSerialization
+import ./timestampUtils
 import ../authentication/authenticationUtils
 import ../allUrlParams
 import ../genericArticleControllers
 import ../genericArticleRepository
+import ../../middleware/[loginMiddleware]
 
 proc addTimestampRoutes*(app: Prologue) =
   app.addRoute(

@@ -1,13 +1,13 @@
-import prologue
-import ../../middleware/loginMiddleware
-import ../allUrlParams
-import spellModel
-import spellUtils
-import spellService
 import std/strformat
-import spellSerialization
+import prologue
+import ./spellModel
+import ./spellUtils
+import ./spellService
+import ./spellSerialization
+import ./spellConstants
 import ../genericArticleControllers
-import spellConstants
+import ../allUrlParams
+import ../../middleware/loginMiddleware
 
 proc addSpellRoutes*(app: Prologue) =
   app.addRoute(

@@ -1,12 +1,12 @@
-import searchModel
-import searchService
+import std/[strutils, options]
 import prologue
 import jsony
+import ./searchModel
+import ./searchService
 import ../controllerTemplates
 import ../allUrlParams
 import ../articleModel
 import ../../utils/[jwtContext, customResponses, errorResponses]
-import std/[strutils, options]
 
 type SearchResponse = object
   articles: seq[SearchSerializable]

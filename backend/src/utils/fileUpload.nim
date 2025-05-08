@@ -1,5 +1,5 @@
-import prologue
 import std/[os, random, strformat]
+import prologue
 
 type FileNotFoundError* = object of IOError
 type FileAlreadyExists* = object of IOError

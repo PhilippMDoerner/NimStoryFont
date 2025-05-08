@@ -1,8 +1,8 @@
+import std/[options]
 import norm/[model, pragmas]
+import constructor/defaults
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationSettings
-import std/[options]
-import constructor/defaults
 
 type User* {.defaults, tableName: USER_TABLE.} = ref object of Model
   password*: string = ""

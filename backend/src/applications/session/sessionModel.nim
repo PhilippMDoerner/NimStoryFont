@@ -1,10 +1,10 @@
+import std/options
 import norm/[model, pragmas]
-import options
 import constructor/defaults
+import ../campaign/campaignModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants
-import ../campaign/campaignModel
 
 type Session* {.defaults, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1

@@ -1,10 +1,10 @@
+import std/options
 import norm/[model, pragmas]
 import constructor/defaults
-import ../../applicationSettings
-import ../../applicationConstants
 import ../campaign/campaignModel
 import ../encounter/encounterModel
-import std/options
+import ../../applicationSettings
+import ../../applicationConstants
 
 type TimestampSession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   session_number*: int = -1

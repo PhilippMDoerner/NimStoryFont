@@ -1,9 +1,10 @@
-import quoteModel
+import std/[strutils, random, options]
 import norm/[sqlite]
+import ./quoteModel
 import ../allUrlParams
 import ../genericArticleRepository
 import ../character/characterModel
-import std/[strutils, random, options]
+
 export quoteModel
 
 proc getCharacterQuotes*(

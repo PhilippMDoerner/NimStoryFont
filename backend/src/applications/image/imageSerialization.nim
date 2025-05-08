@@ -1,7 +1,7 @@
-import imageModel
-import imageUtils
 import std/[options]
 import norm/sqlite
+import ./imageModel
+import ./imageUtils
 
 type ImageSerializable* = object
   pk: int64

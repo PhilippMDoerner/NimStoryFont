@@ -1,4 +1,4 @@
-import spellModel
+import ./spellModel
 import ../genericArticleRepository
 import ../allUrlParams
 

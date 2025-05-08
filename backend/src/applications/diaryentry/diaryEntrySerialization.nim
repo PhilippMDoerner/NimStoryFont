@@ -1,7 +1,10 @@
-import diaryEntryModel
-import diaryEntryRepository
-import diaryEntryService
-import diaryEntryUtils
+import std/[sugar, options, strutils, strformat, sequtils, tables]
+import norm/[model, sqlite]
+import ./diaryEntryModel
+import ./diaryEntryRepository
+import ./diaryEntryService
+import ./diaryEntryUtils
+import ../articleModel
 import ../character/characterEncounterModel
 import ../genericArticleRepository
 import ../campaign/campaignModel
@@ -9,9 +12,6 @@ import ../session/[sessionSerialization, sessionModel]
 import ../location/locationModel
 import ../encounter/[encounterModel, encounterSerialization]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
-import std/[sugar, options, strutils, strformat, sequtils, tables]
-import norm/[model, sqlite]
-import ../articleModel
 
 type DiaryEntryAuthorSerializable* = object
   pk: int64

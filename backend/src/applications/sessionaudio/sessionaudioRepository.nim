@@ -1,8 +1,8 @@
-import norm/[model, sqlite]
-import sessionaudioModel
-import ../../utils/djangoDateTime/[normConversion]
 import std/[sugar, sequtils, options, strutils, strformat]
+import norm/[model, sqlite]
+import ./sessionaudioModel
 import ../genericArticleRepository
+import ../../utils/djangoDateTime/[normConversion]
 
 proc getSessionAudio*(
     connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool

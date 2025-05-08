@@ -1,12 +1,12 @@
-import norm/[model, pragmas]
 import std/[options]
+import norm/[model, pragmas]
 import constructor/defaults
-import ../../utils/djangoDateTime/[djangoDateTimeType]
-import ../../applicationSettings
-import ../../applicationConstants
 import ../campaign/campaignModel
 import ../character/characterModel
 import ../session/sessionModel
+import ../../utils/djangoDateTime/[djangoDateTimeType]
+import ../../applicationSettings
+import ../../applicationConstants
 
 type Quest* {.defaults, tableName: QUEST_TABLE.} = ref object of Model
   name*: string = ""

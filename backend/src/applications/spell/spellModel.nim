@@ -1,12 +1,12 @@
-import norm/[model, pragmas]
 import std/[options]
+import constructor/defaults
+import norm/[model, pragmas]
+import ./spellConstants
 import ../campaign/campaignModel
+import ../playerclass/playerClassModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import constructor/defaults
-import ../playerclass/playerClassModel
-import spellConstants
 
 type Spell* {.defaults, tableName: SPELL_TABLE.} = ref object of Model
   name*: string = ""

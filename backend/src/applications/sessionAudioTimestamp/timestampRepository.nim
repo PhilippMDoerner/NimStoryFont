@@ -1,5 +1,5 @@
 import norm/sqlite
-import timestampModel
+import ./timestampModel
 import ../genericArticleRepository
 
 proc readTimestampsForSessionAudio*(

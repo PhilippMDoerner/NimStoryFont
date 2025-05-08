@@ -1,5 +1,5 @@
 import std/[typetraits, tables]
-import questModel
+import ./questModel
 import ../../applicationConstants
 
 export questModel

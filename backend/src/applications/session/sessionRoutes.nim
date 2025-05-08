@@ -1,11 +1,11 @@
+import std/strformat
 import prologue except Session
+import ./sessionSerialization
+import ./sessionModel
+import ./sessionService
+import ../genericArticleControllers
 import ../../middleware/[loginMiddleware]
 import ../allUrlParams
-import sessionSerialization
-import sessionModel
-import sessionService
-import ../genericArticleControllers
-import std/strformat
 
 proc addSessionRoutes*(app: Prologue) =
   app.addRoute(

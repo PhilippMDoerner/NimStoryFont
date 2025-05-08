@@ -1,8 +1,8 @@
-import norm/[model, pragmas]
-import ../../applicationSettings
 import std/options
+import norm/[model, pragmas]
 import constructor/defaults
 import ../campaign/campaignModel
+import ../../applicationSettings
 import ../../applicationConstants
 
 type ImageType* = enum

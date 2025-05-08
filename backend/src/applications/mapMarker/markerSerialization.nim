@@ -1,9 +1,9 @@
-import markerModel
-import ../mapMarkerType/[markerTypeSerialization]
+import std/[sugar, options, sequtils]
 import norm/sqlite
+import ./markerModel
+import ../mapMarkerType/[markerTypeSerialization]
 import ../location/[locationModel, locationRepository]
 import ../genericArticleRepository
-import std/[sugar, options, sequtils]
 import ../campaign/campaignModel
 import ../../utils/djangoDateTime/djangoDateTimeType
 import ../../applicationConstants

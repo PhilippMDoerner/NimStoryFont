@@ -1,10 +1,10 @@
-import norm/[model, pragmas]
 import std/[options]
+import constructor/defaults
+import norm/[model, pragmas]
 import ../campaign/campaignModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import constructor/defaults
 
 type Creature* {.defaults, tableName: CREATURE_TABLE.} = ref object of Model
   ##[TableModel of the table of creatures ]##

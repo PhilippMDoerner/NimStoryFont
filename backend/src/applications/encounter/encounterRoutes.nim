@@ -1,12 +1,12 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import encounterControllers
 import std/strformat
-import encounterService
-import encounterSerialization
-import encounterUtils
+import prologue
+import ./encounterControllers
+import ./encounterService
+import ./encounterSerialization
+import ./encounterUtils
 import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addEncounterRoutes*(app: Prologue) =
   app.addRoute(

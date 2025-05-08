@@ -1,5 +1,5 @@
-import markerTypeModel
 import norm/sqlite
+import ./markerTypeModel
 import ../genericArticleRepository
 
 type MarkerTypeSerializable* = MarkerType

@@ -1,6 +1,6 @@
-import ../articleModel
 import std/strformat
 import norm/model
+import ../articleModel
 
 proc getSearchGuid*(article: Article): string =
   const tableNameWithQuotations = article.type().table()

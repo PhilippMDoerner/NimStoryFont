@@ -1,7 +1,7 @@
-import norm/[model, sqlite]
-import sessionModel
-import ../../utils/djangoDateTime/[normConversion]
 import std/[strformat, strutils]
+import norm/[model, sqlite]
+import ./sessionModel
+import ../../utils/djangoDateTime/[normConversion]
 
 proc getSession*(
     connection: DbConn, campaignName: string, sessionNumber: int, isMainSession: bool

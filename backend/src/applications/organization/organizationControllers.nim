@@ -1,12 +1,12 @@
-import prologue
-import organizationService
 import std/[strutils, uri]
-import ../../utils/[jwtContext, customResponses, errorResponses]
-import ../../utils/djangoDateTime/serialization
+import prologue
 import norm/[sqlite, model]
 import jsony
+import ./organizationService
 import ../controllerTemplates
 import ../allUrlParams
+import ../../utils/[jwtContext, customResponses, errorResponses]
+import ../../utils/djangoDateTime/serialization
 
 proc getOrganizationByNameController*(ctx: Context) {.async.} =
   let ctx = JWTContext(ctx)

@@ -1,12 +1,12 @@
+import std/[options]
 import norm/[model, pragmas]
 import constructor/defaults
 import ../user/userModel
-import ../../utils/djangoDateTime/[djangoDateTimeType]
-import ../../applicationSettings
-import ../../applicationConstants
-import std/[options]
 import ../session/sessionModel
 import ../campaign/campaignModel
+import ../../applicationSettings
+import ../../applicationConstants
+import ../../utils/djangoDateTime/[djangoDateTimeType]
 
 type DiaryEntry* {.defaults, tableName: DIARYENTRY_TABLE.} = ref object of Model
   title*: Option[string] = some("")

@@ -1,5 +1,5 @@
-import prologue
 import std/[os, strformat, sets]
+import prologue
 
 #Prologue Settings
 const DEFAULT_SETTINGS_FILE_PATH = "/data/config/settings.json"

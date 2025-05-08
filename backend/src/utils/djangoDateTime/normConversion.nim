@@ -1,8 +1,7 @@
-import djangoDateTimeType
+import std/[times, logging]
 import lowdb/sqlite
+import ./djangoDateTimeType
 import ../../applicationSettings
-import times
-import std/logging
 ##[ Add support for custom datatype ``DjangoDateTime`` to norm (stolen form norm dbtypes.nim)
 Funcs to convert between Nim types and SQLite types and between Nim values and ``lowdb.sqlite.DbValue``.
 

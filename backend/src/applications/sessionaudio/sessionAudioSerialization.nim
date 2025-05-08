@@ -1,14 +1,14 @@
-import sessionaudioModel
-import norm/[model, sqlite]
-import ../genericArticleRepository
-import ../session/[sessionModel, sessionSerialization]
 import std/[options, strformat, sequtils, strutils, sugar, tables]
-import ../../utils/djangoDateTime/[djangoDateTimeType]
-import sessionaudioRepository
+import norm/[model, sqlite]
+import ./sessionaudioModel
+import ./sessionaudioRepository
+import ./sessionaudioUtils
 import ../campaign/campaignModel
-import sessionaudioUtils
 import ../sessionAudioTimestamp/timestampModel
 import ../articleModel
+import ../genericArticleRepository
+import ../session/[sessionModel, sessionSerialization]
+import ../../utils/djangoDateTime/[djangoDateTimeType]
 
 type SessionAudioStub* = object
   isMainSessionInt: 0 .. 1

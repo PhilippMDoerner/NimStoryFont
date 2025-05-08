@@ -1,11 +1,11 @@
+import std/options
 import norm/[model, pragmas]
+import constructor/defaults
+import ../campaign/campaignModel
+import ../location/locationModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import std/options
-import ../campaign/campaignModel
-import ../location/locationModel
-import constructor/defaults
 
 type Organization* {.defaults, tableName: ORGANIZATION_TABLE.} = ref object of Model
   name*: string = ""

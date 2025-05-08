@@ -1,7 +1,7 @@
-import ../genericArticleRepository
-import markerModel
-import markerRepository
 import norm/sqlite
+import ./markerModel
+import ./markerRepository
+import ../genericArticleRepository
 import ../allUrlParams
 
 export markerModel

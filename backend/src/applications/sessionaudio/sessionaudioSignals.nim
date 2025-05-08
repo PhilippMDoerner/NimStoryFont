@@ -1,8 +1,8 @@
-import ../core/signalSystem
-import ../../utils/fileUpload
 import std/[strformat]
 import norm/sqlite
-import sessionaudioModel
+import ./sessionaudioModel
+import ../core/signalSystem
+import ../../utils/fileUpload
 
 proc deleteSessionAudioFile(connection: DbConn, modelInstance: var SessionAudio) =
   ## Deletes an sessionAudio file off the harddrive if the corresponding sessionAudio entry

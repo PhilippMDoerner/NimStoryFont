@@ -1,7 +1,7 @@
+import std/[json]
+import constructor/defaults
 import ../campaign/campaignModel
 import ../../applicationConstants
-import constructor/defaults
-import std/[json]
 
 export campaignModel
 

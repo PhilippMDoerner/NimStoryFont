@@ -1,11 +1,11 @@
-import ruleModel
-import ruleUtils
+import std/[options, sugar]
 import norm/sqlite
+import ./ruleModel
+import ./ruleUtils
 import ../genericArticleRepository
 import ../campaign/campaignModel
-import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
-import std/[options, sugar]
 import ../articleModel
+import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 
 type RuleSerializable* = object
   article_type*: ArticleType

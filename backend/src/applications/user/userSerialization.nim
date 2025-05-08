@@ -1,7 +1,7 @@
-import userModel
-import norm/sqlite
-import ../genericArticleRepository
 import std/[options, sugar, sequtils, tables]
+import norm/sqlite
+import ./userModel
+import ../genericArticleRepository
 import ../authentication/authenticationModels
 
 type UserGroupSerializable* = object

@@ -1,10 +1,10 @@
 import norm/[model, pragmas]
 import constructor/defaults
+import ../session/sessionModel
+import ../campaign/campaignModel
 import ../../utils/djangoDateTime/[djangoDateTimeType]
 import ../../applicationSettings
 import ../../applicationConstants
-import ../session/sessionModel
-import ../campaign/campaignModel
 
 type SessionAudio* {.defaults, tableName: SESSIONAUDIO_TABLE.} = ref object of Model
   audio_file*: string = ""

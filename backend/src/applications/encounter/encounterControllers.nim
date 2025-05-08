@@ -5,13 +5,13 @@ import ./encounterService
 import ./encounterModel
 import ./encounterUtils
 import ./encounterSerialization
-import ../../utils/[jwtContext, customResponses, errorResponses]
 import ../controllerTemplates
 import ../allUrlParams
 import ../genericArticleControllers
 import ../authentication/authenticationUtils
 import ../../utils/djangoDateTime/serialization
 import ../../database
+import ../../utils/[jwtContext, customResponses, errorResponses]
 
 proc swapEncounterOrder*(ctx: Context) {.async, gcsafe.} =
   let ctx = JWTContext(ctx)

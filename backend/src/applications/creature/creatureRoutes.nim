@@ -1,10 +1,10 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import creatureService
-import creatureSerialization
 import std/strformat
+import prologue
+import ./creatureService
+import ./creatureSerialization
 import ../allUrlParams
 import ../genericArticleControllers
+import ../../middleware/[loginMiddleware]
 
 proc addCreatureRoutes*(app: Prologue) =
   app.addRoute(

@@ -1,6 +1,6 @@
 import norm/sqlite
-import playerClassModel
-import playerClassRepository
+import ./playerClassModel
+import ./playerClassRepository
 import ../allUrlParams
 import ../genericArticleRepository
 

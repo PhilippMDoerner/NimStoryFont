@@ -1,7 +1,7 @@
-import norm/[pragmas, model]
 import std/[tables, options, json, typetraits, strutils, macros]
-import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 from std/times import toUnix
+import norm/[pragmas, model]
+import ../utils/[djangoDateTime/djangoDateTimeType, macroUtils]
 
 export toUnix
 export typetraits

@@ -1,8 +1,8 @@
-import norm/sqlite
-import markerModel
 import std/[strutils, strformat]
-import ../../applicationConstants
+import norm/sqlite
+import ./markerModel
 import ../genericArticleRepository
+import ../../applicationConstants
 
 proc getMarkerForMap*(
     connection: DbConn, campaignName: string, mapName: string

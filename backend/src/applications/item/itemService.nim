@@ -1,3 +1,3 @@
-import itemModel
+import ./itemModel
 
 export itemModel

@@ -1,6 +1,6 @@
 import std/[json, logging]
 import norm/sqlite
-import authentication/authenticationUtils
+import ./authentication/authenticationUtils
 import ../utils/errorResponses
 import ../database
 

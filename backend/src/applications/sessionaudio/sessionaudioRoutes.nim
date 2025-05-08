@@ -1,14 +1,14 @@
-import prologue
-import ../../middleware/[loginMiddleware]
-import sessionaudioService
 import std/strformat
+import prologue
+import jsony
+import ./sessionaudioService
+import ./sessionAudioSerialization
+import ./sessionaudioModel
+import ./sessionaudioUtils
+import ./sessionaudioControllers
 import ../allUrlParams
 import ../genericArticleControllers
-import sessionAudioSerialization
-import sessionaudioModel
-import sessionaudioUtils
-import sessionaudioControllers
-import jsony
+import ../../middleware/[loginMiddleware]
 
 proc addSessionAudioRoutes*(app: Prologue) =
   app.addRoute(

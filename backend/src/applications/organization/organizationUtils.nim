@@ -1,4 +1,4 @@
-import organizationModel
+import ./organizationModel
 import ../genericArticleRepository
 import ../authentication/authenticationUtils
 import ../../utils/jwtContext

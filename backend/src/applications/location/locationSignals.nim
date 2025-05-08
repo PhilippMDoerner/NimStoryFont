@@ -1,8 +1,8 @@
 import std/[strformat, options]
-import ../core/signalSystem
 import norm/sqlite
-import locationUtils
-import locationModel
+import ./locationUtils
+import ./locationModel
+import ../core/signalSystem
 
 proc locationPreUpdateSignal*(connection: DbConn, modelInstance: var Location) =
   if connection.causesParentLocationCircle(modelInstance):

@@ -1,14 +1,14 @@
-import organizationModel
+import std/[sugar, options, sequtils]
 import norm/sqlite
+import ./organizationModel
+import ./organizationService
+import ./organizationUtils
 import ../genericArticleRepository
-import organizationService
 import ../image/[imageModel, imageService, imageSerialization]
 import ../campaign/campaignModel
 import ../character/characterService
-import std/[sugar, options, sequtils]
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
 import ../articleModel
-import organizationUtils
 
 type HeadquarterSerializable = object
   name: string

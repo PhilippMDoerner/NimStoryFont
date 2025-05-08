@@ -1,9 +1,9 @@
-import spellModel
-import spellConstants
 import std/[strformat, options]
-import ../../utils/jwtContext
+import ./spellModel
+import ./spellConstants
 import ../authentication/authenticationUtils
 import ../genericArticleRepository
+import ../../utils/jwtContext
 
 proc `$`*(model: Spell | SpellRead): string =
   model.name

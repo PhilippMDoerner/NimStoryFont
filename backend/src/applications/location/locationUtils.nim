@@ -1,7 +1,7 @@
-import locationService
 import std/[strformat, sequtils, sugar, options]
 import norm/sqlite
-import locationRepository
+import ./locationService
+import ./locationRepository
 import ../../applicationConstants
 
 proc `$`*(model: Location | LocationRead): string =

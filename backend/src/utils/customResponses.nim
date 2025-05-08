@@ -1,6 +1,6 @@
 import jsony
 import prologue
-import jwtContext
+import ./jwtContext
 
 export jsony
 

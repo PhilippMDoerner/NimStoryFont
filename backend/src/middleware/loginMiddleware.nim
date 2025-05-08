@@ -1,11 +1,10 @@
 import std/[strutils, json, logging, options]
 import prologue
 import norm/sqlite
-import ../utils/[jwtContext]
 import ../applicationSettings
 import ../database
 import ../applications/authentication/[authenticationService, authenticationUtils]
-import ../utils/[errorResponses]
+import ../utils/[errorResponses, jwtContext]
 
 template debugErrorLog(msg: string) =
   debug(

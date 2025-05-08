@@ -1,7 +1,7 @@
 import norm/sqlite
-import diaryEntryModel
-import ../../utils/djangoDateTime/[normConversion]
+import ./diaryEntryModel
 import ../genericArticleRepository
+import ../../utils/djangoDateTime/[normConversion]
 
 proc getDiaryEntriesForCampaign*(
     connection: DbConn, campaignName: string

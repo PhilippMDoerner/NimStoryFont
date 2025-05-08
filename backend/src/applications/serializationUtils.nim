@@ -1,5 +1,5 @@
-import norm/model
 import std/sets
+import norm/model
 import ../utils/djangoDateTime/[djangoDateTimeType]
 import ../utils/macroUtils
 

@@ -1,9 +1,9 @@
-import encounterModel
 import std/[options, strformat, algorithm, sequtils]
 import norm/sqlite
+import ./encounterModel
+import ../genericArticleRepository
 import ../../applicationSettings
 import ../../utils/djangoDateTime/[normConversion]
-import ../genericArticleRepository
 
 proc getEncountersAtAndAfterOrderIndex*(
     connection: DbConn, diaryentryId: int64, orderIndex: int

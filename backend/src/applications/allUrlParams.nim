@@ -1,7 +1,7 @@
 import std/[strformat]
 import constructor/defaults
+import ./authentication/[authenticationModels]
 import ../applicationConstants
-import authentication/[authenticationModels]
 
 export authenticationModels
 

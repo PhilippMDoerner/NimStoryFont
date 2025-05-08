@@ -1,5 +1,5 @@
-import norm/[pool, sqlite]
 import std/[logging, strformat]
+import norm/[pool, sqlite]
 
 var SQLITE_POOL*: Pool[DbConn]
 

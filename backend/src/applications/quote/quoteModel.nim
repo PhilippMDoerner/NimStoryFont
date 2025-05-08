@@ -1,11 +1,11 @@
-import norm/[model, pragmas]
 import std/[options]
+import norm/[model, pragmas]
+import constructor/defaults
 import ../campaign/campaignModel
+import ../character/characterModel
 import ../../applicationSettings
 import ../../applicationConstants
 import ../../utils/djangoDateTime/djangoDateTimeType
-import constructor/defaults
-import ../character/characterModel
 
 type QuoteSession* {.defaults, readOnly, tableName: SESSION_TABLE.} = ref object of Model
   campaign_id*: MinimumCampaignOverview = new(MinimumCampaignOverview)
