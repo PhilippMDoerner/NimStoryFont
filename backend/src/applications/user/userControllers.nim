@@ -1,8 +1,6 @@
 import prologue
-import ./userModel
 import ./userService
 import ./userSerialization
-import ./userUtils
 import ../allUrlParams
 import ../controllerTemplates
 import ../../utils/[jwtContext, customResponses, errorResponses]
