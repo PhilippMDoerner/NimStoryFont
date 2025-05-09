@@ -1,0 +1,143 @@
+@use "@angular/cdk";
+
+@import "./custom_bootstrap.scss";
+//Must be imported after custom_bootstrap so that values from custom_bootstrap are available for overriding
+@import "../node_modules/bootstrap/scss/bootstrap";
+@import "./variables.scss";
+@import "./fonts.scss";
+
+@include cdk.a11y-visually-hidden();
+
+html {
+  font-size: 18px;
+}
+
+body,
+.my-body {
+  font-family: "Inter", "Source Sans Pro", sans-serif;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  letter-spacing: 0.05rem;
+}
+
+h1 {
+  text-transform: capitalize;
+  font-weight: bold;
+}
+
+h2 {
+  text-transform: capitalize;
+  font-weight: bold;
+}
+
+h3,
+h4 {
+  font-weight: bold;
+}
+
+blockquote {
+  border-left: solid 4px var(--bs-white);
+  font-style: italic;
+  margin: var(--spacer-0);
+  padding: var(--spacer-2) var(--spacer-0) var(--spacer-1) var(--spacer-4);
+}
+
+figcaption {
+  font-style: italic;
+}
+
+label {
+  cursor: pointer;
+}
+
+.highlight {
+  background-color: var(--highlight-gray);
+}
+
+.hover-highlight {
+  transition: 0.2s background-color;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.my-tooltip {
+  border-color: #c6e2f5;
+  --bs-tooltip-bg: #d6eaf8;
+  --bs-tooltip-color: var(--bs-black);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-highlight:hover {
+    background-color: var(--highlight-gray);
+  }
+}
+
+:root {
+  // Chromium scrollbar
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--bs-light);
+    border-radius: var(--bs-border-radius);
+    filter: brightness(200%);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--bs-dark);
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--bs-dark);
+    border-radius: var(--bs-border-radius);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: #f5f5f5;
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  ::-webkit-scrollbar-track-piece {
+    background-color: var(--bs-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb:vertical {
+    min-height: 50px;
+  }
+
+  ::-webkit-scrollbar-thumb:horizontal {
+    min-width: 50px;
+  }
+}
+
+.modal-dialog {
+  max-width: unset !important;
+
+  width: 95%;
+
+  @include media-breakpoint-up(md) {
+    width: 75%;
+  }
+}
+
+@import "./custom_ngbootstrap.scss";
+
+@import "./global_class_modifications.scss";
+
+@import "./custom_leaflet.scss";

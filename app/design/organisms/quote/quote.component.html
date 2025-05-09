@@ -1,0 +1,83 @@
+@if (!isLoadingQuote()) {
+  <section class="field">
+    @let quoteVal = quote();
+    @if (quoteVal) {
+      <div class="field__quote quote" [attr.aria-label]="quoteLabel()">
+        <figure class="m-0">
+          <!-- Quote -->
+          <blockquote class="quote__content">
+            <p [innerHTML]="quoteVal.quote"></p>
+          </blockquote>
+          <figcaption class="quote__description">
+            <!-- Quote Description -->
+            @if (quoteVal.description) {
+              <p class="m-0" [innerHTML]="'- ' + quoteVal.description"></p>
+            } @else {
+              - {{ character().name }}
+            }
+          </figcaption>
+        </figure>
+        <app-separator />
+
+        <!-- Quote Connections -->
+        <div class="quote__connections">
+          <app-badge-list
+            [entries]="badgeEntries()"
+            [label]="'Characters'"
+            [createOptions]="{
+              kind: 'SELECT',
+              formFieldLabel: 'Characters',
+              config: {
+                options: campaignCharacters(),
+                labelProp: 'name',
+                valueProp: 'pk',
+              },
+            }"
+            [canCreate]="canCreate()"
+            [canDelete]="canDelete()"
+            [cancelButtonType]="'DARK'"
+            (entryCreate)="onConnectionCreate($event)"
+            (entryDelete)="onConnectionDelete($event)"
+          ></app-badge-list>
+        </div>
+      </div>
+    }
+
+    <!-- Quote Refresh/Create/Edit/Delete Icons -->
+    <footer class="field__controls">
+      @for (control of quoteControlls(); track $index) {
+        @switch (control.config.kind) {
+          @case ("CLICK") {
+            <button
+              btn
+              class="field__control"
+              [attr.aria-label]="control.title"
+              [attr.title]="control.title"
+              [kind]="control.type"
+              [text]="control.label"
+              [icon]="control.icon"
+              (clicked)="control.config.onClick()"
+            ></button>
+          }
+          @case ("LINK") {
+            <a
+              btn
+              class="field__control"
+              [attr.aria-label]="control.title"
+              [ngbTooltip]="control.title"
+              [kind]="control.type"
+              [text]="control.label"
+              [icon]="control.icon"
+              [routerLink]="control.config.link"
+            >
+            </a>
+          }
+        }
+      }
+    </footer>
+  </section>
+}
+
+<ng-template #loading>
+  <app-spinner></app-spinner>
+</ng-template>

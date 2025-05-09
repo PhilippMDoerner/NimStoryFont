@@ -1,0 +1,53 @@
+@use "sass:math";
+
+// Overwriting leaflet CSS
+h5.popup-heading{
+	color: black;
+	font-weight: normal !important;
+	font-size: 0.9rem;
+	letter-spacing: normal;
+	margin-top: 1rem;
+	margin-bottom: 0rem;
+	text-transform: none;
+}
+
+$marker-width: 100px;
+.leaflet-text-marker{
+	opacity: 0.66;
+	padding: 0 3px;
+	width: $marker-width;
+	margin-left: math.div(-1*$marker-width, 2);
+	margin-top: 5px;
+	text-align: center;
+}
+
+.leaflet-div-icon{
+	border:none;
+	background-color: transparent;
+}
+
+
+.marker-pin {
+	width: 30px;
+	height: 30px;
+	border-radius: 50% 50% 50% 0;
+	background: #c30b82;
+	position: absolute;
+	transform: rotate(-45deg);
+	left: 50%;
+	top: 50%;
+	margin: -15px 0 0 -15px;
+}
+
+// to align icon
+.custom-div-icon i {
+  position: absolute;
+  width: 16px;
+  font-size: 16px;
+  left: 0;
+  right: 0;
+  margin: 12px auto;
+  text-align: center;
+  
+  color: var(--bs-black);
+}

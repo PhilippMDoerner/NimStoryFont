@@ -1,0 +1,34 @@
+.profile{
+  &__heading{
+
+  }
+  
+  &__memberships{
+  }
+  
+  &__data{
+    margin-bottom: var(--spacer-4);
+  }
+}
+
+.heading{
+  display: flex;
+  justify-content: space-between;
+  
+  &__text{
+    margin-bottom: var(--spacer-0);
+  }
+  
+  &__buttons{
+    position: relative;
+    display: flex;
+    align-self: flex-end;
+    justify-content: flex-end;
+    top: 1px;
+  }
+  
+  &__button{
+    border: var(--bs-white) 1px solid;
+    border-radius: var(--bs-border-radius);
+  }
+}

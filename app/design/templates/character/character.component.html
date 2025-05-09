@@ -1,0 +1,188 @@
+<app-page-container>
+  <article class="container character">
+    @if (canUpdate()) {
+      <div class="character__edit-container">
+        <a
+          btn
+          [ngbTooltip]="'Edit ' + character().name"
+          [attr.aria-label]="'Edit ' + character().name"
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          [routerLink]="updateUrl()"
+          [hotkey]="'e'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <!-- Heading -->
+    <div class="row">
+      <h1 class="col-12 character__heading">
+        @let title = character().title;
+        @if (title) {
+          {{ title }} -
+        }
+        {{ character().name }}
+        @if (!character().alive) {
+          (†)
+        }
+      </h1>
+
+      <div class="col-12 character__subheading">
+        <!-- Organization -->
+        <span class="fs-5">
+          @if (character().gender !== "Other") {
+            {{ character().gender }}
+          }
+          {{ character().race }}
+        </span>
+
+        <!-- Current Location -->
+        @let currentLocationDetails = character().current_location_details;
+        @if (currentLocationDetails) {
+          <div class="col-12">
+            Last known location:
+            <a [routerLink]="locationUrl()">
+              <strong> {{ currentLocationDetails.name }} </strong>
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="character__images">
+      <!-- Image Gallery -->
+      <app-image-carousel-card
+        [images]="character().images ?? []"
+        [serverUrl]="serverUrl()"
+        [serverModel]="imageServerModel()"
+        [canUpdate]="canUpdate()"
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        (createImage)="createImage.emit($event)"
+        (deleteImage)="deleteImage.emit($event)"
+        (updateImage)="updateImage.emit($event)"
+      ></app-image-carousel-card>
+    </div>
+
+    <!-- Quote -->
+    <div class="character__quote">
+      <app-quote-field
+        [quote]="characterQuote()"
+        [character]="character()"
+        [campaignCharacters]="campaignCharacters()"
+        [sessions]="sessions()"
+        [encounters]="encounters()"
+        [serverModel]="quoteServerModel()"
+        [canUpdate]="canUpdate()"
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        (refreshQuote)="refreshQuote.emit()"
+        (quoteUpdate)="quoteUpdate.emit($event)"
+        (quoteCreate)="quoteCreate.emit($event)"
+        (quoteDelete)="quoteDelete.emit($event)"
+        (connectionCreate)="quoteConnectionCreate.emit($event)"
+        (connectionDelete)="quoteConnectionDelete.emit($event)"
+      ></app-quote-field>
+    </div>
+
+    <div class="character__badge-list">
+      <app-badge-list
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        [label]="'Organizations'"
+        [entries]="organizationMemberships()"
+        [createOptions]="{
+          kind: 'SELECT',
+          formFieldLabel: 'Organizations',
+          config: {
+            options: joinableOrganizations(),
+            labelProp: 'name',
+            valueProp: 'pk',
+          },
+        }"
+        (entryCreate)="onMembershipCreate($event)"
+        (entryDelete)="organizationMembershipDelete.emit($event)"
+      ></app-badge-list>
+    </div>
+
+    <div class="character__badge-list">
+      <app-badge-list
+        [label]="'Class'"
+        [entries]="characterClasses()"
+        [createOptions]="{
+          kind: 'SELECT',
+          formFieldLabel: 'Classes',
+          config: {
+            options: campaignClasses(),
+            valueProp: 'pk',
+            labelProp: 'name',
+          },
+        }"
+        [canCreate]="true"
+        [canDelete]="true"
+        (entryCreate)="addClass.emit($event)"
+        (entryDelete)="removeClass.emit($event)"
+      ></app-badge-list>
+    </div>
+
+    <app-editable-text
+      class="character__description"
+      [heading]="'Description'"
+      [ariaLevel]="2"
+      [placeholder]="'Add a description for ' + character().name"
+      [text]="character().description"
+      [serverModel]="characterServerModel()?.description"
+      [canUpdate]="canUpdate()"
+      (update)="onDescriptionUpdate($event)"
+    ></app-editable-text>
+
+    <div class="character__items">
+      <app-link-list
+        [ariaLevel]="2"
+        [heading]="'Items of Note'"
+        [entries]="characterItems()"
+        [createOption]="{ kind: 'link', url: itemCreateUrl() }"
+        [emptyListText]="character().name + ' has no significant items.'"
+      ></app-link-list>
+    </div>
+
+    <!-- PCs don't have encounters -->
+    @if (!character().player_character) {
+      <div class="row">
+        <h2 class="col mb-0 fs-4">
+          <app-info-circle-tooltip
+            [text]="(character().encounters?.length ?? 0) + ' Encounters'"
+            [tooltip]="
+              'List of all encounters with ' +
+              character().name +
+              '. Starts with the most recent encounter and ends with the latest.'
+            "
+          ></app-info-circle-tooltip>
+        </h2>
+        <app-encounter-accordion
+          [encounters]="character().encounters ?? []"
+          [campaignLocations]="campaignLocations()"
+          [campaignCharacters]="campaignNPCCharacters()"
+          [serverModel]="encounterServerModel()"
+          [canUpdate]="canUpdate()"
+          [canCreate]="canCreate()"
+          [canDelete]="canDelete()"
+          (connectionCreate)="encounterConnectionCreate.emit($event)"
+          (connectionDelete)="encounterConnectionDelete.emit($event)"
+          (encounterDelete)="encounterDelete.emit($event)"
+          (encounterUpdate)="encounterUpdate.emit($event)"
+        ></app-encounter-accordion>
+      </div>
+    }
+
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to Characters'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="'Character ' + character().name"
+      (delete)="characterDelete.emit(character())"
+    ></app-article-footer>
+  </article>
+</app-page-container>

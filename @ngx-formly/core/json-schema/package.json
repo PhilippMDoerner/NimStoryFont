@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-core-json-schema.mjs",
+  "es2020": "../fesm2020/ngx-formly-core-json-schema.mjs",
+  "esm2020": "../esm2020/json-schema/ngx-formly-core-json-schema.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-core-json-schema.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-core-json-schema.mjs",
+  "typings": "ngx-formly-core-json-schema.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/core/json-schema"
+}

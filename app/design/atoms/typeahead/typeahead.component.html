@@ -1,0 +1,33 @@
+@let badgeLabel = selectedItemLabel();
+@if (badgeLabel && badgeLabel !== "undefined") {
+  <app-badge
+    [kind]="'SECONDARY'"
+    [text]="badgeLabel"
+    [ngbTooltip]="'Clear this option'"
+    [icon]="'times'"
+    [interactionMode]="'BUTTON'"
+    [maxLength]="20"
+    (badgeClick)="resetSelectedValue()"
+    (click)="$event.stopPropagation()"
+  />
+}
+
+<input
+  #inputElement
+  #instance="ngbTypeahead"
+  [id]="id()"
+  type="text"
+  class="input"
+  [ngbTypeahead]="search"
+  [disabled]="disabled() ?? false"
+  [placeholder]="placeholder()"
+  [resultFormatter]="formatItem.bind(this)"
+  [inputFormatter]="formatItem.bind(this)"
+  [attr.aria-invalid]="!selectedItem()"
+  [required]="true"
+  [editable]="false"
+  [focusOnRender]="autofocus()"
+  (selectItem)="onSelect($event)"
+  (keydown.Backspace)="clearOnEmptyInput($event.target)"
+  (keydown.Escape)="resetValueAndText()"
+/>

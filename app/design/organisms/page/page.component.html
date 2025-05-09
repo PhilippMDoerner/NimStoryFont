@@ -1,0 +1,68 @@
+@let campaign = globalStore.currentCampaign();
+@if (campaign) {
+  <div class="mobile">
+    <app-mobile-header
+      [canShowSidebar]="canShowSidebar()"
+      [title]="mobileHeaderTitle()"
+      [currentCampaignIconUrl]="campaign.icon"
+      [titleUrl]="homeUrl()"
+      (openSidebar)="openSidebar()"
+    ></app-mobile-header>
+  </div>
+
+  @if (canShowSidebar()) {
+    <div class="desktop">
+      <ng-template *ngTemplateOutlet="sidebar" />
+    </div>
+  }
+}
+
+<div class="page" #content>
+  <div class="page__content">
+    <button
+      class="page__scrollup-indicator"
+      [class.page__scrollup-indicator--visible]="
+        (showScrollupIndicator$ | async) === true
+      "
+      (click)="scrollToTop()"
+      [ngbTooltip]="'Scroll to top'"
+      aria-label="Scroll to top"
+      [hotkey]="'t'"
+      (hotkeyPressed)="scrollToTop()"
+    >
+      <app-icon [icon]="'arrow-up-long'" />
+    </button>
+    <main
+      #innerContent
+      class="page__main"
+      [id]="contentId()"
+      [attr.aria-busy]="isLoading()"
+    >
+      @if (isLoading()) {
+        <div class="page__loading-container" aria-hidden="true">
+          <app-spinner class="page__loading-spinner"></app-spinner>
+        </div>
+      }
+      <router-outlet #routerOutlet></router-outlet>
+    </main>
+  </div>
+
+  <app-page-background
+    #background
+    class="page__background"
+    [imageUrl]="(campaignBackgroundImage$ | async) ?? undefined"
+  ></app-page-background>
+</div>
+
+<ng-template #sidebar>
+  <app-sidebar
+    #sidebarElement
+    id="sidebar"
+    class="sidebar"
+    [campaign]="campaign"
+    [hasCampaignAdminPrivileges]="hasCampaignAdminPrivileges()"
+    (logout)="logout.emit()"
+    (closeSidebar)="closeSidebar()"
+    (click)="closeSidebar()"
+  ></app-sidebar>
+</ng-template>

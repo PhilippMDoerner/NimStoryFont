@@ -1,0 +1,35 @@
+{
+  "name": "storybook-preset-inline-svg",
+  "version": "1.0.1",
+  "description": "Storybook preset to load SVG files inline",
+  "main": "dist",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/morganney/storybook-preset-inline-svg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/morganney/storybook-preset-inline-svg/issues"
+  },
+  "scripts": {
+    "prepack": "babel src --out-dir dist"
+  },
+  "keywords": [
+    "storybook",
+    "preset",
+    "svg",
+    "inline"
+  ],
+  "author": "Morgan Ney <morganney@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/preset-env": "^7.15.0"
+  },
+  "peerDependencies": {
+    "svg-inline-loader": "^0.8.2"
+  }
+}

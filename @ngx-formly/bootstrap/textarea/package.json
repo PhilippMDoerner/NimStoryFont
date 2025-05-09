@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-bootstrap-textarea.mjs",
+  "es2020": "../fesm2020/ngx-formly-bootstrap-textarea.mjs",
+  "esm2020": "../esm2020/textarea/ngx-formly-bootstrap-textarea.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-bootstrap-textarea.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-bootstrap-textarea.mjs",
+  "typings": "ngx-formly-bootstrap-textarea.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/bootstrap/textarea"
+}

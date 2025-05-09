@@ -1,0 +1,14 @@
+<label class="label" [attr.id]="labelId()" [for]="searchId">
+  {{ label() }}
+</label>
+<input
+  #input
+  [id]="searchId"
+  class="input"
+  [type]="type()"
+  [value]="_value()"
+  [attr.aria-disabled]="disabled()"
+  [attr.aria-controls]="ariaControls()"
+  (keyDown)="emitValue(input.value)"
+  (input)="emitValue(input.value)"
+/>

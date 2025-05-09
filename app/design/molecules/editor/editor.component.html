@@ -1,0 +1,105 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+
+<!-- Text Body -->
+@if (canUpdate()) {
+  <!-- Display Mode -->
+  <div
+    class="field field--display"
+    [class.field--hidden]="state() !== 'DISPLAY'"
+    (click)="startEdit()"
+  >
+    <ng-container *ngTemplateOutlet="textBody" />
+  </div>
+  <!-- Update Mode -->
+  <form
+    class="field field--update"
+    [class.field--hidden]="state() !== 'UPDATE'"
+    (submit)="finishEdit()"
+  >
+    @if (_settings().skin === "oxide-dark") {
+      <editor
+        #editor
+        [id]="id()"
+        [init]="_settings()"
+        [name]="id()"
+        [(ngModel)]="textModel"
+        class="mb-2"
+        [class.editor--focus]="inFocus()"
+        (onKeyDown)="change$.next(textModel)"
+        (onFocus)="inFocus.set(true)"
+        (onBlur)="inFocus.set(false)"
+      ></editor>
+    }
+
+    <ng-container [ngTemplateOutlet]="formButtons" />
+  </form>
+
+  <!-- Outdated Update Mode -->
+  <div
+    class="field field--update"
+    [class.field--hidden]="state() !== 'OUTDATED_UPDATE'"
+  >
+    <!-- Informating heading -->
+    <app-alert [kind]="'INFO'">
+      <app-icon [icon]="'info-circle'"></app-icon>
+      While you were updating this article, somebody else went ahead and updated
+      it as well. Please include their changes in your update before submitting.
+    </app-alert>
+
+    <!-- Textfield-Form -->
+    <div class="flex-column card p-4">
+      <!-- Comparison text -->
+      <div>
+        <h3>Description From Server</h3>
+        <app-html-text [text]="serverModel()!" />
+      </div>
+
+      <app-separator />
+
+      <!-- Actual edit form -->
+      <form (submit)="finishEdit()">
+        @let outdatedId = id() + "-outdated";
+        <label [for]="outdatedId" class="h3"> Description from You </label>
+
+        <editor
+          [init]="_settings()"
+          [name]="outdatedId"
+          [id]="outdatedId"
+          [(ngModel)]="textModel"
+          class="mb-2"
+        ></editor>
+
+        <ng-container [ngTemplateOutlet]="formButtons" />
+      </form>
+    </div>
+  </div>
+} @else {
+  <ng-container *ngTemplateOutlet="textBody" />
+}
+
+<ng-template #formButtons>
+  <div class="field__buttons">
+    <button
+      btn
+      [icon]="'check'"
+      [text]="'Submit'"
+      [kind]="submitButtonKind()"
+      [type]="'submit'"
+    ></button>
+    <button
+      btn
+      [icon]="'times'"
+      [text]="'Cancel'"
+      [kind]="cancelButtonKind()"
+      [hotkey]="'q'"
+      [disabledHotkey]="disabledHotkeys()"
+      (hotkeyPressed)="cancelEdit()"
+      (clicked)="cancelEdit()"
+    ></button>
+  </div>
+</ng-template>
+
+<ng-template #textBody>
+  <app-html-text [text]="text() || placeholder()" />
+</ng-template>

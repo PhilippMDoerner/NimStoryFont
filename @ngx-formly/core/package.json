@@ -1,0 +1,73 @@
+{
+  "name": "@ngx-formly/core",
+  "version": "6.3.10",
+  "license": "MIT",
+  "dependencies": {
+    "tslib": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@angular/forms": ">=13.2.0",
+    "rxjs": "^6.5.3 || ^7.0.0"
+  },
+  "module": "fesm2015/ngx-formly-core.mjs",
+  "es2020": "fesm2020/ngx-formly-core.mjs",
+  "esm2020": "esm2020/ngx-formly-core.mjs",
+  "fesm2020": "fesm2020/ngx-formly-core.mjs",
+  "fesm2015": "fesm2015/ngx-formly-core.mjs",
+  "typings": "ngx-formly-core.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./ngx-formly-core.d.ts",
+      "esm2020": "./esm2020/ngx-formly-core.mjs",
+      "es2020": "./fesm2020/ngx-formly-core.mjs",
+      "es2015": "./fesm2015/ngx-formly-core.mjs",
+      "node": "./fesm2015/ngx-formly-core.mjs",
+      "default": "./fesm2020/ngx-formly-core.mjs"
+    },
+    "./json-schema": {
+      "types": "./json-schema/ngx-formly-core-json-schema.d.ts",
+      "esm2020": "./esm2020/json-schema/ngx-formly-core-json-schema.mjs",
+      "es2020": "./fesm2020/ngx-formly-core-json-schema.mjs",
+      "es2015": "./fesm2015/ngx-formly-core-json-schema.mjs",
+      "node": "./fesm2015/ngx-formly-core-json-schema.mjs",
+      "default": "./fesm2020/ngx-formly-core-json-schema.mjs"
+    },
+    "./preset": {
+      "types": "./preset/ngx-formly-core-preset.d.ts",
+      "esm2020": "./esm2020/preset/ngx-formly-core-preset.mjs",
+      "es2020": "./fesm2020/ngx-formly-core-preset.mjs",
+      "es2015": "./fesm2015/ngx-formly-core-preset.mjs",
+      "node": "./fesm2015/ngx-formly-core-preset.mjs",
+      "default": "./fesm2020/ngx-formly-core-preset.mjs"
+    },
+    "./select": {
+      "types": "./select/ngx-formly-core-select.d.ts",
+      "esm2020": "./esm2020/select/ngx-formly-core-select.mjs",
+      "es2020": "./fesm2020/ngx-formly-core-select.mjs",
+      "es2015": "./fesm2015/ngx-formly-core-select.mjs",
+      "node": "./fesm2015/ngx-formly-core-select.mjs",
+      "default": "./fesm2020/ngx-formly-core-select.mjs"
+    },
+    "./testing": {
+      "types": "./testing/ngx-formly-core-testing.d.ts",
+      "esm2020": "./esm2020/testing/ngx-formly-core-testing.mjs",
+      "es2020": "./fesm2020/ngx-formly-core-testing.mjs",
+      "es2015": "./fesm2015/ngx-formly-core-testing.mjs",
+      "node": "./fesm2015/ngx-formly-core-testing.mjs",
+      "default": "./fesm2020/ngx-formly-core-testing.mjs"
+    }
+  },
+  "sideEffects": false,
+  "homepage": "https://github.com/ngx-formly/ngx-formly#readme",
+  "description": "Formly is a dynamic (JSON powered) form library for Angular that bring unmatched maintainability to your application's forms.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngx-formly/ngx-formly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ngx-formly/ngx-formly/issues"
+  }
+}

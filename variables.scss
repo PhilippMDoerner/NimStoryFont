@@ -1,0 +1,29 @@
+// The core place for setting css variables
+
+@import "./custom_bootstrap.scss";
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+:root {
+  // Assign those based on the bootstrap variables
+  --character-color: var(--bs-blue);
+  --item-color: var(--bs-yellow);
+  --creature-color: var(--bs-red);
+  --location-color: var(--bs-brown);
+  --organization-color: var(--bs-indigo);
+  --diaryentry-color: var(--bs-darkgreen);
+  --encounter-color: var(--bs-lightgreen);
+  --quest-color: var(--bs-white);
+  --sessionaudio-color: var(--bs-green);
+  --map-color: var(--bs-beige);
+  --rules-color: var(--bs-orange);
+  --spell-color: var(--bs-purple);
+
+  --highlight-gray: rgba(61, 70, 77, 0.85);
+  --wiki-bg-transparent: rgba(27, 31, 34, 0.93);
+  --wiki-bg-solid: rgb(27, 31, 34);
+  --focus-outline: solid 3px var(--bs-link-hover-color);
+
+  @each $index, $value in $spacers {
+    --spacer-#{$index}: #{$value};
+  }
+}

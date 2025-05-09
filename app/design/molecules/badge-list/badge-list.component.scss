@@ -1,0 +1,24 @@
+@import "/src/screens.scss";
+
+.badge-list {
+  display: inline-flex;
+  flex-direction: row;
+
+  &__label {
+  }
+
+  &__list {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__create-badge {
+    display: flex;
+  }
+
+  &__create-link {
+    text-decoration: none;
+  }
+}

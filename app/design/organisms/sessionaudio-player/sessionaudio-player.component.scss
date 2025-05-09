@@ -1,0 +1,31 @@
+.timestamp {
+  &__list {
+    margin-top: var(--spacer-3);
+  }
+
+  &__create-button {
+    margin-top: var(--spacer-4);
+    margin-bottom: var(--spacer-4);
+  }
+
+  &__create-form {
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+  }
+}
+
+.list {
+  gap: var(--spacer-1);
+  display: flex;
+  flex-direction: column;
+  &__timestamp {
+    padding-bottom: var(--spacer-1);
+    display: block;
+  }
+}
+
+.container {
+  padding-left: var(--spacer-0);
+  padding-right: var(--spacer-0);
+}

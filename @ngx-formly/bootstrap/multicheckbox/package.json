@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-bootstrap-multicheckbox.mjs",
+  "es2020": "../fesm2020/ngx-formly-bootstrap-multicheckbox.mjs",
+  "esm2020": "../esm2020/multicheckbox/ngx-formly-bootstrap-multicheckbox.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-bootstrap-multicheckbox.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-bootstrap-multicheckbox.mjs",
+  "typings": "ngx-formly-bootstrap-multicheckbox.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/bootstrap/multicheckbox"
+}

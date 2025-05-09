@@ -1,0 +1,1 @@
+{"version":3,"file":"directive-selector.d.ts","sourceRoot":"","sources":["../../src/rules/directive-selector.ts"],"names":[],"mappings":"AAAA,OAAO,EAIL,aAAa,EACd,MAAM,uBAAuB,CAAC;AAI/B,MAAM,MAAM,OAAO,GAAG,aAAa,CAAC,OAAO,CAAC;AAC5C,MAAM,MAAM,UAAU,GAAG,eAAe,GAAG,cAAc,GAAG,aAAa,CAAC;AAC1E,eAAO,MAAM,SAAS,uBAAuB,CAAC;;AAM9C,wBAgGG"}

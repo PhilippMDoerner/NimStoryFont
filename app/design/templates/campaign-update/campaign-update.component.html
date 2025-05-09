@@ -1,0 +1,11 @@
+@if (_userModel() != null) {
+  <app-create-update
+    [state]="formState()"
+    [heading]="'Update Campaign'"
+    [formlyFields]="formlyFields()"
+    [userModel]="_userModel()"
+    [serverModel]="_serverModel()"
+    (cancelled)="cancelled.emit()"
+    (update)="update.emit($event)"
+  ></app-create-update>
+}

@@ -1,0 +1,9 @@
+<app-create-update
+  [heading]="'Adding new User'"
+  [formlyFields]="userFields"
+  [userModel]="userModel"
+  [state]="'CREATE'"
+  [serverModel]="undefined"
+  (create)="createUser($any($event))"
+  (cancelled)="routeBack()"
+/>

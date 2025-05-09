@@ -1,0 +1,53 @@
+<div
+  class="repeated-unit"
+  [id]="encounter().title"
+  [attr.aria-label]="'Encounter \'' + encounter().title + '\''"
+>
+  @switch (state()) {
+    @case ("READ") {
+      <ng-container *ngTemplateOutlet="displayEncounter" />
+    }
+    @case ("EDIT") {
+      <ng-container *ngTemplateOutlet="editEncounter" />
+    }
+  }
+</div>
+
+<ng-template #displayEncounter>
+  <div class="h4" [heading]="ariaLevel()" [id]="headingId()">
+    {{ encounter().title }}
+  </div>
+  <app-html-text [text]="encounter().description"></app-html-text>
+</ng-template>
+
+<ng-template #editEncounter>
+  <app-card class="encounter-card">
+    <app-encounter
+      class="encounter-card__encounter"
+      [encounter]="encounter()"
+      [characters]="characters()"
+      [updateState]="updateState()"
+      [locations]="locations()"
+      [serverModel]="serverModel()"
+      [canUpdate]="canUpdate()"
+      [canDelete]="canDelete()"
+      [canCreate]="canCreate()"
+      [isInFocus]="isInFocus()"
+      [initialCardState]="encounter().pk == null ? 'CREATE' : 'DISPLAY'"
+      [headingId]="headingId()"
+      (connectionDelete)="connectionDelete.emit($event)"
+      (connectionCreate)="connectionCreate.emit($event)"
+      (encounterDelete)="encounterDelete.emit($event)"
+      (encounterUpdate)="encounterUpdate.emit($event)"
+      (encounterCreate)="encounterCreate.emit($event)"
+      (encounterCreateCancel)="encounterCreateCancel.emit()"
+    />
+  </app-card>
+</ng-template>
+
+<!-- Loading Spinner -->
+<ng-template #loading>
+  <div class="d-flex justify-content-center w-100">
+    <app-spinner aria-label="Loading" class="spinner"></app-spinner>
+  </div>
+</ng-template>

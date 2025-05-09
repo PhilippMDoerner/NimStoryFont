@@ -1,0 +1,42 @@
+@use "src/utils" as utils;
+
+@include utils.reset-list-styles();
+
+.overview {
+  &__subheading {
+  }
+
+  &__page-heading {
+    margin-bottom: var(--spacer-4);
+    padding-bottom: var(--spacer-1);
+    border-bottom: var(--bs-border-width) var(--bs-border-style)
+      var(--bs-border-color);
+  }
+
+  &__create {
+    margin-bottom: var(--spacer-3);
+  }
+
+  &__image {
+    width: 100%;
+    aspect-ratio: 3;
+    max-height: 14rem;
+    max-width: 100%;
+    object-fit: cover;
+    object-position: bottom;
+    padding-left: var(--spacer-0);
+    padding-right: var(--spacer-0);
+    margin-bottom: var(--spacer-4);
+  }
+
+  &__player-card {
+    min-height: 12.5rem;
+    margin-bottom: var(--spacer-4);
+  }
+}
+
+.player-card {
+  &__link {
+    text-decoration: none;
+  }
+}

@@ -1,0 +1,9 @@
+<button class="entry__link" (click)="entryClicked.emit($event)">
+  @let ico = icon();
+  @if (ico) {
+    <app-icon class="entry__icon" [icon]="ico"></app-icon>
+  }
+  <span class="entry__text">
+    {{ label() }}
+  </span>
+</button>

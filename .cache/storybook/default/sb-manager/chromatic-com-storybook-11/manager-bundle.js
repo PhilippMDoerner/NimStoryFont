@@ -1,0 +1,1 @@
+import '/home/runner/work/NimStoryFont/NimStoryFont/frontend/node_modules/@chromatic-com/storybook/dist/manager.mjs';

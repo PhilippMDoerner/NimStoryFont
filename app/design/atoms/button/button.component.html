@@ -1,0 +1,17 @@
+@let iconVal = icon();
+@if (iconVal) {
+  <app-icon [class.btn__icon]="text()" [icon]="iconVal"></app-icon>
+}
+
+@if (text()) {
+  <span
+    class="btn__text"
+    [class.btn__text--large]="size() === 'LARGE'"
+    [innerHTML]="text()"
+  >
+  </span>
+}
+
+@if (isLoading()) {
+  <app-spinner class="btn__spinner"></app-spinner>
+}

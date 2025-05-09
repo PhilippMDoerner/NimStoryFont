@@ -1,0 +1,9 @@
+.heading{
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  
+  &__text{
+    flex: 1
+  }
+}

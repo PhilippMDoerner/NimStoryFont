@@ -1,0 +1,37 @@
+.config-tables {
+  &__return-button {
+  }
+
+  &__section {
+    margin-top: var(--spacer-3);
+    margin-bottom: var(--spacer-5);
+  }
+}
+
+.section {
+  &__separator {
+    --separator-margin-top: var(--spacer-0);
+  }
+
+  &__heading {
+  }
+
+  &__table-container {
+    overflow-x: auto;
+  }
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+
+  &__text {
+    margin-bottom: var(--spacer-0);
+  }
+
+  &__buttons {
+    align-self: flex-end;
+    position: relative;
+    top: 1px;
+  }
+}

@@ -1,0 +1,56 @@
+<div class="linkentry" [class.linkentry--delete]="state() === 'DELETE'">
+  <ng-container
+    *ngTemplateOutlet="state() === 'DISPLAY' ? displayRow : deleteRow"
+  />
+</div>
+
+<ng-template #displayRow>
+  <!-- Entry Linktext -->
+  <button (click)="linkClick.emit(entry().value)" class="linkentry__link">
+    {{ entry().linkText }}
+  </button>
+
+  <!-- Entry Name -->
+  <div class="linkentry__label">
+    {{ entry().label }}
+  </div>
+
+  <!-- Delete Entry -->
+  <div class="linkentry__delete">
+    @if (canDelete()) {
+      <button
+        btn
+        class="linkentry__delete-button"
+        (clicked)="changeState('DELETE')"
+        [attr.aria-label]="'Delete ' + entry().label"
+        [size]="'SMALL'"
+        [icon]="'trash'"
+        [kind]="'DANGER-OUTLINE'"
+      ></button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #deleteRow>
+  <div class="linkentry__box box">
+    <span class="ms-2">
+      {{ deleteMessage() }}
+    </span>
+    <button
+      btn
+      class="box__button"
+      [kind]="'DANGER'"
+      [size]="'SMALL'"
+      [text]="'Delete'"
+      (clicked)="delete.emit(entry().value)"
+    ></button>
+    <button
+      btn
+      class="box__button"
+      [kind]="'DARK'"
+      [size]="'SMALL'"
+      [text]="'Cancel'"
+      (clicked)="changeState('DISPLAY')"
+    ></button>
+  </div>
+</ng-template>

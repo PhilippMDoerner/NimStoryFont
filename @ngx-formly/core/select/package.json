@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-core-select.mjs",
+  "es2020": "../fesm2020/ngx-formly-core-select.mjs",
+  "esm2020": "../esm2020/select/ngx-formly-core-select.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-core-select.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-core-select.mjs",
+  "typings": "ngx-formly-core-select.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/core/select"
+}

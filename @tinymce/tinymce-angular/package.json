@@ -1,0 +1,38 @@
+{
+  "name": "@tinymce/tinymce-angular",
+  "description": "Official TinyMCE Angular Component",
+  "version": "7.0.0",
+  "repository": "https://github.com/tinymce/tinymce-angular.git",
+  "author": "Ephox Corporation DBA Tiny Technologies, Inc.",
+  "license": "MIT",
+  "private": false,
+  "peerDependencies": {
+    "@angular/core": ">=14.0.0",
+    "@angular/common": ">=14.0.0",
+    "@angular/forms": ">=14.0.0"
+  },
+  "dependencies": {
+    "tinymce": "^6.0.0 || ^5.5.0",
+    "tslib": "^2.3.0"
+  },
+  "module": "fesm2015/tinymce-tinymce-angular.mjs",
+  "es2020": "fesm2020/tinymce-tinymce-angular.mjs",
+  "esm2020": "esm2020/tinymce-tinymce-angular.mjs",
+  "fesm2020": "fesm2020/tinymce-tinymce-angular.mjs",
+  "fesm2015": "fesm2015/tinymce-tinymce-angular.mjs",
+  "typings": "index.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./index.d.ts",
+      "esm2020": "./esm2020/tinymce-tinymce-angular.mjs",
+      "es2020": "./fesm2020/tinymce-tinymce-angular.mjs",
+      "es2015": "./fesm2015/tinymce-tinymce-angular.mjs",
+      "node": "./fesm2015/tinymce-tinymce-angular.mjs",
+      "default": "./fesm2020/tinymce-tinymce-angular.mjs"
+    }
+  },
+  "sideEffects": false
+}

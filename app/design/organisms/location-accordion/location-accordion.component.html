@@ -1,0 +1,39 @@
+<div class="heading">
+  <h4 class="heading__text">Locations of Interest</h4>
+  @if (canCreate()) {
+    <a
+      btn
+      [ngbTooltip]="'Create Location'"
+      aria-label="Create Location"
+      [kind]="'PRIMARY'"
+      [size]="'SMALL'"
+      [icon]="'plus'"
+      class="heading__create-button"
+      [routerLink]="createUrl()"
+    >
+    </a>
+  }
+</div>
+
+<div ngbAccordion [closeOthers]="true">
+  @for (entry of locations(); track entry.pk) {
+    <div ngbAccordionItem [id]="'static-' + $index">
+      <!-- Header -->
+      <div ngbAccordionHeader class="button-container">
+        <button class="button-container__button fw-bold" ngbAccordionButton>
+          {{ entry.name }}
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div ngbAccordionCollapse>
+        <div ngbAccordionBody>
+          <app-location
+            [location]="entry"
+            [campaignCharacters]="campaignCharacters()"
+          />
+        </div>
+      </div>
+    </div>
+  }
+</div>

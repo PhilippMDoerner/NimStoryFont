@@ -1,0 +1,97 @@
+<app-page-container>
+  <article class="home">
+    <!-- Heading -->
+    @if (campaignData()) {
+      <header class="home__heading-container heading-container">
+        <img
+          class="heading-container__icon"
+          [ngSrc]="serverUrl() + campaignData()?.icon"
+          [width]="128"
+          [height]="128"
+          priority
+          [alt]="DEFAULT_ICON"
+        />
+        <h1 class="heading-container__heading">
+          {{ campaignData()?.name }}
+        </h1>
+        <app-html-text
+          class="heading-container__subheading"
+          [text]="campaignData()?.subtitle ?? ''"
+        ></app-html-text>
+      </header>
+    } @else {
+      <app-placeholder class="heading-container--placeholder" />
+    }
+
+    <!-- Search Bar -->
+    <app-search-field
+      class="home__search-bar"
+      [placeholder]="'Search for articles in ' + (campaignData()?.name ?? '')"
+      [btnAriaLabel]="'Start search!'"
+      [canSearch]="(isOnline$ | async) === true"
+      (appSearch)="appSearch.emit($event)"
+    ></app-search-field>
+
+    <!-- News -->
+    @let feedId = id + "-feed";
+    @let feedLabelId = id + "-feed-heading";
+    <h2 [id]="feedLabelId">
+      <app-icon [icon]="'newspaper'"></app-icon>
+      New Updates
+    </h2>
+    <section class="home__feed feed" aria-label="New Updates Feed">
+      <div class="feed__controls">
+        <app-switch
+          [label]="'Infinity scroll'"
+          [checked]="feedMode() === 'INFINITY_SCROLL'"
+          [ariaControls]="feedId"
+          (changed)="toggleFeedMode($event)"
+        />
+
+        <app-context-menu
+          [menuButtonIcon]="'filter'"
+          [menuButtonKind]="'DARK'"
+          [menuItems]="timeFilterOptions()"
+          [menuButtonAriaLabel]="'Time filter options for update feed'"
+          [attr.aria-controls]="feedId"
+          (actionTriggered)="timeFilter.set($any($event))"
+        ></app-context-menu>
+      </div>
+
+      <app-icon-card-list
+        [id]="feedId"
+        class="feed__articles col-sm-6 col-md-6 col-lg-5 col-xl-3"
+        [isLoading]="isLoading()"
+        [articles]="articleEntries()"
+        [ariaLabelId]="feedLabelId"
+      ></app-icon-card-list>
+
+      @if (feedMode() === "BUTTON_LOAD") {
+        <div class="row justify-content-center">
+          <button
+            btn
+            class="col-sm-6 col-md-6 col-lg-4 col-xl-3"
+            [kind]="'PRIMARY'"
+            [text]="
+              canLoadMore() ? 'Load more articles' : 'You\'ve reached the end!'
+            "
+            [icon]="'download'"
+            [disabled]="!canLoadMore()"
+            [isLoading]="isLoading()"
+            (clicked)="triggerNextPageLoad()"
+          ></button>
+        </div>
+      }
+    </section>
+
+    @if (isHotkeyModifierPressed()) {
+      <button
+        btn
+        class="hotkey-help"
+        [kind]="'LIGHT-OUTLINE'"
+        [disabled]="true"
+        [text]="'Hotkey Help: Alt + H'"
+      ></button>
+    }
+  </article>
+</app-page-container>

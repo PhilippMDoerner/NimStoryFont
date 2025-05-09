@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-bootstrap-input.mjs",
+  "es2020": "../fesm2020/ngx-formly-bootstrap-input.mjs",
+  "esm2020": "../esm2020/input/ngx-formly-bootstrap-input.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-bootstrap-input.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-bootstrap-input.mjs",
+  "typings": "ngx-formly-bootstrap-input.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/bootstrap/input"
+}

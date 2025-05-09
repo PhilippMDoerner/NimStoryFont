@@ -1,0 +1,105 @@
+{
+  "name": "@ngx-formly/bootstrap",
+  "version": "6.3.10",
+  "license": "MIT",
+  "dependencies": {
+    "tslib": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@ngx-formly/core": "6.3.10",
+    "bootstrap": "^5.0.0"
+  },
+  "module": "fesm2015/ngx-formly-bootstrap.mjs",
+  "es2020": "fesm2020/ngx-formly-bootstrap.mjs",
+  "esm2020": "esm2020/ngx-formly-bootstrap.mjs",
+  "fesm2020": "fesm2020/ngx-formly-bootstrap.mjs",
+  "fesm2015": "fesm2015/ngx-formly-bootstrap.mjs",
+  "typings": "ngx-formly-bootstrap.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./ngx-formly-bootstrap.d.ts",
+      "esm2020": "./esm2020/ngx-formly-bootstrap.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap.mjs"
+    },
+    "./addons": {
+      "types": "./addons/ngx-formly-bootstrap-addons.d.ts",
+      "esm2020": "./esm2020/addons/ngx-formly-bootstrap-addons.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-addons.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-addons.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-addons.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-addons.mjs"
+    },
+    "./checkbox": {
+      "types": "./checkbox/ngx-formly-bootstrap-checkbox.d.ts",
+      "esm2020": "./esm2020/checkbox/ngx-formly-bootstrap-checkbox.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-checkbox.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-checkbox.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-checkbox.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-checkbox.mjs"
+    },
+    "./form-field": {
+      "types": "./form-field/ngx-formly-bootstrap-form-field.d.ts",
+      "esm2020": "./esm2020/form-field/ngx-formly-bootstrap-form-field.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-form-field.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-form-field.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-form-field.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-form-field.mjs"
+    },
+    "./input": {
+      "types": "./input/ngx-formly-bootstrap-input.d.ts",
+      "esm2020": "./esm2020/input/ngx-formly-bootstrap-input.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-input.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-input.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-input.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-input.mjs"
+    },
+    "./multicheckbox": {
+      "types": "./multicheckbox/ngx-formly-bootstrap-multicheckbox.d.ts",
+      "esm2020": "./esm2020/multicheckbox/ngx-formly-bootstrap-multicheckbox.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-multicheckbox.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-multicheckbox.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-multicheckbox.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-multicheckbox.mjs"
+    },
+    "./radio": {
+      "types": "./radio/ngx-formly-bootstrap-radio.d.ts",
+      "esm2020": "./esm2020/radio/ngx-formly-bootstrap-radio.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-radio.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-radio.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-radio.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-radio.mjs"
+    },
+    "./select": {
+      "types": "./select/ngx-formly-bootstrap-select.d.ts",
+      "esm2020": "./esm2020/select/ngx-formly-bootstrap-select.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-select.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-select.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-select.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-select.mjs"
+    },
+    "./textarea": {
+      "types": "./textarea/ngx-formly-bootstrap-textarea.d.ts",
+      "esm2020": "./esm2020/textarea/ngx-formly-bootstrap-textarea.mjs",
+      "es2020": "./fesm2020/ngx-formly-bootstrap-textarea.mjs",
+      "es2015": "./fesm2015/ngx-formly-bootstrap-textarea.mjs",
+      "node": "./fesm2015/ngx-formly-bootstrap-textarea.mjs",
+      "default": "./fesm2020/ngx-formly-bootstrap-textarea.mjs"
+    }
+  },
+  "sideEffects": false,
+  "homepage": "https://github.com/ngx-formly/ngx-formly#readme",
+  "description": "Formly is a dynamic (JSON powered) form library for Angular that bring unmatched maintainability to your application's forms.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngx-formly/ngx-formly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ngx-formly/ngx-formly/issues"
+  }
+}

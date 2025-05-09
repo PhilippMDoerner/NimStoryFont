@@ -1,0 +1,91 @@
+<app-page-container>
+  <article class="sessionaudio">
+    @if (canUpdate()) {
+      <div class="sessionaudio__edit-container">
+        <a
+          btn
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          [routerLink]="updateUrl()"
+          [ngbTooltip]="'Edit Recording'"
+          [attr.aria-label]="'Edit Recording'"
+          [hotkey]="'e'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <!-- Heading -->
+    <h1 class="sessionaudio__heading">
+      {{ sessionaudio().session_details?.name }}
+      <app-icon [icon]="'volume-up'"></app-icon>
+    </h1>
+
+    <div class="sessionaudio__player-row player-row" #playerSection>
+      <!-- Audio Player -->
+      <app-sessionaudio-player
+        class="player-row__player"
+        [serverUrl]="serverUrl()"
+        [audioSource]="sessionaudio().audio_file"
+        [downloadSource]="sessionaudio().audio_file"
+        [canDelete]="canDelete()"
+        [canCreate]="canCreate()"
+        [timestamps]="timestamps()"
+        [sessionAudioPk]="sessionaudio().pk ?? -1"
+        (createTimestamp)="createTimestamp.emit($event)"
+        (deleteTimestamp)="deleteTimestamp.emit($event)"
+      ></app-sessionaudio-player>
+    </div>
+
+    <!-- Next Buttons -->
+    <div class="row sessionaudio__buttons buttons">
+      <!-- Next Session -->
+      <div class="col-6 col-lg-3 d-flex justify-content-start">
+        @if (nextSessionAudioUrl()) {
+          <a
+            [routerLink]="nextSessionAudioUrl()"
+            btn
+            [kind]="'SECONDARY'"
+            [icon]="'arrow-left'"
+            [text]="
+              'Session' +
+              sessionaudio().sessionAudioNeighbours?.nextSessionAudio
+                ?.sessionNumber
+            "
+          >
+          </a>
+        }
+      </div>
+
+      <!-- Prior Session -->
+      <div class="col-6 col-lg-3 d-flex justify-content-end">
+        @if (priorSessionAudioUrl()) {
+          <a
+            btn
+            [routerLink]="priorSessionAudioUrl()"
+            [kind]="'SECONDARY'"
+            [icon]="'arrow-right'"
+            [text]="
+              'Session' +
+              sessionaudio().sessionAudioNeighbours?.priorSessionAudio
+                ?.sessionNumber
+            "
+          >
+          </a>
+        }
+      </div>
+    </div>
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to SessionAudio Overview'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="
+        'Recording of session' + sessionaudio().session_details?.name
+      "
+      (delete)="sessionaudioDelete.emit(sessionaudio())"
+    ></app-article-footer>
+  </article>
+</app-page-container>

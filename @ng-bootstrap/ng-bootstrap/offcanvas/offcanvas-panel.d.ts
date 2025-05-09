@@ -1,0 +1,31 @@
+import { EventEmitter, OnDestroy, OnInit } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+import * as i0 from "@angular/core";
+export declare class NgbOffcanvasPanel implements OnInit, OnDestroy {
+    private _document;
+    private _elRef;
+    private _zone;
+    private _injector;
+    private _closed$;
+    private _elWithFocus;
+    animation: boolean;
+    ariaLabelledBy?: string;
+    ariaDescribedBy?: string;
+    keyboard: boolean;
+    panelClass: string;
+    position: 'start' | 'end' | 'top' | 'bottom';
+    dismissEvent: EventEmitter<any>;
+    shown: Subject<void>;
+    hidden: Subject<void>;
+    dismiss(reason: any): void;
+    ngOnInit(): void;
+    ngOnDestroy(): void;
+    hide(): Observable<any>;
+    private _show;
+    private _enableEventHandling;
+    private _disableEventHandling;
+    private _setFocus;
+    private _restoreFocus;
+    static ɵfac: i0.ɵɵFactoryDeclaration<NgbOffcanvasPanel, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<NgbOffcanvasPanel, "ngb-offcanvas-panel", never, { "animation": { "alias": "animation"; "required": false; }; "ariaLabelledBy": { "alias": "ariaLabelledBy"; "required": false; }; "ariaDescribedBy": { "alias": "ariaDescribedBy"; "required": false; }; "keyboard": { "alias": "keyboard"; "required": false; }; "panelClass": { "alias": "panelClass"; "required": false; }; "position": { "alias": "position"; "required": false; }; }, { "dismissEvent": "dismiss"; }, never, ["*"], true, never>;
+}

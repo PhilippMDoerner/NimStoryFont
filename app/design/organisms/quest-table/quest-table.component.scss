@@ -1,0 +1,77 @@
+@import "/src/screens.scss";
+
+:host {
+  --table-bg: var(--bs-gray-dark);
+  --table-striped-bg: #3a3a3a;
+  --warning-bg-color: rgba(255, 200, 36, 0.3);
+  --success-bg-color: rgba(147, 196, 125, 0.3);
+  --danger-bg-color: rgba(206, 10, 10, 0.3);
+}
+
+.heading {
+  margin-bottom: var(--spacer-3);
+
+  &__text {
+    margin-top: auto;
+    margin-bottom: auto;
+    padding-left: var(--spacer-0) !important;
+    padding-right: var(--spacer-0) !important;
+  }
+
+  &__select {
+    background-color: var(--table-striped-bg);
+    height: 2rem;
+    border: 1px solid var(--table-bg);
+    border-radius: var(--bs-border-radius);
+    color: var(--bs-white);
+  }
+}
+
+.table {
+  padding-bottom: var(--spacer-2);
+
+  &__element {
+    padding: var(--spacer-3) var(--spacer-2) !important;
+
+    :hover {
+      color: var(--bs-link-hover-color);
+    }
+
+    &--desktop-only {
+      display: none;
+
+      @include media-breakpoint-up(md) {
+        display: table-cell;
+      }
+    }
+
+    &--status {
+      vertical-align: middle;
+      text-align: center;
+      width: var(--spacer-0);
+      padding-left: var(--spacer-1);
+      padding-right: var(--spacer-1);
+    }
+  }
+
+  &-warning {
+    --bs-table-bg: var(--warning-bg-color) !important;
+    --bs-table-accent-bg: var(--warning-bg-color) !important;
+    --bs-table-striped-bg: var(--warning-bg-color) !important;
+    color: var(--bs-white) !important;
+  }
+
+  &-success {
+    --bs-table-bg: var(--success-bg-color) !important;
+    --bs-table-accent-bg: var(--success-bg-color) !important;
+    --bs-table-striped-bg: var(--success-bg-color) !important;
+    color: var(--bs-white) !important;
+  }
+
+  &-danger {
+    --bs-table-bg: var(--danger-bg-color) !important;
+    --bs-table-accent-bg: var(--danger-bg-color) !important;
+    --bs-table-striped-bg: var(--danger-bg-color) !important;
+    color: var(--bs-white) !important;
+  }
+}

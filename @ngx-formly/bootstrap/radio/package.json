@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-bootstrap-radio.mjs",
+  "es2020": "../fesm2020/ngx-formly-bootstrap-radio.mjs",
+  "esm2020": "../esm2020/radio/ngx-formly-bootstrap-radio.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-bootstrap-radio.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-bootstrap-radio.mjs",
+  "typings": "ngx-formly-bootstrap-radio.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/bootstrap/radio"
+}

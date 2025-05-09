@@ -1,0 +1,22 @@
+.heading {
+  display: flex;
+  gap: var(--spacer-2);
+  justify-content: center;
+  align-items: center;
+
+  &__player-class-badge {
+    cursor: pointer;
+    margin-left: var(--spacer-1);
+    margin-right: var(--spacer-1);
+    display: inherit;
+
+    &:hover {
+      color: var(--bs-link-hover-color);
+    }
+  }
+}
+
+.back-link {
+  width: fit-content;
+  display: inline-block;
+}

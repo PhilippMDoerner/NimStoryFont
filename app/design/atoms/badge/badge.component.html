@@ -1,0 +1,37 @@
+@switch (interactionMode()) {
+  @case ("LINK") {
+    <a class="badge-button" [routerLink]="link()">
+      <ng-container [ngTemplateOutlet]="content" />
+    </a>
+  }
+  @case ("BUTTON") {
+    <button type="button" class="badge-button" (click)="onBadgeClick($event)">
+      <ng-container [ngTemplateOutlet]="content" />
+    </button>
+  }
+  @case ("NONE") {
+    <ng-container [ngTemplateOutlet]="content" />
+  }
+}
+
+<ng-template #content>
+  <div
+    class="badge"
+    [attr.title]="shouldCutText() ? text() : null"
+    [ngClass]="{
+      'bg-primary': kind() === 'PRIMARY',
+      'bg-secondary': kind() === 'SECONDARY',
+      'bg-dark': kind() === 'DARK',
+      'bg-danger': kind() === 'DANGER',
+      'bg-warning': kind() === 'WARNING',
+      'bg-light': kind() === 'LIGHT',
+      'bg-info': kind() === 'INFO',
+    }"
+  >
+    @let iconVal = icon();
+    @if (iconVal) {
+      <app-icon [icon]="iconVal"></app-icon>
+    }
+    {{ displayedText() }}
+  </div>
+</ng-template>

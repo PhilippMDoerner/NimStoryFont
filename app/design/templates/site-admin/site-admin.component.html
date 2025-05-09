@@ -1,0 +1,193 @@
+<app-page-container>
+  <article class="site-admin">
+    <h1>Site Administration</h1>
+    <a
+      class="site-admin__return-button"
+      [routerLink]="campaignOverviewUrl"
+      btn
+      [kind]="'SECONDARY'"
+      [icon]="'globe-americas'"
+      [text]="'Back to campaign overview'"
+    >
+    </a>
+
+    <!-- Users Section -->
+    <div class="site-admin__user-section user-section">
+      <!-- Section Heading -->
+      <div class="d-flex justify-content-between">
+        <h2 class="h3 mb-0">
+          <app-icon [icon]="'user'"></app-icon>
+          Users
+        </h2>
+
+        <!-- Heading Buttons -->
+        <div class="align-self-end position-relative top1">
+          <!-- Add Users -->
+          <button
+            btn
+            [kind]="'DARK'"
+            [icon]="userState() === 'CREATE' ? 'times' : 'user-plus'"
+            [text]="
+              userState() === 'CREATE' ? 'Cancel User Creation' : 'Add User'
+            "
+            (clicked)="
+              userState() === 'CREATE'
+                ? setUserState('DISPLAY')
+                : setUserState('CREATE')
+            "
+          ></button>
+        </div>
+      </div>
+
+      <app-separator class="site-admin__separator" />
+
+      <!-- New Table Entry -->
+      @if (userState() === "CREATE") {
+        <app-card class="my-2">
+          <h3 class="h4">Adding new User</h3>
+          <!-- Form -->
+          <app-form
+            [model]="userModel"
+            [fields]="userFields"
+            [cancelButtonType]="'DARK'"
+            (formlySubmit)="createNewUser($event)"
+            (formlyCancel)="setUserState('DISPLAY')"
+          ></app-form>
+        </app-card>
+      }
+
+      <!-- Table -->
+      @if (userState() === "DISPLAY") {
+        @for (card of userCards(); track card.user.pk) {
+          <app-collapsible-panel
+            [isOpen]="card.isOpen"
+            [ariaLevel]="3"
+            class="user-section__user"
+          >
+            <ng-container heading>
+              {{ card.user.username | titlecase }}
+            </ng-container>
+
+            <app-user-row
+              body
+              [user]="card.user"
+              [groups]="allGroups()"
+              [canCreate]="true"
+              [canDelete]="true"
+              (addGroup)="
+                addUserGroup.emit({ groupId: $event.id, user: card.user })
+              "
+              (removeGroup)="
+                removeUserGroup.emit({ groupId: $event, user: card.user })
+              "
+              (deleteUser)="deleteUser.emit($event)"
+            ></app-user-row>
+          </app-collapsible-panel>
+        }
+        <div class="mt-3">(†): Deactivated/Deleted Account</div>
+      }
+    </div>
+
+    <!-- Database Section -->
+    <div class="mb-3">
+      <!-- Section Heading -->
+      <div class="d-flex justify-content-between">
+        <h3 class="mb-0">
+          <app-icon [icon]="'database'"></app-icon>
+          Database
+        </h3>
+
+        <!-- Heading Buttons -->
+        <div class="align-self-end position-relative top1">
+          <!-- Download Database -->
+          <button
+            btn
+            [kind]="'PRIMARY'"
+            [icon]="'database'"
+            [text]="'Download Database'"
+            (clicked)="downloadDatabase.emit()"
+          ></button>
+
+          <!-- Clear Tokens -->
+          <!-- <div class="btn btn-danger border-white">
+          <span class="fa fa-trash"></span>
+          Clear > 7 day old Tokens
+        </div> -->
+        </div>
+      </div>
+
+      <app-separator class="site-admin__separator" />
+
+      <!-- Section Body -->
+      <!-- Statistics -->
+      <div class="mb-5">
+        @for (statistic of statistics() | keyvalue; track statistic.key) {
+          <div class="row">
+            <div class="col-6 col-md-3">{{ statistic.key }}</div>
+            <div class="col-6 col-md-3">{{ statistic.value }}</div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Campaign Section -->
+    <div class="site-admin__campaign-section campaign-section">
+      <!-- Section Heading -->
+      <div class="campaign-section__heading heading">
+        <h3 class="heading__text">
+          <app-icon [icon]="'dragon'"></app-icon>
+          Campaigns
+        </h3>
+
+        <!-- Heading Buttons -->
+        <div class="heading__button">
+          <!-- Add Campaign -->
+          <a
+            btn
+            [kind]="'PRIMARY'"
+            [icon]="'plus'"
+            [text]="'Add Campaign'"
+            [routerLink]="createCampaignUrl"
+          ></a>
+        </div>
+      </div>
+
+      <app-separator class="site-admin__separator"></app-separator>
+
+      <!-- Section Body -->
+      <div class="campaign-section__body body">
+        @for (campaign of campaigns(); track campaign.pk) {
+          <div class="row mb-4">
+            <div class="col-sm-3">
+              <img
+                [src]="serverUrl + '/' + campaign.icon"
+                [alt]="'Icon of campaign ' + campaign.name"
+                class="body__icon"
+              />
+              <strong> {{ campaign.name }} </strong>
+            </div>
+            <div class="col-sm-3">
+              {{ campaign.admins?.length ?? 0 }} Admins
+            </div>
+            <div class="col-sm-3">
+              {{ campaign.members?.length ?? 0 }} Members
+            </div>
+            <div class="col-sm-3">
+              {{ campaign.guests?.length ?? 0 }} Guests
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <a
+      btn
+      class="site-admin__return-button"
+      [routerLink]="campaignOverviewUrl"
+      [kind]="'SECONDARY'"
+      [icon]="'globe-americas'"
+      [text]="'Back to campaign overview'"
+    >
+    </a>
+  </article>
+</app-page-container>

@@ -1,0 +1,32 @@
+{
+  "name": "@bluehalo/ngx-leaflet",
+  "description": "Angular.io components for Leaflet",
+  "version": "19.0.0",
+  "author": "BlueHalo, LLC",
+  "copyright": "Copyright BlueHalo 2007-2024 - All Rights Reserved.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bluehalo/ngx-leaflet.git"
+  },
+  "peerDependencies": {
+    "@angular/common": "19",
+    "@angular/core": "19",
+    "leaflet": "1"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "module": "fesm2022/bluehalo-ngx-leaflet.mjs",
+  "typings": "index.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./fesm2022/bluehalo-ngx-leaflet.mjs"
+    }
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@ngx-formly/schematics",
+  "version": "6.3.10",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json"
+  },
+  "schematics": "./src/collection.json",
+  "ng-add": {
+    "save": "devDependencies"
+  },
+  "dependencies": {
+    "@angular-devkit/core": "^13.0.3",
+    "@angular-devkit/schematics": "^13.0.3",
+    "@schematics/angular": "^13.0.3"
+  },
+  "homepage": "https://github.com/ngx-formly/ngx-formly#readme",
+  "description": "Formly is a dynamic (JSON powered) form library for Angular that bring unmatched maintainability to your application's forms.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngx-formly/ngx-formly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ngx-formly/ngx-formly/issues"
+  }
+}

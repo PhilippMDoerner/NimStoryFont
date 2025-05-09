@@ -1,0 +1,15 @@
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.form {
+  &__button {
+    width: fit-content;
+    display: inline-flex;
+    margin-right: var(--spacer-2);
+  }
+
+  &__errors {
+    margin-bottom: var(--spacer-3);
+  }
+}

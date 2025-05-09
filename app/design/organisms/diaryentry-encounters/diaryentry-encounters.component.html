@@ -1,0 +1,89 @@
+<div class="container list" [class.list--loading]="isUpdatingGlobally()">
+  @if (!isUpdatingGlobally()) {
+    <!-- Diaryentry - Encounters -->
+    <ul class="list__inner" aria-label="Diaryentry Encounters">
+      <li class="list__encounter-item encounter-item">
+        @if (state() === "EDIT" && (canCreate() || canUpdate())) {
+          @if (canCreate()) {
+            <div class="encounter-item__button-container">
+              <button
+                btn
+                class="encounter-item__button encounter-item__button--first"
+                aria-label="Add First Encounter to Diaryentry"
+                [kind]="'PRIMARY'"
+                [size]="'LARGE'"
+                [icon]="'plus'"
+                [text]="'Add First Encounter'"
+                [disabled]="isUpdatingAnything()"
+                [isLoading]="isUpdatingAnything()"
+                (clicked)="addEmptyEncounterAtIndex(-1)"
+              ></button>
+            </div>
+          }
+        }
+      </li>
+      @for (
+        entryEncounter of diaryEntryEncounters();
+        track entryEncounter.encounter.title
+      ) {
+        <li class="list__encounter-item encounter-item">
+          @let disabled =
+            isUpdatingAnything() || entryEncounter.requestState === "loading";
+
+          <app-encounter-card
+            #encounter
+            class="encounter-item__encounter"
+            [id]="entryEncounter.encounter.title"
+            [attr.tabindex]="state() === 'EDIT' ? 0 : null"
+            [encounter]="entryEncounter.encounter"
+            [characters]="campaignCharacters() ?? []"
+            [locations]="campaignLocations() ?? []"
+            [serverModel]="encounterServerModel()"
+            [canUpdate]="canUpdate()"
+            [canDelete]="canDelete()"
+            [canCreate]="canCreate()"
+            [disabled]="disabled"
+            [updateState]="entryEncounter.requestState"
+            [state]="state()"
+            [isInFocus]="encounterIndexInFocus() === $index"
+            [ariaLevel]="2"
+            (connectionDelete)="connectionDelete.emit($event)"
+            (connectionCreate)="connectionCreate.emit($event)"
+            (encounterDelete)="onEncounterDelete($index)"
+            (encounterUpdate)="encounterUpdate.emit($event)"
+            (encounterCreate)="onEncounterCreate($event)"
+            (encounterCreateCancel)="onEncounterCreateCancel($index)"
+            (focusin)="setEncounterFocusIndex($index)"
+            (focus)="setEncounterFocusIndex($index)"
+            (blur)="setEncounterFocusIndex(undefined)"
+          ></app-encounter-card>
+
+          <!-- Insert new Encounter -->
+          @if (state() === "EDIT" && (canCreate() || canUpdate())) {
+            <div class="encounter-item__button-container">
+              @if (canCreate()) {
+                <button
+                  btn
+                  class="encounter-item__button"
+                  aria-label="Add Encounter to DiaryEntry"
+                  [kind]="'PRIMARY'"
+                  [size]="'LARGE'"
+                  [icon]="'plus'"
+                  [text]="'Add Encounter'"
+                  [disabled]="disabled"
+                  [isLoading]="disabled"
+                  (clicked)="addEmptyEncounterAtIndex($index)"
+                ></button>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <ng-container *ngTemplateOutlet="loading" />
+  }
+</div>
+
+<!-- Loading Spinner -->
+<ng-template #loading><app-spinner class="spinner" /></ng-template>

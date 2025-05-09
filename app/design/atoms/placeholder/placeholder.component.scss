@@ -1,0 +1,9 @@
+:host {
+  display: flex;
+  border-radius: var(--bs-border-radius);
+}
+
+.placeholder {
+  flex: 1;
+  border-radius: inherit;
+}

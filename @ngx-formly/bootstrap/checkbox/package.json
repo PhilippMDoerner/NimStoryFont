@@ -1,0 +1,10 @@
+{
+  "module": "../fesm2015/ngx-formly-bootstrap-checkbox.mjs",
+  "es2020": "../fesm2020/ngx-formly-bootstrap-checkbox.mjs",
+  "esm2020": "../esm2020/checkbox/ngx-formly-bootstrap-checkbox.mjs",
+  "fesm2020": "../fesm2020/ngx-formly-bootstrap-checkbox.mjs",
+  "fesm2015": "../fesm2015/ngx-formly-bootstrap-checkbox.mjs",
+  "typings": "ngx-formly-bootstrap-checkbox.d.ts",
+  "sideEffects": false,
+  "name": "@ngx-formly/bootstrap/checkbox"
+}

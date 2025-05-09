@@ -1,0 +1,44 @@
+<app-page-container>
+  <article>
+    <h1 class="heading">
+      Spells
+
+      @for (name of selectedClassNames(); track name) {
+        <app-badge
+          class="heading__player-class-badge"
+          [text]="name"
+          [icon]="'times'"
+          [kind]="'DARK'"
+          (click)="onClassRemove(name)"
+        ></app-badge>
+      }
+    </h1>
+
+    <app-spells
+      [spells]="filteredSpells()"
+      [serverModel]="serverModel()"
+      [canCreate]="canCreate()"
+      [canUpdate]="canUpdate()"
+      [canDelete]="canDelete()"
+      [playerClasses]="playerClasses()"
+      [campaignId]="campaignId()"
+      (spellDelete)="spellDelete.emit($event)"
+      (spellCreate)="spellCreate.emit($event)"
+      (spellUpdate)="spellUpdate.emit($event)"
+      (connectionDelete)="connectionDelete.emit($event)"
+      (connectionCreate)="connectionCreate.emit($event)"
+      (spellClassClick)="onClassAdd($event)"
+    ></app-spells>
+
+    <div class="container">
+      <a
+        class="back-link"
+        [routerLink]="homeUrl()"
+        btn
+        [kind]="'SECONDARY'"
+        [text]="'Back to Frontpage'"
+      >
+      </a>
+    </div>
+  </article>
+</app-page-container>

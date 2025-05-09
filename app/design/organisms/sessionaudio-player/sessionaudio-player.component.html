@@ -1,0 +1,64 @@
+<div class="container timestamp">
+  <div class="timestamp__image">
+    <img
+      class="mw-100"
+      [src]="'assets/default_images/audio_pic_default.webp'"
+      alt="''"
+    />
+  </div>
+  <app-player
+    [serverUrl]="serverUrl()"
+    [audioSource]="audioSource()"
+    [downloadSource]="downloadSource()"
+    [playTime]="currentTime()"
+  ></app-player>
+
+  @if (canCreate()) {
+    @switch (timestampState()) {
+      @case ("DISPLAY") {
+        <ng-container *ngTemplateOutlet="timestampDisplay" />
+      }
+      @case ("CREATE") {
+        <ng-container *ngTemplateOutlet="timestampCreate" />
+      }
+    }
+  }
+
+  <div class="timestamp__list list">
+    @for (entry of timestampEntries(); track entry.value.pk) {
+      <app-link-entry
+        class="list__timestamp"
+        [canDelete]="canDelete()"
+        [entry]="entry"
+        [deleteMessage]="'Delete timestamp \'' + entry.linkText + '\'?'"
+        (delete)="deleteTimestamp.emit($event)"
+        (linkClick)="onLinkClick($event)"
+      ></app-link-entry>
+    }
+  </div>
+</div>
+
+<ng-template #timestampDisplay>
+  <div class="timestamp__create-button">
+    <button
+      btn
+      [kind]="'PRIMARY'"
+      [text]="'Add Timestamp'"
+      [icon]="'plus'"
+      (clicked)="changeTimestampState('CREATE')"
+    ></button>
+  </div>
+</ng-template>
+
+<ng-template #timestampCreate>
+  <app-card>
+    <h5 class="timestamp__create-form">Create Timestamp</h5>
+    <app-form
+      [model]="timestampModel()"
+      [fields]="timestampFields()"
+      [cancelButtonType]="'DARK'"
+      (formlySubmit)="onSubmit($event)"
+      (formlyCancel)="changeTimestampState('DISPLAY')"
+    ></app-form>
+  </app-card>
+</ng-template>

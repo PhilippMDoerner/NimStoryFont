@@ -1,0 +1,57 @@
+.site-admin{
+  &__user-section{
+    margin-top: var(--spacer-3);
+    margin-bottom: var(--spacer-3);
+  }
+  
+  &__campaign-section{
+    margin-bottom: var(--spacer-3);
+  }
+  
+  &__separator{
+    --separator-margin-top: var(--spacer-0);
+  }
+}
+
+.user-section{
+  &__user{
+    display: inline-block;
+    width: 100%;
+    margin-top: var(--spacer-1);
+    margin-bottom: var(--spacer-1);
+  }
+}
+
+.campaign-section{
+  &__heading{
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  &__body{
+    margin-bottom: var(--spacer-5);
+  }
+}
+
+.body{
+  &__icon{
+    margin-right: var(--spacer-3);
+    max-height: 2rem;
+  }
+}
+
+.heading{
+  &__text{
+    margin-bottom: var(--spacer-0);
+    
+    &--loading{
+      margin-left: var(--spacer-3);
+    }
+  }
+  
+  &__button{
+    align-self: flex-end;
+    position: relative;
+    top: 1px;
+  }
+}

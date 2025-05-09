@@ -1,0 +1,13 @@
+/**
+ * Copyright (c) 2017-present, Ephox, Inc.
+ *
+ * This source code is licensed under the Apache 2 license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+const getTinymce = () => {
+    const w = typeof window !== 'undefined' ? window : undefined;
+    return w && w.tinymce ? w.tinymce : null;
+};
+export { getTinymce };
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiVGlueU1DRS5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uLy4uL3RpbnltY2UtYW5ndWxhci1jb21wb25lbnQvc3JjL21haW4vdHMvVGlueU1DRS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTs7Ozs7O0dBTUc7QUFFSCxNQUFNLFVBQVUsR0FBRyxHQUFHLEVBQUU7SUFDdEIsTUFBTSxDQUFDLEdBQUcsT0FBTyxNQUFNLEtBQUssV0FBVyxDQUFDLENBQUMsQ0FBRSxNQUFjLENBQUMsQ0FBQyxDQUFDLFNBQVMsQ0FBQztJQUN0RSxPQUFPLENBQUMsSUFBSSxDQUFDLENBQUMsT0FBTyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDLENBQUMsQ0FBQyxJQUFJLENBQUM7QUFDM0MsQ0FBQyxDQUFDO0FBRUYsT0FBTyxFQUFFLFVBQVUsRUFBRSxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBDb3B5cmlnaHQgKGMpIDIwMTctcHJlc2VudCwgRXBob3gsIEluYy5cbiAqXG4gKiBUaGlzIHNvdXJjZSBjb2RlIGlzIGxpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgMiBsaWNlbnNlIGZvdW5kIGluIHRoZVxuICogTElDRU5TRSBmaWxlIGluIHRoZSByb290IGRpcmVjdG9yeSBvZiB0aGlzIHNvdXJjZSB0cmVlLlxuICpcbiAqL1xuXG5jb25zdCBnZXRUaW55bWNlID0gKCkgPT4ge1xuICBjb25zdCB3ID0gdHlwZW9mIHdpbmRvdyAhPT0gJ3VuZGVmaW5lZCcgPyAod2luZG93IGFzIGFueSkgOiB1bmRlZmluZWQ7XG4gIHJldHVybiB3ICYmIHcudGlueW1jZSA/IHcudGlueW1jZSA6IG51bGw7XG59O1xuXG5leHBvcnQgeyBnZXRUaW55bWNlIH07XG4iXX0=

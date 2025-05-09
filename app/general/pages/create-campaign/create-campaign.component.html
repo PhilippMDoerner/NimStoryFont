@@ -1,0 +1,9 @@
+<app-create-update
+  [state]="'CREATE'"
+  [formlyFields]="campaignFields"
+  [userModel]="campaignModel"
+  [heading]="'Create New Campaign'"
+  [serverModel]="undefined"
+  (create)="store.createCampaign($any($event))"
+  (cancelled)="routeBack()"
+></app-create-update>

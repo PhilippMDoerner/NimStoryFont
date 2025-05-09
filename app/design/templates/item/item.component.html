@@ -1,0 +1,72 @@
+<app-page-container>
+  <article class="container">
+    @if (canUpdate()) {
+      <div class="item__edit-container">
+        <a
+          btn
+          [ngbTooltip]="'Edit ' + item().name"
+          [icon]="'pencil'"
+          [kind]="'SECONDARY'"
+          [routerLink]="updateUrl()"
+          [attr.aria-label]="'Edit ' + item().name"
+          [hotkey]="'e'"
+          (hotkeyPressed)="$event.host.click()"
+        >
+        </a>
+      </div>
+    }
+
+    <!-- Heading -->
+    <div class="row">
+      <h1 class="col-12 item__heading">
+        {{ item().name }}
+      </h1>
+
+      @if (hasOwner()) {
+        <p class="text-center col mb-5">
+          Owned by:
+          <strong>
+            <a [routerLink]="ownerUrl()">
+              {{ item().owner_details!.name }}
+            </a>
+          </strong>
+        </p>
+      }
+    </div>
+
+    <!-- Image Gallery -->
+    <div class="item__images">
+      <app-image-carousel-card
+        [images]="item().images ?? []"
+        [serverUrl]="serverUrl()"
+        [serverModel]="imageServerModel()"
+        [canUpdate]="canUpdate()"
+        [canCreate]="canCreate()"
+        [canDelete]="canDelete()"
+        (createImage)="createImage.emit($event)"
+        (deleteImage)="deleteImage.emit($event)"
+        (updateImage)="updateImage.emit($event)"
+      ></app-image-carousel-card>
+    </div>
+
+    <!-- Description -->
+    <app-editable-text
+      class="item__description"
+      [heading]="'Description'"
+      [ariaLevel]="2"
+      [placeholder]="'Add a description for ' + item().name"
+      [text]="item().description"
+      [canUpdate]="canUpdate()"
+      (update)="onDescriptionUpdate($event)"
+    ></app-editable-text>
+
+    <!-- Footer (Move to other Article + Delete Article) -->
+    <app-article-footer
+      [buttonLink]="overviewUrl()"
+      [buttonLabel]="'Back to Items'"
+      [showDelete]="canDelete()"
+      [deleteMessage]="'Item ' + item().name"
+      (delete)="itemDelete.emit(item())"
+    ></app-article-footer>
+  </article>
+</app-page-container>

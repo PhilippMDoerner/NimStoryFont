@@ -1,0 +1,1 @@
+{"version":3,"file":"component-selector.d.ts","sourceRoot":"","sources":["../../src/rules/component-selector.ts"],"names":[],"mappings":"AAAA,OAAO,EAIL,aAAa,EACd,MAAM,uBAAuB,CAAC;AAK/B,MAAM,MAAM,OAAO,GAAG,aAAa,CAAC,OAAO,CAAC;AAC5C,MAAM,MAAM,UAAU,GAClB,eAAe,GACf,cAAc,GACd,uBAAuB,GACvB,aAAa,GACb,mCAAmC,CAAC;AACxC,eAAO,MAAM,SAAS,uBAAuB,CAAC;;AAU9C,wBA0HG"}

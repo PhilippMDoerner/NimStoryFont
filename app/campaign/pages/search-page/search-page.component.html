@@ -1,0 +1,12 @@
+@let searchString = (searchString$ | async) ?? "";
+@let subtitle = store.searchArticles()?.emptyResponse ?? "";
+@let campaignName = globalStore.campaignName();
+@let articles = store.searchArticles()?.articles;
+@if (campaignName && articles) {
+  <app-search
+    [foundArticles]="articles"
+    [emptySearchSubtitle]="subtitle"
+    [campaignName]="campaignName"
+    [searchString]="searchString"
+  ></app-search>
+}

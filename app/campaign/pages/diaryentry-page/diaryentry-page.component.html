@@ -1,0 +1,24 @@
+@let diaryentryVal = store.diaryentry();
+@if (diaryentryVal) {
+  <app-diaryentry
+    [diaryentry]="diaryentryVal"
+    [sortedEncounters]="store.sortedEncounters()"
+    [encounterServerModel]="store.encounterServerModel()"
+    [campaignCharacters]="store.campaignCharacters() ?? []"
+    [campaignLocations]="store.campaignLocations() ?? []"
+    [canCreate]="store.hasWritePermission()"
+    [canUpdate]="store.hasWritePermission()"
+    [canDelete]="store.hasWritePermission()"
+    [isUpdatingEncounters]="store.isUpdatingGlobally()"
+    (diaryentryDelete)="onDelete()"
+    (encounterConnectionCreate)="store.addEncounterConnection($event)"
+    (encounterConnectionDelete)="store.removeEncounterConnection($event)"
+    (encounterCreate)="store.addEncounter($event)"
+    (encounterDelete)="store.removeEncounter($event)"
+    (encounterUpdate)="store.updateEncounter($event)"
+    (encounterCutInsert)="
+      store.cutInsertEncounter($event.encounter, $event.newOrderIndex)
+    "
+    (encounterSwap)="store.swapEncounters($event.enc1.pk, $event.enc2.pk)"
+  ></app-diaryentry>
+}

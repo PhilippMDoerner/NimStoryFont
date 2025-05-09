@@ -1,0 +1,38 @@
+@let errorContents = errorContents$ | async;
+@let errorStatus = errorStatus$ | async;
+
+@if (errorContents) {
+  <div class="d-flex flex-column">
+    <h1 class="text-center mb-5">{{ errorContents.title }}</h1>
+    <img [src]="errorContents.image" alt="" class="center mb-3" />
+
+    <p class="text-center" [innerHTML]="errorContents.htmlBody"></p>
+
+    <div class="d-flex justify-content-center">
+      <ng-container
+        [ngTemplateOutlet]="errorStatus === 401 ? loginLink : campaignLink"
+      ></ng-container>
+    </div>
+  </div>
+
+  <ng-template #campaignLink>
+    <a
+      [routerLink]="campaignHomeUrl()"
+      btn
+      [kind]="'PRIMARY'"
+      [text]="'Retry'"
+      [icon]="'redo-alt'"
+    >
+    </a>
+  </ng-template>
+
+  <ng-template #loginLink>
+    <button
+      btn
+      [text]="'Log in again'"
+      [icon]="'redo-alt'"
+      [kind]="'PRIMARY'"
+      (clicked)="onReLogin()"
+    ></button>
+  </ng-template>
+}

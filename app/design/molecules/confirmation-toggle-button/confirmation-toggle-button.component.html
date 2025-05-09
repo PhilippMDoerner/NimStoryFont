@@ -1,0 +1,31 @@
+<app-confirmation-modal
+  [modalType]="'DANGER'"
+  [heading]="modalHeading()"
+  [confirmValue]="null"
+  [submitIcon]="icon()"
+  [submitButtonLabel]="'Yes'"
+  [cancelButtonLabel]="'No'"
+  [cancelButtonType]="cancelButtonType()"
+  (confirm)="emitConfirmation()"
+>
+  <button
+    btn
+    opener
+    #toggleButton
+    class="confirmation-toggle"
+    [attr.aria-label]="'Open dialog to delete ' + itemToDelete()"
+    [kind]="toggleType()"
+    [icon]="icon()"
+    [size]="toggleSize()"
+    [text]="text()"
+    [hotkey]="'d'"
+    [disabledHotkey]="!enableHotkey()"
+    (hotkeyPressed)="$event.host.click()"
+  ></button>
+
+  <ng-container body>
+    <p>
+      {{ modalBody() }}
+    </p>
+  </ng-container>
+</app-confirmation-modal>

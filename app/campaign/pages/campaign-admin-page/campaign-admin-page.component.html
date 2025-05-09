@@ -1,0 +1,32 @@
+@let campaign = store.campaign();
+@let campaignStatistics = store.campaignStatistics();
+@let users = store.users();
+
+@if (campaign != null && campaignStatistics != null && users != null) {
+  <app-campaign-admin
+    [campaign]="campaign"
+    [serverUrl]="serverUrl"
+    [campaignStatistics]="campaignStatistics"
+    [users]="users"
+    (addAdmin)="
+      store.addMemberToCampaignGroup({ role: 'admin', addedUser: $event })
+    "
+    (addMember)="
+      store.addMemberToCampaignGroup({ role: 'member', addedUser: $event })
+    "
+    (addGuest)="
+      store.addMemberToCampaignGroup({ role: 'guest', addedUser: $event })
+    "
+    (removeAdmin)="
+      store.removeMemberFromCampaignGroup({ role: 'admin', user: $event })
+    "
+    (removeMember)="
+      store.removeMemberFromCampaignGroup({ role: 'member', user: $event })
+    "
+    (removeGuest)="
+      store.removeMemberFromCampaignGroup({ role: 'guest', user: $event })
+    "
+    (addEmptySearchResponse)="store.addEmptySearchResponse($event)"
+    (removeEmptySearchResponse)="store.deleteEmptySearchResponse($event)"
+  />
+}

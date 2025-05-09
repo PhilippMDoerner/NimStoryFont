@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/@angular-devkit/schematics/collection-schema.json",
+  "extends": ["@schematics/angular"],
+  "schematics": {
+    "ng-add": {
+      "description": "Installs Angular Formly",
+      "factory": "./ng-add/index#ngAdd",
+      "schema": "./ng-add/schema.json",
+      "aliases": ["install"]
+    }
+  }
+}

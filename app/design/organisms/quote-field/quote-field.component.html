@@ -1,0 +1,125 @@
+@switch (state()) {
+  @case ("DISPLAY") {
+    <ng-container [ngTemplateOutlet]="display" />
+  }
+  @case ("UPDATE") {
+    <ng-container [ngTemplateOutlet]="update" />
+  }
+  @case ("CREATE") {
+    <ng-container [ngTemplateOutlet]="create" />
+  }
+  @case ("DELETE") {
+    <ng-container [ngTemplateOutlet]="delete" />
+  }
+}
+
+<ng-template #display>
+  <app-quote
+    [quote]="quote()"
+    [character]="character()"
+    [campaignCharacters]="campaignCharacters()"
+    [canCreate]="canCreate()"
+    [canUpdate]="canUpdate()"
+    [canDelete]="canDelete()"
+    [quoteControlsBlacklist]="quoteControlsBlacklist()"
+    (quoteCreate)="changeState('CREATE', undefined)"
+    (quoteDelete)="changeState('DELETE', quote())"
+    (quoteUpdate)="changeState('UPDATE', quote())"
+    (connectionCreate)="connectionCreate.emit($event)"
+    (connectionDelete)="connectionDelete.emit($event)"
+    (refreshQuote)="refreshQuote.emit()"
+  ></app-quote>
+</ng-template>
+
+<!-- Quote Edit Form -->
+<ng-template #update>
+  <app-card class="form-card" (window:keydown.Escape)="onCancel()">
+    <!-- Heading -->
+    <h3 class="form-card__heading">Updating Quote {{ quote()?.pk }}</h3>
+
+    @if (canUpdate() && state() === "UPDATE") {
+      <app-form
+        class="form-card__form"
+        [model]="userModel()"
+        [fields]="formlyFields()"
+        [cancelButtonType]="'DARK'"
+        (formlySubmit)="onSubmit($event)"
+        (formlyCancel)="onCancel()"
+      ></app-form>
+    }
+
+    @if (state() === "UPDATE_OUTDATED") {
+      <app-compare-form
+        [fields]="formlyFields()"
+        [modelFromUser]="$any(userModel())"
+        [modelFromServer]="serverModel()"
+        [displayVertically]="true"
+        (formlySubmit)="onSubmit($event)"
+        (cancel)="changeState('DISPLAY', undefined)"
+      ></app-compare-form>
+    }
+  </app-card>
+</ng-template>
+
+<!-- Quote Create Form -->
+<ng-template #create>
+  <app-card class="form-card" (window:keydown.Escape)="onCancel()">
+    <!-- Heading -->
+    <h5 class="form-card__heading">
+      Create Quote for <b>{{ character().name }}</b>
+    </h5>
+
+    <!-- Form -->
+    <app-form
+      class="form-card__form"
+      [model]="userModel()"
+      [fields]="formlyFields()"
+      [cancelButtonType]="'DARK'"
+      (formlySubmit)="onSubmit($event)"
+      (formlyCancel)="onCancel()"
+    ></app-form>
+  </app-card>
+</ng-template>
+
+<!-- Quote Delete "Form" -->
+<ng-template #delete>
+  <app-card class="form-card" (window:keydown.Escape)="onCancel()">
+    <h5 class="form-card__heading">Delete this quote?</h5>
+
+    <blockquote class="form-card__quote quote">
+      <app-html-text
+        class="quote__content"
+        [text]="quote()?.quote ?? ''"
+      ></app-html-text>
+
+      <div class="quote__description">
+        @if (quote()?.description) {
+          <app-html-text [text]="'- ' + quote()?.description"></app-html-text>
+        }
+
+        @if (!quote()?.description) {
+          - {{ character().name }}
+        }
+      </div>
+    </blockquote>
+
+    <div class="form-card__confirmation confirmation">
+      <button
+        btn
+        class="confirmation__button"
+        [kind]="'DARK'"
+        [icon]="'times'"
+        [text]="'No'"
+        (clicked)="onCancel()"
+      ></button>
+      <button
+        btn
+        class="confirmation__button"
+        [kind]="'DANGER'"
+        [icon]="'trash'"
+        [text]="'Yes'"
+        (clicked)="onDelete()"
+      ></button>
+    </div>
+  </app-card>
+</ng-template>

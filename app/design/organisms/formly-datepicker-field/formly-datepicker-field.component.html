@@ -1,0 +1,46 @@
+<div class="mb-3 {{ field.className }}" [class.d-none]="to.hidden">
+  <label [for]="to['name']" class="form-label">
+    <strong>
+      {{ to.label }}
+      @if (to.required) {
+        *
+      }
+    </strong>
+  </label>
+
+  <div class="input-group" [class.disabled]="!!props.disabled">
+    <input
+      class="form-control"
+      [required]="!!to.required"
+      placeholder="yyyy/mm/dd"
+      [name]="to['name']"
+      maxLength="10"
+      minlength="10"
+      [formControl]="formControl"
+      [formlyAttributes]="field"
+      ngbDatepicker
+      #datepickerInput="ngbDatepicker"
+    />
+    <button
+      btn
+      class="btn btn-outline-light highlight"
+      [kind]="'SECONDARY'"
+      [icon]="'calendar'"
+      [class.disabled]="!!props.disabled"
+      (clicked)="datepickerInput.toggle()"
+      aria-label="Open calendar"
+    >
+      <app-icon [icon]="'calendar'"></app-icon>
+    </button>
+  </div>
+</div>
+
+<ng-template #customDay let-date>
+  <button
+    btn
+    class="datepicker-day"
+    [kind]="'LIGHT'"
+    [disabled]="!!props.disabled"
+    [text]="date.day"
+  ></button>
+</ng-template>

@@ -1,0 +1,48 @@
+{
+  "name": "@ngrx/schematics",
+  "version": "19.0.1",
+  "description": "NgRx Schematics for Angular",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngrx/platform.git"
+  },
+  "keywords": [
+    "RxJS",
+    "Angular",
+    "Redux",
+    "NgRx",
+    "Schematics",
+    "Angular CLI"
+  ],
+  "author": "Brandon Roberts <robertsbt@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ngrx/platform/issues"
+  },
+  "homepage": "https://github.com/ngrx/platform#readme",
+  "schematics": "./collection.json",
+  "ng-add": {
+    "save": "devDependencies"
+  },
+  "ng-update": {
+    "packageGroupName": "@ngrx/store",
+    "packageGroup": [
+      "@ngrx/store",
+      "@ngrx/effects",
+      "@ngrx/entity",
+      "@ngrx/router-store",
+      "@ngrx/data",
+      "@ngrx/schematics",
+      "@ngrx/store-devtools",
+      "@ngrx/component-store",
+      "@ngrx/component",
+      "@ngrx/eslint-plugin",
+      "@ngrx/operators",
+      "@ngrx/signals"
+    ],
+    "migrations": "./migrations/migration.json"
+  },
+  "types": "./src/index.d.ts",
+  "main": "./src/index.js",
+  "type": "commonjs"
+}

@@ -1,0 +1,176 @@
+<div class="container">
+  <form
+    class="row filter"
+    autocomplete="off"
+    (submit)="openFirstArticle($event)"
+    [hotkey]="'f'"
+    (hotkeyPressed)="input.focus()"
+  >
+    <div
+      class="filter__input-container"
+      [class.filter__input-container--active]="input._value()"
+    >
+      <app-input
+        #input
+        [id]="searchId"
+        class="filter__input"
+        [label]="'Filter text'"
+        [ariaControls]="listId"
+        (changed)="filterValue.set($event)"
+      />
+
+      <button
+        btn
+        class="filter__button"
+        [kind]="'PRIMARY'"
+        [icon]="'search'"
+        [type]="'submit'"
+        [disabled]="!canOpenArticle()"
+        [attr.aria-label]="searchButtonLabel()"
+      ></button>
+    </div>
+  </form>
+
+  <div>
+    @switch (mode()) {
+      @case ("LETTER") {
+        <ng-container *ngTemplateOutlet="letterList" />
+      }
+      @case ("PROPERTY") {
+        <ng-container *ngTemplateOutlet="propertyList" />
+      }
+      @case ("SEARCH") {
+        <ng-container *ngTemplateOutlet="searchList" />
+      }
+      @case ("TREE") {
+        <ng-container *ngTemplateOutlet="treeList" />
+      }
+    }
+  </div>
+</div>
+
+<ng-template #letterList>
+  <ul
+    [id]="listId"
+    class="row"
+    [attr.aria-label]="
+      'All recorded ' + heading() + ', split into lists by first letter'
+    "
+  >
+    @for (
+      itemLetterEntries of displayEntries() | groupByFirstLetter: labelProp();
+      track $index
+    ) {
+      <li
+        class="letter-list"
+        [ngClass]="{
+          'col-sm-6 col-lg-4': !input._value() && !forceSingleLine(),
+          'col-12': input._value() || forceSingleLine(),
+        }"
+      >
+        <!-- Letter Heading -->
+        @if (input._value().length === 0) {
+          <div class="fs-5 letter-list__heading" aria-hidden="true">
+            {{ itemLetterEntries.key }}
+          </div>
+        }
+
+        <!-- Article List -->
+        <ul
+          class="letter-list__list"
+          [attr.aria-label]="
+            heading() + ' names starting with \'' + itemLetterEntries.key + '\''
+          "
+        >
+          @for (item of itemLetterEntries.value; track $index) {
+            <li class="letter-list__item">
+              <a class="letter-list__link" [routerLink]="item.link">
+                {{ item[labelProp()] }}
+              </a>
+            </li>
+          }
+        </ul>
+      </li>
+    }
+  </ul>
+</ng-template>
+
+<ng-template #propertyList>
+  @let groupPropVal = $any(groupConfig()).groupProp;
+
+  <ul
+    class="row"
+    [id]="listId"
+    [attr.aria-label]="
+      'All recorded ' +
+      heading() +
+      ', split into lists based on ' +
+      groupPropVal
+    "
+  >
+    @if (groupPropVal) {
+      @for (
+        itemLetterEntries of displayEntries()
+          | groupBy: groupPropVal : "session_details.session_number";
+        track $index
+      ) {
+        <li
+          class="letter-list"
+          [ngClass]="{
+            'col-sm-6 col-lg-4': !input._value() && !forceSingleLine,
+            'col-12': input._value() || forceSingleLine,
+          }"
+        >
+          <!-- Letter Heading -->
+          @if (input._value().length === 0) {
+            <h5 class="letter-list__heading">
+              {{ itemLetterEntries.key }}
+            </h5>
+          }
+
+          <!-- Article List -->
+          <ul class="letter-list__list">
+            @for (item of itemLetterEntries.value; track $index) {
+              <li class="letter-list__item">
+                <a class="letter-list__link" [routerLink]="item.link">
+                  {{ item[labelProp()] }}
+                </a>
+              </li>
+            }
+          </ul>
+        </li>
+      }
+    }
+  </ul>
+</ng-template>
+
+<ng-template #treeList>
+  <ul class="tree-list">
+    @for (rootNode of treeData(); track rootNode) {
+      <app-tree
+        class="tree-list__item"
+        role="listitem"
+        [expandOnInit]="true"
+        [data]="rootNode"
+      />
+    }
+  </ul>
+</ng-template>
+
+<ng-template #searchList>
+  <ul
+    class="row search-list"
+    [id]="listId"
+    [attr.aria-label]="
+      'All entries matching search query \'' + input._value() + '\''
+    "
+  >
+    @for (entry of displayEntries(); track entry[labelProp()]) {
+      <li class="letter-list__item col-12">
+        <a [routerLink]="entry.link" class="letter-list__link">
+          {{ entry[labelProp()] }}
+        </a>
+      </li>
+    }
+  </ul>
+</ng-template>

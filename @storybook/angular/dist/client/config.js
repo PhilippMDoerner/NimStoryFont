@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parameters = exports.applyDecorators = exports.renderToCanvas = exports.render = void 0;
+require("./globals");
+var render_1 = require("./render");
+Object.defineProperty(exports, "render", { enumerable: true, get: function () { return render_1.render; } });
+Object.defineProperty(exports, "renderToCanvas", { enumerable: true, get: function () { return render_1.renderToCanvas; } });
+var decorateStory_1 = require("./decorateStory");
+Object.defineProperty(exports, "applyDecorators", { enumerable: true, get: function () { return decorateStory_1.decorateStory; } });
+exports.parameters = { renderer: 'angular' };

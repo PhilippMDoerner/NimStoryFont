@@ -1,0 +1,63 @@
+{
+  "name": "@ng-bootstrap/ng-bootstrap",
+  "version": "18.0.0",
+  "description": "Angular powered Bootstrap",
+  "keywords": [
+    "angular",
+    "bootstrap",
+    "components",
+    "accordion",
+    "alert",
+    "buttons",
+    "carousel",
+    "collapse",
+    "datepicker",
+    "dropdown",
+    "modal",
+    "offcanvas",
+    "pagination",
+    "popover",
+    "progressbar",
+    "rating",
+    "table",
+    "tabset",
+    "timepicker",
+    "toast",
+    "tooltip",
+    "typeahead"
+  ],
+  "author": "https://github.com/ng-bootstrap/ng-bootstrap/graphs/contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ng-bootstrap/ng-bootstrap.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ng-bootstrap/ng-bootstrap/issues"
+  },
+  "homepage": "https://github.com/ng-bootstrap/ng-bootstrap#readme",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@angular/common": "^19.0.0",
+    "@angular/core": "^19.0.0",
+    "@angular/forms": "^19.0.0",
+    "@angular/localize": "^19.0.0",
+    "@popperjs/core": "^2.11.8",
+    "rxjs": "^6.5.3 || ^7.4.0"
+  },
+  "schematics": "./schematics/collection.json",
+  "module": "fesm2022/ng-bootstrap.mjs",
+  "typings": "index.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./fesm2022/ng-bootstrap.mjs"
+    }
+  },
+  "sideEffects": false
+}

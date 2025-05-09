@@ -1,0 +1,127 @@
+@import "/src/screens.scss";
+
+:host {
+  --sb-width: 18rem;
+  --sb-margin: var(--sb-width);
+  --navbar-height: 52px;
+
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+
+  // On desktop, show both sidebar and page side by side, now absolute positioning
+  @include media-breakpoint-up(md) {
+    overflow: hidden;
+    flex-direction: row;
+  }
+}
+
+.mobile {
+  width: 100%;
+  z-index: 2;
+
+  @include media-breakpoint-up(md) {
+    display: none;
+  }
+}
+
+.desktop {
+  display: none;
+
+  .sidebar {
+    width: var(--sb-width);
+  }
+  @include media-breakpoint-up(md) {
+    display: unset;
+  }
+}
+
+.page {
+  flex: 1;
+  transition: margin-left 0.1s ease-out;
+  position: relative;
+  max-height: calc(100mvh - var(--navbar-height));
+  overflow-y: auto;
+
+  // Desktop view show side-by-side with page
+  @include media-breakpoint-up(md) {
+    position: unset;
+    height: 100%;
+    max-height: unset;
+  }
+
+  &__scrollup-indicator {
+    display: block;
+    position: fixed;
+    width: var(--spacer-5);
+    height: var(--spacer-5);
+    right: var(--spacer-2);
+    background-color: var(--bs-secondary);
+    border-radius: 0 0 var(--bs-border-radius-xl) var(--bs-border-radius-xl);
+    border: calc(2 * var(--bs-border-width)) var(--bs-border-style)
+      var(--bs-border-color);
+    border-top-width: 0px;
+    transform: translateY(-1000%);
+    visibility: hidden;
+    transition: transform 0.2s ease-in-out;
+    z-index: 1;
+
+    &--visible {
+      visibility: visible;
+      transform: translateY(0%);
+    }
+  }
+
+  &__content {
+    padding: var(--spacer-0);
+    width: 100%;
+    height: 100%;
+  }
+
+  &__main {
+    padding: var(--spacer-0);
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    position: relative;
+  }
+
+  &__background {
+    position: fixed;
+    transition: margin-left 0.1s ease-out;
+    top: 0;
+    left: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100vh;
+
+    &--shift-right {
+      margin-left: var(--sb-margin);
+    }
+  }
+
+  &__loading-container {
+    position: absolute;
+    width: calc(2 * var(--spacer-5));
+    height: calc(2 * var(--spacer-5));
+    top: 25%;
+    left: calc(50% - var(--spacer-5));
+    background-color: var(--bs-secondary);
+    border-radius: var(--bs-border-radius-xl);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.75;
+  }
+}
+
+// Necessary so that the slide animation of campaign-overview does not mix with the component underneath it
+:host {
+  ::ng-deep {
+    router-outlet + * {
+      z-index: 1;
+    }
+  }
+}

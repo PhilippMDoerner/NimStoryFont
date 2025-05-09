@@ -1,0 +1,32 @@
+<div class="card__title-container" [heading]="ariaLevel()">
+  <button
+    btn
+    class="card__button"
+    [id]="triggerId"
+    (click)="togglePanel()"
+    [attr.aria-controls]="contentId"
+    [attr.aria-expanded]="_isOpen()"
+  >
+    <div class="h5 card__heading">
+      <span class="card__heading-text" [id]="headingId">
+        <ng-content select="[heading]"></ng-content>
+      </span>
+
+      <app-icon
+        class="card__heading-icon"
+        [class.card__heading-icon--open]="_isOpen()"
+        [icon]="'chevron-down'"
+      ></app-icon>
+    </div>
+  </button>
+</div>
+
+<div
+  class="card__body"
+  [ngbCollapse]="!_isOpen()"
+  [id]="contentId"
+  [attr.aria-labelledby]="triggerId"
+>
+  <app-separator class="card__separator"></app-separator>
+  <ng-content select="[body]"></ng-content>
+</div>
