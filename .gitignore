@@ -67,4 +67,3 @@ tasks.json
 local_only
 *.caddyfile
 *backup_configs
-storybook-static
