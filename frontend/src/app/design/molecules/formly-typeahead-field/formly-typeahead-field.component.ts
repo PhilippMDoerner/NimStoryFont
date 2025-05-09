@@ -33,10 +33,11 @@ import {
 } from 'rxjs';
 import { CustomTypeaheadProps } from 'src/app/_models/formly';
 import { filterNil } from 'src/utils/rxjs-operators';
+import {
+  cleanSearchTerm,
+  matchesSearchterm,
+} from '../../atoms/_models/typeahead';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
-
-const NON_NORMAL_CHARACTER_REGEXP = /[^a-zA-Z0-9]/g;
-const TWO_OR_MORE_WHITESPACE_REGEXP = /\s\s+/g;
 
 @Component({
   selector: 'app-formly-typeahead-field',
@@ -118,7 +119,7 @@ export class FormlyTypeaheadFieldComponent<T>
   ) => {
     const searchTerm$ = merge(searchTrigger$, this.focus$, this.click$).pipe(
       debounceTime(200),
-      map((searchTerm) => this.cleanSearchTerm(searchTerm)),
+      map((searchTerm) => cleanSearchTerm(searchTerm)),
     );
     const customProps = this.getCustomProps();
     const options$ = searchTerm$.pipe(
@@ -177,39 +178,10 @@ export class FormlyTypeaheadFieldComponent<T>
 
   private matchesSearchterm(searchTerm: string, optionLabel: T[keyof T]) {
     const formatter = this.getCustomProps().formatSearchTerm;
-    const searchRegex = new RegExp(
-      searchTerm.toLowerCase().split('').join('.*'),
-    );
-
-    switch (typeof optionLabel) {
-      case 'string':
-      case 'number':
-      case 'bigint':
-      case 'boolean': {
-        const opt1 = formatter(`${optionLabel}`.toLowerCase()) ?? '';
-        return opt1.match(searchRegex);
-      }
-      case 'symbol': {
-        const opt2 = formatter(optionLabel.description?.toLowerCase()) ?? '';
-        return opt2.match(searchRegex);
-      }
-      case 'undefined':
-      case 'object':
-      case 'function':
-      default:
-        return false;
-    }
+    return matchesSearchterm(searchTerm, optionLabel, formatter);
   }
 
   private getCustomProps(): CustomTypeaheadProps<T> {
     return this.props['additionalProperties'];
-  }
-
-  private cleanSearchTerm(searchTerm: string | undefined): string | undefined {
-    return searchTerm
-      ?.replaceAll(NON_NORMAL_CHARACTER_REGEXP, ' ')
-      .trim()
-      .replace(TWO_OR_MORE_WHITESPACE_REGEXP, ' ')
-      .trim();
   }
 }

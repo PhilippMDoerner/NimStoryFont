@@ -1,3 +1,6 @@
+export const NON_NORMAL_CHARACTER_REGEXP = /[^a-zA-Z0-9]/g;
+export const TWO_OR_MORE_WHITESPACE_REGEXP = /\s\s+/g;
+
 export function capitalize<T extends string>(x: T): Capitalize<T> {
   const firstLetter = x[0].toUpperCase();
   return `${firstLetter}${x.slice(1)}` as Capitalize<T>;
