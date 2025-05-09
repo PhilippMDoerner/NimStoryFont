@@ -31,7 +31,6 @@ frontend/yarn-error.log
 # Miscellaneous
 frontend/.angular/cache
 frontend/.github
-frontend/.storybook
 frontend/.vscode
 frontend/buildFiles/nginx/local_only
 backend/buildFiles/nimstoryfont
