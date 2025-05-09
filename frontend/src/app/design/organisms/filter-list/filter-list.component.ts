@@ -14,8 +14,8 @@ import {
   GroupByPipe,
 } from 'src/app/design/atoms/_pipes/groupObjects.pipe';
 import { componentId } from 'src/utils/DOM';
-import { InputComponent } from '../../../atoms/input/input.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
+import { InputComponent } from '../../atoms/input/input.component';
 import { FilterListEntry } from '../_model/filterListEntry';
 import { TreeComponent, TreeNode } from '../tree/tree.component';
 
