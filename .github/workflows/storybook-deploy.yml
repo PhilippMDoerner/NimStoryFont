@@ -26,6 +26,7 @@ jobs:
           npm ci
           npm i
           npm run build-storybook
+          ls -l
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@3.6.2
