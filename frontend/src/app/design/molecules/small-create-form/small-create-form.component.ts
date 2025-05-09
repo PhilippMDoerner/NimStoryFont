@@ -9,12 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormGroup } from '@angular/forms';
-import { FocusOnRender } from 'src/app/_directives/focusOnRender.directive';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { componentId } from 'src/utils/DOM';
+import { TypeaheadComponent } from '../../atoms/typeahead/typeahead.component';
 
 type State = 'DISPLAY' | 'CREATE';
 export interface DisableableOption<T> {
@@ -31,7 +31,7 @@ export interface DisableableOption<T> {
     NgTemplateOutlet,
     ButtonComponent,
     HotkeyDirective,
-    FocusOnRender,
+    TypeaheadComponent,
   ],
 })
 export class SmallCreateFormComponent<T> {
@@ -50,7 +50,7 @@ export class SmallCreateFormComponent<T> {
   injector = inject(Injector);
   selectFieldName = computed(() => `select-' + ${String(this.labelProp())}`);
   form = new FormGroup({});
-  userModel: Partial<T> | undefined = {};
+  userModel: T | undefined = undefined;
   state = signal<State>('DISPLAY');
   id = componentId();
 
@@ -58,16 +58,13 @@ export class SmallCreateFormComponent<T> {
     this.state.set(newState);
   }
 
-  onChange(event: Event) {
-    const selectedIndex = parseInt(
-      (event.srcElement as HTMLSelectElement).value,
-    );
-    this.userModel = this.options()[selectedIndex];
+  onChange(value: T | undefined) {
+    this.userModel = value;
   }
 
   onCancel() {
     this.changeState('DISPLAY');
-    this.userModel = {};
+    this.userModel = undefined;
   }
 
   onSubmit() {
@@ -77,7 +74,7 @@ export class SmallCreateFormComponent<T> {
     if (hasValue) {
       this.create.emit(this.userModel as T);
     }
-    this.userModel = {};
+    this.userModel = undefined;
   }
 
   toggleForm() {

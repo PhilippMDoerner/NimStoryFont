@@ -28,26 +28,16 @@
     <label [for]="id" class="cdk-visually-hidden">
       {{ formFieldLabel() }}
     </label>
-    <select
-      #select
-      class="form-select"
-      focusOnRender
-      [name]="selectFieldName()"
+    <app-typeahead
+      [options]="options()"
+      [labelProp]="labelProp()"
+      [valueProp]="valueProp()"
       [id]="id"
-      (change)="onChange($event)"
-    >
-      <option [value]="undefined">-----</option>
-      @for (option of options(); track option) {
-        <option
-          [value]="$index"
-          [attr.selected]="
-            option[valueProp()] === userModel?.[valueProp()] ? true : null
-          "
-        >
-          {{ option[labelProp()] }}
-        </option>
-      }
-    </select>
+      [placeholder]="formFieldLabel()"
+      [selectedItem]="userModel"
+      [autofocus]="true"
+      (changed)="onChange($event)"
+    />
 
     <!-- Submit Button -->
     <button
@@ -58,7 +48,7 @@
       [size]="'SMALL'"
       [icon]="'check'"
       [type]="'submit'"
-      [disabled]="select.value === 'undefined'"
+      [disabled]="userModel == null"
       (clicked)="onSubmit()"
     ></button>
 

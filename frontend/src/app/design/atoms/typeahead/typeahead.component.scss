@@ -1,0 +1,20 @@
+:host {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  color: var(--bs-white);
+  background-color: var(--bs-dark);
+  border-radius: var(--bs-border-radius);
+  padding: var(--spacer-1) var(--spacer-2);
+
+  &:has(.input:focus) {
+    outline: var(--focus-outline);
+  }
+}
+
+.input {
+  background-color: unset;
+  border: unset;
+  outline: unset;
+  color: var(--bs-white);
+}
