@@ -21,7 +21,6 @@ FROM docker.io/library/alpine:latest
 RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
 
 # Copy necessary files
-COPY --from=build /frontend/buildFiles/nginx/50x.html /usr/share/nginx/html/50x.html
 COPY --from=build /frontend/dist/nimstoryfont-gui /frontend
 RUN rm /etc/nginx/nginx.conf && ln -s /data/config/nginx.conf /etc/nginx/nginx.conf
 
