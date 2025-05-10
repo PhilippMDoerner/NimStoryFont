@@ -270,6 +270,14 @@ server_command(){
       local cmd="sudo docker compose -f $HOST_COMPOSE_PATH --env-file $HOST_PROJECT_ROOT/host.env ${@:3}"
       run_on_host "$cmd"
     ;;
+    restart)
+      set -a && source host.env && source .env && set +a
+      local cmd="\
+        sudo docker compose -f $HOST_COMPOSE_PATH --env-file $HOST_PROJECT_ROOT/host.env down && \
+        sudo docker compose -f $HOST_COMPOSE_PATH --env-file $HOST_PROJECT_ROOT/host.env up --pull always --force-recreate -d \
+      "
+      run_on_host "$cmd"
+    ;;
     status) run_on_host "sudo docker ps";;
     cmds) echo compose cmds help;;
     help|*) server_help_command ;;
