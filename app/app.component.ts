@@ -64,6 +64,7 @@ export class AppComponent {
 
   constructor() {
     this.trackAnimationSetting();
+    this.serviceWorkerService.initializeServiceWorkerInteractions();
   }
 
   logout(): void {
