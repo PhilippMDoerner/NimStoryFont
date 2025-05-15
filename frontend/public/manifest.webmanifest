@@ -1,6 +1,6 @@
 {
-  "name": "nimstoryfont-gui",
-  "short_name": "nimstoryfont-gui",
+  "name": "Nimstoryfont",
+  "short_name": "NSF",
   "id": "/v2",
   "theme_color": "#1b1f22",
   "background_color": "#fff",
