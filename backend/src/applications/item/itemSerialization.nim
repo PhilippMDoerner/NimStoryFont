@@ -1,8 +1,9 @@
-import std/[options, sugar, sequtils]
+import std/[options, sugar, sequtils, tables]
 import norm/model
 import ./itemModel
 import ./itemUtils
-import ../image/[imageModel, imageSerialization]
+import ./itemService
+import ../image/[imageModel, imageSerialization, imageUtils]
 import ../articleModel
 import ../campaign/campaignModel
 import ../genericArticleRepository
@@ -57,8 +58,13 @@ type ItemOverviewSerializable* = object
   campaign_details*: MinimumCampaignOverview
   update_datetime*: DjangoDateTime
   creation_datetime*: DjangoDateTime
+  images: seq[string]
 
-proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerializable =
+proc overviewSerialize*(
+    connection: DbConn, entry: ItemRead, images: seq[Image] = @[]
+): ItemOverviewSerializable =
+  let imagePaths = images.map(getImagePath)
+
   result = ItemOverviewSerializable(
     article_type: ArticleType.atItem,
     description: entry.description.map(truncate),
@@ -68,10 +74,20 @@ proc overviewSerialize*(connection: DbConn, entry: ItemRead): ItemOverviewSerial
     campaign_details: entry.campaign_id,
     update_datetime: entry.update_datetime,
     creation_datetime: entry.creation_datetime,
+    images: imagePaths,
   )
 
 proc overviewSerialize*(
     connection: DbConn, entries: seq[ItemRead]
 ): seq[ItemOverviewSerializable] =
+  let itemIds: seq[int64] = entries.map(item => item.id)
+  let itemImages: Table[int64, seq[Image]] = connection.getItemImages(itemIds)
+
   for entry in entries:
-    result.add(connection.overviewSerialize(entry))
+    let images: seq[Image] =
+      if itemImages.hasKey(entry.id):
+        itemImages[entry.id]
+      else:
+        @[]
+
+    result.add(connection.overviewSerialize(entry, images))
