@@ -1,10 +1,10 @@
-import std/[options, strformat, sugar, sequtils]
+import std/[options, strformat, sugar, sequtils, tables]
 import norm/sqlite
 import ./creatureModel
 import ../genericArticleRepository
 import ../campaign/campaignModel
 import ../articleModel
-import ../image/[imageSerialization, imageModel]
+import ../image/[imageSerialization, imageModel, imageUtils]
 import ../../utils/[myStrutils, djangoDateTime/djangoDateTimeType]
 
 type CreatureSerializable* = object
@@ -45,10 +45,15 @@ type CreatureOverviewSerializable* = object
   campaign_details*: MinimumCampaignOverview
   update_datetime*: DjangoDateTime
   creation_datetime*: DjangoDateTime
+  images*: seq[string]
 
 proc overviewSerialize*(
-    connection: DbConn, entry: CreatureOverview | CreatureRead
+    connection: DbConn,
+    entry: CreatureOverview | CreatureRead,
+    entryImages: seq[Image] = @[],
 ): CreatureOverviewSerializable =
+  let imagePaths = entryImages.map(getImagePath)
+
   result = CreatureOverviewSerializable(
     article_type: ArticleType.atCreature,
     description: entry.description.map(truncate),
@@ -58,10 +63,21 @@ proc overviewSerialize*(
     campaign_details: entry.campaign_id,
     update_datetime: entry.update_datetime,
     creation_datetime: entry.creation_datetime,
+    images: imagePaths,
   )
 
 proc overviewSerialize*(
     connection: DbConn, entries: seq[CreatureOverview | CreatureRead]
 ): seq[CreatureOverviewSerializable] =
-  for entry in entries:
-    result.add(connection.overviewSerialize(entry))
+  let creatureIds: seq[int64] = entries.map(entry => entry.id)
+  let creatureImages: Table[int64, seq[Image]] =
+    connection.getCreatureImages(creatureIds)
+
+  for creature in entries:
+    let images: seq[Image] =
+      if creatureImages.hasKey(creature.id):
+        creatureImages[creature.id]
+      else:
+        @[]
+
+    result.add(connection.overviewSerialize(creature, images))

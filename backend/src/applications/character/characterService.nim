@@ -1,12 +1,12 @@
-import ../genericArticleRepository
-import characterModel
-import characterEncounterModel
-import characterOrganizationModel
-import ../image/[imageService]
-import norm/[model, sqlite]
-import characterRepository
-import ../allUrlParams
 import std/tables
+import norm/[model, sqlite]
+import ./characterModel
+import ./characterEncounterModel
+import ./characterOrganizationModel
+import ./characterRepository
+import ../image/[imageService]
+import ../genericArticleRepository
+import ../allUrlParams
 
 export characterEncounterModel
 export characterOrganizationModel

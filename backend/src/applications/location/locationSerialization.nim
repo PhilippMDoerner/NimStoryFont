@@ -1,10 +1,11 @@
-import std/[options, sugar, sequtils]
+import std/[options, sugar, sequtils, tables]
 import norm/model
 import ./locationModel
 import ./locationUtils
+import ./locationService
 import ./locationRepository
 import ../articleModel
-import ../image/[imageModel, imageSerialization]
+import ../image/[imageModel, imageSerialization, imageUtils]
 import ../mapMarker/[markerModel]
 import ../mapMarkerType/[markerTypeModel]
 import ../character/[characterModel, characterUtils]
@@ -169,10 +170,13 @@ type LocationOverviewSerializable* = object
   creation_datetime: DjangoDateTime
   parent_location_details: ParentLocationSerializable
   parent_location: Option[int64]
+  images: seq[string]
 
 proc overviewSerialize(
-    entry: LocationRead, campaignLocations: seq[LocationRead]
+    entry: LocationRead, campaignLocations: seq[LocationRead], images: seq[Image] = @[]
 ): LocationOverviewSerializable =
+  let imagePaths = images.map(getImagePath)
+
   let fullLocationName = stringifyLocation(entry, campaignLocations)
   result = LocationOverviewSerializable(
     article_type: ArticleType.atLocation,
@@ -185,6 +189,7 @@ proc overviewSerialize(
     creation_datetime: entry.creation_datetime,
     parent_location_details: entry.parent_location_id.serializeParentLocation(),
     parent_location: entry.parent_location_id.map(ploc => ploc.id),
+    images: imagePaths,
   )
 
 proc overviewSerialize*(
@@ -200,8 +205,17 @@ proc overviewSerialize*(
   if entries.len == 0:
     return @[]
 
+  let locationIds: seq[int64] = entries.map(loc => loc.id)
+  let locationImages: Table[int64, seq[Image]] =
+    connection.getLocationImages(locationIds)
+
   let campaignName = entries[0].campaign_id.name
   let campaignLocations = connection.getCampaignList(campaignName, LocationRead)
 
-  for entry in entries:
-    result.add(overviewSerialize(entry, campaignLocations))
+  for location in entries:
+    let images: seq[Image] =
+      if locationImages.hasKey(location.id):
+        locationImages[location.id]
+      else:
+        @[]
+    result.add(overviewSerialize(location, campaignLocations, images))

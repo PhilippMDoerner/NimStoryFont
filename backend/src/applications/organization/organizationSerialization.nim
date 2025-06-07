@@ -1,10 +1,10 @@
-import std/[sugar, options, sequtils]
+import std/[sugar, options, sequtils, tables]
 import norm/sqlite
 import ./organizationModel
 import ./organizationService
 import ./organizationUtils
 import ../genericArticleRepository
-import ../image/[imageModel, imageService, imageSerialization]
+import ../image/[imageModel, imageService, imageSerialization, imageUtils]
 import ../campaign/campaignModel
 import ../character/characterService
 import ../../utils/[djangoDateTime/djangoDateTimeType, myStrutils]
@@ -101,10 +101,15 @@ type OrganizationOverviewSerializable* = object
   campaign_details: MinimumCampaignOverview
   update_datetime: DjangoDateTime
   creation_datetime: DjangoDateTime
+  images: seq[string]
 
 proc overviewSerialize*(
-    connection: DbConn, entry: OrganizationOverview | OrganizationRead
+    connection: DbConn,
+    entry: OrganizationOverview | OrganizationRead,
+    images: seq[Image] = @[],
 ): OrganizationOverviewSerializable =
+  let imagePaths = images.map(getImagePath)
+
   result = OrganizationOverviewSerializable(
     article_type: ArticleType.atOrganization,
     description: entry.description.map(truncate),
@@ -114,10 +119,21 @@ proc overviewSerialize*(
     campaign_details: entry.campaign_id,
     update_datetime: entry.update_datetime,
     creation_datetime: entry.creation_datetime,
+    images: imagePaths,
   )
 
 proc overviewSerialize*(
     connection: DbConn, entries: seq[OrganizationOverview | OrganizationRead]
 ): seq[OrganizationOverviewSerializable] =
-  for entry in entries:
-    result.add(connection.overviewSerialize(entry))
+  let organizationIds = entries.map(org => org.id)
+  let organizationImages: Table[int64, seq[Image]] =
+    connection.getOrganizationImages(organizationIds)
+
+  for organization in entries:
+    let images: seq[Image] =
+      if organizationImages.hasKey(organization.id):
+        organizationImages[organization.id]
+      else:
+        @[]
+
+    result.add(connection.overviewSerialize(organization, images))

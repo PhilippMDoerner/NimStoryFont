@@ -1,9 +1,10 @@
-import std/[options, strformat, algorithm, strutils]
+import std/[options, strformat, algorithm, strutils, tables]
 import norm/model
 import ./locationModel
 import ./locationRepository
 import ../genericArticleRepository
 import ../allUrlParams
+import ../image/[imageService]
 import ../../applicationConstants
 import ../../database
 
@@ -49,3 +50,8 @@ proc getParentLocations*(location: Location): seq[Location] =
 proc readParentLocations*(location: Location | LocationRead): seq[Location] =
   withDbConn(connection):
     result = locationRepository.getParentLocations(connection, location.id)
+
+proc getLocationImages*(
+    con: DbConn, locationIds: seq[int64]
+): Table[int64, seq[Image]] =
+  return con.getImagesForArticles(ImageType.LOCATIONTYPE, locationIds)
