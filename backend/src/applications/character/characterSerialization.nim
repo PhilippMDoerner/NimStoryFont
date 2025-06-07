@@ -206,18 +206,17 @@ proc overviewSerialize*(
 proc overviewSerialize*(
     connection: DbConn, entries: seq[CharacterOverview | CharacterRead]
 ): seq[CharacterOverviewSerializable] =
-  let playerCharacterIds: seq[int64] =
-    entries.filter(entry => entry.player_character).map(entry => entry.id)
-  let playerCharacterImages: Table[int64, seq[Image]] =
-    connection.getCharacterImages(playerCharacterIds)
+  let characterIds: seq[int64] = entries.map(entry => entry.id)
+  let characterImages: Table[int64, seq[Image]] =
+    connection.getCharacterImages(characterIds)
 
-  for entry in entries:
+  for character in entries:
     let images: seq[Image] =
-      if playerCharacterImages.hasKey(entry.id):
-        playerCharacterImages[entry.id]
+      if characterImages.hasKey(character.id):
+        characterImages[character.id]
       else:
         @[]
-    let serializedEntry = overviewSerialize(entry, images)
+    let serializedEntry = overviewSerialize(character, images)
     result.add(serializedEntry)
 
 type ConnectionDetailsSerializable* = object
