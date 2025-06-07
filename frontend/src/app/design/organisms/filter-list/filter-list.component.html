@@ -64,7 +64,7 @@
       <li
         class="letter-list"
         [ngClass]="{
-          'col-sm-6 col-lg-4': !input._value() && !forceSingleLine(),
+          'col-xl-6': !input._value() && !forceSingleLine(),
           'col-12': input._value() || forceSingleLine(),
         }"
       >
@@ -85,7 +85,12 @@
           @for (item of itemLetterEntries.value; track $index) {
             <li class="letter-list__item">
               <a class="letter-list__link" [routerLink]="item.link">
-                {{ item[labelProp()] }}
+                @let body = bodyProp() ? item[bodyProp()] : undefined;
+                <app-overview-entry
+                  [img]="item.img"
+                  [header]="item[labelProp()]"
+                  [body]="body"
+                />
               </a>
             </li>
           }
@@ -117,7 +122,7 @@
         <li
           class="letter-list"
           [ngClass]="{
-            'col-sm-6 col-lg-4': !input._value() && !forceSingleLine,
+            'col-sm-6': !input._value() && !forceSingleLine,
             'col-12': input._value() || forceSingleLine,
           }"
         >
@@ -133,7 +138,12 @@
             @for (item of itemLetterEntries.value; track $index) {
               <li class="letter-list__item">
                 <a class="letter-list__link" [routerLink]="item.link">
-                  {{ item[labelProp()] }}
+                  @let body = bodyProp() ? item[bodyProp()] : undefined;
+                  <app-overview-entry
+                    [img]="item.img"
+                    [header]="item[labelProp()]"
+                    [body]="body"
+                  />
                 </a>
               </li>
             }
@@ -168,7 +178,12 @@
     @for (entry of displayEntries(); track entry[labelProp()]) {
       <li class="letter-list__item col-12">
         <a [routerLink]="entry.link" class="letter-list__link">
-          {{ entry[labelProp()] }}
+          @let body = bodyProp() ? $any(entry)[bodyProp()] : undefined;
+          <app-overview-entry
+            [img]="entry.img"
+            [header]="$any(entry)[labelProp()]"
+            [body]="body"
+          />
         </a>
       </li>
     }
