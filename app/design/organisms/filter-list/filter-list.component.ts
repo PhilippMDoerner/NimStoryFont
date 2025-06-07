@@ -16,6 +16,7 @@ import {
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
+import { OverviewEntryComponent } from "../../molecules/overview-entry/overview-entry.component";
 import { FilterListEntry } from '../_model/filterListEntry';
 import { TreeComponent, TreeNode } from '../tree/tree.component';
 
@@ -41,11 +42,13 @@ export type GroupConfig<T> =
     ButtonComponent,
     InputComponent,
     TreeComponent,
-  ],
+    OverviewEntryComponent
+],
 })
 export class FilterListComponent<T> {
   entries = input.required<FilterListEntry<T>[]>();
   labelProp = input.required<Exclude<keyof T, symbol | number>>();
+  bodyProp = input<Exclude<keyof T, symbol | number>>();
   heading = input.required<string>();
   groupConfig = input<GroupConfig<T>>({ mode: 'LETTER' });
   forceSingleLine = input(false);

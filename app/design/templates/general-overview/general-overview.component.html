@@ -136,6 +136,7 @@
     [id]="filterId"
     [entries]="displayEntries()"
     [labelProp]="'name'"
+    [bodyProp]="'description'"
     [heading]="overviewTypeName()"
   ></app-filter-list>
 </ng-template>
@@ -161,6 +162,7 @@
     [id]="filterId"
     [entries]="displayEntries()"
     [labelProp]="'name_full'"
+    [bodyProp]="'description'"
     [heading]="overviewTypeName()"
     [groupConfig]="{ mode: 'TREE', toTreeData: toLocationTrees }"
   />
@@ -175,6 +177,7 @@
     [id]="filterId"
     [entries]="displayEntries()"
     [labelProp]="'name_full'"
+    [bodyProp]="'description'"
     [heading]="overviewTypeName()"
   ></app-filter-list>
 </ng-template>

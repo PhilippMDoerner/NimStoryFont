@@ -1,0 +1,39 @@
+:host {
+  // Must be consistent with width+height of ngOptimizedImage
+  --image-dimension: 80px;
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacer-3);
+  min-height: var(--image-dimension);
+  width: 100%;
+  align-items: center;
+  overflow: hidden;
+}
+
+.img {
+  height: var(--image-dimension);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.text-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  padding-right: var(--spacer-2);
+
+  &__header {
+    width: fit-content;
+    border-bottom: var(--bs-border-width);
+  }
+
+  &__body {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

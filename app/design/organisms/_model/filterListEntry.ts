@@ -1,1 +1,1 @@
-export type FilterListEntry<T> = T & Record<'link', string>;
+export type FilterListEntry<T> = T & { link: string, img: {src: string, alt: string, placeholder?: string}};

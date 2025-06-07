@@ -1,0 +1,16 @@
+<div class="img border-end">
+  <!-- Must be consistent with --image-dimension css property -->
+  <img
+    width="80"
+    height="80"
+    [ngSrc]="img().src"
+    [alt]="img().alt"
+    [placeholder]="img().placeholder ?? false"
+  />
+</div>
+<div class="text-content">
+  <div class="text-content__header fs-5 fw-bold border-bottom" [id]="headerId">
+    {{ header() }}
+  </div>
+  <div class="text-content__body">{{ body() }}</div>
+</div>

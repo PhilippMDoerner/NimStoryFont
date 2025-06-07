@@ -86,6 +86,11 @@ export class GeneralOverviewComponent {
         return this.entries().map((entry) => ({
           ...entry,
           link: entry['getAbsoluteRouterUrl'](),
+          img: {
+            src: entry.images?.[0] ?? this.defaultPlayerCharacterImage,
+            alt: '',
+            placeholder: this.defaultPlayerCharacterImage,
+          }
         }));
     }
   });
@@ -125,6 +130,7 @@ export class GeneralOverviewComponent {
       .map((entry) => ({
         ...entry,
         link: entry['getAbsoluteRouterUrl'](),
+        img: { src: entry.images?.[0] ?? this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
       }));
   }
 
@@ -135,6 +141,7 @@ export class GeneralOverviewComponent {
       ...diaryEntry,
       name_full: this.buildDiaryEntryNameForList(diaryEntry),
       link: diaryEntry['getAbsoluteRouterUrl'](),
+              img: { src: this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
     }));
   }
 
@@ -190,6 +197,7 @@ export class GeneralOverviewComponent {
           ...locationEntry,
           name_full: locationPath,
           link: locationEntry.getAbsoluteRouterUrl(),
+              img: { src: locationEntry.images?.[0] ?? this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
         };
       })
       .sort((location1: OverviewItem, location2: OverviewItem) =>
