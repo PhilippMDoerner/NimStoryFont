@@ -3,7 +3,6 @@
   --image-dimension: 80px;
   display: flex;
   flex-direction: row;
-  gap: var(--spacer-3);
   min-height: var(--image-dimension);
   width: 100%;
   align-items: center;
@@ -15,14 +14,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  width: fit-content;
 }
 
 .text-content {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   width: 100%;
+  min-height: var(--image-dimension);
   overflow: hidden;
   padding-right: var(--spacer-2);
+  padding-left: var(--spacer-2);
 
   &__header {
     width: fit-content;
