@@ -9,7 +9,11 @@
   />
 </div>
 <div class="text-content border-start">
-  <div class="text-content__header fs-5 fw-bold border-bottom" [id]="headerId">
+  <div
+    class="text-content__header fs-5 fw-bold"
+    [class.border-bottom]="!!body()"
+    [id]="headerId"
+  >
     {{ header() }}
   </div>
   <div class="text-content__body">{{ body() }}</div>
