@@ -182,7 +182,7 @@ export class NgxLeafletMapComponent {
       parent_name: marker.location_details?.parent_location_name,
       name: marker.location_details?.name,
     });
-    const heading = `<a href="${location_url}"> <b>${marker.location_details?.name}</b> </a>`;
+    const heading = `<a href=".${location_url}"> <b>${marker.location_details?.name}</b> </a>`;
     return heading;
   }
 
@@ -225,7 +225,7 @@ export class NgxLeafletMapComponent {
         name: sublocationName,
         campaign: this.mapData().campaign_details?.name,
       });
-      sublocationList += `<li><a href="${sublocationUrl}"> ${sublocationName}</a></li>`;
+      sublocationList += `<li><a href=".${sublocationUrl}"> ${sublocationName}</a></li>`;
     }
     sublocationList += '</ul>';
 
