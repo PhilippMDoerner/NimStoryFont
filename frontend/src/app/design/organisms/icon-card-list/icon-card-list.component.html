@@ -6,6 +6,8 @@
   [attr.aria-busy]="isLoading()"
   (keydown.ArrowDown)="focusNextArticle($event)"
   (keydown.ArrowUp)="focusPriorArticle($event)"
+  (keydown.PageDown)="focusNextArticle($event)"
+  (keydown.PageUp)="focusPriorArticle($event)"
   (keydown.control.End)="focusArticle(articleCount() - 1)"
   (keydown.control.Home)="focusArticle(0)"
 >
