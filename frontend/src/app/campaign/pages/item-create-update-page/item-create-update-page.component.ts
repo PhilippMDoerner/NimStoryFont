@@ -8,10 +8,12 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, mergeMap, Observable, skip, take } from 'rxjs';
+import { filter, mergeMap, Observable, of, skip, take } from 'rxjs';
 import { Item, ItemRaw } from 'src/app/_models/item';
+import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -82,13 +84,14 @@ export class ItemCreateUpdatePageComponent {
 
   formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<ItemRaw, OverviewItem>({
       key: 'owner',
-      options$: this.campaignCharacters$,
-      campaign: this.globalStore.campaignName(),
-      required: false,
-      labelProp: 'name',
-      sortProp: 'name',
+      label: 'Owner',
+      getOptions: () => this.campaignCharacters$,
+      initialOption$: of(this.store.campaignCharacters()?.find(char => char.pk === this.userModel().owner) ?? null),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name',
+      optionValueProp: 'pk',
     }),
   ]);
 

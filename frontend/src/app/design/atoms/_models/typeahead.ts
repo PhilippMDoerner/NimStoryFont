@@ -44,3 +44,8 @@ export function cleanSearchTerm(
     .replace(TWO_OR_MORE_WHITESPACE_REGEXP, ' ')
     .trim();
 }
+
+export function formatSearchTerm(str: string | undefined){
+    const undesiredCharRegex = /[-\s']/g;
+    return str?.replaceAll(undesiredCharRegex, '') ?? '';
+}

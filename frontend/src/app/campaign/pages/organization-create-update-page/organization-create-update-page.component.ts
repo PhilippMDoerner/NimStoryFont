@@ -7,10 +7,12 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, mergeMap, skip, take } from 'rxjs';
+import { filter, mergeMap, of, skip, take } from 'rxjs';
 import { Organization, OrganizationRaw } from 'src/app/_models/organization';
+import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -84,20 +86,24 @@ export class OrganizationCreateUpdatePageComponent {
 
   formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<OrganizationRaw, OverviewItem>({
       key: 'leader',
-      valueProp: 'name',
-      labelProp: 'name',
-      options$: this.campaignCharacters$,
-      campaign: this.globalStore.campaignName(),
+      label: 'Leader',
+      getOptions: () => this.campaignCharacters$,
+      initialOption$: of(this.store.campaignCharacters()?.find(char => char.name === this.userModel().leader) ?? null),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name',
+      optionValueProp: 'name',
       required: false,
     }),
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<OrganizationRaw, OverviewItem>({
       key: 'headquarter',
-      sortProp: 'name_full',
-      labelProp: 'name_full',
-      options$: this.campaignLocations$,
-      campaign: this.globalStore.campaignName(),
+      label: 'Headquarter',
+      getOptions: () => this.campaignLocations$,
+      initialOption$: of(this.store.campaignLocations()?.find(location => location.pk === this.userModel()?.headquarter) ?? null),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name_full',
+      optionValueProp: 'pk',
       required: false,
     }),
   ]);

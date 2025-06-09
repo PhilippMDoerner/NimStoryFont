@@ -48,6 +48,7 @@ import {
 import { componentId } from 'src/utils/DOM';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
+import { formatSearchTerm } from '../../atoms/_models/typeahead';
 import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
 import {
   EditorComponent,
@@ -136,7 +137,7 @@ export class EncounterComponent implements OnInit {
         name_full: this.encounter()?.location_details?.name_full,
         pk: this.encounter()?.location,
       }),
-      formatSearchTerm: (searchTerm) => this.formatEntry(searchTerm),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name_full',
       optionValueProp: 'pk',
     }),
@@ -268,11 +269,6 @@ export class EncounterComponent implements OnInit {
         link,
       };
     });
-  }
-
-  private formatEntry(str: string | undefined) {
-    const undesiredCharRegex = /[-\s']/g;
-    return str?.replaceAll(undesiredCharRegex, '') ?? '';
   }
 
   private scrollComponentIntoView() {
