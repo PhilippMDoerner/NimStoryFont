@@ -55,6 +55,7 @@ export const ALL_SOLID_ICONS = [
   'download',
   'dragon',
   'dungeon',
+  'ellipsis-vertical',
   'exclamation',
   'expand',
   'file-arrow-down',
