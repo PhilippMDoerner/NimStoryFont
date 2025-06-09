@@ -9,8 +9,9 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
+import { of } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { CharacterDetails } from 'src/app/_models/character';
+import { CharacterDetails, CharacterRaw } from 'src/app/_models/character';
 import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -69,21 +70,22 @@ export class CharacterCreateUpdateComponent {
     }),
     this.formlyService.buildStaticStringSelectConfig({
       key: 'gender',
-      label: 'Sex',
-      options: ['Other', 'Female', 'Male'],
+      label: 'Gender',
+      options: ['Other', 'Man', 'Woman', 'Non-binary'],
     }),
     this.formlyService.buildInputConfig({
       key: 'race',
       inputKind: 'STRING',
     }),
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<CharacterRaw, OverviewItem>({
       key: 'current_location',
-      sortProp: 'name_full',
-      labelProp: 'name_full',
       label: 'Location',
-      campaign: this.campaignName(),
+      getOptions: () => this.lastVisitedPlaceOptions$,
+      formatSearchTerm: searchTerm => this.formatEntry(searchTerm),
+      optionLabelProp: 'name_full',
+      optionValueProp: 'pk',
+      initialOption$: of({ name_full: this.userModel().current_location_details?.name_full, pk: this.userModel().current_location }),
       required: false,
-      options$: this.lastVisitedPlaceOptions$,
     }),
   ]);
 
@@ -117,5 +119,10 @@ export class CharacterCreateUpdateComponent {
       case 'OUTDATED_UPDATE':
         return `Updating Character ${this.userModel().name}`;
     }
+  }
+
+    private formatEntry(str: string | undefined) {
+    const undesiredCharRegex = /[-\s']/g;
+    return str?.replaceAll(undesiredCharRegex, '') ?? '';
   }
 }

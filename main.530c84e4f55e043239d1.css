@@ -35,11 +35,11 @@ input.form-control:focus {
 
 select.form-select {
   color: white !important;
-  background-color: #4c4c4c !important;
+  background-color: var(--bs-secondary) !important;
 }
 
 select:focus {
-  background-color: #4c4c4c;
+  background-color: var(--bs-secondary);
   box-shadow: 3px blue;
   color: white;
 }
@@ -11969,11 +11969,11 @@ input.form-control:focus {
 
 select.form-select {
   color: white !important;
-  background-color: #4c4c4c !important;
+  background-color: var(--bs-secondary) !important;
 }
 
 select:focus {
-  background-color: #4c4c4c;
+  background-color: var(--bs-secondary);
   box-shadow: 3px blue;
   color: white;
 }

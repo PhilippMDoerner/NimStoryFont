@@ -7,10 +7,12 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, mergeMap, skip, take } from 'rxjs';
+import { filter, mergeMap, of, skip, take } from 'rxjs';
+import { OverviewItem } from 'src/app/_models/overview';
 import { Quest, QuestRaw } from 'src/app/_models/quest';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -59,23 +61,24 @@ export class QuestCreateUpdatePageComponent {
         required: true,
       },
     },
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<QuestRaw, OverviewItem>({
       key: 'giver',
       label: 'Quest Giver',
-      labelProp: 'name',
-      options$: this.questGivers$,
-      campaign: this.globalStore.campaignName(),
+      getOptions: () => this.questGivers$,
+      initialOption$: of(this.store.questGivers()?.find(char => char.pk === this.userModel().giver) ?? null),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name',
+      optionValueProp: 'pk',
     }),
-    {
+    this.formlyService.buildTypeaheadConfig<QuestRaw, OverviewItem>({
       key: 'taker',
-      type: 'select',
-      props: {
-        label: 'Quest Taker',
-        labelProp: 'name',
-        valueProp: 'pk',
-        options: this.questTakers$,
-      },
-    },
+      label: 'Quest Taker',
+      getOptions: () => this.questTakers$,
+      initialOption$: of(this.store.questTakers()?.find(char => char.pk === this.userModel().taker) ?? null),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name',
+      optionValueProp: 'pk',
+    }),
     this.formlyService.buildOverviewSelectConfig({
       key: 'start_session',
       label: 'Start Session',

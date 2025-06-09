@@ -8,12 +8,13 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, mergeMap, take } from 'rxjs';
+import { filter, mergeMap, of, take } from 'rxjs';
 import { MapMarker, MapMarkerRaw } from 'src/app/_models/mapMarker';
 import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { CreateUpdateComponent } from 'src/app/design//templates/create-update/create-update.component';
+import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { GlobalStore } from 'src/app/global.store';
 import { NavigationStore } from 'src/app/navigation.store';
@@ -56,12 +57,15 @@ export class MarkerCreateUpdatePageComponent {
       key: 'longitude',
       inputKind: 'NUMBER',
     }),
-    this.formlyService.buildOverviewSelectConfig({
+    this.formlyService.buildTypeaheadConfig<MapMarker, OverviewItem>({
       key: 'location',
-      sortProp: 'name_full',
-      labelProp: 'name_full',
-      options$: this.campaignLocations$,
-      campaign: this.globalStore.campaignName(),
+      label: 'Location',
+      getOptions: () => this.campaignLocations$,
+      formatSearchTerm: searchTerm => formatSearchTerm(searchTerm),
+      optionLabelProp: 'name_full',
+      optionValueProp: 'pk',
+      initialOption$: of(this.store.campaignLocations()?.find(loc => loc.pk === this.userModel().location) ?? null),
+      required: false,
     }),
     this.formlyService.buildOverviewSelectConfig({
       key: 'map',
@@ -83,12 +87,6 @@ export class MarkerCreateUpdatePageComponent {
       label: 'Custom Color',
       required: false,
     }),
-    this.formlyService.buildInputConfig({
-      inputKind: 'STRING',
-      key: 'icon',
-      label: 'Custom Icon (https://fontawesome.com/v6/search?o=r&m=free)',
-      required: false,
-    }),
   ]);
 
   state = computed<CreateUpdateState>(() => {
@@ -108,7 +106,7 @@ export class MarkerCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(() => {
     switch (this.state()) {
       case 'CREATE': {
         const location = this.getPreselectedLocation();
