@@ -1,11 +1,12 @@
 @if (showMenu()) {
   <app-context-menu
-    (actionTriggered)="onActionTriggered($event, content)"
+    class="context-menu fs-4"
     [menuItems]="menuItems()"
     [menuButtonKind]="'NONE'"
     [menuButtonSize]="'LARGE'"
     [menuButtonIcon]="'ellipsis-vertical'"
     [menuButtonAriaLabel]="'Article actions'"
+    (actionTriggered)="onActionTriggered($event, content)"
   />
 }
 <ng-template #content let-modal>
