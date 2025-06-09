@@ -1,42 +1,19 @@
 <!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
 <ng-template #content let-modal>
-  <div class="modal-border {{ modalClass() }}">
-    <div class="modal-header justify-content-between">
-      <div class="h4 modal-title" [id]="id">{{ heading() }}</div>
-      <button
-        btn
-        class="rounded"
-        [kind]="'NONE'"
-        [icon]="'xmark'"
-        aria-label="Close"
-        (clicked)="modal.dismiss()"
-      ></button>
-    </div>
-
-    <div class="modal-body body">
-      <div [id]="bodyId" class="body__content">
-        <ng-content select="[body]"></ng-content>
-      </div>
-      <div class="body__buttons">
-        <button
-          btn
-          class="body__button"
-          [kind]="cancelButtonType()"
-          [icon]="'times'"
-          [text]="cancelButtonLabel()"
-          (clicked)="onCancel(modal)"
-        ></button>
-        <button
-          btn
-          class="body__button"
-          [kind]="modalType()"
-          [icon]="submitIcon()"
-          [text]="submitButtonLabel()"
-          (clicked)="onSubmit(modal)"
-        ></button>
-      </div>
-    </div>
-  </div>
+  <app-delete-modal
+    [heading]="heading()"
+    [submitIcon]="submitIcon()"
+    [modalType]="modalType()"
+    [cancelButtonType]="cancelButtonType()"
+    [submitButtonLabel]="submitButtonLabel()"
+    [cancelButtonLabel]="cancelButtonLabel()"
+    (confirm)="onSubmit(modal)"
+    (modalClose)="onCancel(modal)"
+  >
+    <ng-container body>
+      <ng-content select="[body]"></ng-content>
+    </ng-container>
+  </app-delete-modal>
 </ng-template>
 
 <div (click)="open(content)" (keydown.Space)="open(content)">

@@ -1,0 +1,37 @@
+<div class="modal-border {{ modalClass() }}">
+  <div class="modal-header justify-content-between">
+    <div class="h4 modal-title" [id]="id">{{ heading() }}</div>
+    <button
+      btn
+      class="rounded"
+      [kind]="'NONE'"
+      [icon]="'xmark'"
+      aria-label="Close"
+      (clicked)="modalClose.emit()"
+    ></button>
+  </div>
+
+  <div class="modal-body body">
+    <div [id]="bodyId" class="body__content">
+      <ng-content select="[body]"></ng-content>
+    </div>
+    <div class="body__buttons">
+      <button
+        btn
+        class="body__button"
+        [kind]="cancelButtonType()"
+        [icon]="'times'"
+        [text]="cancelButtonLabel()"
+        (clicked)="modalClose.emit()"
+      ></button>
+      <button
+        btn
+        class="body__button"
+        [kind]="modalType()"
+        [icon]="submitIcon()"
+        [text]="submitButtonLabel()"
+        (clicked)="confirm.emit()"
+      ></button>
+    </div>
+  </div>
+</div>
