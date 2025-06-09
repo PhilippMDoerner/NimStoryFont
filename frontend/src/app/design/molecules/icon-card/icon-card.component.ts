@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { capitalize, ellipsize } from 'src/utils/string';
+import { capitalize } from 'src/utils/string';
 
 @Component({
   selector: 'app-icon-card',
@@ -23,5 +23,5 @@ export class IconCardComponent {
   updateDatetime = input.required<string>();
   decoration = input<string>();
 
-  _title = computed(() => capitalize(ellipsize(this.title(), 40)));
+  _title = computed(() => capitalize(this.title()));
 }
