@@ -1,21 +1,19 @@
 <app-page-container>
   <article class="container map">
-    @if (canUpdate()) {
-      <div class="map__edit-container">
-        <a
-          btn
-          aria-label="Edit Map button"
-          [routerLink]="updateUrl()"
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          [attr.aria-label]="'Edit ' + map().name"
-          [ngbTooltip]="'Edit ' + map().name"
-          [hotkey]="'e'"
-          (hotkeyPressed)="$event.host.click()"
-        >
-        </a>
-      </div>
-    }
+    <app-article-context-menu
+      class="map__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit ' + map().name,
+            }
+          : undefined
+      "
+      [deleteLabel]="canDelete() ? 'Delete Map of ' + map().name : undefined"
+      (deleteConfirmed)="mapDelete.emit(map())"
+    />
 
     @if (mapChoices().length > 0) {
       <h1 class="h3 map__heading heading">
@@ -62,12 +60,9 @@
 
     <!-- Footer (Move to other Article + Delete Article) -->
     <app-article-footer
-      [showDelete]="canDelete()"
       [buttonLink]="homeUrl()"
       [buttonLabel]="'Back to Frontpage'"
-      [deleteMessage]="'Map of ' + map().name"
-      (delete)="onMapDelete()"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>
 

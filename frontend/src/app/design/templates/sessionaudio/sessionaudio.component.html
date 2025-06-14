@@ -1,20 +1,19 @@
 <app-page-container>
   <article class="sessionaudio">
-    @if (canUpdate()) {
-      <div class="sessionaudio__edit-container">
-        <a
-          btn
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          [routerLink]="updateUrl()"
-          [ngbTooltip]="'Edit Recording'"
-          [attr.aria-label]="'Edit Recording'"
-          [hotkey]="'e'"
-          (hotkeyPressed)="$event.host.click()"
-        >
-        </a>
-      </div>
-    }
+    <app-article-context-menu
+      class="sessionaudio__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit Recording',
+            }
+          : undefined
+      "
+      [deleteLabel]="canDelete() ? 'Delete Recording' : undefined"
+      (deleteConfirmed)="sessionaudioDelete.emit(sessionaudio())"
+    />
 
     <!-- Heading -->
     <h1 class="sessionaudio__heading">
@@ -81,11 +80,6 @@
     <app-article-footer
       [buttonLink]="overviewUrl()"
       [buttonLabel]="'Back to SessionAudio Overview'"
-      [showDelete]="canDelete()"
-      [deleteMessage]="
-        'Recording of session' + sessionaudio().session_details?.name
-      "
-      (delete)="sessionaudioDelete.emit(sessionaudio())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>

@@ -2,8 +2,14 @@
   <article class="profile">
     <!-- Section Heading -->
     <div class="row profile__heading heading">
+      <app-article-context-menu
+        class="profile__edit-container"
+        [deleteLabel]="'Delete your account'"
+        (deleteConfirmed)="profileDelete.emit(user())"
+      />
+
       <h1 class="col-12 col-sm-6 heading__text">
-        <app-icon [icon]="'circle-user'"></app-icon>
+        <app-icon [icon]="'circle-user'" />
         Profile
       </h1>
 
@@ -33,7 +39,7 @@
       </div>
     </div>
 
-    <app-separator></app-separator>
+    <app-separator />
 
     <!-- Profile -->
     @if (!showProfileEditForm()) {
@@ -84,7 +90,7 @@
           [cancelButtonType]="'DARK'"
           (formlyCancel)="toggleProfileEditState()"
           (formlySubmit)="submitProfileUpdate()"
-        ></app-form>
+        />
       </app-card>
     }
 
@@ -107,8 +113,6 @@
         campaignName() ? 'Back To ' + campaignName() : 'Back to Campaigns'
       "
       [buttonLink]="backUrl()"
-      [deleteMessage]="'your account'"
-      (delete)="profileDelete.emit(user())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>

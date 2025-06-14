@@ -1,7 +1,4 @@
 import { Component, computed, input, output } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { Creature } from 'src/app/_models/creature';
 import { Image } from 'src/app/_models/image';
 import { RoutingService } from 'src/app/_services/routing.service';
@@ -9,7 +6,7 @@ import { ArticleFooterComponent } from 'src/app/design/molecules';
 import { EditableTextComponent } from 'src/app/design/organisms/editable-text/editable-text.component';
 import { ImageCarouselCardComponent } from 'src/app/design/organisms/image-carousel-card/image-carousel-card.component';
 import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
   selector: 'app-creature',
@@ -18,12 +15,9 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
   imports: [
     EditableTextComponent,
     PageContainerComponent,
-    ButtonLinkComponent,
-    RouterLink,
     ImageCarouselCardComponent,
     ArticleFooterComponent,
-    HotkeyDirective,
-    NgbTooltip,
+    ArticleContextMenuComponent,
   ],
 })
 export class CreatureComponent {

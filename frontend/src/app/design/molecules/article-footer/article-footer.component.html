@@ -2,15 +2,6 @@
   <ng-container
     [ngTemplateOutlet]="buttonLink() ? linkButton : nonLinkButton"
   />
-
-  @if (showDelete()) {
-    <app-confirmation-toggle-button
-      aria-label="Delete current page"
-      [itemToDelete]="deleteMessage()"
-      [icon]="'trash'"
-      (confirm)="delete.emit()"
-    ></app-confirmation-toggle-button>
-  }
 </footer>
 
 <ng-template #linkButton>

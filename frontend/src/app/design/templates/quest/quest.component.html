@@ -1,20 +1,19 @@
 <app-page-container>
   <article class="container quest">
-    @if (canUpdate()) {
-      <div class="quest__edit-container">
-        <a
-          btn
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          [routerLink]="updateUrl()"
-          [ngbTooltip]="'Edit ' + quest().name"
-          [attr.aria-label]="'Edit ' + quest().name"
-          [hotkey]="'e'"
-          (hotkeyPressed)="$event.host.click()"
-        >
-        </a>
-      </div>
-    }
+    <app-article-context-menu
+      class="quest__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit ' + quest().name,
+            }
+          : undefined
+      "
+      [deleteLabel]="canDelete() ? 'Delete ' + quest().name : undefined"
+      (deleteConfirmed)="questDelete.emit(quest())"
+    />
 
     <!-- Heading -->
     <div class="row">
@@ -67,10 +66,7 @@
     <app-article-footer
       [buttonLink]="overviewUrl()"
       [buttonLabel]="'Back to Quest Overview'"
-      [showDelete]="canDelete()"
-      [deleteMessage]="'Quest ' + quest().name"
-      (delete)="questDelete.emit(quest())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>
 

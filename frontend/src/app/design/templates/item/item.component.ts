@@ -1,11 +1,15 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { Image } from 'src/app/_models/image';
 import { Item } from 'src/app/_models/item';
 import { RoutingService } from 'src/app/_services/routing.service';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';
 import { ImageCarouselCardComponent } from '../../organisms/image-carousel-card/image-carousel-card.component';
@@ -18,13 +22,12 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   imports: [
     PageContainerComponent,
     RouterLink,
-    ButtonLinkComponent,
     ImageCarouselCardComponent,
     EditableTextComponent,
     ArticleFooterComponent,
-    HotkeyDirective,
-    NgbTooltip,
+    ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemComponent {
   item = input.required<Item>();

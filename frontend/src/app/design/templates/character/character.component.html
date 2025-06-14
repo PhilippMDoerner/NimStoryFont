@@ -1,20 +1,19 @@
 <app-page-container>
   <article class="container character">
-    @if (canUpdate()) {
-      <div class="character__edit-container">
-        <a
-          btn
-          [ngbTooltip]="'Edit ' + character().name"
-          [attr.aria-label]="'Edit ' + character().name"
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          [routerLink]="updateUrl()"
-          [hotkey]="'e'"
-          (hotkeyPressed)="$event.host.click()"
-        >
-        </a>
-      </div>
-    }
+    <app-article-context-menu
+      class="character__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit ' + character().name,
+            }
+          : undefined
+      "
+      [deleteLabel]="canDelete() ? 'Delete ' + character().name : undefined"
+      (deleteConfirmed)="characterDelete.emit(character())"
+    />
 
     <!-- Heading -->
     <div class="row">
@@ -180,9 +179,6 @@
     <app-article-footer
       [buttonLink]="overviewUrl()"
       [buttonLabel]="'Back to Characters'"
-      [showDelete]="canDelete()"
-      [deleteMessage]="'Character ' + character().name"
-      (delete)="characterDelete.emit(character())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>

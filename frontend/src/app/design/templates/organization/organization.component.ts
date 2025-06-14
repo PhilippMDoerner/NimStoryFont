@@ -1,15 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { Image } from 'src/app/_models/image';
 import { Organization, OrganizationMember } from 'src/app/_models/organization';
 import { OverviewItem } from 'src/app/_models/overview';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { sortByProp } from 'src/utils/array';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { BadgeListEntry } from '../../molecules';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { BadgeListComponent } from '../../molecules/badge-list/badge-list.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';
@@ -23,14 +21,12 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   imports: [
     PageContainerComponent,
     RouterLink,
-    ButtonLinkComponent,
     NgTemplateOutlet,
     ImageCarouselCardComponent,
     EditableTextComponent,
     ArticleFooterComponent,
-    HotkeyDirective,
     BadgeListComponent,
-    NgbTooltip,
+    ArticleContextMenuComponent,
   ],
 })
 export class OrganizationComponent {

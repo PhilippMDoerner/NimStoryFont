@@ -16,6 +16,7 @@ import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SeparatorComponent } from '../../atoms/separator/separator.component';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';
 import { FormComponent } from '../../molecules/form/form.component';
@@ -41,6 +42,7 @@ export interface PasswordModel {
     TitleCasePipe,
     ArticleFooterComponent,
     ConfirmationToggleButtonComponent,
+    ArticleContextMenuComponent,
   ],
 })
 export class ProfileComponent {

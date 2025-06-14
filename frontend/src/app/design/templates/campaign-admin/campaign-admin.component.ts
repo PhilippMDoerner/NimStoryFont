@@ -1,15 +1,14 @@
 import { KeyValuePipe, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
-  Input,
-  OnChanges,
   output,
+  signal,
   Signal,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { map, Observable } from 'rxjs';
 import { Campaign, WikiStatistics } from 'src/app/_models/campaign';
@@ -31,7 +30,7 @@ import {
   FormComponent,
 } from 'src/app/design/molecules';
 import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
   selector: 'app-campaign-admin',
@@ -40,7 +39,6 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
   imports: [
     PageContainerComponent,
     ButtonComponent,
-    RouterLink,
     KeyValuePipe,
     IconComponent,
     CardComponent,
@@ -49,15 +47,16 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
     ConfirmationToggleButtonComponent,
     FormComponent,
     ArticleFooterComponent,
-    ButtonLinkComponent,
     NgTemplateOutlet,
     NgbTooltip,
+    ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CampaignAdminComponent implements OnChanges {
-  @Input() campaign!: Campaign;
-  @Input() serverUrl!: string;
-  @Input() campaignStatistics!: WikiStatistics;
+export class CampaignAdminComponent {
+  campaign = input.required<Campaign>();
+  serverUrl = input.required<string>();
+  campaignStatistics = input.required<WikiStatistics>();
   users = input<User[]>();
 
   readonly removeMember = output<User>();
@@ -70,11 +69,19 @@ export class CampaignAdminComponent implements OnChanges {
   readonly addEmptySearchResponse = output<EmptySearchResponse>();
   readonly deactivateCampaign = output<Campaign>();
 
-  updateUrl!: string;
-  homeUrl!: string;
+  updateUrl = computed<string>(() =>
+    this.routingService.getRoutePath('campaign-update', {
+      campaign: this.campaign().name,
+    }),
+  );
+  homeUrl = computed<string>(() =>
+    this.routingService.getRoutePath('home', {
+      campaign: this.campaign().name,
+    }),
+  );
   users$ = toObservable(this.users).pipe(map((x) => x ?? []));
-  memberModel!: Partial<User>;
-  showMemberAddForm = false;
+  memberModel = signal<Partial<User>>({});
+  showMemberAddForm = signal(false);
   memberTooltip = `Allows creating, reading, updating and deleting articles in this campaign. Also makes the person a possible "author" for diaryentries.`;
   memberFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
@@ -87,7 +94,7 @@ export class CampaignAdminComponent implements OnChanges {
         return selectOptions$.pipe(
           map((selectOptions) =>
             selectOptions.map((opt) =>
-              this.isInGroup(opt, this.campaign.member_group_name),
+              this.isInGroup(opt, this.campaign().member_group_name),
             ),
           ),
         );
@@ -99,8 +106,8 @@ export class CampaignAdminComponent implements OnChanges {
     }),
   ]);
 
-  adminModel!: Partial<User>;
-  showAdminAddForm = false;
+  adminModel = signal<Partial<User>>({});
+  showAdminAddForm = signal(false);
   adminTooltip = `Allows adding admins, members and guests to a campaign. Does not add the person to the list of possible "authors" for diaryentries.`;
   adminFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
@@ -113,7 +120,7 @@ export class CampaignAdminComponent implements OnChanges {
         return selectOptions$.pipe(
           map((selectOptions) =>
             selectOptions.map((opt) =>
-              this.isInGroup(opt, this.campaign.admin_group_name),
+              this.isInGroup(opt, this.campaign().admin_group_name),
             ),
           ),
         );
@@ -124,8 +131,8 @@ export class CampaignAdminComponent implements OnChanges {
     }),
   ]);
 
-  guestModel!: Partial<User>;
-  showGuestAddForm = false;
+  guestModel = signal<Partial<User>>({});
+  showGuestAddForm = signal(false);
   guestTooltip = `Allows only reading articles in this campaign.`;
   guestFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
@@ -140,15 +147,15 @@ export class CampaignAdminComponent implements OnChanges {
             selectOptions.map((opt) => {
               const isAdmin = this.isInGroup(
                 opt,
-                this.campaign.admin_group_name,
+                this.campaign().admin_group_name,
               );
               const isMember = this.isInGroup(
                 opt,
-                this.campaign.member_group_name,
+                this.campaign().member_group_name,
               );
               const isGuest = this.isInGroup(
                 opt,
-                this.campaign.guest_group_name,
+                this.campaign().guest_group_name,
               );
               return isAdmin || isMember || isGuest;
             }),
@@ -178,25 +185,21 @@ export class CampaignAdminComponent implements OnChanges {
     private formlyService: FormlyService,
   ) {}
 
-  ngOnChanges(): void {
-    this.setUrls();
-  }
-
   changeState(role: CampaignRole, showForm: boolean): void {
     switch (role) {
       case 'member':
       case 'globalmember':
-        this.showMemberAddForm = showForm;
-        this.memberModel = {};
+        this.showMemberAddForm.set(showForm);
+        this.memberModel.set({});
         break;
       case 'admin':
-        this.showAdminAddForm = showForm;
-        this.adminModel = {};
+        this.showAdminAddForm.set(showForm);
+        this.adminModel.set({});
         break;
       case 'guest':
       case 'globalguest':
-        this.showGuestAddForm = showForm;
-        this.guestModel = {};
+        this.showGuestAddForm.set(showForm);
+        this.guestModel.set({});
     }
   }
 
@@ -224,22 +227,13 @@ export class CampaignAdminComponent implements OnChanges {
     this.showResponseForm = !this.showResponseForm;
 
     if (this.showResponseForm) {
-      this.responseModel = { campaign: this.campaign.pk as number };
+      this.responseModel = { campaign: this.campaign().pk as number };
     }
   }
 
   onAddResponse(model: Partial<EmptySearchResponse>): void {
     this.addEmptySearchResponse.emit(model as EmptySearchResponse);
     this.toggleResponseAddForm();
-  }
-
-  private setUrls(): void {
-    this.updateUrl = this.routingService.getRoutePath('campaign-update', {
-      campaign: this.campaign.name,
-    });
-    this.homeUrl = this.routingService.getRoutePath('home', {
-      campaign: this.campaign.name,
-    });
   }
 
   /**

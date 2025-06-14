@@ -1,20 +1,19 @@
 <app-page-container>
   <article class="container">
-    @if (canUpdate()) {
-      <div class="location__edit-container">
-        <a
-          btn
-          [routerLink]="updateUrl"
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          [ngbTooltip]="'Edit ' + location().name"
-          [attr.aria-label]="'Edit ' + location().name"
-          [hotkey]="'e'"
-          (hotkeyPressed)="$event.host.click()"
-        >
-        </a>
-      </div>
-    }
+    <app-article-context-menu
+      class="location__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit ' + location().name,
+            }
+          : undefined
+      "
+      [deleteLabel]="canDelete() ? 'Delete ' + location().name : undefined"
+      (deleteConfirmed)="locationDelete.emit(location())"
+    />
 
     <!-- Heading -->
     <div class="row">
@@ -48,13 +47,13 @@
 
     <div class="mb-3">
       <app-badge-list
-        [entries]="markerEntries"
+        [entries]="markerEntries()"
         [canCreate]="canCreate()"
         [canDelete]="false"
         [label]="'Mapmarker'"
         [createOptions]="{
           kind: 'LINK',
-          link: markerCreateUrl,
+          link: markerCreateUrl(),
         }"
       ></app-badge-list>
     </div>
@@ -75,7 +74,7 @@
       <app-link-list
         [ariaLevel]="2"
         [heading]="'Characters of interest'"
-        [entries]="locationCharacters"
+        [entries]="locationCharacters()"
         [createOption]="{ kind: 'button' }"
         [emptyListText]="'You know nobody in ' + location().name"
         (createButtonClick)="routeToCharacterCreation()"
@@ -94,11 +93,8 @@
 
     <!-- Footer (Move to other Article + Delete Article) -->
     <app-article-footer
-      [buttonLink]="overviewUrl"
+      [buttonLink]="overviewUrl()"
       [buttonLabel]="'Back to Creatures'"
-      [showDelete]="canDelete()"
-      [deleteMessage]="'Location ' + location().name"
-      (delete)="locationDelete.emit(location())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>

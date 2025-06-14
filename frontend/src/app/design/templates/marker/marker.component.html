@@ -1,5 +1,26 @@
 <app-page-container>
   <article class="container marker">
+    <app-article-context-menu
+      class="marker__edit-container"
+      [editEntry]="
+        canUpdate()
+          ? {
+              kind: 'LINK',
+              link: updateUrl(),
+              label: 'Edit Marker',
+            }
+          : undefined
+      "
+      [deleteLabel]="
+        canDelete()
+          ? 'Marker of ' +
+            marker().location_details?.name +
+            ' on the map of ' +
+            marker().map_details?.name
+          : undefined
+      "
+      (deleteConfirmed)="markerDelete.emit(marker())"
+    />
     @if (canUpdate()) {
       <div class="marker__edit-container">
         <a
@@ -79,14 +100,6 @@
     <app-article-footer
       [buttonLink]="locationUrl()"
       [buttonLabel]="'Back to ' + marker().location_details?.name"
-      [showDelete]="canDelete()"
-      [deleteMessage]="
-        'Marker of ' +
-        marker().location_details?.name +
-        ' on the map of ' +
-        marker().map_details?.name
-      "
-      (delete)="markerDelete.emit(marker())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>
