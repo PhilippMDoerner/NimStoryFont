@@ -3,9 +3,7 @@
   --separator-thickness: 1px;
   --separator-margin-top: var(--spacer-3);
   --separator-margin-bottom: var(--spacer-3);
-}
-
-.separator {
+  display: block;
   opacity: 0.25;
   background-color: var(--separator-color);
   height: var(--separator-thickness);
