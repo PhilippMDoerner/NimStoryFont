@@ -29,10 +29,13 @@ import {
   BadgeListComponent,
   BadgeListEntry,
   CompareFormComponent,
-  ConfirmationToggleButtonComponent,
-  EditToggleComponent,
   FormComponent,
 } from 'src/app/design/molecules';
+import {
+  DEFAULT_DELETE_MODAL_DATA,
+  MenuItem,
+} from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
 type SpellState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
 
@@ -43,13 +46,12 @@ type SpellState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgTemplateOutlet,
-    EditToggleComponent,
     HtmlTextComponent,
     SeparatorComponent,
     BadgeListComponent,
-    ConfirmationToggleButtonComponent,
     FormComponent,
     CompareFormComponent,
+    ContextMenuComponent,
   ],
 })
 export class SpellComponent implements OnInit {
@@ -95,6 +97,37 @@ export class SpellComponent implements OnInit {
       (playerClass) =>
         playerClass.pk && !playerClassInSpell.has(playerClass.pk),
     );
+  });
+
+  contextMenuItems = computed<MenuItem[]>(() => {
+    const menuItems: MenuItem[] = [];
+    if (this.canUpdate()) {
+      menuItems.push({
+        kind: 'BUTTON',
+        actionName: 'update',
+        label: 'Edit',
+        icon: 'pencil',
+        active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
+        hotkey: this.disabledHotkeys() ? undefined : 'e',
+      });
+    }
+
+    if (this.canDelete()) {
+      menuItems.push({
+        kind: 'CONFIRM',
+        actionName: 'delete',
+        label: 'Delete',
+        icon: 'trash',
+        hotkey: this.disabledHotkeys() ? undefined : 'd',
+        modal: {
+          ...DEFAULT_DELETE_MODAL_DATA,
+          heading: `Delete ${this.spell()?.name}`,
+          body: `Are you sure you want to delete ${this.spell()?.name}?`,
+        },
+      });
+    }
+
+    return menuItems;
   });
 
   formlyFields: FormlyFieldConfig[] = [
@@ -167,19 +200,15 @@ export class SpellComponent implements OnInit {
     }
   }
 
-  onToggle(toggled: boolean) {
-    const isInCreateScenario = this.state() === 'CREATE';
-    if (isInCreateScenario) {
-      this.onSpellCreateCancel();
-      return;
+  onActionTriggered(action: string): void {
+    switch (action) {
+      case 'update':
+        this.toggleAwayFromState(this.state());
+        break;
+      case 'delete':
+        this.onSpellDelete();
+        break;
     }
-
-    const isInDisplayState = this.state() === 'DISPLAY';
-    const nextState = isInDisplayState ? 'UPDATE' : 'DISPLAY';
-    const nextModel: Spell | undefined = toggled
-      ? ({ ...this.spell() } as Spell)
-      : undefined;
-    this.changeState(nextState, nextModel);
   }
 
   changeState(newState: SpellState, newModel: Spell | undefined) {
@@ -212,5 +241,20 @@ export class SpellComponent implements OnInit {
   onSpellCreateCancel() {
     this.changeState('DISPLAY', undefined);
     this.spellCreateCancel.emit();
+  }
+
+  private toggleAwayFromState(state: SpellState) {
+    switch (state) {
+      case 'CREATE':
+        this.onSpellCreateCancel();
+        break;
+      case 'DISPLAY':
+        this.changeState('UPDATE', { ...(this.spell() as Spell) });
+        break;
+      case 'UPDATE':
+      case 'OUTDATED_UPDATE':
+        this.changeState('DISPLAY', undefined);
+        break;
+    }
   }
 }

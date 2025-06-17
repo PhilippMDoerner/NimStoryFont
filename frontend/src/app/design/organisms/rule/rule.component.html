@@ -17,14 +17,14 @@
       }
     </div>
 
-    @if (canUpdate() || canCreate()) {
-      <app-edit-toggle
-        [buttonKind]="'DARK'"
-        [toggled]="state() !== 'DISPLAY'"
-        [disabledHotkey]="disabledHotkeys()"
-        [title]="'Edit ' + rule()?.name"
-        (toggleEdit)="onToggle($event)"
-      ></app-edit-toggle>
+    @if (state() !== "CREATE" && contextMenuItems().length > 0) {
+      <app-context-menu
+        [menuItems]="contextMenuItems()"
+        [menuButtonIcon]="'ellipsis-vertical'"
+        [menuButtonKind]="'NONE'"
+        [menuButtonAriaLabel]="'Rule actions'"
+        (actionTriggered)="onActionTriggered($event)"
+      />
     }
   </div>
   @switch (state()) {
@@ -51,17 +51,6 @@
   @let ruleVal = rule();
   @if (ruleVal) {
     <app-html-text [text]="ruleVal.description ?? ''"></app-html-text>
-  }
-
-  <!-- Delete Toggler -->
-  @if (canDelete()) {
-    <app-confirmation-toggle-button
-      class="card__delete-confirmer"
-      [itemToDelete]="'Rule ' + rule()?.name"
-      [icon]="'trash'"
-      [enableHotkey]="!disabledHotkeys()"
-      (confirm)="onRuleDelete()"
-    ></app-confirmation-toggle-button>
   }
 </ng-template>
 

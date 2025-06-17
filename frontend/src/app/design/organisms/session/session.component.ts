@@ -14,12 +14,12 @@ import { Session, SessionDiaryEntry } from 'src/app/_models/session';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
 import {
-  CompareFormComponent,
-  ConfirmationToggleButtonComponent,
-  EditToggleComponent,
-  FormComponent,
-} from 'src/app/design/molecules';
+  DEFAULT_DELETE_MODAL_DATA,
+  MenuItem,
+} from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
 type SessionState = 'CREATE' | 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
 
@@ -35,12 +35,11 @@ interface DiaryEntry {
   styleUrls: ['./session.component.scss'],
   imports: [
     NgTemplateOutlet,
-    EditToggleComponent,
     IconComponent,
     RouterLink,
-    ConfirmationToggleButtonComponent,
     FormComponent,
     CompareFormComponent,
+    ContextMenuComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,6 +74,37 @@ export class SessionComponent implements OnInit {
       author_name: entry.author_name,
       link: this.toDiaryEntryUrl(entry),
     }));
+  });
+
+  contextMenuItems = computed<MenuItem[]>(() => {
+    const menuItems: MenuItem[] = [];
+    if (this.canUpdate()) {
+      menuItems.push({
+        kind: 'BUTTON',
+        actionName: 'update',
+        label: 'Edit',
+        icon: 'pencil',
+        active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
+        hotkey: this.disabledHotkeys() ? undefined : 'e',
+      });
+    }
+
+    if (this.canDelete()) {
+      menuItems.push({
+        kind: 'CONFIRM',
+        actionName: 'delete',
+        label: 'Delete',
+        icon: 'trash',
+        hotkey: this.disabledHotkeys() ? undefined : 'd',
+        modal: {
+          ...DEFAULT_DELETE_MODAL_DATA,
+          heading: `Delete ${this.session()?.name}`,
+          body: `Are you sure you want to delete ${this.session()?.name}?`,
+        },
+      });
+    }
+
+    return menuItems;
   });
 
   formlyFields: FormlyFieldConfig[] = [
@@ -120,6 +150,17 @@ export class SessionComponent implements OnInit {
     }
   }
 
+  onActionTriggered(action: string): void {
+    switch (action) {
+      case 'update':
+        this.toggleAwayFromState(this.state());
+        break;
+      case 'delete':
+        this.onSessionDelete();
+        break;
+    }
+  }
+
   changeState(newState: SessionState, newModel: Session | undefined) {
     this.state.set(newState);
     this.userModel.set({ ...newModel } as Session);
@@ -148,13 +189,19 @@ export class SessionComponent implements OnInit {
     this.changeState('DISPLAY', undefined);
   }
 
-  onToggle(toggled: boolean) {
-    const isInDisplayState = this.state() === 'DISPLAY';
-    const nextState = isInDisplayState ? 'UPDATE' : 'DISPLAY';
-    const nextModel: Session | undefined = toggled
-      ? ({ ...this.session() } as Session)
-      : undefined;
-    this.changeState(nextState, nextModel);
+  private toggleAwayFromState(state: SessionState) {
+    switch (state) {
+      case 'CREATE':
+        this.onCreateCancel();
+        break;
+      case 'DISPLAY':
+        this.changeState('UPDATE', { ...(this.session() as Session) });
+        break;
+      case 'UPDATE':
+      case 'OUTDATED_UPDATE':
+        this.changeState('DISPLAY', undefined);
+        break;
+    }
   }
 
   private toDiaryEntryUrl(entry: SessionDiaryEntry) {

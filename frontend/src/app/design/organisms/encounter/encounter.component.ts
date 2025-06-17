@@ -24,7 +24,6 @@ import {
   take,
   timer,
 } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { CharacterEncounter } from 'src/app/_models/character';
 import {
   Encounter,
@@ -41,8 +40,6 @@ import {
   BadgeListComponent,
   BadgeListEntry,
   CompareFormComponent,
-  ConfirmationToggleButtonComponent,
-  EditToggleComponent,
   FormComponent,
 } from 'src/app/design/molecules';
 import { componentId } from 'src/utils/DOM';
@@ -50,6 +47,11 @@ import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
 import { formatSearchTerm } from '../../atoms/_models/typeahead';
 import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
+import {
+  DEFAULT_DELETE_MODAL_DATA,
+  MenuItem,
+} from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import {
   EditorComponent,
   TextFieldState,
@@ -64,17 +66,15 @@ const UPDATE_MARKER_TIMEOUT_MS = 3000;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgTemplateOutlet,
-    EditToggleComponent,
     SeparatorComponent,
     BadgeListComponent,
-    ConfirmationToggleButtonComponent,
     FormComponent,
     CompareFormComponent,
     NgbTooltipModule,
     EditorComponent,
-    HotkeyDirective,
     AsyncPipe,
     SuccessAnimationComponent,
+    ContextMenuComponent,
   ],
 })
 export class EncounterComponent implements OnInit {
@@ -109,6 +109,49 @@ export class EncounterComponent implements OnInit {
     return this.parseConnection(encounterConnections);
   });
   campaignName = computed(() => this.encounter()?.campaign_details?.name);
+  contextMenuItems = computed<MenuItem[]>(() => {
+    const menuItems: MenuItem[] = [];
+    if (this.canUpdate()) {
+      menuItems.push({
+        kind: 'BUTTON',
+        label: 'Edit Metadata',
+        actionName: 'edit-metadata',
+        active:
+          this.cardState() === 'UPDATE' ||
+          this.cardState() === 'OUTDATEDUPDATE',
+        hotkey: this.isInFocus() ? 'e' : undefined,
+        icon: 'file-pen',
+      });
+      menuItems.push({
+        kind: 'BUTTON',
+        label: 'Edit Description',
+        actionName: 'edit-description',
+        active:
+          this.cardState() === 'DISPLAY' &&
+          (this.textFieldState() === 'UPDATE' ||
+            this.textFieldState() === 'OUTDATED_UPDATE'),
+        hotkey: this.isInFocus() ? 'w' : undefined,
+        icon: 'pencil',
+      });
+    }
+
+    if (this.canDelete()) {
+      menuItems.push({
+        kind: 'CONFIRM',
+        actionName: 'delete',
+        label: `Delete ${this.encounter()?.title}`,
+        hotkey: this.isInFocus() ? 'd' : undefined,
+        icon: 'trash',
+        modal: {
+          ...DEFAULT_DELETE_MODAL_DATA,
+          heading: `Delete ${this.encounter()?.title}`,
+          body: `Are you sure you want to delete this encounter?`,
+        },
+      });
+    }
+
+    return menuItems;
+  });
 
   showUpdateSuccessMarker$ = toObservable(this.updateState).pipe(
     switchMap((state) => {
@@ -189,7 +232,7 @@ export class EncounterComponent implements OnInit {
 
   onDescriptionUpdateFinished(newDescription: string) {
     this.saveDescription(newDescription);
-    this.textFieldState.set('DISPLAY');
+    this.toDisplayState();
   }
 
   onEncounterCreateCancel() {
@@ -214,20 +257,18 @@ export class EncounterComponent implements OnInit {
     this.connectionCreate.emit(newConnection);
   }
 
-  onToggle(toggled: boolean) {
-    const isCancellingCreation = this.cardState() === 'CREATE';
-    if (isCancellingCreation) {
-      this.encounterCreateCancel.emit();
-      return;
+  onContextMenuAction(action: string) {
+    switch (action) {
+      case 'edit-metadata':
+        this.toggleAwayFromState(this.cardState());
+        break;
+      case 'edit-description':
+        this.toggleTextField();
+        break;
+      case 'delete':
+        this.onEncounterDelete();
+        break;
     }
-
-    const isInDisplayState = this.cardState() === 'DISPLAY';
-    const nextState = isInDisplayState ? 'UPDATE' : 'DISPLAY';
-    const nextModel: Encounter | undefined = toggled
-      ? ({ ...this.encounter() } as Encounter)
-      : undefined;
-    this.changeState(nextState, nextModel);
-    this.scrollComponentIntoView();
   }
 
   toggleTextField() {
@@ -237,8 +278,6 @@ export class EncounterComponent implements OnInit {
         break;
       case 'UPDATE':
         this.toDisplayState();
-        break;
-      default:
         break;
     }
 
@@ -251,6 +290,26 @@ export class EncounterComponent implements OnInit {
 
   toUpdateState() {
     this.textFieldState.set('UPDATE');
+  }
+
+  /* Defines the actions that need to be taken when toggling **away** from a given card-state */
+  private toggleAwayFromState(cardState: FormState) {
+    switch (cardState) {
+      case 'DISPLAY': {
+        this.changeState('UPDATE', { ...this.encounter() });
+        this.scrollComponentIntoView();
+        break;
+      }
+      case 'OUTDATEDUPDATE':
+      case 'UPDATE': {
+        this.changeState('DISPLAY', undefined);
+        this.scrollComponentIntoView();
+        break;
+      }
+      case 'CREATE':
+        this.encounterCreateCancel.emit();
+        break;
+    }
   }
 
   private parseConnection(
