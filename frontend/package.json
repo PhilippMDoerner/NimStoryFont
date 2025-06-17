@@ -34,7 +34,7 @@
     "@ngx-formly/core": "^6.3.7",
     "@popperjs/core": "^2.11.6",
     "@tinymce/tinymce-angular": "^7.0.0",
-    "bootstrap": "^5.2.3",
+    "bootstrap": "^5.3.3",
     "d3": "^7.9.0",
     "leaflet": "^1.9.3",
     "plyr": "^3.7.8",
