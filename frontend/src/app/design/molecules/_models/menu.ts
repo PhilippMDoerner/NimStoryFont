@@ -45,3 +45,13 @@ export type MenuItem =
       hotkey?: string;
       active?: boolean;
     };
+
+type ContextModalData = Extract<MenuItem, { kind: 'CONFIRM' }>['modal'];
+export const DEFAULT_DELETE_MODAL_DATA: ContextModalData = {
+  heading: 'Delete article',
+  body: 'Are you sure you want to delete this article?',
+  submitLabel: 'Delete',
+  submitIcon: 'trash',
+  cancelLabel: 'Cancel',
+  kind: 'DANGER',
+};
