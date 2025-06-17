@@ -34,6 +34,7 @@ export type MenuItem =
       actionName: string; // Gets fired when action is confirmed
       modal: {
         heading: string;
+        body: string;
         submitLabel: string;
         cancelLabel: string;
         submitIcon?: Icon;
