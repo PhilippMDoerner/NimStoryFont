@@ -1,3 +1,4 @@
+import { ElementKind } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
 
 export type MenuItem =
@@ -22,6 +23,22 @@ export type MenuItem =
       kind: 'LINK';
       label: string;
       url: string;
+      disabled?: boolean;
+      icon?: Icon;
+      hotkey?: string;
+      active?: boolean;
+    }
+  | {
+      kind: 'CONFIRM';
+      label: string;
+      actionName: string; // Gets fired when action is confirmed
+      modal: {
+        heading: string;
+        submitLabel: string;
+        cancelLabel: string;
+        submitIcon?: Icon;
+        kind: ElementKind;
+      };
       disabled?: boolean;
       icon?: Icon;
       hotkey?: string;

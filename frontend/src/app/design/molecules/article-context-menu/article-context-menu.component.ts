@@ -1,16 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, TemplateRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  TemplateRef,
+} from '@angular/core';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { ContextMenuComponent, MenuItem } from "../context-menu/context-menu.component";
-import { DeleteModalComponent } from "../delete-modal/delete-modal.component";
+import { MenuItem } from '../_models/menu';
+import { ContextMenuComponent } from '../context-menu/context-menu.component';
+import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
 
-type EditEntry = {kind: 'LINK', link: string, label: string} | {kind: 'BUTTON', label: string, };
+type EditEntry =
+  | { kind: 'LINK'; link: string; label: string }
+  | { kind: 'BUTTON'; label: string };
 
 @Component({
   selector: 'app-article-context-menu',
   imports: [ContextMenuComponent, DeleteModalComponent],
   templateUrl: './article-context-menu.component.html',
   styleUrl: './article-context-menu.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArticleContextMenuComponent {
   editEntry = input<EditEntry>();
@@ -24,7 +35,7 @@ export class ArticleContextMenuComponent {
   menuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [];
     const editEntry = this.editEntry();
-    if (editEntry ) {
+    if (editEntry) {
       const editMenuItem = this.toMenuEntry(editEntry);
       items.push(editMenuItem);
     }
@@ -40,12 +51,12 @@ export class ArticleContextMenuComponent {
       });
     }
     return items;
-  })
+  });
 
-  showMenu = computed(() => this.menuItems().length > 0)
+  showMenu = computed(() => this.menuItems().length > 0);
 
-  onActionTriggered(action: string, modalRef: TemplateRef<HTMLElement>){
-    switch(action){
+  onActionTriggered(action: string, modalRef: TemplateRef<HTMLElement>) {
+    switch (action) {
       case 'delete':
         this.openModal(modalRef);
         break;
@@ -55,7 +66,7 @@ export class ArticleContextMenuComponent {
     }
   }
 
-  onConfirm(modal: NgbActiveModal){
+  onConfirm(modal: NgbActiveModal) {
     this.deleteConfirmed.emit();
     modal.close();
   }
@@ -71,12 +82,12 @@ export class ArticleContextMenuComponent {
     switch (editEntry.kind) {
       case 'LINK':
         return {
-        kind: 'LINK',
-        label: editEntry.label,
-        url: editEntry.link,
-        icon: 'pencil',
-        hotkey: 'e'
-      }
+          kind: 'LINK',
+          label: editEntry.label,
+          url: editEntry.link,
+          icon: 'pencil',
+          hotkey: 'e',
+        };
       case 'BUTTON':
         return {
           kind: 'BUTTON',
@@ -84,7 +95,7 @@ export class ArticleContextMenuComponent {
           icon: 'pencil',
           hotkey: 'e',
           actionName: 'edit',
-        }
+        };
     }
   }
 }
