@@ -29,10 +29,8 @@ import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SwitchComponent } from '../../atoms/switch/switch.component';
-import {
-  ContextMenuComponent,
-  MenuItem,
-} from '../../molecules/context-menu/context-menu.component';
+import { MenuItem } from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { SearchFieldComponent } from '../../molecules/search-field/search-field.component';
 import { IconCardListComponent } from '../../organisms/icon-card-list/icon-card-list.component';
 

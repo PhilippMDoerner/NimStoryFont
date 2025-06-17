@@ -8,12 +8,10 @@ import { RoutingService } from 'src/app/_services/routing.service';
 import { Icon } from '../../atoms/_models/icon';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { MenuItem } from '../../molecules/_models/menu';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
-import {
-  ContextMenuComponent,
-  MenuItem,
-} from '../../molecules/context-menu/context-menu.component';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { NgxLeafletMapComponent } from '../../organisms/ngx-leaflet-map/ngx-leaflet-map.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
