@@ -23,8 +23,15 @@
               actionName: 'toggleState',
               hotkey: 'r',
             },
+            {
+              kind: 'BUTTON',
+              label: 'Delete Diaryentry',
+              icon: 'trash',
+              actionName: 'deletionRequested',
+              hotkey: 'd',
+            },
           ]"
-          (actionTriggered)="toggleState()"
+          (actionTriggered)="toggleState($event, deleteModal)"
         ></app-context-menu>
       </div>
     }
@@ -85,10 +92,7 @@
     <app-article-footer
       [buttonLink]="overviewUrl()"
       [buttonLabel]="'Back to Diaryentries'"
-      [showDelete]="canDelete()"
-      [deleteMessage]="'DiaryEntry ' + diaryentry().title"
-      (delete)="diaryentryDelete.emit(diaryentry())"
-    ></app-article-footer>
+    />
   </article>
 </app-page-container>
 
@@ -127,4 +131,21 @@
       }
     </div>
   </div>
+</ng-template>
+
+<ng-template #deleteModal let-modal>
+  <app-delete-modal
+    [heading]="'Delete Diaryentry'"
+    [submitIcon]="'trash'"
+    [modalType]="'DANGER'"
+    [cancelButtonType]="'SECONDARY'"
+    [submitButtonLabel]="'Yes'"
+    [cancelButtonLabel]="'No'"
+    (confirm)="onDeletionConfirmation(modal)"
+    (modalClose)="modal.close()"
+  >
+    <ng-container body>
+      <p>Are you sure you want to delete this article?</p>
+    </ng-container>
+  </app-delete-modal>
 </ng-template>

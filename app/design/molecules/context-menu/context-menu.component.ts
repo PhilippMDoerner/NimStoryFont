@@ -2,14 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  inject,
   input,
   output,
   Signal,
   signal,
+  TemplateRef,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgbDropdown, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
+import {
+  NgbActiveModal,
+  NgbDropdown,
+  NgbDropdownModule,
+  NgbModal,
+} from '@ng-bootstrap/ng-bootstrap';
 import { PlacementArray } from '@ng-bootstrap/ng-bootstrap/util/positioning';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ButtonKind, ElementSize } from 'src/app/design/atoms/_models/button';
@@ -17,34 +24,8 @@ import { Icon } from 'src/app/design/atoms/_models/icon';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { componentId } from 'src/utils/DOM';
-
-export type MenuItem =
-  | {
-      kind: 'HEADER';
-      label: string;
-      headerKind: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-    }
-  | {
-      kind: 'SEPARATOR';
-    }
-  | {
-      kind: 'BUTTON';
-      label: string;
-      actionName: string;
-      disabled?: boolean;
-      icon?: Icon;
-      hotkey?: string;
-      active?: boolean;
-    }
-  | {
-      kind: 'LINK';
-      label: string;
-      url: string;
-      disabled?: boolean;
-      icon?: Icon;
-      hotkey?: string;
-      active?: boolean;
-    };
+import { MenuItem } from '../_models/menu';
+import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
 
 @Component({
   selector: 'app-context-menu',
@@ -54,6 +35,7 @@ export type MenuItem =
     HotkeyDirective,
     NgbDropdownModule,
     IconComponent,
+    DeleteModalComponent,
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss',
@@ -87,7 +69,10 @@ export class ContextMenuComponent {
       read: ElementRef<HTMLButtonElement>,
     });
 
+  modalService = inject(NgbModal);
+
   isOpen = signal(false);
+  activeModalItem = signal<Extract<MenuItem, { kind: 'CONFIRM' }> | null>(null);
 
   id = componentId();
   menuId = `menu-${this.id}`;
@@ -101,5 +86,26 @@ export class ContextMenuComponent {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       element.focus();
     }
+  }
+
+  onConfirm(action: string, modal: NgbActiveModal) {
+    this.actionTriggered.emit(action);
+    this.closeModal(modal);
+  }
+
+  openModal(
+    modalItem: Extract<MenuItem, { kind: 'CONFIRM' }>,
+    content: TemplateRef<HTMLElement>,
+  ) {
+    this.activeModalItem.set(modalItem);
+    this.modalService.open(content, {
+      ariaLabelledBy: 'modal-title',
+      modalDialogClass: 'mymodal',
+    });
+  }
+
+  closeModal(modal: NgbActiveModal) {
+    this.activeModalItem.set(null);
+    modal.close();
   }
 }

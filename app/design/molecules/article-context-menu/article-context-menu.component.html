@@ -1,0 +1,27 @@
+@if (showMenu()) {
+  <app-context-menu
+    class="context-menu fs-4"
+    [menuItems]="menuItems()"
+    [menuButtonKind]="'NONE'"
+    [menuButtonSize]="'LARGE'"
+    [menuButtonIcon]="'ellipsis-vertical'"
+    [menuButtonAriaLabel]="'Article actions'"
+    (actionTriggered)="onActionTriggered($event, content)"
+  />
+}
+<ng-template #content let-modal>
+  <app-delete-modal
+    [heading]="deleteLabel() ?? 'Delete article'"
+    [submitIcon]="'trash'"
+    [modalType]="'DANGER'"
+    [cancelButtonType]="'SECONDARY'"
+    [submitButtonLabel]="'Yes'"
+    [cancelButtonLabel]="'No'"
+    (confirm)="onConfirm(modal)"
+    (modalClose)="modal.close()"
+  >
+    <ng-container body>
+      <p>Are you sure you want to delete this article?</p>
+    </ng-container>
+  </app-delete-modal>
+</ng-template>

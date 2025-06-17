@@ -32,15 +32,11 @@
     }
 
     .card__img-link {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
       outline: none;
 
       &:focus-visible,
       &:hover {
         outline: var(--focus-outline);
-        outline-offset: -3px;
         border-radius: 0;
       }
     }
@@ -64,6 +60,10 @@
 
   &__img-link {
     position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    outline-offset: -3px;
   }
 
   &__title-link {

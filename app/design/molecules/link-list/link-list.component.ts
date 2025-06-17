@@ -5,10 +5,8 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ListEntry } from '../_models/list';
-import {
-  ContextMenuComponent,
-  MenuItem,
-} from '../context-menu/context-menu.component';
+import { MenuItem } from '../_models/menu';
+import { ContextMenuComponent } from '../context-menu/context-menu.component';
 
 export type CreateKind =
   | { kind: 'none' }

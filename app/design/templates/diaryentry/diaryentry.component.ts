@@ -1,7 +1,16 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+  TemplateRef,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { DiaryEntry, DiaryEntryStump } from 'src/app/_models/diaryentry';
 import {
   Encounter,
@@ -17,6 +26,7 @@ import { ContextMenuComponent } from 'src/app/design/molecules/context-menu/cont
 import { componentId } from 'src/utils/DOM';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
+import { DeleteModalComponent } from '../../molecules/delete-modal/delete-modal.component';
 import { DiaryentryEncountersComponent } from '../../organisms/diaryentry-encounters/diaryentry-encounters.component';
 import {
   DragAndDropListComponent,
@@ -40,6 +50,7 @@ type DiaryEntryState = 'DISPLAY' | 'EDIT';
     ButtonLinkComponent,
     DragAndDropListComponent,
     ContextMenuComponent,
+    DeleteModalComponent,
   ],
 })
 export class DiaryentryComponent {
@@ -65,6 +76,8 @@ export class DiaryentryComponent {
   }>();
   readonly encounterSwap = output<{ enc1: Encounter; enc2: Encounter }>();
   addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
+
+  modalService = inject(NgbModal);
 
   state = signal<DiaryEntryState>('DISPLAY');
   campaignName = computed(() => this.diaryentry().campaign_details.name);
@@ -102,9 +115,17 @@ export class DiaryentryComponent {
 
   constructor(public routingService: RoutingService) {}
 
-  toggleState(): void {
-    const isDisplayState = this.state() === 'DISPLAY';
-    this.state.set(isDisplayState ? 'EDIT' : 'DISPLAY');
+  toggleState(action: string, modalRef: TemplateRef<HTMLElement>): void {
+    switch (action) {
+      case 'toggleState': {
+        const isDisplayState = this.state() === 'DISPLAY';
+        this.state.set(isDisplayState ? 'EDIT' : 'DISPLAY');
+        break;
+      }
+      case 'deletionRequested':
+        this.openModal(modalRef);
+        break;
+    }
   }
 
   rearrangeEncounters(event: CdkDragDrop<Encounter[]>) {
@@ -119,6 +140,18 @@ export class DiaryentryComponent {
 
   swapEncounters(event: MoveEvent<Encounter>) {
     this.encounterSwap.emit({ enc1: event.encounter1, enc2: event.encounter2 });
+  }
+
+  onDeletionConfirmation(modal: NgbActiveModal) {
+    modal.close();
+    this.diaryentryDelete.emit(this.diaryentry());
+  }
+
+  private openModal(content: TemplateRef<HTMLElement>) {
+    this.modalService.open(content, {
+      ariaLabelledBy: 'modal-title',
+      modalDialogClass: 'mymodal',
+    });
   }
 
   private createDiaryentryURL(stub: DiaryEntryStump): string | undefined {

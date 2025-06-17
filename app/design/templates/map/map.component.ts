@@ -1,7 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ExtendedMap } from 'src/app/_models/map';
 import { OverviewItem } from 'src/app/_models/overview';
@@ -9,11 +8,10 @@ import { RoutingService } from 'src/app/_services/routing.service';
 import { Icon } from '../../atoms/_models/icon';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { MenuItem } from '../../molecules/_models/menu';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
-import {
-  ContextMenuComponent,
-  MenuItem,
-} from '../../molecules/context-menu/context-menu.component';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { NgxLeafletMapComponent } from '../../organisms/ngx-leaflet-map/ngx-leaflet-map.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
@@ -31,7 +29,7 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
     SpinnerComponent,
     HotkeyDirective,
     ContextMenuComponent,
-    NgbTooltip,
+    ArticleContextMenuComponent,
   ],
 })
 export class MapComponent {

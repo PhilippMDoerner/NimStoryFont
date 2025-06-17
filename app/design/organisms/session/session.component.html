@@ -17,14 +17,14 @@
     }
   </div>
   <!-- Edit Toggler -->
-  @if (canUpdate()) {
-    <app-edit-toggle
-      [buttonKind]="'DARK'"
-      [toggled]="state() !== 'DISPLAY'"
-      [disabledHotkey]="disabledHotkeys()"
-      [title]="'Edit ' + session().name"
-      (toggleEdit)="onToggle($event)"
-    ></app-edit-toggle>
+  @if (state() !== "CREATE" && contextMenuItems().length > 0) {
+    <app-context-menu
+      [menuItems]="contextMenuItems()"
+      [menuButtonIcon]="'ellipsis-vertical'"
+      [menuButtonKind]="'NONE'"
+      [menuButtonAriaLabel]="'Session actions'"
+      (actionTriggered)="onActionTriggered($event)"
+    />
   }
 </div>
 
@@ -89,16 +89,6 @@
       </div>
     }
   </div>
-  <!-- Delete Toggler -->
-  @if (canDelete()) {
-    <app-confirmation-toggle-button
-      class="card__delete-confirmer"
-      [itemToDelete]="session().name ?? 'This Session'"
-      [icon]="'trash'"
-      [enableHotkey]="!disabledHotkeys()"
-      (confirm)="onSessionDelete()"
-    ></app-confirmation-toggle-button>
-  }
 </ng-template>
 <!-- Sessions Panel Content -->
 

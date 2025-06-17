@@ -11,10 +11,8 @@ import { RouterLink } from '@angular/router';
 import { OverviewItem } from 'src/app/_models/overview';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import {
-  ContextMenuComponent,
-  MenuItem,
-} from '../../molecules/context-menu/context-menu.component';
+import { MenuItem } from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
 const DISPLAY_STATES = [
   'Default',

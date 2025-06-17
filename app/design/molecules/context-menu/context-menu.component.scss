@@ -6,6 +6,7 @@
 
 .dropdown-toggle {
   --bs-btn-font-size: var(--menu-text-size);
+  border-radius: var(--bs-border-radius);
 }
 
 .dropdown-item {

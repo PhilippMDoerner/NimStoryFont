@@ -69,7 +69,45 @@
             {{ item.label }}
           </button>
         }
+        @case ("CONFIRM") {
+          <button
+            [id]="id + '-' + $index"
+            class="dropdown-item"
+            [class.active]="item.active"
+            [class.disabled]="item.disabled"
+            [hotkey]="item.hotkey"
+            role="menuitem"
+            ngbDropdownItem
+            (click)="openModal(item, menuModal)"
+            (hotkeyPressed)="actionTriggered.emit(item.actionName)"
+          >
+            @if (item.icon) {
+              <app-icon class="me-3" [icon]="item.icon"></app-icon>
+            }
+            {{ item.label }}
+          </button>
+        }
       }
     }
   </ul>
 </div>
+
+<ng-template #menuModal let-modal>
+  @let modalItem = activeModalItem();
+  @if (modalItem) {
+    <app-delete-modal
+      [heading]="modalItem.modal.heading"
+      [submitIcon]="modalItem.modal.submitIcon"
+      [submitButtonLabel]="modalItem.modal.submitLabel"
+      [cancelButtonLabel]="modalItem.modal.cancelLabel"
+      [modalType]="modalItem.modal.kind"
+      [cancelButtonType]="'SECONDARY'"
+      (confirm)="onConfirm(modalItem.actionName, modal)"
+      (modalClose)="closeModal(modal)"
+    >
+      <ng-container body>
+        <p>{{ modalItem.modal.body }}</p>
+      </ng-container>
+    </app-delete-modal>
+  }
+</ng-template>

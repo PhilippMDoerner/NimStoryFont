@@ -1,33 +1,37 @@
-.profile{
-  &__heading{
+.profile {
+  &__heading {
+  }
 
+  &__memberships {
   }
-  
-  &__memberships{
-  }
-  
-  &__data{
+
+  &__data {
     margin-bottom: var(--spacer-4);
+  }
+
+  &__edit-container {
+    display: flex;
+    justify-content: end;
   }
 }
 
-.heading{
+.heading {
   display: flex;
   justify-content: space-between;
-  
-  &__text{
+
+  &__text {
     margin-bottom: var(--spacer-0);
   }
-  
-  &__buttons{
+
+  &__buttons {
     position: relative;
     display: flex;
     align-self: flex-end;
     justify-content: flex-end;
     top: 1px;
   }
-  
-  &__button{
+
+  &__button {
     border: var(--bs-white) 1px solid;
     border-radius: var(--bs-border-radius);
   }

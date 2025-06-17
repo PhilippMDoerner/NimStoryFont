@@ -6,8 +6,6 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { SessionAudio, Timestamp } from 'src/app/_models/sessionAudio';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
@@ -15,6 +13,7 @@ import { ArticleFooterComponent } from 'src/app/design/molecules';
 import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
 import { SessionaudioPlayerComponent } from 'src/app/design/organisms/sessionaudio-player/sessionaudio-player.component';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
   selector: 'app-sessionaudio',
@@ -28,8 +27,7 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
     RouterLink,
     SessionaudioPlayerComponent,
     ArticleFooterComponent,
-    HotkeyDirective,
-    NgbTooltip,
+    ArticleContextMenuComponent,
   ],
 })
 export class SessionaudioComponent {

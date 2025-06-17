@@ -16,14 +16,14 @@
         }
       }
     </div>
-    @if (canUpdate() || canCreate()) {
-      <app-edit-toggle
-        [buttonKind]="'DARK'"
-        [toggled]="state() !== 'DISPLAY'"
-        [disabledHotkey]="disabledHotkeys()"
-        [title]="'Edit ' + spell()?.name"
-        (toggleEdit)="onToggle($event)"
-      ></app-edit-toggle>
+    @if (state() !== "CREATE" && contextMenuItems().length > 0) {
+      <app-context-menu
+        [menuItems]="contextMenuItems()"
+        [menuButtonIcon]="'ellipsis-vertical'"
+        [menuButtonKind]="'NONE'"
+        [menuButtonAriaLabel]="'Spell actions'"
+        (actionTriggered)="onActionTriggered($event)"
+      />
     }
   </div>
 
@@ -144,17 +144,6 @@
     (entryDelete)="connectionDelete.emit($event)"
     (entryCreate)="onConnectionCreate($event)"
   ></app-badge-list>
-
-  <!-- Delete Toggler -->
-  @if (canDelete()) {
-    <app-confirmation-toggle-button
-      class="card__delete-confirmer"
-      [itemToDelete]="'Spell ' + spell()?.name"
-      [icon]="'trash'"
-      [enableHotkey]="!disabledHotkeys()"
-      (confirm)="onSpellDelete()"
-    ></app-confirmation-toggle-button>
-  }
 </ng-template>
 
 <ng-template #updateHeading> Update '{{ spell()?.name }}' </ng-template>

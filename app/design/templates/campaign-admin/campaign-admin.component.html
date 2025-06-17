@@ -1,19 +1,19 @@
 <app-page-container>
   <article class="container campaign">
-    <div class="campaign__edit-container">
-      <a
-        btn
-        [routerLink]="updateUrl"
-        [icon]="'pencil'"
-        [kind]="'SECONDARY'"
-        aria-label="Update Campaign"
-      >
-      </a>
-    </div>
+    <app-article-context-menu
+      class="campaign__edit-container"
+      [editEntry]="{
+        kind: 'LINK',
+        link: updateUrl(),
+        label: 'Update Campaign',
+      }"
+      [deleteLabel]="'Delete Campaign'"
+      (deleteConfirmed)="deactivateCampaign.emit(campaign())"
+    />
 
     <!-- Heading -->
     <div class="row">
-      <h1 class="text-center col campaign__heading">{{ campaign.name }}</h1>
+      <h1 class="text-center col campaign__heading">{{ campaign().name }}</h1>
     </div>
 
     <!-- Image Fields of Campaign -->
@@ -30,7 +30,7 @@
             class="settings__image"
             [ngbTooltip]="'Campaign background image'"
             alt="Background image of this campaign"
-            [src]="serverUrl + campaign.background_image"
+            [src]="serverUrl() + campaign().background_image"
           />
         </div>
 
@@ -40,7 +40,7 @@
             class="settings__icon"
             [ngbTooltip]="'Campaign Icon'"
             alt="Icon of this campaign"
-            [src]="serverUrl + '/' + campaign.icon"
+            [src]="serverUrl() + '/' + campaign().icon"
           />
         </div>
       </div>
@@ -48,13 +48,13 @@
       <div class="row settings__data">
         <strong class="col-md-3 col-6">Default Map: </strong>
         <div class="col-md-9 col-6">
-          {{ campaign.default_map_details?.name }}
+          {{ campaign().default_map_details?.name }}
         </div>
 
         <strong class="col-md-3 col-6">Subtitle: </strong>
         <app-html-text
           class="col-md-9 col-6"
-          [text]="campaign.subtitle"
+          [text]="campaign().subtitle"
         ></app-html-text>
       </div>
     </app-card>
@@ -74,7 +74,7 @@
           ></app-info-circle-tooltip>
         </h3>
 
-        @for (user of campaign.admins; track user.pk) {
+        @for (user of campaign().admins; track user.pk) {
           <div class="user-group__user">
             {{ user.username }}
 
@@ -91,12 +91,12 @@
 
         <!-- Form -->
         <div class="user-group__add-user">
-          @if (showAdminAddForm) {
+          @if (showAdminAddForm()) {
             <app-form
               [model]="adminModel"
               [fields]="adminFormlyFields()"
               [cancelButtonType]="'DARK'"
-              (formlySubmit)="onAddUser('admin', adminModel)"
+              (formlySubmit)="onAddUser('admin', adminModel())"
               (formlyCancel)="changeState('admin', false)"
             ></app-form>
           } @else {
@@ -113,7 +113,7 @@
           ></app-info-circle-tooltip>
         </h3>
 
-        @for (user of campaign.members; track user.pk) {
+        @for (user of campaign().members; track user.pk) {
           <div class="user-group__user">
             {{ user.username }}
 
@@ -130,12 +130,12 @@
 
         <!-- Form -->
         <div class="user-group__add-user">
-          @if (showMemberAddForm) {
+          @if (showMemberAddForm()) {
             <app-form
               [model]="memberModel"
               [fields]="memberFormlyFields()"
               [cancelButtonType]="'DARK'"
-              (formlySubmit)="onAddUser('member', memberModel)"
+              (formlySubmit)="onAddUser('member', memberModel())"
               (formlyCancel)="changeState('member', false)"
             ></app-form>
           } @else {
@@ -152,7 +152,7 @@
           ></app-info-circle-tooltip>
         </h3>
 
-        @for (user of campaign.guests; track user.pk) {
+        @for (user of campaign().guests; track user.pk) {
           <div class="user-group__user">
             {{ user.username }}
 
@@ -169,12 +169,12 @@
 
         <!-- Form -->
         <div class="user-group__add-user">
-          @if (showGuestAddForm) {
+          @if (showGuestAddForm()) {
             <app-form
               [model]="guestModel"
               [fields]="guestFormlyFields()"
               [cancelButtonType]="'DARK'"
-              (formlySubmit)="onAddUser('guest', guestModel)"
+              (formlySubmit)="onAddUser('guest', guestModel())"
               (formlyCancel)="changeState('guest', false)"
             ></app-form>
           } @else {
@@ -191,7 +191,7 @@
     </h1>
 
     <div class="container mb-5">
-      @for (statistic of campaignStatistics | keyvalue; track $index) {
+      @for (statistic of campaignStatistics() | keyvalue; track $index) {
         <div class="row">
           <div class="col-6 col-md-3">{{ statistic.key }}</div>
           <div class="col-6 col-md-3">{{ statistic.value }}</div>
@@ -214,7 +214,7 @@
       <div class="col-12 mb-3">
         <app-card class="campaign__user-group user-group">
           @for (
-            emptyResponse of campaign.emptySearchResponses;
+            emptyResponse of campaign().emptySearchResponses;
             track emptyResponse.id
           ) {
             <div class="mb-3">
@@ -252,12 +252,9 @@
 
     <!-- Footer (Move to other Article + Delete Article) -->
     <app-article-footer
-      [showDelete]="!campaign.is_deactivated"
-      [buttonLink]="homeUrl"
-      [buttonLabel]="'Back to ' + campaign.name"
-      [deleteMessage]="'Campaign'"
-      (delete)="deactivateCampaign.emit(campaign)"
-    ></app-article-footer>
+      [buttonLink]="homeUrl()"
+      [buttonLabel]="'Back to ' + campaign().name"
+    />
   </article>
 </app-page-container>
 

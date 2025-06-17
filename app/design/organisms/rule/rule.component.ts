@@ -1,16 +1,23 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, input, OnInit, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  input,
+  OnInit,
+  output,
+  signal,
+} from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { Rule, RuleRaw } from 'src/app/_models/rule';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
+import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
 import {
-  CompareFormComponent,
-  ConfirmationToggleButtonComponent,
-  EditToggleComponent,
-  FormComponent,
-} from 'src/app/design/molecules';
+  DEFAULT_DELETE_MODAL_DATA,
+  MenuItem,
+} from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
 type RuleState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
 
@@ -20,11 +27,10 @@ type RuleState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
   styleUrls: ['./rule.component.scss'],
   imports: [
     NgTemplateOutlet,
-    EditToggleComponent,
     HtmlTextComponent,
-    ConfirmationToggleButtonComponent,
     FormComponent,
     CompareFormComponent,
+    ContextMenuComponent,
   ],
 })
 export class RuleComponent implements OnInit {
@@ -44,6 +50,37 @@ export class RuleComponent implements OnInit {
 
   userModel = signal<Rule | undefined>(undefined);
   state = signal<RuleState>('DISPLAY');
+
+  contextMenuItems = computed<MenuItem[]>(() => {
+    const menuItems: MenuItem[] = [];
+    if (this.canUpdate()) {
+      menuItems.push({
+        kind: 'BUTTON',
+        actionName: 'update',
+        label: 'Edit',
+        icon: 'pencil',
+        active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
+        hotkey: this.disabledHotkeys() ? undefined : 'e',
+      });
+    }
+
+    if (this.canDelete()) {
+      menuItems.push({
+        kind: 'CONFIRM',
+        actionName: 'delete',
+        label: 'Delete',
+        icon: 'trash',
+        hotkey: this.disabledHotkeys() ? undefined : 'd',
+        modal: {
+          ...DEFAULT_DELETE_MODAL_DATA,
+          heading: `Delete ${this.rule()?.name}`,
+          body: `Are you sure you want to delete ${this.rule()?.name}?`,
+        },
+      });
+    }
+
+    return menuItems;
+  });
 
   formlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
@@ -67,19 +104,15 @@ export class RuleComponent implements OnInit {
     this.changeState('DISPLAY', undefined);
   }
 
-  onToggle(toggled: boolean) {
-    const isInCreateScenario = this.state() === 'CREATE';
-    if (isInCreateScenario) {
-      this.onRuleCreateCancel();
-      return;
+  onActionTriggered(action: string): void {
+    switch (action) {
+      case 'update':
+        this.toggleAwayFromState(this.state());
+        break;
+      case 'delete':
+        this.onRuleDelete();
+        break;
     }
-
-    const isInDisplayState = this.state() === 'DISPLAY';
-    const nextState = isInDisplayState ? 'UPDATE' : 'DISPLAY';
-    const nextModel: Rule | undefined = toggled
-      ? ({ ...this.rule() } as Rule)
-      : undefined;
-    this.changeState(nextState, nextModel);
   }
 
   changeState(newState: RuleState, newModel: Rule | undefined) {
@@ -104,5 +137,20 @@ export class RuleComponent implements OnInit {
   onRuleCreateCancel() {
     this.changeState('DISPLAY', undefined);
     this.ruleCreateCancel.emit();
+  }
+
+  private toggleAwayFromState(state: RuleState) {
+    switch (state) {
+      case 'CREATE':
+        this.onRuleCreateCancel();
+        break;
+      case 'DISPLAY':
+        this.changeState('UPDATE', { ...(this.rule() as Rule) });
+        break;
+      case 'UPDATE':
+      case 'OUTDATED_UPDATE':
+        this.changeState('DISPLAY', undefined);
+        break;
+    }
   }
 }
