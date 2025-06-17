@@ -263,6 +263,7 @@ input.form-control:focus {
 
 select.form-select {
   color: white !important;
+  background-color: var(--bs-secondary) !important;
 }
 
 select:focus {
