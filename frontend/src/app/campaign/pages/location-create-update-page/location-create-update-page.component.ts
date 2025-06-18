@@ -8,11 +8,12 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, map, Observable, skip, take } from 'rxjs';
+import { filter, map, Observable, of, skip, take } from 'rxjs';
 import { Location, LocationRaw } from 'src/app/_models/location';
 import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -83,43 +84,45 @@ export class LocationCreateUpdatePageComponent {
 
   formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
-    this.formlyService.buildDisableSelectConfig<
+    this.formlyService.buildTypeaheadConfig<
       LocationRaw | Location,
       OverviewItem
     >({
       key: 'parent_location',
       label: 'Parent Location',
-      options$: this.campaignLocations$,
-      sortProp: 'name_full',
-      labelProp: 'name_full',
-      campaign: this.globalStore.campaignName(),
       required: false,
-      disabledExpression: (locations$: Observable<OverviewItem[]>) => {
-        return locations$.pipe(
-          map((locations) => {
-            return locations.map((loc) => {
+      getOptions: () => {
+        return this.campaignLocations$.pipe(
+          map((locations) =>
+            locations.filter((loc) => {
               const isEmptyOption = loc.pk === undefined;
               if (isEmptyOption) {
-                return false;
+                return true;
               }
               switch (this.state()) {
                 case 'CREATE':
-                  return this.isSameLocation(loc, this.userModel());
+                  return !this.isSameLocation(loc, this.userModel());
                 case 'UPDATE':
                 case 'OUTDATED_UPDATE':
                   return (
-                    this.isSameLocation(loc, this.userModel()) ||
-                    this.isChildLocation(this.userModel() as Location, loc)
+                    !this.isSameLocation(loc, this.userModel()) ||
+                    !this.isChildLocation(this.userModel() as Location, loc)
                   );
               }
-            });
-          }),
+            }),
+          ),
         );
       },
-      tooltipMessage:
-        "The location that contains this new location, e.g. the location 'Mayor's House' within the location 'Small city Lundorf'",
-      warningMessage:
-        "The location you selected can't have the same name as the location that is trying to contain it! That would mean that this location contained itself!",
+      initialOption$: of(
+        this.store
+          .campaignLocations()
+          ?.find(
+            (location) => location.pk === this.userModel().parent_location,
+          ) ?? null,
+      ),
+      optionLabelProp: 'name_full',
+      optionValueProp: 'pk',
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
     }),
   ]);
 
