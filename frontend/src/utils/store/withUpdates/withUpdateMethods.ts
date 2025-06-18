@@ -3,11 +3,11 @@ import { inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withMethods } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { MethodsDictionary } from '@ngrx/signals/src/signal-store-models';
 import { Observable, pipe, switchMap, tap } from 'rxjs';
 import { successToast } from 'src/app/_models/toast';
 import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
 import {
+  MethodsDictionary,
   Request,
   RequestMap,
   RequestState,

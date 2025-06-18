@@ -16,8 +16,8 @@ import {
   NgbDropdown,
   NgbDropdownModule,
   NgbModal,
+  Placement,
 } from '@ng-bootstrap/ng-bootstrap';
-import { PlacementArray } from '@ng-bootstrap/ng-bootstrap/util/positioning';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ButtonKind, ElementSize } from 'src/app/design/atoms/_models/button';
 import { Icon } from 'src/app/design/atoms/_models/icon';
@@ -26,6 +26,8 @@ import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { componentId } from 'src/utils/DOM';
 import { MenuItem } from '../_models/menu';
 import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
+
+export type PlacementArray = Placement | Placement[] | string;
 
 @Component({
   selector: 'app-context-menu',

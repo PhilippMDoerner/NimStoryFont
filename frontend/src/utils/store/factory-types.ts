@@ -13,3 +13,5 @@ export type Request<Params, Response> = (
   params: Params,
 ) => Observable<Response>;
 export type RequestMap = Record<string, Request<any, any>>;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export type MethodsDictionary = Record<string, Function>;

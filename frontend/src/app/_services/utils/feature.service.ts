@@ -19,8 +19,8 @@ interface FeatureConfig {
 export class FeatureService {
   private readonly http = inject(HttpClient);
   private readonly _features$ = rxResource({
-    request: () => environment.configUrl,
-    loader: ({ request }) => this.http.get<FeatureConfig>(request),
+    params: () => environment.configUrl,
+    stream: ({ params }) => this.http.get<FeatureConfig>(params),
   });
 
   public features$ = this._features$.asReadonly();
