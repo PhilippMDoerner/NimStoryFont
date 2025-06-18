@@ -1,4 +1,10 @@
-import { Component, computed, inject, Signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  Signal,
+} from '@angular/core';
 import { CampaignAdminComponent } from 'src/app/design/templates/campaign-admin/campaign-admin.component';
 import { GlobalStore } from 'src/app/global.store';
 import { CampaignAdminPageStore } from './campaign-admin-page.store';
@@ -9,6 +15,7 @@ import { CampaignAdminPageStore } from './campaign-admin-page.store';
   providers: [CampaignAdminPageStore],
   templateUrl: './campaign-admin-page.component.html',
   styleUrl: './campaign-admin-page.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignAdminPageComponent {
   readonly store = inject(CampaignAdminPageStore);

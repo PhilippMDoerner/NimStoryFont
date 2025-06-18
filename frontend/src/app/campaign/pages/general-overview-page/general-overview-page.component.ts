@@ -1,5 +1,10 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, Signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  Signal,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -27,6 +32,7 @@ import { filterNil } from 'src/utils/rxjs-operators';
   imports: [GeneralOverviewComponent, AsyncPipe],
   templateUrl: './general-overview-page.component.html',
   styleUrl: './general-overview-page.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneralOverviewPageComponent {
   globalStore = inject(GlobalStore);

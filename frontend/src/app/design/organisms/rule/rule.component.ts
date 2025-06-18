@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -32,6 +33,7 @@ type RuleState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
     CompareFormComponent,
     ContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RuleComponent implements OnInit {
   rule = input.required<Rule | undefined>();

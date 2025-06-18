@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -69,6 +70,7 @@ interface QuoteControl {
     SpinnerComponent,
     NgbTooltip,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuoteComponent implements OnChanges {
   quote = input<Quote>();

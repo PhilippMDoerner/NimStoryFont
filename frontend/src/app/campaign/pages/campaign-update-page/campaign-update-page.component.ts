@@ -1,4 +1,10 @@
-import { Component, computed, inject, Signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  Signal,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 import { Campaign, CampaignRaw } from 'src/app/_models/campaign';
@@ -14,6 +20,7 @@ import { CampaignUpdatePageStore } from './campaign-update-page.store';
   providers: [CampaignUpdatePageStore],
   templateUrl: './campaign-update-page.component.html',
   styleUrl: './campaign-update-page.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignUpdatePageComponent {
   globalStore = inject(GlobalStore);

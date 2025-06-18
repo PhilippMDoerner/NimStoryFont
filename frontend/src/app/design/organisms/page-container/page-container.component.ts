@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { fadeIn } from 'src/app/design/animations/fadeIn';
 
 @Component({
@@ -7,5 +7,6 @@ import { fadeIn } from 'src/app/design/animations/fadeIn';
   styleUrls: ['./page-container.component.scss'],
   imports: [],
   animations: [fadeIn],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageContainerComponent {}

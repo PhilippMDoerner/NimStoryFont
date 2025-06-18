@@ -1,6 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input, output, signal } from '@angular/core';
-import { FormGroup } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { Timestamp } from 'src/app/_models/sessionAudio';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
@@ -25,6 +31,7 @@ type TimestampState = 'CREATE' | 'DISPLAY';
     CardComponent,
     NgTemplateOutlet,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioPlayerComponent {
   sessionAudioPk = input.required<number>();
@@ -47,7 +54,6 @@ export class SessionaudioPlayerComponent {
   });
   timestampState = signal<TimestampState>('DISPLAY');
   currentTime = signal<number | undefined>(0);
-  timestampForm = new FormGroup({});
   timestampFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'time',

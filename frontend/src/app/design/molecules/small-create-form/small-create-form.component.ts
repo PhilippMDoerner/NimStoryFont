@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -33,6 +34,7 @@ export interface DisableableOption<T> {
     HotkeyDirective,
     TypeaheadComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SmallCreateFormComponent<T> {
   options = input.required<T[]>();

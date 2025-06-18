@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -64,6 +65,7 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
     ContextMenuComponent,
     SwitchComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
   globalStore = inject(GlobalStore);
@@ -159,7 +161,7 @@ export class HomeComponent {
       .slice(0, firstArticleOutOfTimeframeIndex)
       .map((art) => this.toIconCardEntry(art));
   });
-  pageNumber = 0;
+  pageNumber = signal(0);
   id = componentId();
 
   constructor() {
@@ -183,8 +185,8 @@ export class HomeComponent {
       return;
     }
 
-    this.pageNumber += 1;
-    this.loadArticlePage.emit(this.pageNumber);
+    this.pageNumber.set(this.pageNumber() + 1);
+    this.loadArticlePage.emit(this.pageNumber());
   }
 
   toggleFeedMode(isSwitchedOn: boolean) {

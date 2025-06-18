@@ -1,6 +1,7 @@
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -51,6 +52,7 @@ export const showSidebarSignal = signal(true);
     SpinnerComponent,
     NgbTooltip,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NgbOffcanvas],
 })
 export class PageComponent {

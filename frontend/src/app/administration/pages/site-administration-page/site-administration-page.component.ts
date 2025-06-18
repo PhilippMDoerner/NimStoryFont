@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { SiteAdminComponent } from 'src/app/design//templates/site-admin/site-admin.component';
 import { GlobalStore } from 'src/app/global.store';
 import { SiteAdministrationPageStore } from './site-administration-page.store';
@@ -9,6 +9,7 @@ import { SiteAdministrationPageStore } from './site-administration-page.store';
   styleUrls: ['./site-administration-page.component.scss'],
   providers: [SiteAdministrationPageStore],
   imports: [SiteAdminComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SiteAdministrationPageComponent {
   readonly globalStore = inject(GlobalStore);

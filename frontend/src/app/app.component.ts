@@ -1,6 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import {
   afterNextRender,
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -40,6 +41,7 @@ import { ServiceWorkerService } from './service-worker.service';
     '(window:beforeinstallprompt)': 'fireEvent($event)',
   },
   animations: [fadeOut],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   readonly pwaService = inject(PwaService);

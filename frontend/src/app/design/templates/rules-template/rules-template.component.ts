@@ -1,4 +1,11 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Rule, RuleRaw } from 'src/app/_models/rule';
 import { RoutingService } from 'src/app/_services/routing.service';
@@ -16,6 +23,7 @@ import { RulesComponent } from '../../organisms/rules/rules.component';
     RouterLink,
     ButtonLinkComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RulesTemplateComponent {
   campaignName = input.required<string>();

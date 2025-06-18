@@ -1,5 +1,6 @@
 import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
@@ -57,6 +58,7 @@ import {
     EncounterCardComponent,
   ],
   animations: [slideUpFromBottom],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryEncountersComponent {
   state = input<EncounterCardState>('READ');

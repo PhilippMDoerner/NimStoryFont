@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NodeLinkType, NodeLinkTypeRaw } from 'src/app/_models/graph';
 import { MapMarkerType, MapMarkerTypeRaw } from 'src/app/_models/mapMarkerType';
@@ -24,6 +30,7 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
     ButtonLinkComponent,
     ConfigTableComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfigTablesComponent {
   currentCampaignId = input.required<number | undefined>();

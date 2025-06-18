@@ -1,4 +1,12 @@
-import { Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import {
   LeafletControlLayersConfig,
   LeafletModule,
@@ -33,6 +41,7 @@ type TextColor = 'black' | 'white';
   templateUrl: './ngx-leaflet-map.component.html',
   styleUrls: ['./ngx-leaflet-map.component.scss'],
   imports: [LeafletModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NgxLeafletMapComponent {
   private BRIGHT_BG_COLORS: string[] = ['beige', 'lightgreen'];
@@ -43,7 +52,7 @@ export class NgxLeafletMapComponent {
   mapData = input.required<ExtendedMap>();
   serverUrl = input.required<string>();
 
-  leafletMap!: Map;
+  leafletMap = signal<Map | undefined>(undefined);
   options: MapOptions = {
     minZoom: -1,
     maxZoom: 2,
@@ -65,19 +74,23 @@ export class NgxLeafletMapComponent {
   markerLayers = computed<{ [key: string]: LayerGroup }>(() =>
     this.toMarkerLayers(this.mapData()),
   ); //Needed so I can add these layers to both leafletMap and layersControls
-  mouseLatitude!: number;
-  mouseLongitude!: number;
   hideCoordinatesState = true;
 
-  constructor(private routingService: RoutingService) {}
+  constructor(private routingService: RoutingService) {
+    effect(() => {
+      const map = this.leafletMap();
+      if (!map) return;
+      map.fitBounds(this.MAP_BOUNDS);
+
+      const markerLayers = untracked(() => this.markerLayers());
+      for (const layerName in markerLayers) {
+        markerLayers[layerName].addTo(map);
+      }
+    });
+  }
 
   onMapReady(map: Map) {
-    this.leafletMap = map;
-    this.leafletMap.fitBounds(this.MAP_BOUNDS);
-
-    for (const layerName in this.markerLayers()) {
-      this.markerLayers()[layerName].addTo(this.leafletMap);
-    }
+    this.leafletMap.set(map);
   }
 
   private initLayers(serverUrl: string, map: ExtendedMap): ImageOverlay[] {
@@ -116,12 +129,9 @@ export class NgxLeafletMapComponent {
     return layers;
   }
 
-  onMouseMove(event: LeafletMouseEvent) {
-    this.mouseLatitude = event.latlng.lat;
-    this.mouseLongitude = event.latlng.lng;
-  }
-
   onMapClick(event: LeafletMouseEvent) {
+    const map = this.leafletMap();
+    if (!map) return;
     const latitude = event.latlng.lat;
     const longitude = event.latlng.lng;
 
@@ -129,7 +139,7 @@ export class NgxLeafletMapComponent {
     popup()
       .setLatLng([latitude, longitude])
       .setContent(popupContentHTML)
-      .openOn(this.leafletMap);
+      .openOn(map);
   }
 
   private createTextMarker(mapMarker: MapMarker): Marker {

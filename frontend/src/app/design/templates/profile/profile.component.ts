@@ -1,5 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -12,13 +13,13 @@ import { FormlyFieldConfig } from '@ngx-formly/core';
 import { User } from 'src/app/_models/user';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
-import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SeparatorComponent } from '../../atoms/separator/separator.component';
-import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
+import { MenuItem } from '../../molecules/_models/menu';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { FormComponent } from '../../molecules/form/form.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 import { CampaignMembership } from '../_models/campaign-membership';
@@ -35,15 +36,15 @@ export interface PasswordModel {
   imports: [
     PageContainerComponent,
     IconComponent,
-    ButtonComponent,
     SeparatorComponent,
     CardComponent,
     FormComponent,
     TitleCasePipe,
     ArticleFooterComponent,
     ConfirmationToggleButtonComponent,
-    ArticleContextMenuComponent,
+    ContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileComponent {
   user = input.required<User>();
@@ -94,6 +95,38 @@ export class ProfileComponent {
       inputKind: 'STRING',
     }),
   ];
+  contextMenuEntries = computed<MenuItem[]>(() => {
+    const menuItems: MenuItem[] = [
+      {
+        kind: 'BUTTON',
+        actionName: 'edit-data',
+        label: this.showProfileEditForm()
+          ? 'Cancel Profile Edit'
+          : 'Edit profile',
+        hotkey: 'e',
+        icon: this.showProfileEditForm() ? 'times' : 'pencil',
+      },
+      {
+        kind: 'BUTTON',
+        actionName: 'edit-password',
+        label: this.showPasswordEditForm()
+          ? 'Cancel Password Edit'
+          : 'Edit password',
+        icon: this.showPasswordEditForm() ? 'times' : 'pencil',
+      },
+    ];
+
+    if (this.canDeleteProfile()) {
+      menuItems.push({
+        kind: 'BUTTON',
+        actionName: 'delete',
+        label: 'Delete your account',
+        hotkey: 'd',
+        icon: 'trash',
+      });
+    }
+    return menuItems;
+  });
 
   constructor() {
     const showPasswordEditFormOnInit$ = toObservable(
@@ -104,6 +137,20 @@ export class ProfileComponent {
       .subscribe((canResetWithoutPassword) => {
         this.showPasswordEditForm.set(canResetWithoutPassword);
       });
+  }
+
+  onContextMenuAction(action: string) {
+    switch (action) {
+      case 'edit-data':
+        this.toggleProfileEditState();
+        break;
+      case 'edit-password':
+        this.togglePasswordEditState();
+        break;
+      case 'delete':
+        this.profileDelete.emit(this.user());
+        break;
+    }
   }
 
   toggleProfileEditState(): void {

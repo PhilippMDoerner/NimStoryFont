@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { Creature } from 'src/app/_models/creature';
 import { Image } from 'src/app/_models/image';
 import { RoutingService } from 'src/app/_services/routing.service';
@@ -19,6 +25,7 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
     ArticleFooterComponent,
     ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreatureComponent {
   creature = input.required<Creature>();
