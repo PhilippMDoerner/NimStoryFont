@@ -7,6 +7,7 @@ import {
   inject,
   isDevMode,
   provideAppInitializer,
+  provideZonelessChangeDetection,
 } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -37,5 +38,6 @@ bootstrapApplication(AppComponent, {
       registrationStrategy: 'registerWhenStable:30000',
     }),
     provideAppInitializer(() => inject(AuthStore).loadAuthData()),
+    provideZonelessChangeDetection(),
   ],
 }).catch((err) => console.error(err));
