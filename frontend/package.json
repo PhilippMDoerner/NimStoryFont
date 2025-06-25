@@ -27,7 +27,7 @@
     "@angular/router": "^20.0.3",
     "@angular/service-worker": "^20.0.3",
     "@bluehalo/ngx-leaflet": "^19.0.0",
-    "@ng-bootstrap/ng-bootstrap": "~19.0.0-rc.0",
+    "@ng-bootstrap/ng-bootstrap": "~19.0.0",
     "@ngrx/operators": "^19.0.1",
     "@ngrx/signals": "^19.0.1",
     "@ngx-formly/bootstrap": "^6.3.7",
