@@ -31,12 +31,12 @@ http {
 
     # Default: Nginx does not set empty string headers, therefore no header will be set
     # Second regex matches localhost:XXXX
-    # This map block tries to match the contents of http_origin against the regexes below. 
+    # This map block tries to match the contents of http_origin against the regexes below.
     # If a regex matches, the value under $allow_origin is put into the $allow_origin variable.
     map     "$http_origin"                                $allow_origin {
             default                                     '';
             "~^http?:\/\/(.*\.)?{{ domain }}(:\d+)?$"   "$http_origin";
-            "~^http?:\/\/(.*\.)?localhost(:\d+)?$"      "$http_origin"; 
+            "~^http?:\/\/(.*\.)?localhost(:\d+)?$"      "$http_origin";
     }
 
     server {
@@ -44,12 +44,12 @@ http {
 
         listen 5123 default_server;
         listen [::]:5123 default_server;
-        http2 on;  
+        http2 on;
 
         rewrite "^\/$" "/wiki2" last;
 
         root /frontend;
-        
+
         gzip on;
         gzip_vary on;
         gzip_min_length 1000;
@@ -58,8 +58,8 @@ http {
         gzip_types text/plain text/css application/json application/javascript application/x-javascript text/javascript text/xml application/xml application/xml+rss;
 
         # Allows the origin of the request if it matched any of the regular expressions in the block `map $http_origin $allow_origin`
-        add_header 'Access-Control-Allow-Origin' $allow_origin; 
-        
+        add_header 'Access-Control-Allow-Origin' $allow_origin;
+
         # Config stuff
         location /nginx_status {
             # Enable Nginx stats
@@ -85,6 +85,11 @@ http {
             alias /data/media/image/campaign_icons/;
         }
 
+        # Feature config
+        location /wiki1/feature_config.json {
+            alias /data/config/feature_config.json;
+        }
+
         # Audio Files
 
         # Target for uploading files triggers the applicationserver on the /file url once upload is done
@@ -94,7 +99,7 @@ http {
             client_body_in_file_only   on;
 
             proxy_pass_request_headers on;
-            proxy_set_header           X-File-Name $request_body_file; 
+            proxy_set_header           X-File-Name $request_body_file;
             proxy_set_body             off;
             proxy_redirect             off;
             proxy_pass http://nswebserver:8080/file/; #Hands request over to localhost:8080 where the web-application server is
@@ -120,7 +125,7 @@ http {
             upload_progress_json_output;
             report_uploads uploads;
         }
-        
+
         location /wiki1/api/db_dumps/ {
 
             # Serves files from /db_dumps/ but checks for authentication first
@@ -128,7 +133,7 @@ http {
             add_header Cache-Control 'public, max-age=21600';  # cache for 6h
             alias /data/db_dumps/;
         }
-        
+
         # Authentication check for files
         location = /auth {
             internal;
@@ -143,7 +148,7 @@ http {
         # Passes requests on to the application server "nimstoryfont"
         location /wiki1/api {
             rewrite ^/wiki1/api/(.*) /$1  break; #Removes "/wiki1/api" from the url for the web-application-server
-            
+
             add_header Access-Control-Allow-Credentials true;
 
             proxy_pass http://nswebserver:8080; #Hands request over to localhost:8080 where the web-application server is
@@ -154,8 +159,8 @@ http {
             send_timeout                300s;
             proxy_set_header X-Real_IP $remote_addr;
         }
-        
-        # Serves the frontend which is an angular application        
+
+        # Serves the frontend which is an angular application
         location /wiki2 {
             alias /frontend/;
             if ($request_filename ~* ".html$") {
