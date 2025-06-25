@@ -28,7 +28,7 @@ Local Commands:
   dev disable                Disable local development mode (restore /etc/hosts to default)
   clear                      Clear all local generated config files
   compose <cmd>              Run docker compose commands with the local setup
-  
+
 Host Commands:
   bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
   setup                      Setup the host with additional config files
@@ -43,7 +43,7 @@ Server Commands:
   status                     Check if the server is running (Prints the docker containers)
 
 Database Commands:
-  init                        Creates an empty database file with the current schema 
+  init                        Creates an empty database file with the current schema
   download                    Download the database from the host machine
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
@@ -75,7 +75,7 @@ Commands:
   dev disable                Disable local development mode (restore /etc/hosts to default)
   clear                      Clear all local generated config files
   compose <cmd>              Run docker compose commands with the local setup
-  
+
 Description:
   Commands to set up, use and maintain the local project environment.
 EOF
@@ -84,7 +84,7 @@ EOF
 host_help_command(){
   cat <<EOF
 Usage:
-  ./ns host <command> 
+  ./ns host <command>
 
 Commands:
   bootstrap                  Bootstrap the host (SSH configs, firewall, basic setup)
@@ -103,7 +103,7 @@ EOF
 server_help_command(){
   cat <<EOF
 Usage:
-  ./ns server <command> 
+  ./ns server <command>
 
 Commands:
   compose <cmd>              Run docker compose commands with the server-setup on the host machine.
@@ -116,10 +116,10 @@ EOF
 db_help_command(){
   cat <<EOF
 Usage:
-  ./ns db <command> 
+  ./ns db <command>
 
 Commands:
-  init                        Creates an empty database file with the current schema 
+  init                        Creates an empty database file with the current schema
   download                    Download the database from the host machine
   upload                      Upload the database to the host machine
   migrate                     Migrate the database to a new schema
@@ -142,7 +142,7 @@ load_env() {
 }
 
 run_ansible_playbook() {
-  echo ansible-playbook -v ./ansible/"$1".yml --ask-become-pass 
+  echo ansible-playbook -v ./ansible/"$1".yml --ask-become-pass
   if ansible-playbook -v ./ansible/"$1".yml --ask-become-pass; then
     return 0
   else
@@ -167,21 +167,21 @@ run_on_host(){
 ## FRONTEND_DISPATCHERS
 local_command(){
   case $2 in
-    init) 
+    init)
       run_ansible_playbook init
-      load_env local setup # Doesn't need to be this way, just passes the if check in load_env that this isn't before the project was initialized 
+      load_env local setup # Doesn't need to be this way, just passes the if check in load_env that this isn't before the project was initialized
       run_ansible_playbook setup_local
       ./ns db init
     ;;
     regen) run_ansible_playbook regenerate;;
     proxy)
       case $3 in
-        start) 
+        start)
           cmd="sudo caddy run --envfile $LOCAL_PROJECT_ROOT/local.env --config $LOCAL_PROJECT_ROOT/local.caddyfile"
           echo "$cmd"
           eval "$cmd"
         ;;
-        stop) 
+        stop)
           cmd="sudo caddy stop"
           echo "$cmd"
           eval "$cmd"
@@ -193,7 +193,7 @@ local_command(){
         ;;
         validate)
           cmd="sudo caddy validate --envfile $LOCAL_PROJECT_ROOT/local.env --config $LOCAL_PROJECT_ROOT/local.caddyfile"
-          echo "$cmd - $NS_DOMAIN - $VOLUME_DIR" 
+          echo "$cmd - $NS_DOMAIN - $VOLUME_DIR"
           eval "$cmd"
         ;;
         cmds) echo start stop reload validate cmds help;;
@@ -215,7 +215,7 @@ local_command(){
     clear)
       rm -r ./ansible.cfg ./local_only ./.env ./host.env ./local.env ./nimstoryfont_ansible ./nimstoryfont_ansible.pub ./inventory ./provision_user.sh
     ;;
-    compose) 
+    compose)
       set -a && source local.env && set +a
       run_compose $3 "${@:4}"
     ;;
@@ -227,6 +227,7 @@ local_command(){
 host_command(){
   case $2 in
     ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
+    download_images) scp -r -i ./nimstoryfont_ansible ansible@$HOST_IP:$HOST_VOLUME_PATH/media/image $LOCAL_VOLUME_PATH/media ;;
     proxy)
       case $3 in
         start)
@@ -253,7 +254,7 @@ host_command(){
         help|*) host_help_command ;;
       esac
     ;;
-    bootstrap) 
+    bootstrap)
       bash ./provision_user.sh
       run_ansible_playbook bootstrap_server
     ;;
@@ -289,7 +290,7 @@ db_command(){
     init) touch $LOCAL_VOLUME_PATH/database/db.sqlite3 && ./ns db migrate local;;
     download) scp -i ./nimstoryfont_ansible ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3 $LOCAL_VOLUME_PATH/database/db.sqlite3 ;;
     upload) scp -i ./nimstoryfont_ansible $LOCAL_VOLUME_PATH/database/db.sqlite3 ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3;;
-    migrate) 
+    migrate)
       case $3 in
         local) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql migrate;;
         host|remote) run_ansible_playbook migrate_db;;
