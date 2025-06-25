@@ -22,7 +22,7 @@
     [id]="menuId"
     [attr.aria-labelledby]="triggerId"
   >
-    @for (item of menuItems(); track item) {
+    @for (item of menuItems(); track $index) {
       @switch (item.kind) {
         @case ("HEADER") {
           <div ngbDropdownItem [class]="'dropdown-header ' + item.headerKind">
