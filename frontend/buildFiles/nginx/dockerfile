@@ -8,7 +8,7 @@ FROM alpine AS build
 COPY ./frontend /frontend
 WORKDIR /frontend
 RUN apk -U add nodejs npm
-# The --mount option here is a cache-layer for local development. 
+# The --mount option here is a cache-layer for local development.
 # It caches the node_modules dir when re-running docker commands.
 RUN --mount=type=cache,target=./node_modules \
   npm i && npm run build
@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=./node_modules \
 FROM docker.io/library/alpine:latest
 # Explain each dependency:
 # - nginx + nginx-mod-http-upload-progress: Reverse Proxy
-# - certbot + certbot-nginx + openssl: SSL cert generation
+# - openssl: SSL cert generation
 RUN apk -U add nginx nginx-mod-http-upload-progress openssl --no-cache
 
 # Copy necessary files
