@@ -59,6 +59,14 @@ export function errorInterceptor(
         switch (err.status) {
           case 401:
             return tokenService.refreshUserData();
+          case 400:
+            if (req.method === 'GET') {
+              // Only enable these retries for GET requests as for POST requests these may indicate sth seriously wrong. But I'm not super sure on that
+              // This mostly should occur because of "database is locked"
+              return interval(500);
+            } else {
+              throw err;
+            }
           case 502:
             return interval(1000);
           default:
