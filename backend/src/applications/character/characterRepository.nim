@@ -9,9 +9,9 @@ proc getCharacterSet(
 ): seq[CharacterOverview] =
   const condition =
     fmt"""
-    campaign_id.name LIKE ? 
+    campaign_id.name LIKE ?
     AND {CharacterOverview.table()}.player_character IS ?
-    ORDER BY {CharacterOverview.table()}.name ASC
+    ORDER BY LOWER({CharacterOverview.table()}.name) ASC
   """
   result = connection.getList(
     CharacterOverview, condition, campaignName.dbValue(), isPlayerCharacter.dbValue()

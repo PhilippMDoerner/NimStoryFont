@@ -51,7 +51,7 @@ proc getCampaignList*[M: Model](
 ): seq[M] =
   when M.hasField("name"):
     const tableName = M.table()
-    const condition = fmt"campaign_id.name LIKE ? ORDER BY {tableName}.name"
+    const condition = fmt"campaign_id.name LIKE ? ORDER BY LOWER({tableName}.name)"
   else:
     const condition = "campaign_id.name LIKE ?"
 
@@ -68,7 +68,7 @@ proc getEntryByName*[M: Model](
   ##[ Retrieves a single row/entry of a Model M from the database, where
     the entry is from a campaign with the given name and itself has the given entryName.
 
-    ``campaignName`` must be exactly equal to the name of the targetted campaign, 
+    ``campaignName`` must be exactly equal to the name of the targetted campaign,
     the comparison is case-sensitive.
     ``entryName`` must be exactly equal to the name of the targetted entry,
     the comparison is case-sensitive.]##
@@ -237,7 +237,7 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     fkColumnFromJoinToManyEnd: static string,
 ): seq[M2] =
   ## Fetches the many-to-many relationship for the entry `queryStartEntry` and
-  ## returns a seq of all entries connected to `queryStartEntry` in `queryEndEntries`. 
+  ## returns a seq of all entries connected to `queryStartEntry` in `queryEndEntries`.
   ## Requires to also be passed the model connecting the many-to-many relationship
   ## via `joinModelEntries`in order to fetch the relationship. Also requires the
   ## field on the joinModel that points to the table of `queryStartEntry`
@@ -260,13 +260,13 @@ proc getManyToMany*[M1: Model, J: Model, M2: Model](
     joinModel: typedesc[J],
     otherManyModel: typedesc[M2],
 ): seq[M2] =
-  ## A convenience proc. Fetches the many-to-many relationship for the entry 
-  ## `queryStartEntry` and returns a seq of all entries connected to `queryStartEntry` 
-  ## in `queryEndEntries`. Requires to also be passed the model connecting the 
+  ## A convenience proc. Fetches the many-to-many relationship for the entry
+  ## `queryStartEntry` and returns a seq of all entries connected to `queryStartEntry`
+  ## in `queryEndEntries`. Requires to also be passed the model connecting the
   ## many-to-many relationship via `joinModelEntries`in order to fetch the relationship.
-  ## The fields on `joinModelEntries` to use for these queries are inferred. 
-  ## Will only compile if the joinModel has exactly one field pointing to 
-  ## the table of `queryStartEntry` as well as exactly one field pointing to 
+  ## The fields on `joinModelEntries` to use for these queries are inferred.
+  ## Will only compile if the joinModel has exactly one field pointing to
+  ## the table of `queryStartEntry` as well as exactly one field pointing to
   ## the table of `queryEndEntries`. Specify the parameters `fkColumnFromJoinToManyStart`
   ## and `fkColumnFromJoinToManyEnd` if that is not the case.
 
@@ -324,9 +324,9 @@ proc updateEntry*[T: Model](entry: var T): T =
   ##[ Replaces an entry of a given TableModel T with the data provided as a JSON string
     and returns a different representation of that entry via model M.
 
-    If `entryJsonData` does not contain the id of the entry that shall be updated, 
+    If `entryJsonData` does not contain the id of the entry that shall be updated,
     then the given entryId is used. Otherwise the id in the given entryJsonData is used.
-    
+
     WARNING: ``T`` and ``M`` **must** be models for the same database table!]##
 
   withDbTransaction(connection):
@@ -380,7 +380,7 @@ proc createEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =
 
 proc createArticleEntry*[T: Model](entryJsonData: string, modelType: typedesc[T]): T =
   ##[ Helper proc for createEntry when you receive the entry as a jsonString
-    and the model is an Article, which means creation and updateTime need to 
+    and the model is an Article, which means creation and updateTime need to
     be set accordingly. You can provide your own connection here]##
   var entry: T = entryJsonData.fromJson(T)
 
