@@ -69,7 +69,12 @@ export class SmallCreateFormComponent<T> {
     this.userModel = undefined;
   }
 
-  onSubmit() {
+  onSubmit(event: Event) {
+    event.preventDefault();
+
+    const canSubmit = this.userModel != null;
+    if (!canSubmit) return;
+
     this.changeState('DISPLAY');
 
     const hasValue = this.userModel?.[this.valueProp()] != null;

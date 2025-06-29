@@ -24,7 +24,7 @@
 </ng-template>
 
 <ng-template #createState>
-  <form class="form" (keydown.Escape)="onCancel()">
+  <form class="form" (keydown.Escape)="onCancel()" (submit)="onSubmit($event)">
     <label [for]="id" class="cdk-visually-hidden">
       {{ formFieldLabel() }}
     </label>
@@ -49,7 +49,6 @@
       [icon]="'check'"
       [type]="'submit'"
       [disabled]="userModel == null"
-      (clicked)="onSubmit()"
     ></button>
 
     <!-- Cancel Button -->
