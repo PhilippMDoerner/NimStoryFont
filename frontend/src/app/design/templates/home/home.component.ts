@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { CampaignOverview } from 'src/app/_models/campaign';
 import {
@@ -174,19 +175,19 @@ export class HomeComponent {
 
       const scrollEvent = this.globalStore.contentScrollEvents();
       if (!scrollEvent) return;
-
-      this.onPageScroll(scrollEvent);
+      const currentPageNumber = untracked(() => this.pageNumber());
+      this.onPageScroll(scrollEvent, currentPageNumber);
     });
   }
 
-  triggerNextPageLoad(): void {
+  triggerNextPageLoad(currentPageNumber: number): void {
     const canLoadNextPage = this.canLoadMore();
     if (!canLoadNextPage) {
       return;
     }
 
-    this.pageNumber.set(this.pageNumber() + 1);
-    this.loadArticlePage.emit(this.pageNumber());
+    this.pageNumber.set(currentPageNumber + 1);
+    this.loadArticlePage.emit(currentPageNumber);
   }
 
   toggleFeedMode(isSwitchedOn: boolean) {
@@ -222,9 +223,9 @@ export class HomeComponent {
     }
   }
 
-  private onPageScroll(event: ContentScrollEvent) {
+  private onPageScroll(event: ContentScrollEvent, currentPageNumber: number) {
     if (this.isNearPageEnd(event)) {
-      this.triggerNextPageLoad();
+      this.triggerNextPageLoad(currentPageNumber);
     }
   }
 

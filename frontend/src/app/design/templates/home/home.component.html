@@ -78,7 +78,7 @@
             [icon]="'download'"
             [disabled]="!canLoadMore()"
             [isLoading]="isLoading()"
-            (clicked)="triggerNextPageLoad()"
+            (clicked)="triggerNextPageLoad(this.pageNumber())"
           ></button>
         </div>
       }
