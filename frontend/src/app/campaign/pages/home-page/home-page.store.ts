@@ -46,7 +46,6 @@ export const HomePageStore = signalStore(
           ),
           tapResponse({
             next: (articles) => {
-              console.log("DEBUG: 'loadMoreArticles' start");
               const isLastPage = articles.length === 0;
               const recentlyUpdatedArticles = state
                 .recentlyUpdatedArticles()
@@ -57,7 +56,6 @@ export const HomePageStore = signalStore(
                 canLoadMore: !isLastPage,
                 recentlyUpdatedArticles,
               });
-              console.log("DEBUG: 'loadMoreArticles' end");
             },
             error: (err: HttpErrorResponse) => {
               toastService.addToast(httpErrorToast(err));
