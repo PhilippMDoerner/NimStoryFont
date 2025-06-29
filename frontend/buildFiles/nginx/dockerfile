@@ -10,8 +10,9 @@ WORKDIR /frontend
 RUN apk -U add nodejs npm
 # The --mount option here is a cache-layer for local development.
 # It caches the node_modules dir when re-running docker commands.
+# TODO: Remove npm i --force. This is a temporary addition until ngrx updates their lib for Angular20
 RUN --mount=type=cache,target=./node_modules \
-  npm i && npm run build
+  npm i --force && npm run build
 
 # Phase 2) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
