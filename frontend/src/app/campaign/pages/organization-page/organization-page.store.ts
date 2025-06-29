@@ -10,7 +10,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { map, pipe, shareReplay, switchMap, take } from 'rxjs';
+import { map, pipe, shareReplay, switchMap, take, tap } from 'rxjs';
 import { OrganizationMembership } from 'src/app/_models/character';
 import { Organization, OrganizationMember } from 'src/app/_models/organization';
 import { OverviewItem } from 'src/app/_models/overview';
@@ -110,20 +110,21 @@ export const OrganizationStore = signalStore(
           organizationError: undefined,
           organizationQueryState: 'init',
         }),
-      deleteOrganization: (pk: number) => {
-        patchState(state, {
-          organizationDeleteState: 'loading',
-        });
-        organizationService.delete(pk).subscribe({
-          next: () => {
-            patchState(state, {
-              organizationDeleteState: 'success',
-            });
-          },
-          error: (err: HttpErrorResponse) =>
-            handleError(state, err, toastService),
-        });
-      },
+      deleteOrganization: rxMethod<number>(
+        pipe(
+          tap(() => patchState(state, { organizationDeleteState: 'loading' })),
+          switchMap((pk) => organizationService.delete(pk)),
+          tapResponse({
+            next: () => {
+              patchState(state, {
+                organizationDeleteState: 'success',
+              });
+            },
+            error: (err: HttpErrorResponse) =>
+              handleError(state, err, toastService),
+          }),
+        ),
+      ),
       createMembership: rxMethod<OverviewItem>(
         pipe(
           switchMap((item) =>
