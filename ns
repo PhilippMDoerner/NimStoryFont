@@ -107,6 +107,7 @@ Usage:
 
 Commands:
   compose <cmd>              Run docker compose commands with the server-setup on the host machine.
+  status                     Check if the server is running (Prints the docker containers)
 
 Description:
   Commands to control the server runtime on the remote host.
