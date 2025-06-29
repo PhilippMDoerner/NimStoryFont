@@ -8,10 +8,10 @@ FROM alpine AS build
 COPY ./frontend /frontend
 WORKDIR /frontend
 RUN apk -U add nodejs npm
-# The --mount option here is a cache-layer for local development. 
+# The --mount option here is a cache-layer for local development.
 # It caches the node_modules dir when re-running docker commands.
 RUN --mount=type=cache,target=./node_modules \
-  npm i && npm run build:dev
+  npm i --force && npm run build:dev
 
 # Phase 2) Swap to fresh alpine image, install nginx and copy frontend-build and some static assets from prior image
 FROM docker.io/library/alpine:latest
