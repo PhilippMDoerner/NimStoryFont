@@ -8,7 +8,7 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { switchMap, take } from 'rxjs';
+import { map, switchMap, take } from 'rxjs';
 import {
   Spell,
   SpellPlayerClassConnection,
@@ -61,7 +61,9 @@ export const SpellsPageStore = signalStore(
         campaignName$.pipe(
           take(1),
           switchMap((campaignName) =>
-            spellService.campaignDetailList(campaignName),
+            spellService
+              .campaignDetailList(campaignName)
+              .pipe(map((spells) => sortByProp(spells, 'name'))),
           ),
         ),
       playerClasses: () => playerService.list(),
