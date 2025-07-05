@@ -34,7 +34,7 @@ const initialState: SessionsPageState = {
 };
 
 function sortSessions(sessions: Session[]): Session[] {
-  return sortByProp(sessions, 'session_number', 'desc');
+  return sortByProp(sessions, 'session_number', 'desc', true);
 }
 
 export const SessionsPageStore = signalStore(
@@ -61,7 +61,7 @@ export const SessionsPageStore = signalStore(
           switchMap((campaignName) =>
             sessionService.campaignDetailList(campaignName),
           ),
-          map((sessions) => sortByProp(sessions, 'session_number', 'desc')),
+          map((sessions) => sortSessions(sessions)),
         ),
     };
   }),
