@@ -4,6 +4,8 @@
   flex-wrap: wrap;
   align-items: stretch;
   width: 100%;
+  --bs-tertiary-bg: var(--bs-primary-bg);
+  --bs-black: var(--bs-white);
 }
 
 .disabled {
