@@ -8,7 +8,7 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { shareReplay, switchMap, take } from 'rxjs';
+import { map, shareReplay, switchMap, take } from 'rxjs';
 import { Rule, RuleRaw } from 'src/app/_models/rule';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { RuleService } from 'src/app/_services/article/rule.service';
@@ -55,7 +55,9 @@ export const RulesPageStore = signalStore(
         campaignName$.pipe(
           take(1),
           switchMap((campaignName) =>
-            ruleService.campaignDetailList(campaignName),
+            ruleService
+              .campaignDetailList(campaignName)
+              .pipe(map((rules) => sortByProp(rules, 'name'))),
           ),
         ),
     };
