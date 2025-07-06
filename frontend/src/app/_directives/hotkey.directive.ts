@@ -10,11 +10,8 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, of, switchMap, tap } from 'rxjs';
 import { capitalize } from 'src/utils/string';
-import {
-  BindableHotkey,
-  HotkeyService,
-  UNBINDABLE_KEYSET,
-} from '../_services/hotkey.service';
+import { BindableHotkey, UNBINDABLE_KEYSET } from '../_models/hotkey';
+import { HotkeyService } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
 export type TooltipBehavior = 'OnHotkey' | 'Always' | 'Never';
