@@ -16,7 +16,7 @@
         class="filter__input"
         [label]="'Filter text'"
         [ariaControls]="listId"
-        (changed)="filterValue.set($event)"
+        (changed)="onFilterChange($event)"
       />
 
       <button
@@ -59,7 +59,7 @@
   >
     @for (
       itemLetterEntries of displayEntries() | groupByFirstLetter: labelProp();
-      track $index
+      track itemLetterEntries.key
     ) {
       <li
         class="letter-list"
@@ -67,6 +67,7 @@
           'col-xl-6': !input._value() && !forceSingleLine(),
           'col-12': input._value() || forceSingleLine(),
         }"
+        [style.view-transition-name]="'widget-' + itemLetterEntries.key"
       >
         <!-- Letter Heading -->
         @if (input._value().length === 0) {
@@ -82,8 +83,11 @@
             heading() + ' names starting with \'' + itemLetterEntries.key + '\''
           "
         >
-          @for (item of itemLetterEntries.value; track $index) {
-            <li class="letter-list__item">
+          @for (item of itemLetterEntries.value; track item.link) {
+            <li
+              class="letter-list__item"
+              [style.view-transition-name]="item.link"
+            >
               <a class="letter-list__link" [routerLink]="item.link">
                 @let body = bodyProp() ? item[bodyProp()] : undefined;
                 <app-overview-entry

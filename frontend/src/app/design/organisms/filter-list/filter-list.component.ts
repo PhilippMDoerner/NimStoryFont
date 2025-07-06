@@ -16,7 +16,7 @@ import {
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
-import { OverviewEntryComponent } from "../../molecules/overview-entry/overview-entry.component";
+import { OverviewEntryComponent } from '../../molecules/overview-entry/overview-entry.component';
 import { FilterListEntry } from '../_model/filterListEntry';
 import { TreeComponent, TreeNode } from '../tree/tree.component';
 
@@ -42,8 +42,8 @@ export type GroupConfig<T> =
     ButtonComponent,
     InputComponent,
     TreeComponent,
-    OverviewEntryComponent
-],
+    OverviewEntryComponent,
+  ],
 })
 export class FilterListComponent<T> {
   entries = input.required<FilterListEntry<T>[]>();
@@ -104,5 +104,15 @@ export class FilterListComponent<T> {
 
     const entry = this.displayEntries()[0];
     this.routing.navigateByUrl(entry.link);
+  }
+
+  onFilterChange(newFilterValue: string): void {
+    if (document.startViewTransition) {
+      document?.startViewTransition(() => {
+        this.filterValue.set(newFilterValue);
+      });
+    } else {
+      this.filterValue.set(newFilterValue);
+    }
   }
 }
