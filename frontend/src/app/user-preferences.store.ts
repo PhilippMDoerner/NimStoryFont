@@ -11,11 +11,11 @@ import { GeneralMetadata, MetaDataEntry } from './_models/userMetadata';
 import { PreferencesService } from './_services/utils/preferences.service';
 import { ToastService } from './design/organisms/toast-overlay/toast-overlay.component';
 
-export interface PreferencesState {}
+export interface UserPreferencesState {}
 
-const initialState: PreferencesState = {};
+const initialState: UserPreferencesState = {};
 
-export const PreferencesStore = signalStore(
+export const UserPreferencesStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
   withQueries(() => {

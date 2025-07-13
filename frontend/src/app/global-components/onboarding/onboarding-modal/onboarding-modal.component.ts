@@ -12,7 +12,7 @@ import { combineLatest, filter, map, startWith } from 'rxjs';
 import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { AuthStore } from 'src/app/auth.store';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { PreferencesStore } from 'src/app/preferences.store';
+import { UserPreferencesStore } from 'src/app/user-preferences.store';
 import { componentId } from 'src/utils/DOM';
 import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
 import { OnboardingStepperComponent } from '../onboarding-stepper/onboarding-stepper.component';
@@ -29,7 +29,7 @@ export class OnboardingModalComponent {
 
   modalService = inject(NgbModal);
   authStore = inject(AuthStore);
-  preferencesStore = inject(PreferencesStore);
+  preferencesStore = inject(UserPreferencesStore);
 
   activeStepElement = signal<CdkStep | undefined>(undefined);
 

@@ -13,7 +13,7 @@ import { SiteAdministrationPageStore } from './administration/pages/site-adminis
 import { campaignRoutes } from './campaign/campaign-routes';
 import { generalRoutes } from './general/general-routes';
 import { campaignCreationGuard } from './general/pages/create-campaign/campaign-creation.guard';
-import { PreferencesStore } from './preferences.store';
+import { UserPreferencesStore } from './user-preferences.store';
 
 const redirectRoutes: Routes = [
   //Redirect Routes
@@ -75,7 +75,7 @@ export const ROUTES: Routes = [
             resolve: {
               campaignSetResolver,
               loadGeneralPreferences: () =>
-                inject(PreferencesStore).loadGeneral(),
+                inject(UserPreferencesStore).loadGeneral(),
             },
             children: [
               {
