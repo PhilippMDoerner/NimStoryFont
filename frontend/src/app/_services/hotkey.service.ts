@@ -75,9 +75,15 @@ export class HotkeyService {
       );
 
       return merge(...actionListeners$).pipe(
+        // timeout + retry reset the current action-listeners if for 5s no action was fired.
+        // This means if you start a key-combination but don't finish it within 5s, it will be reset
         timeout(5000),
-        retry(), // timeout+retry reset the current action-listeners if for 5s no action was fired. This means if you start a key-combination but don't finish it within 5s, it will be reset
-        take(1), // Resets the stream after an action was emitted.
+        retry(),
+        // take(1) + repeat reset the stream after an action was emitted.
+        // That way the key-combination a b c can't trigger an action on a, a b AND a b c.
+        // Instead it will only trigger the action for the key a.
+        // The keys b c then can only trigger an action if specifically they have an action mapped to them.
+        take(1),
         repeat(),
       );
     }),
