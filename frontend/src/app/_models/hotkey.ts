@@ -20,11 +20,11 @@ export type ShortcutAction = (typeof ACTIONS)[number];
 
 export type KeyCombination = string[];
 
-export type shortcutMapping = {
+export type ShortcutMapping = {
   [key in ShortcutAction]: KeyCombination;
 };
 
-export const DEFAULT_MAPPINGS: shortcutMapping = {
+export const DEFAULT_MAPPINGS: ShortcutMapping = {
   'scroll-top': ['Alt+t'],
   create: ['Alt+c'],
   delete: ['Alt+d'],
