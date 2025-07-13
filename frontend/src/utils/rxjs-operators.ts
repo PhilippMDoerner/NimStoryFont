@@ -8,10 +8,12 @@ import {
   of,
   OperatorFunction,
   pipe,
+  retry,
   skip,
   switchMap,
   take,
   tap,
+  timeout,
 } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { log } from './logging';
@@ -65,6 +67,12 @@ export function mapServerModel<T>(): OperatorFunction<
     filter((error) => error.status === 401),
     map((error) => error.error as T | undefined),
   );
+}
+
+export function resetAfterTimeout<T>(
+  timeoutMs: number,
+): OperatorFunction<T, T> {
+  return pipe(timeout(timeoutMs), retry());
 }
 
 /**

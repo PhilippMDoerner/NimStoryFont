@@ -9,11 +9,11 @@
     [text]="menuButtonText()"
     [icon]="menuButtonIcon()"
     [size]="menuButtonSize()"
-    [hotkey]="menuButtonHotkey()"
+    [hotkeyAction]="menuButtonHotkey()"
     aria-haspopup="menu"
     [attr.aria-controls]="menuId"
     [attr.aria-label]="menuButtonAriaLabel()"
-    (hotkeyPressed)="openAndScrollToMenu()"
+    (actionTriggered)="openAndScrollToMenu()"
   ></button>
   <ul
     ngbDropdownMenu
@@ -42,8 +42,8 @@
             [class.active]="item.active"
             [class.disabled]="item.disabled"
             [routerLink]="item.url"
-            [hotkey]="item.hotkey"
-            (hotkeyPressed)="menuItem.click()"
+            [hotkeyAction]="item.hotkeyAction"
+            (actionTriggered)="menuItem.click()"
           >
             @if (item.icon) {
               <app-icon class="me-3" [icon]="item.icon"></app-icon>
@@ -57,11 +57,11 @@
             class="dropdown-item"
             [class.active]="item.active"
             [class.disabled]="item.disabled"
-            [hotkey]="item.hotkey"
+            [hotkeyAction]="item.hotkeyAction"
             role="menuitem"
             ngbDropdownItem
             (click)="actionTriggered.emit(item.actionName)"
-            (hotkeyPressed)="actionTriggered.emit(item.actionName)"
+            (actionTriggered)="actionTriggered.emit(item.actionName)"
           >
             @if (item.icon) {
               <app-icon class="me-3" [icon]="item.icon"></app-icon>
@@ -75,11 +75,11 @@
             class="dropdown-item"
             [class.active]="item.active"
             [class.disabled]="item.disabled"
-            [hotkey]="item.hotkey"
+            [hotkeyAction]="item.hotkeyAction"
             role="menuitem"
             ngbDropdownItem
             (click)="openModal(item, menuModal)"
-            (hotkeyPressed)="actionTriggered.emit(item.actionName)"
+            (actionTriggered)="actionTriggered.emit(item.actionName)"
           >
             @if (item.icon) {
               <app-icon class="me-3" [icon]="item.icon"></app-icon>

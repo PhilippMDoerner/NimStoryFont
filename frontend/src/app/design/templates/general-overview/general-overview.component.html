@@ -58,8 +58,8 @@
           [icon]="'plus'"
           [kind]="'PRIMARY'"
           [text]="'Add ' + (overviewTypeName() | titlecase)"
-          [hotkey]="'c'"
-          (hotkeyPressed)="$event.host.click()"
+          [hotkeyAction]="'create'"
+          (actionTriggered)="$event.host.click()"
         >
         </a>
       </div>

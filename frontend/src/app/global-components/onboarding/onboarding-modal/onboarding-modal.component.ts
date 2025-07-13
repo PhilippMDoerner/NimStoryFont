@@ -37,7 +37,7 @@ export class OnboardingModalComponent {
 
   constructor(hotkeyService: HotkeyService) {
     hotkeyService
-      .watch('o')
+      .watchAction('show-onboarding')
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.openModal());
 

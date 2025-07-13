@@ -108,7 +108,7 @@ export class SpellComponent implements OnInit {
         label: 'Edit',
         icon: 'pencil',
         active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
-        hotkey: this.disabledHotkeys() ? undefined : 'e',
+        hotkeyAction: this.disabledHotkeys() ? undefined : 'update',
       });
     }
 
@@ -118,7 +118,7 @@ export class SpellComponent implements OnInit {
         actionName: 'delete',
         label: 'Delete',
         icon: 'trash',
-        hotkey: this.disabledHotkeys() ? undefined : 'd',
+        hotkeyAction: this.disabledHotkeys() ? undefined : 'delete',
         modal: {
           ...DEFAULT_DELETE_MODAL_DATA,
           heading: `Delete ${this.spell()?.name}`,

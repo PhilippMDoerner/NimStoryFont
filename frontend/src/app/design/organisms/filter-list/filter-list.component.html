@@ -3,8 +3,8 @@
     class="row filter"
     autocomplete="off"
     (submit)="openFirstArticle($event)"
-    [hotkey]="'f'"
-    (hotkeyPressed)="input.focus()"
+    [hotkeyAction]="'focus'"
+    (actionTriggered)="input.focus()"
   >
     <div
       class="filter__input-container"

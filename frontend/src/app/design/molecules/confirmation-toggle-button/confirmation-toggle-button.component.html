@@ -18,9 +18,9 @@
     [icon]="icon()"
     [size]="toggleSize()"
     [text]="text()"
-    [hotkey]="'d'"
-    [disabledHotkey]="!enableHotkey()"
-    (hotkeyPressed)="$event.host.click()"
+    [hotkeyAction]="'delete'"
+    [actionDisabled]="!enableHotkey()"
+    (actionTriggered)="$event.host.click()"
   ></button>
 
   <ng-container body>

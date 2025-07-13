@@ -1,96 +1,98 @@
-import { DOCUMENT } from '@angular/common';
-import { DestroyRef, inject, Injectable } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { inject, Injectable, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
-  debounceTime,
-  EMPTY,
+  bufferCount,
   filter,
   fromEvent,
   map,
   merge,
   Observable,
+  scan,
   share,
-  shareReplay,
-  startWith,
-  tap,
+  switchMap,
 } from 'rxjs';
-import { BindableHotkey, UNBINDABLE_KEYSET } from '../_models/hotkey';
+import { resetAfterTimeout } from 'src/utils/rxjs-operators';
+import { ACTIONS, DEFAULT_MAPPINGS, HotkeyAction } from '../_models/hotkey';
 
 @Injectable({
   providedIn: 'root',
 })
 export class HotkeyService {
-  private hotkeyDown$: Observable<KeyboardEvent> | undefined;
-  public isHotkeyModifierPressed$: Observable<boolean> | undefined; //Undefined on Server
+  private MODIFIER_KEYS = new Set([
+    'Alt',
+    'Control',
+    'AltGraph',
+    'Meta',
+    'Shift',
+    'CapsLock',
+  ]);
+  private modalService = inject(NgbModal);
 
-  constructor() {
-    const document = inject(DOCUMENT);
-    const window = inject(DOCUMENT).defaultView;
-    const destroyRef = inject(DestroyRef);
+  private hotkeyMap = signal(DEFAULT_MAPPINGS);
+  private hotkeyMap$ = toObservable(this.hotkeyMap);
 
-    if (window) {
-      const keydownEvents$ = fromEvent<KeyboardEvent>(window, 'keydown');
-      const keyupEvents$ = fromEvent<KeyboardEvent>(window, 'keyup');
-      const visibilityChangeEvents$ = merge(
-        fromEvent<Event>(document, 'blur'),
-        fromEvent<Event>(window, 'blur'),
-        fromEvent<Event>(document, 'visibilitychange'),
-        fromEvent<Event>(window, 'visibilitychange'),
-      ).pipe(debounceTime(10));
+  private keyup$ = fromEvent<KeyboardEvent>(document.body, 'keyup').pipe(
+    filter((event) => !this.MODIFIER_KEYS.has(event.key)),
+    map((event) => this.encodeKey(event)),
+  );
 
-      this.hotkeyDown$ = this.toHotkeydownEvents(keydownEvents$).pipe(
-        takeUntilDestroyed(destroyRef),
-        share(),
-      );
-      this.isHotkeyModifierPressed$ = this.toIsHotkeyActive(
-        keydownEvents$,
-        keyupEvents$,
-        visibilityChangeEvents$,
-      ).pipe(takeUntilDestroyed(destroyRef));
-    }
+  private actions$: Observable<HotkeyAction> = this.hotkeyMap$.pipe(
+    switchMap((hotkeyMap) => {
+      const actionListeners$ = ACTIONS.map((action) => {
+        const sequence = hotkeyMap[action].map((key) => key.toLowerCase());
+        return this.keyup$.pipe(
+          bufferCount(sequence.length, 1),
+          resetAfterTimeout(1000),
+          filter((lastNKeys) =>
+            sequence.every((key, index) => key === lastNKeys[index]),
+          ),
+          map(() => action),
+        );
+      });
+
+      return merge(...actionListeners$);
+    }),
+    share(),
+  );
+
+  public watchAction(
+    action: HotkeyAction,
+    isModalAction = false,
+  ): Observable<void> {
+    return this.actions$.pipe(
+      filter((a) => a === action),
+      filter(() => this.modalActionFilter(isModalAction)),
+      map(() => void 0),
+    );
   }
 
-  /**
-   * Creates an observable of keydown events on @key that happen while the hotkey is pressed.
-   * Event will get fired everytime @key gets invoked as either:
-   * - alt + @key
-   * - alt + ctrl + @key (This is mostly relevant for firefox which displays a few menus when alt is pressed)
+  public hasVisibleTooltip(isModalAction = false): Observable<boolean> {
+    return this.watchAction('show-tooltips', isModalAction).pipe(
+      scan(
+        (currentIsTooltipVisibleValue) => !currentIsTooltipVisibleValue,
+        false,
+      ),
+    );
+  }
+
+  public getKeySequence(action: HotkeyAction): Observable<string[]> {
+    return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action]));
+  }
+
+  /*
+   * Checks if a given action is currently allowed to trigger or not.
+   * An Action may only trigger if:
+   * - No modal is open (We do not want to allow hotkeys to trigger actions *underneath* a modal)
+   * - If a modal is open, then the action must be an action on the currently open modal itself.
    */
-  watch<T>(key: BindableHotkey<T> | undefined): Observable<KeyboardEvent> {
-    if (!window || !this.hotkeyDown$ || !key) return EMPTY;
-
-    return this.hotkeyDown$.pipe(
-      filter((event) => event.key === key),
-      tap((event) => event.preventDefault()),
-    );
+  private modalActionFilter(isModalAction: boolean) {
+    const hasOpenModals = this.modalService.hasOpenModals();
+    if (!hasOpenModals) return true;
+    return hasOpenModals && isModalAction;
   }
 
-  private toHotkeydownEvents(
-    keydownEvents$: Observable<KeyboardEvent>,
-  ): Observable<KeyboardEvent> {
-    return keydownEvents$.pipe(
-      filter((event) => event.altKey && !UNBINDABLE_KEYSET.has(event.key)),
-      shareReplay(1),
-    );
-  }
-
-  private toIsHotkeyActive(
-    keydownEvents$: Observable<KeyboardEvent>,
-    keyupEvents$: Observable<KeyboardEvent>,
-    visibilityChangeEvents$: Observable<Event>,
-  ): Observable<boolean> {
-    const isAltKeyDown1$ = keydownEvents$.pipe(
-      filter((event) => event.key === 'Alt'),
-      map(() => true),
-    );
-    const isAltKeyDown2 = merge(
-      keyupEvents$.pipe(filter((event) => event.key === 'Alt')),
-      visibilityChangeEvents$,
-    ).pipe(map(() => false));
-
-    return merge(isAltKeyDown1$, isAltKeyDown2).pipe(
-      startWith(false),
-      shareReplay(1),
-    );
+  private encodeKey(event: KeyboardEvent) {
+    return `${event.altKey ? 'alt+' : ''}${event.ctrlKey ? 'ctrl+' : ''}${event.metaKey ? 'meta+' : ''}${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`;
   }
 }

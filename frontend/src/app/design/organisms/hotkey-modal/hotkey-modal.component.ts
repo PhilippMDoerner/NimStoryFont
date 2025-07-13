@@ -151,7 +151,7 @@ export class HotkeyModalComponent {
 
   constructor(hotkeyService: HotkeyService) {
     hotkeyService
-      .watch('h')
+      .watchAction('show-help')
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.openModal());
   }

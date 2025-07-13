@@ -1,3 +1,4 @@
+import { HotkeyAction } from 'src/app/_models/hotkey';
 import { ElementKind } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
 
@@ -16,7 +17,7 @@ export type MenuItem =
       actionName: string;
       disabled?: boolean;
       icon?: Icon;
-      hotkey?: string;
+      hotkeyAction?: HotkeyAction;
       active?: boolean;
     }
   | {
@@ -25,7 +26,7 @@ export type MenuItem =
       url: string;
       disabled?: boolean;
       icon?: Icon;
-      hotkey?: string;
+      hotkeyAction?: HotkeyAction;
       active?: boolean;
     }
   | {
@@ -42,7 +43,7 @@ export type MenuItem =
       };
       disabled?: boolean;
       icon?: Icon;
-      hotkey?: string;
+      hotkeyAction?: HotkeyAction;
       active?: boolean;
     };
 

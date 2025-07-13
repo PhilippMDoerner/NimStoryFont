@@ -1,38 +1,44 @@
-const UNBINDABLE_HOTKEYS = [
-  '',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '0',
-  '-',
-  '=',
-  'Escape',
-  'F1',
-  'F2',
-  'F3',
-  'F4',
-  'F5',
-  'F6',
-  'F7',
-  'F8',
-  'F9',
-  'F10',
-  'F11',
-  'F12',
-  'ArrowLeft',
-  'ArrowRight',
-  '^',
-  'Space',
+export const ACTIONS = [
+  'scroll-top',
+  'create',
+  'delete',
+  'update',
+  'description-update',
+  'cancel',
+  'jump-to-next-entry',
+  'jump-to-prior-entry',
+  'search',
+  'focus',
+  'cut',
+  'toggle',
+  'show-help',
+  'show-tooltips',
+  'show-onboarding',
 ] as const;
-export const UNBINDABLE_KEYSET = new Set<string>(UNBINDABLE_HOTKEYS);
-type UnbindableHotkey = (typeof UNBINDABLE_HOTKEYS)[number];
+export const ACTIONS_SET = new Set<string>(ACTIONS);
+export type HotkeyAction = (typeof ACTIONS)[number];
 
-type NotA<T> = T extends UnbindableHotkey ? never : T;
-type NotB<T> = UnbindableHotkey extends T ? never : T;
-export type BindableHotkey<T> = NotA<T> & NotB<T>;
+export type KeyCombination = string[];
+
+export interface HotkeyMapping {
+  actionName: HotkeyAction;
+  keyCombination: KeyCombination;
+}
+
+export const DEFAULT_MAPPINGS: { [key in HotkeyAction]: KeyCombination } = {
+  'scroll-top': ['Alt+t'],
+  create: ['Alt+c'],
+  delete: ['Alt+d'],
+  update: ['Alt+e'],
+  'description-update': ['Alt+w'],
+  cancel: ['Alt+q'],
+  'jump-to-next-entry': ['Alt+ArrowDown'],
+  'jump-to-prior-entry': ['Alt+ArrowUp'],
+  search: ['Alt+s'],
+  focus: ['Alt+f', 'c'],
+  cut: ['Alt+x'],
+  toggle: ['Alt+r'],
+  'show-tooltips': ['Alt+g'],
+  'show-help': ['Alt+h'],
+  'show-onboarding': ['Alt+o'],
+};

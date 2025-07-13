@@ -119,7 +119,7 @@ export class EncounterComponent implements OnInit {
         label: isEditingMetadata ? 'Cancel Edit' : 'Edit Metadata',
         actionName: 'edit-metadata',
         active: isEditingMetadata,
-        hotkey: this.isInFocus() ? 'e' : undefined,
+        hotkeyAction: this.isInFocus() ? 'update' : undefined,
         icon: isEditingMetadata ? 'times' : 'file-pen',
       });
 
@@ -132,7 +132,7 @@ export class EncounterComponent implements OnInit {
         label: isEditingDescription ? 'Cancel Edit' : 'Edit Description',
         actionName: 'edit-description',
         active: isEditingDescription,
-        hotkey: this.isInFocus() ? 'w' : undefined,
+        hotkeyAction: this.isInFocus() ? 'description-update' : undefined,
         icon: isEditingDescription ? 'times' : 'pencil',
       });
     }
@@ -142,7 +142,7 @@ export class EncounterComponent implements OnInit {
         kind: 'CONFIRM',
         actionName: 'delete',
         label: `Delete`,
-        hotkey: this.isInFocus() ? 'd' : undefined,
+        hotkeyAction: this.isInFocus() ? 'delete' : undefined,
         icon: 'trash',
         modal: {
           ...DEFAULT_DELETE_MODAL_DATA,

@@ -11,8 +11,8 @@
           [icon]="'times'"
           [kind]="'SECONDARY'"
           [attr.aria-label]="'Cancel ' + heading()"
-          [hotkey]="'q'"
-          (hotkeyPressed)="onCancel()"
+          [hotkeyAction]="'cancel'"
+          (actionTriggered)="onCancel()"
           (clicked)="onCancel()"
         ></button>
       </div>

@@ -47,7 +47,7 @@ export class ArticleContextMenuComponent {
         label: deleteLabel,
         actionName: 'delete',
         icon: 'trash',
-        hotkey: 'd',
+        hotkeyAction: 'delete',
       });
     }
     return items;
@@ -86,14 +86,14 @@ export class ArticleContextMenuComponent {
           label: editEntry.label,
           url: editEntry.link,
           icon: 'pencil',
-          hotkey: 'e',
+          hotkeyAction: 'update',
         };
       case 'BUTTON':
         return {
           kind: 'BUTTON',
           label: editEntry.label,
           icon: 'pencil',
-          hotkey: 'e',
+          hotkeyAction: 'update',
           actionName: 'edit',
         };
     }

@@ -16,9 +16,9 @@
     [icon]="'plus'"
     [text]="badgeText()"
     [interactionMode]="'BUTTON'"
-    [hotkey]="createHotkey()"
-    [disabledHotkey]="disableHotkeys()"
-    (hotkeyPressed)="toggleForm()"
+    [hotkeyAction]="createHotkey()"
+    [actionDisabled]="disableHotkeys()"
+    (actionTriggered)="toggleForm()"
     (badgeClick)="toggleForm()"
   ></app-badge>
 </ng-template>
@@ -58,9 +58,9 @@
       [kind]="cancelButtonType()"
       [size]="'SMALL'"
       [icon]="'times'"
-      [hotkey]="'q'"
-      [disabledHotkey]="disableHotkeys()"
-      (hotkeyPressed)="toggleForm()"
+      [hotkeyAction]="'cancel'"
+      [actionDisabled]="disableHotkeys()"
+      (actionTriggered)="toggleForm()"
       (clicked)="toggleForm()"
     ></button>
   </form>

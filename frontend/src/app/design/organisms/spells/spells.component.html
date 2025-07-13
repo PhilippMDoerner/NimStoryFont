@@ -8,8 +8,8 @@
         [text]="'Add Spell'"
         [icon]="'plus'"
         (clicked)="addSpell()"
-        [hotkey]="'c'"
-        (hotkeyPressed)="addSpell()"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="addSpell()"
       ></button>
     </div>
   }

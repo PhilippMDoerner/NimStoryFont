@@ -98,9 +98,9 @@
       [icon]="'times'"
       [text]="'Cancel'"
       [kind]="cancelButtonKind()"
-      [hotkey]="'q'"
-      [disabledHotkey]="disabledHotkeys()"
-      (hotkeyPressed)="cancelEdit()"
+      [hotkeyAction]="'cancel'"
+      [actionDisabled]="disabledHotkeys()"
+      (actionTriggered)="cancelEdit()"
       (clicked)="cancelEdit()"
     ></button>
   </div>

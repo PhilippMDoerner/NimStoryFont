@@ -35,8 +35,8 @@
       [kind]="'PRIMARY'"
       [icon]="'plus'"
       [text]="'Add Map'"
-      [hotkey]="'c'"
-      (hotkeyPressed)="$event.host.click()"
+      [hotkeyAction]="'create'"
+      (actionTriggered)="$event.host.click()"
     >
     </a>
 

@@ -11,8 +11,8 @@
         [kind]="'PRIMARY'"
         [icon]="'plus'"
         [text]="'Add quest'"
-        [hotkey]="'c'"
-        (hotkeyPressed)="$event.host.click()"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="$event.host.click()"
       >
       </a>
     </div>

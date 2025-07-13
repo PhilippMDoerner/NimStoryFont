@@ -18,9 +18,6 @@ import {
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { of } from 'rxjs';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { OnlineService } from 'src/app/_services/online.service';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
@@ -99,9 +96,6 @@ export class HomeComponent {
 
   isOnline$ = inject(OnlineService).online$;
 
-  isHotkeyModifierPressed = toSignal(
-    inject(HotkeyService).isHotkeyModifierPressed$ ?? of(false),
-  );
   timeFilterOptions = computed<MenuItem[]>(() => {
     return FILTER_MODES.map((mode) => ({
       actionName: mode,

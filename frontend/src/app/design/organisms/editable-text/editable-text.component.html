@@ -13,8 +13,8 @@
       <button
         class="heading__edit-button fs-6 fw-normal"
         aria-label="Edit text"
-        [hotkey]="'w'"
-        (hotkeyPressed)="toggleEdit()"
+        [hotkeyAction]="'description-update'"
+        (actionTriggered)="toggleEdit()"
         (click)="toggleEdit()"
       >
         (

@@ -103,7 +103,7 @@ export class ProfileComponent {
         label: this.showProfileEditForm()
           ? 'Cancel Profile Edit'
           : 'Edit profile',
-        hotkey: 'e',
+        hotkeyAction: 'update',
         icon: this.showProfileEditForm() ? 'times' : 'pencil',
       },
       {
@@ -121,7 +121,7 @@ export class ProfileComponent {
         kind: 'BUTTON',
         actionName: 'delete',
         label: 'Delete your account',
-        hotkey: 'd',
+        hotkeyAction: 'delete',
         icon: 'trash',
       });
     }
