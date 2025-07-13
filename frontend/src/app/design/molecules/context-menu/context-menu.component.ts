@@ -19,7 +19,7 @@ import {
   Placement,
 } from '@ng-bootstrap/ng-bootstrap';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { HotkeyAction } from 'src/app/_models/hotkey';
+import { ShortcutAction } from 'src/app/_models/hotkey';
 import { ButtonKind, ElementSize } from 'src/app/design/atoms/_models/button';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
@@ -56,7 +56,7 @@ export class ContextMenuComponent {
   menuButtonText = input<string>();
   menuButtonIcon = input<Icon>();
   menuButtonSize = input<ElementSize>('MEDIUM');
-  menuButtonHotkey = input<HotkeyAction>();
+  menuButtonHotkey = input<ShortcutAction>();
   menuButtonAriaLabel = input<string>();
   placement = input<PlacementArray>([
     'bottom-start',

@@ -17,7 +17,7 @@ import {
   timeout,
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
-import { ACTIONS, DEFAULT_MAPPINGS, HotkeyAction } from '../_models/hotkey';
+import { ACTIONS, DEFAULT_MAPPINGS, ShortcutAction } from '../_models/hotkey';
 
 @Injectable({
   providedIn: 'root',
@@ -52,7 +52,7 @@ export class HotkeyService {
     share(),
   );
 
-  private actions$: Observable<HotkeyAction> = this.hotkeyMap$.pipe(
+  private actions$: Observable<ShortcutAction> = this.hotkeyMap$.pipe(
     map((hotkeyMap) => {
       const sequences = ACTIONS.map((action) => ({
         sequence: hotkeyMap[action].map((key) => key.toLowerCase()),
@@ -93,7 +93,7 @@ export class HotkeyService {
   );
 
   public watchAction(
-    action: HotkeyAction,
+    action: ShortcutAction,
     isModalAction = false,
   ): Observable<void> {
     return this.actions$.pipe(
@@ -112,7 +112,7 @@ export class HotkeyService {
     );
   }
 
-  public getKeySequence(action: HotkeyAction): Observable<string[]> {
+  public getKeySequence(action: ShortcutAction): Observable<string[]> {
     return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action]));
   }
 

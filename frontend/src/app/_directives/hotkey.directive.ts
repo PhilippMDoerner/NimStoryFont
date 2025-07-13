@@ -23,7 +23,7 @@ import {
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
 import { capitalize } from 'src/utils/string';
-import { HotkeyAction } from '../_models/hotkey';
+import { ShortcutAction } from '../_models/hotkey';
 import { HotkeyService } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
@@ -42,7 +42,7 @@ export class HotkeyDirective {
   private modalService = inject(NgbModal);
   public element = inject(ElementRef<HTMLElement>);
 
-  hotkeyAction = input.required<HotkeyAction | undefined>();
+  hotkeyAction = input.required<ShortcutAction | undefined>();
   modalAction = input<boolean>(true);
   actionDisabled = input<boolean>(false);
   description = input<string>();

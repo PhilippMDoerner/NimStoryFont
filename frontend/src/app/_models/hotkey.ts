@@ -16,16 +16,15 @@ export const ACTIONS = [
   'show-onboarding',
 ] as const;
 export const ACTIONS_SET = new Set<string>(ACTIONS);
-export type HotkeyAction = (typeof ACTIONS)[number];
+export type ShortcutAction = (typeof ACTIONS)[number];
 
 export type KeyCombination = string[];
 
-export interface HotkeyMapping {
-  actionName: HotkeyAction;
-  keyCombination: KeyCombination;
-}
+export type shortcutMapping = {
+  [key in ShortcutAction]: KeyCombination;
+};
 
-export const DEFAULT_MAPPINGS: { [key in HotkeyAction]: KeyCombination } = {
+export const DEFAULT_MAPPINGS: shortcutMapping = {
   'scroll-top': ['Alt+t'],
   create: ['Alt+c'],
   delete: ['Alt+d'],
