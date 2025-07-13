@@ -8,11 +8,15 @@ import {
   map,
   merge,
   Observable,
+  repeat,
+  retry,
   scan,
   share,
   switchMap,
+  take,
+  timeout,
 } from 'rxjs';
-import { resetAfterTimeout } from 'src/utils/rxjs-operators';
+import { debugLog } from 'src/utils/rxjs-operators';
 import { ACTIONS, DEFAULT_MAPPINGS, HotkeyAction } from '../_models/hotkey';
 
 @Injectable({
@@ -33,25 +37,49 @@ export class HotkeyService {
   private hotkeyMap$ = toObservable(this.hotkeyMap);
 
   private keyup$ = fromEvent<KeyboardEvent>(document.body, 'keyup').pipe(
-    filter((event) => !this.MODIFIER_KEYS.has(event.key)),
+    filter((event) => {
+      const isFromTextInput =
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement;
+      if (isFromTextInput) return false;
+
+      return !this.MODIFIER_KEYS.has(event.key);
+    }),
     map((event) => this.encodeKey(event)),
+    debugLog('keyup'),
+    share(),
   );
 
   private actions$: Observable<HotkeyAction> = this.hotkeyMap$.pipe(
-    switchMap((hotkeyMap) => {
-      const actionListeners$ = ACTIONS.map((action) => {
-        const sequence = hotkeyMap[action].map((key) => key.toLowerCase());
-        return this.keyup$.pipe(
+    map((hotkeyMap) => {
+      const sequences = ACTIONS.map((action) => ({
+        sequence: hotkeyMap[action].map((key) => key.toLowerCase()),
+        action,
+      }));
+      // Sorting the actions is necessary so that the longest key-combinations can emit first.
+      // This allows scenarios with key Combinations [Alt+C Alt+D] vs [Alt+D] to work,
+      // as the first one will trigger first on the Alt+D press
+      sequences.sort((a, b) => b.sequence.length - a.sequence.length);
+      return sequences;
+    }),
+    switchMap((hotkeySequences) => {
+      const actionListeners$ = hotkeySequences.map(({ sequence, action }) =>
+        this.keyup$.pipe(
           bufferCount(sequence.length, 1),
-          resetAfterTimeout(1000),
           filter((lastNKeys) =>
             sequence.every((key, index) => key === lastNKeys[index]),
           ),
           map(() => action),
-        );
-      });
+          debugLog('action'),
+        ),
+      );
 
-      return merge(...actionListeners$);
+      return merge(...actionListeners$).pipe(
+        timeout(5000),
+        retry(), // timeout+retry reset the current action-listeners if for 5s no action was fired. This means if you start a key-combination but don't finish it within 5s, it will be reset
+        take(1), // Resets the stream after an action was emitted.
+        repeat(),
+      );
     }),
     share(),
   );

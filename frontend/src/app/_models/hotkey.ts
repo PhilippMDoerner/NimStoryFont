@@ -35,7 +35,7 @@ export const DEFAULT_MAPPINGS: { [key in HotkeyAction]: KeyCombination } = {
   'jump-to-next-entry': ['Alt+ArrowDown'],
   'jump-to-prior-entry': ['Alt+ArrowUp'],
   search: ['Alt+s'],
-  focus: ['Alt+f', 'c'],
+  focus: ['Alt+f'],
   cut: ['Alt+x'],
   toggle: ['Alt+r'],
   'show-tooltips': ['Alt+g'],

@@ -133,15 +133,6 @@ export class HotkeyDirective {
     })
       .pipe(
         switchMap(({ action, isModalAction, isDisabled }) => {
-          console.log(
-            'tooltipvisibility',
-            {
-              action,
-              isModalAction,
-              isDisabled,
-            },
-            this.element.nativeElement,
-          );
           if (isDisabled || !action) return of(false);
           return this.hotkeyService.hasVisibleTooltip(isModalAction);
         }),
