@@ -1,0 +1,18 @@
+<ul class="nav nav-underline" role="navigation" aria-label="User Pages">
+  @for (tab of tabs(); track tab.label) {
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        [routerLink]="tab.link"
+        [routerLinkActive]="'active'"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [ariaCurrentWhenActive]="'page'"
+      >
+        <span class="h4">
+          <app-icon [icon]="tab.icon" />
+          {{ tab.label }}
+        </span>
+      </a>
+    </li>
+  }
+</ul>
