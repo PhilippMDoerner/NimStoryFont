@@ -12,16 +12,13 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { User } from 'src/app/_models/user';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
+import { RoutingService } from 'src/app/_services/routing.service';
+import { ProfileTabLayoutComponent } from 'src/app/general/components/profile-tab-layout/profile-tab-layout.component';
 import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
 import { CardComponent } from '../../atoms/card/card.component';
-import { IconComponent } from '../../atoms/icon/icon.component';
-import { SeparatorComponent } from '../../atoms/separator/separator.component';
 import { MenuItem } from '../../molecules/_models/menu';
-import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';
-import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { FormComponent } from '../../molecules/form/form.component';
-import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 import { CampaignMembership } from '../_models/campaign-membership';
 
 export interface PasswordModel {
@@ -34,19 +31,18 @@ export interface PasswordModel {
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
   imports: [
-    PageContainerComponent,
-    IconComponent,
-    SeparatorComponent,
     CardComponent,
     FormComponent,
     TitleCasePipe,
-    ArticleFooterComponent,
     ConfirmationToggleButtonComponent,
-    ContextMenuComponent,
+    ProfileTabLayoutComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileComponent {
+  formlyService = inject(FormlyService);
+  routingService = inject(RoutingService);
+
   user = input.required<User>();
   memberships = input.required<CampaignMembership[]>();
   canDeleteProfile = input<boolean>(false);
@@ -58,8 +54,6 @@ export class ProfileComponent {
   readonly passwordUpdate = output<PasswordModel>();
   readonly campaignLeave = output<CampaignMembership>();
   readonly profileDelete = output<User>();
-
-  formlyService = inject(FormlyService);
 
   showPasswordEditForm = signal<boolean>(false);
   showProfileEditForm = signal<boolean>(false);
@@ -97,6 +91,12 @@ export class ProfileComponent {
   ];
   contextMenuEntries = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [
+      {
+        kind: 'LINK',
+        label: 'Profile Settings',
+        icon: 'cog',
+        url: this.routingService.getRoutePath('user-settings'),
+      },
       {
         kind: 'BUTTON',
         actionName: 'edit-data',

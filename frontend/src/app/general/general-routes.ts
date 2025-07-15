@@ -42,12 +42,27 @@ export const generalRoutes = [
   //User Routes
   {
     path: `profile/me`,
-    loadComponent: () =>
-      import('./pages/profile-page/profile-page.component').then(
-        (m) => m.ProfilePageComponent,
-      ),
-    data: { name: 'direct-profile' },
-    canActivate: [loginGuard, onlyOnlineGuard],
-    title: 'Your Profile',
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/profile-page/profile-page.component').then(
+            (m) => m.ProfilePageComponent,
+          ),
+        data: { name: 'direct-profile' },
+        canActivate: [loginGuard, onlyOnlineGuard],
+        title: 'Your Profile',
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import(
+            './pages/user-settings-page/user-settings-page.component'
+          ).then((m) => m.UserSettingsPageComponent),
+        data: { name: 'user-settings' },
+        canActivate: [loginGuard, onlyOnlineGuard],
+        title: 'Your Settings',
+      },
+    ],
   },
 ];

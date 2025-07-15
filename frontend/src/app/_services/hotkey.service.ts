@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
@@ -17,23 +17,18 @@ import {
   timeout,
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
-import { ACTIONS, DEFAULT_MAPPINGS, ShortcutAction } from '../_models/hotkey';
+import { encodeKey } from '../_functions/keyMapper';
+import { ACTIONS, MODIFIER_KEYS, ShortcutAction } from '../_models/hotkey';
+import { UserPreferencesStore } from '../user-preferences.store';
 
 @Injectable({
   providedIn: 'root',
 })
 export class HotkeyService {
-  private MODIFIER_KEYS = new Set([
-    'Alt',
-    'Control',
-    'AltGraph',
-    'Meta',
-    'Shift',
-    'CapsLock',
-  ]);
   private modalService = inject(NgbModal);
+  private preferencesStore = inject(UserPreferencesStore);
 
-  private hotkeyMap = signal(DEFAULT_MAPPINGS);
+  private hotkeyMap = this.preferencesStore.shortcutMappings;
   private hotkeyMap$ = toObservable(this.hotkeyMap);
 
   private keyup$ = fromEvent<KeyboardEvent>(document.body, 'keyup').pipe(
@@ -45,9 +40,9 @@ export class HotkeyService {
       if (isFromTextInput) return false;
 
       // Ignore keyup events from modifier keys. We only care about "real" keys
-      return !this.MODIFIER_KEYS.has(event.key);
+      return !MODIFIER_KEYS.has(event.key);
     }),
-    map((event) => this.encodeKey(event)),
+    map((event) => encodeKey(event)),
     debugLog('keyup'),
     share(),
   );
@@ -55,7 +50,7 @@ export class HotkeyService {
   private actions$: Observable<ShortcutAction> = this.hotkeyMap$.pipe(
     map((hotkeyMap) => {
       const sequences = ACTIONS.map((action) => ({
-        sequence: hotkeyMap[action].map((key) => key.toLowerCase()),
+        sequence: hotkeyMap[action].keys.map((key) => key.toLowerCase()),
         action,
       }));
       // Sorting the actions is necessary so that the longest key-combinations can emit first.
@@ -113,7 +108,7 @@ export class HotkeyService {
   }
 
   public getKeySequence(action: ShortcutAction): Observable<string[]> {
-    return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action]));
+    return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
   }
 
   /*
@@ -126,9 +121,5 @@ export class HotkeyService {
     const hasOpenModals = this.modalService.hasOpenModals();
     if (!hasOpenModals) return true;
     return hasOpenModals && isModalAction;
-  }
-
-  private encodeKey(event: KeyboardEvent) {
-    return `${event.altKey ? 'alt+' : ''}${event.ctrlKey ? 'ctrl+' : ''}${event.metaKey ? 'meta+' : ''}${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`;
   }
 }

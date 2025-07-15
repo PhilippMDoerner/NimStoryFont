@@ -1,19 +1,44 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
-import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
+import {
+  patchState,
+  signalStore,
+  withComputed,
+  withMethods,
+  withState,
+} from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap } from 'rxjs';
+import { map, pipe, switchMap, tap } from 'rxjs';
 import { toBoolean } from 'src/utils/bool';
+import { filterNil } from 'src/utils/rxjs-operators';
+import { RequestState } from 'src/utils/store/factory-types';
 import { withQueries } from 'src/utils/store/withQueries';
+import {
+  DEFAULT_MAPPINGS,
+  KeyCombination,
+  ShortcutAction,
+  ShortcutMapping,
+} from './_models/hotkey';
 import { httpErrorToast } from './_models/toast';
-import { GeneralMetadata, MetaDataEntry } from './_models/userMetadata';
+import {
+  GeneralMetadata,
+  MetaDataEntry,
+  SHORTCUT_KEY_SEPARATOR,
+  ShortcutMetadataEntry,
+} from './_models/userMetadata';
 import { PreferencesService } from './_services/utils/preferences.service';
 import { ToastService } from './design/organisms/toast-overlay/toast-overlay.component';
 
-export interface UserPreferencesState {}
+export interface UserPreferencesState {
+  updateShortcutsState: RequestState;
+  deleteShortcutsState: RequestState;
+}
 
-const initialState: UserPreferencesState = {};
+const initialState: UserPreferencesState = {
+  updateShortcutsState: 'init',
+  deleteShortcutsState: 'init',
+};
 
 export const UserPreferencesStore = signalStore(
   { providedIn: 'root' },
@@ -23,6 +48,25 @@ export const UserPreferencesStore = signalStore(
 
     return {
       general: () => preferencesService.getGeneralUserMetadata(),
+      shortcutEntries: () => preferencesService.getUserShortcuts(),
+    };
+  }),
+  withComputed((state) => {
+    return {
+      shortcutMappings: computed(() => {
+        const shortcutEntries = state.shortcutEntries();
+        const modifiedShortcuts = shortcutEntries?.reduce((acc, entry) => {
+          acc[entry.name as ShortcutAction] = {
+            keys: entry.value,
+            modified: true,
+          };
+          return acc;
+        }, {} as ShortcutMapping);
+        return {
+          ...DEFAULT_MAPPINGS,
+          ...modifiedShortcuts,
+        };
+      }),
     };
   }),
   withMethods((store) => {
@@ -33,7 +77,7 @@ export const UserPreferencesStore = signalStore(
       createMetaDataEntry: rxMethod<MetaDataEntry>(
         pipe(
           switchMap((entry) =>
-            preferencesService.createGeneralUserMetadataEntry(entry),
+            preferencesService.createUserMetadataEntry(entry),
           ),
           tapResponse({
             next: (newEntry) => {
@@ -46,6 +90,10 @@ export const UserPreferencesStore = signalStore(
                     } as GeneralMetadata,
                   };
                   patchState(store, nextState);
+                  break;
+                }
+                case 'shortcut': {
+                  break;
                 }
               }
             },
@@ -54,6 +102,90 @@ export const UserPreferencesStore = signalStore(
               if (!isBadRequest) {
                 toastService.addToast(httpErrorToast(err));
               }
+            },
+          }),
+        ),
+      ),
+      updateShortcut: rxMethod<{ action: string; keys: KeyCombination }>(
+        pipe(
+          map(({ action, keys }): MetaDataEntry => {
+            const entryId = store
+              .shortcutEntries()
+              ?.find((entry) => entry.name === action)?.id;
+
+            return {
+              category: 'shortcut',
+              name: action,
+              value: keys.join(SHORTCUT_KEY_SEPARATOR),
+              id: entryId,
+            };
+          }),
+          tap(() => patchState(store, { updateShortcutsState: 'loading' })),
+          switchMap((entry) => {
+            const isNewEntry = entry.id == undefined;
+            if (isNewEntry) {
+              return preferencesService.createUserMetadataEntry(entry);
+            } else {
+              return preferencesService.updateUserMetadataEntry(entry);
+            }
+          }),
+          map(
+            (newEntry): ShortcutMetadataEntry => ({
+              ...newEntry,
+              value: newEntry.value.split(SHORTCUT_KEY_SEPARATOR),
+            }),
+          ),
+          tapResponse({
+            next: (newEntry) => {
+              const oldList = store.shortcutEntries();
+              const newList = oldList?.filter(
+                (entry) => entry.name === newEntry.name,
+              );
+              newList?.push(newEntry);
+              patchState(store, {
+                shortcutEntries: newList,
+                updateShortcutsState: 'success',
+              });
+            },
+            error: (err: HttpErrorResponse) => {
+              const isBadRequest = err.status === 400;
+              if (!isBadRequest) {
+                toastService.addToast(httpErrorToast(err));
+              }
+              patchState(store, { updateShortcutsState: 'error' });
+            },
+          }),
+        ),
+      ),
+      resetShortcut: rxMethod<ShortcutAction>(
+        pipe(
+          map(
+            (action) =>
+              store.shortcutEntries()?.find((entry) => entry.name === action)
+                ?.id,
+          ),
+          filterNil(),
+          tap(() => patchState(store, { deleteShortcutsState: 'loading' })),
+          switchMap((entryId) =>
+            preferencesService
+              .deleteUserMetadataEntry(entryId)
+              .pipe(map(() => entryId)),
+          ),
+          tapResponse({
+            next: (entryId) => {
+              const oldList = store.shortcutEntries();
+              const newList = oldList?.filter((entry) => entry.id !== entryId);
+              patchState(store, {
+                shortcutEntries: newList,
+                deleteShortcutsState: 'success',
+              });
+            },
+            error: (err: HttpErrorResponse) => {
+              const isBadRequest = err.status === 400;
+              if (!isBadRequest) {
+                toastService.addToast(httpErrorToast(err));
+              }
+              patchState(store, { deleteShortcutsState: 'error' });
             },
           }),
         ),

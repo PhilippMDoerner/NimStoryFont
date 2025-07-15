@@ -1,3 +1,15 @@
+export const MODIFIER_KEYS = new Set([
+  'Alt',
+  'Control',
+  'AltGraph',
+  'Meta',
+  'Shift',
+  'CapsLock',
+  'Escape',
+  'Enter',
+  'Tab',
+]);
+
 export const ACTIONS = [
   'scroll-top',
   'create',
@@ -21,23 +33,23 @@ export type ShortcutAction = (typeof ACTIONS)[number];
 export type KeyCombination = string[];
 
 export type ShortcutMapping = {
-  [key in ShortcutAction]: KeyCombination;
+  [key in ShortcutAction]: { keys: KeyCombination; modified: boolean };
 };
 
 export const DEFAULT_MAPPINGS: ShortcutMapping = {
-  'scroll-top': ['Alt+t'],
-  create: ['Alt+c'],
-  delete: ['Alt+d'],
-  update: ['Alt+e'],
-  'description-update': ['Alt+w'],
-  cancel: ['Alt+q'],
-  'jump-to-next-entry': ['Alt+ArrowDown'],
-  'jump-to-prior-entry': ['Alt+ArrowUp'],
-  search: ['Alt+s'],
-  focus: ['Alt+f'],
-  cut: ['Alt+x'],
-  toggle: ['Alt+r'],
-  'show-tooltips': ['Alt+g'],
-  'show-help': ['Alt+h'],
-  'show-onboarding': ['Alt+o'],
+  'scroll-top': { keys: ['Alt+t'], modified: false },
+  create: { keys: ['Alt+c'], modified: false },
+  delete: { keys: ['Alt+d'], modified: false },
+  update: { keys: ['Alt+e'], modified: false },
+  'description-update': { keys: ['Alt+w'], modified: false },
+  cancel: { keys: ['Alt+q'], modified: false },
+  'jump-to-next-entry': { keys: ['Alt+ArrowDown'], modified: false },
+  'jump-to-prior-entry': { keys: ['Alt+ArrowUp'], modified: false },
+  search: { keys: ['Alt+s'], modified: false },
+  focus: { keys: ['Alt+f'], modified: false },
+  cut: { keys: ['Alt+x'], modified: false },
+  toggle: { keys: ['Alt+r'], modified: false },
+  'show-tooltips': { keys: ['Alt+g'], modified: false },
+  'show-help': { keys: ['Alt+h'], modified: false },
+  'show-onboarding': { keys: ['Alt+o'], modified: false },
 };

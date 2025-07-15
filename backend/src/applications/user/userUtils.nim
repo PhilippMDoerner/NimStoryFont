@@ -18,6 +18,13 @@ proc checkUserDeletePermission*(ctx: JWTContext, entry: User) =
   if isDeletingAdmin:
     checkSuperUserPermission(ctx, entry)
 
+proc checkUserUpdatePermission*(ctx: JWTContext, entry: UserMetadata) =
+  let isSelfUpdate = ctx.tokenData.userId == entry.user_id
+  if not isSelfUpdate:
+    raise newException(
+      UnauthorizedError, "Only the user can update data related to their own account"
+    )
+
 proc checkNoUserPermission*(ctx: JWTContext, entry: seq[User]) =
   return
 

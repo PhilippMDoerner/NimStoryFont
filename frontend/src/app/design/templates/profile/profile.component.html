@@ -1,22 +1,7 @@
-<app-page-container>
+<app-profile-tab-layout>
   <article class="profile">
     <!-- Section Heading -->
-    <div class="profile__heading heading">
-      <h1 class="heading__text">
-        <app-icon [icon]="'circle-user'" />
-        Profile
-      </h1>
-      <app-context-menu
-        class="profile__edit-container"
-        [menuItems]="contextMenuEntries()"
-        [menuButtonKind]="'NONE'"
-        [menuButtonAriaLabel]="'Profile actions'"
-        [menuButtonIcon]="'ellipsis-vertical'"
-        (actionTriggered)="onContextMenuAction($event)"
-      />
-    </div>
-
-    <app-separator />
+    <h1 class="cdk-visually-hidden">Profile</h1>
 
     <!-- Profile -->
     @if (!showProfileEditForm()) {
@@ -83,13 +68,5 @@
         ></app-form>
       </app-card>
     }
-
-    <app-article-footer
-      class="mt-5 d-block"
-      [buttonLabel]="
-        campaignName() ? 'Back To ' + campaignName() : 'Back to Campaigns'
-      "
-      [buttonLink]="backUrl()"
-    />
   </article>
-</app-page-container>
+</app-profile-tab-layout>

@@ -5,6 +5,8 @@ import {
   GeneralMetadata,
   MetaDataEntry,
   MetaDataKind,
+  SHORTCUT_KEY_SEPARATOR,
+  ShortcutMetadataEntry,
 } from 'src/app/_models/userMetadata';
 import { SidebarOption } from 'src/app/design/molecules';
 import { environment } from 'src/environments/environment';
@@ -32,10 +34,34 @@ export class PreferencesService {
     );
   }
 
-  createGeneralUserMetadataEntry(
-    entry: MetaDataEntry,
-  ): Observable<MetaDataEntry> {
+  getUserShortcuts(): Observable<ShortcutMetadataEntry[]> {
+    return this.http
+      .get<MetaDataEntry[]>(`${this.settingsApiUrl}/shortcut/`)
+      .pipe(
+        map((entries) =>
+          entries?.map(
+            (entry) =>
+              ({
+                ...entry,
+                value: entry.value.split(SHORTCUT_KEY_SEPARATOR),
+              }) satisfies ShortcutMetadataEntry,
+          ),
+        ),
+      );
+  }
+
+  createUserMetadataEntry(entry: MetaDataEntry): Observable<MetaDataEntry> {
     return this.http.post<MetaDataEntry>(`${this.settingsApiUrl}/`, entry);
+  }
+
+  updateUserMetadataEntry(entry: MetaDataEntry): Observable<MetaDataEntry> {
+    return this.http.put<MetaDataEntry>(`${this.settingsApiUrl}/`, entry);
+  }
+
+  deleteUserMetadataEntry(entryId: number): Observable<void> {
+    return this.http
+      .delete<void>(`${this.settingsApiUrl}/pk/${entryId}/`)
+      .pipe(map(() => void 0));
   }
 
   getStoredSearchPreferences(): SidebarOption | null {

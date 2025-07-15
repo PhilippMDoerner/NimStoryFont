@@ -68,15 +68,18 @@ export const ROUTES: Routes = [
       },
       {
         path: '',
+        resolve: {
+          campaignSetResolver,
+          loadGeneralPreferences: () =>
+            inject(UserPreferencesStore).loadGeneral(),
+          loadShortcuts: () =>
+            inject(UserPreferencesStore).loadShortcutEntries(),
+        },
         children: [
           ...generalRoutes,
           {
             path: '',
-            resolve: {
-              campaignSetResolver,
-              loadGeneralPreferences: () =>
-                inject(UserPreferencesStore).loadGeneral(),
-            },
+
             children: [
               {
                 path: '',

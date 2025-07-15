@@ -21,7 +21,7 @@ proc createArticle*[T: Model](
     connection: DbConn, jsonData: string, modelType: typedesc[T]
 ): T =
   ##[ Helper proc for createEntry when you receive the entry as a jsonString
-    and the model is an Article, which means creation and updateTime need to 
+    and the model is an Article, which means creation and updateTime need to
     be set accordingly. You can provide your own connection here]##
   var entry: T = jsonData.fromJson(T)
 

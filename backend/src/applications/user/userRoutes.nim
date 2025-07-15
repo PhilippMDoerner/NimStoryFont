@@ -97,3 +97,26 @@ proc addUserRoutes*(app: Prologue) =
     httpMethod = HttpPost,
     middlewares = @[loginMiddleware()],
   )
+
+  app.addRoute(
+    re fmt"/user/me/settings/",
+    httpMethod = HttpPut,
+    middlewares = @[loginMiddleware()],
+    handler = createUpdateHandler[UpdateParams, UserMetadata, UserMetadataSerializable](
+      checkPermission = checkUserUpdatePermission,
+      readProc = readArticleById,
+      updateProc = updateEntry,
+      serialize = serializeUserMetadata,
+    ),
+  )
+
+  app.addRoute(
+    re fmt"/user/me/settings/pk/{ID_PATTERN}/",
+    httpMethod = HttpDelete,
+    middlewares = @[loginMiddleware()],
+    handler = createDeleteHandler[DeleteParams, UserMetadata](
+      checkPermission = checkUserUpdatePermission,
+      readProc = readArticleById,
+      deleteProc = deleteArticle,
+    ),
+  )
