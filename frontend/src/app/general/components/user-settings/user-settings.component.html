@@ -48,7 +48,9 @@
               [kind]="'SECONDARY'"
               [icon]="'pencil'"
               [size]="'SMALL'"
-              aria-label="Edit shortcut"
+              [attr.aria-label]="
+                'Edit shortcut for action \'' + mapping.actionLabel + '\''
+              "
               (clicked)="openEditShortcutDialog(editShortcutDialog)"
             ></button>
 
@@ -67,7 +69,9 @@
               [class.table__action-button--hidden]="!mapping.modified"
               [kind]="'INFO-OUTLINE'"
               [icon]="'arrow-rotate-left'"
-              aria-label="Reset shortcut"
+              [attr.aria-label]="
+                'Reset shortcut for action ' + mapping.actionLabel
+              "
               (clicked)="emitShortcutReset(mapping.action)"
             ></button>
           </div>
