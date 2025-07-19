@@ -67,7 +67,7 @@
   <div class="body">
     @let imageGridEntries = gridEntries();
     @if (imageGridEntries != null) {
-      @if (imageGridEntries.length > 0 && false) {
+      @if (imageGridEntries.length > 0) {
         <app-image-grid class="body__images" [entries]="imageGridEntries" />
       } @else {
         <ng-container *ngTemplateOutlet="noCampaign" />
