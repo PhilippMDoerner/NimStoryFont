@@ -1,6 +1,9 @@
-<div class="container-fluid">
+<div
+  class="container-fluid"
+  [class.container-fluid--empty]="entries()?.length === 0 || true"
+>
   @if (entries() != null) {
-    @if (entries().length > 0) {
+    @if (entries().length > 0 && false) {
       <ul class="row image-grid">
         @for (entry of entries(); track $index) {
           <li
@@ -49,10 +52,10 @@
       fill
     />
     <div class="position-absolute frame-text">
-      <h4 class="mb-1">You have not yet been invited into any campaign.</h4>
+      <h2 class="h4">You don't have any campaign yet!</h2>
       <div>
-        Please inform your DM or the person within your group administrating the
-        webserver to add you to the required permission group.
+        Please inform you the person administrating your campaign or this server
+        to add your account to the campaign you want to see.
       </div>
     </div>
   </div>

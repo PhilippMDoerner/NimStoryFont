@@ -25,7 +25,7 @@ export interface ImageGridEntry {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageGridComponent {
-  EMPTY_IMAGE_URL = '';
+  EMPTY_IMAGE_URL = 'assets/general_overview.webp';
 
   entries = input.required<ImageGridEntry[]>();
 
