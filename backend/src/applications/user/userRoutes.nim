@@ -99,7 +99,7 @@ proc addUserRoutes*(app: Prologue) =
   )
 
   app.addRoute(
-    re fmt"/user/me/settings/",
+    re fmt"/user/me/settings/pk/{ID_PATTERN}/",
     httpMethod = HttpPut,
     middlewares = @[loginMiddleware()],
     handler = createUpdateHandler[UpdateParams, UserMetadata, UserMetadataSerializable](

@@ -5,6 +5,7 @@ import { KeyCombination, parseKeyCombinationStr } from 'src/app/_models/hotkey';
 import {
   GeneralMetadata,
   MetaDataEntry,
+  MetaDataEntryRaw,
   MetaDataKind,
   ShortcutMetadataEntry,
 } from 'src/app/_models/userMetadata';
@@ -50,12 +51,15 @@ export class PreferencesService {
       );
   }
 
-  createUserMetadataEntry(entry: MetaDataEntry): Observable<MetaDataEntry> {
+  createUserMetadataEntry(entry: MetaDataEntryRaw): Observable<MetaDataEntry> {
     return this.http.post<MetaDataEntry>(`${this.settingsApiUrl}/`, entry);
   }
 
   updateUserMetadataEntry(entry: MetaDataEntry): Observable<MetaDataEntry> {
-    return this.http.put<MetaDataEntry>(`${this.settingsApiUrl}/`, entry);
+    return this.http.put<MetaDataEntry>(
+      `${this.settingsApiUrl}/pk/${entry.id}/`,
+      entry,
+    );
   }
 
   deleteUserMetadataEntry(entryId: number): Observable<void> {

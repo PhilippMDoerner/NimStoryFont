@@ -26,6 +26,7 @@ import { httpErrorToast } from './_models/toast';
 import {
   GeneralMetadata,
   MetaDataEntry,
+  MetaDataEntryRaw,
   ShortcutMetadataEntry,
 } from './_models/userMetadata';
 import { PreferencesService } from './_services/utils/preferences.service';
@@ -75,7 +76,7 @@ export const UserPreferencesStore = signalStore(
     const toastService = inject(ToastService);
 
     return {
-      createMetaDataEntry: rxMethod<MetaDataEntry>(
+      createMetaDataEntry: rxMethod<MetaDataEntryRaw>(
         pipe(
           switchMap((entry) =>
             preferencesService.createUserMetadataEntry(entry),
@@ -110,15 +111,16 @@ export const UserPreferencesStore = signalStore(
       updateShortcut: rxMethod<{ action: string; keys: KeyCombination }>(
         pipe(
           map(({ action, keys }): MetaDataEntry => {
-            const entryId = store
+            const entry = store
               .shortcutEntries()
-              ?.find((entry) => entry.name === action)?.id;
+              ?.find((entry) => entry.name === action) as ShortcutMetadataEntry;
 
             return {
               category: 'shortcut',
               name: action,
               value: encodeKeyCombination(keys),
-              id: entryId,
+              id: entry?.id,
+              user_id: entry?.user_id,
             };
           }),
           tap(() => patchState(store, { updateShortcutsState: 'loading' })),

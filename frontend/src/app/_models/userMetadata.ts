@@ -8,6 +8,7 @@ export interface MetaDataEntryRaw<T = string> {
 
 export type MetaDataEntry<T = string> = MetaDataEntryRaw<T> & {
   id?: number;
+  user_id: number;
 };
 
 const META_DATA_KINDS = ['general', 'shortcut'] as const;

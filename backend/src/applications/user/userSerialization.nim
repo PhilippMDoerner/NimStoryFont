@@ -13,6 +13,7 @@ type UserMetadataSerializable* = object
   name*: string
   value*: string
   category*: string
+  user_id*: int64
 
 proc serializeUserGroup(entry: Group): UserGroupSerializable =
   result = UserGroupSerializable(name: entry.name, pk: entry.id)
@@ -59,7 +60,11 @@ proc serializeUserMetadata*(
     connection: DbConn, entry: UserMetadata
 ): UserMetadataSerializable =
   result = UserMetadataSerializable(
-    name: entry.name, value: entry.value, category: entry.category, id: entry.id
+    name: entry.name,
+    value: entry.value,
+    category: entry.category,
+    id: entry.id,
+    user_id: entry.user_id,
   )
 
 proc serializeUserMetadataEntries*(
