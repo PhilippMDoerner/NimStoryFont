@@ -16,13 +16,13 @@ import {
   combineLatest,
   EMPTY,
   filter,
+  map,
   of,
   startWith,
   switchMap,
   withLatestFrom,
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
-import { capitalize } from 'src/utils/string';
 import { encodeKeyCombination } from '../_functions/keyMapper';
 import { ShortcutAction } from '../_models/hotkey';
 import { HotkeyService } from '../_services/hotkey.service';
@@ -50,17 +50,16 @@ export class HotkeyDirective {
 
   actionTriggered = output<{ host: HTMLElement }>();
 
-  ariaShortcutText = computed(() => {
-    const hotkey = this.hotkeyAction();
-    if (!hotkey) return undefined;
-    return `Alt+${capitalize(hotkey)}`;
-  });
-
   private hotkeyCombination$ = toObservable(this.hotkeyAction).pipe(
     switchMap((action) => {
       if (!action) return of(undefined);
       return this.hotkeyService.getKeySequence(action);
     }),
+  );
+  ariaShortcutText = toSignal(
+    this.hotkeyCombination$.pipe(
+      map((combo) => (combo ? encodeKeyCombination(combo, true) : undefined)),
+    ),
   );
   private hotkeyCombination = toSignal(this.hotkeyCombination$);
 
