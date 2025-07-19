@@ -139,7 +139,7 @@ export const UserPreferencesStore = signalStore(
             next: (newEntry) => {
               const oldList = store.shortcutEntries();
               const newList = oldList?.filter(
-                (entry) => entry.name === newEntry.name,
+                (entry) => entry.name !== newEntry.name,
               );
               newList?.push(newEntry);
               patchState(store, {

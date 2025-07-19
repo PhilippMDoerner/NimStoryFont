@@ -29,23 +29,23 @@
         [value]="text$ | async"
         (change)="$event.preventDefault()"
       />
+      @let conflictKind = conflictKind$ | async;
+      @if (conflictKind) {
+        <div class="form-text">
+          <app-icon [icon]="'circle-exclamation'" />
+          {{ conflictKind }}
+          @switch (conflictKind) {
+            @case ("already-in-sequence") {
+              Shortcut is already taken or part of another shortcut
+            }
+          }
+        </div>
+      }
 
       <div class="body__keys">
         @for (key of value$ | async; track key.timeStamp) {
           <div>
-            @if (key.ctrlKey) {
-              <span class="body__key"> Ctrl </span>
-            }
-            @if (key.altKey) {
-              <span class="body__key"> Alt </span>
-            }
-            @if (key.metaKey) {
-              <span class="body__key"> Meta </span>
-            }
-            @if (key.shiftKey) {
-              <span class="body__key"> Shift </span>
-            }
-            <span class="body__key"> {{ key.key | titlecase }} </span>
+            <app-key [key]="key" />
             @if (!$last) {
               <span class="body__key-separator">+</span>
             }

@@ -1,4 +1,4 @@
-import { AsyncPipe, TitleCasePipe } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -26,13 +26,14 @@ import {
   ShortcutAction,
 } from 'src/app/_models/hotkey';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { KeyComponent } from 'src/app/design/atoms/key/key.component';
 import { UserPreferencesStore } from 'src/app/user-preferences.store';
 import { componentId } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
 
 @Component({
   selector: 'app-edit-shortcut-dialog',
-  imports: [ButtonComponent, AsyncPipe, TitleCasePipe],
+  imports: [ButtonComponent, AsyncPipe, IconComponent, KeyComponent],
   templateUrl: './edit-shortcut-dialog.component.html',
   styleUrl: './edit-shortcut-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,18 +74,23 @@ export class EditShortcutDialogComponent {
     map((keyEvents) => keyEvents.map(encodeKey).join(' + ')),
   );
 
-  hasConflict$ = combineLatest({
-    currentKeymap: this.currentKeymap$.pipe(filterNil()),
+  conflictKind$ = combineLatest({
+    currentKeymap: this.currentKeymap$,
     selectedKeys: this.value$,
   }).pipe(
     map(({ currentKeymap, selectedKeys }) => {
       const isAlreadyInASequence = ACTIONS.some((action) => {
-        const keyMap = currentKeymap[action].keys;
+        const keyMap = currentKeymap?.[action]?.keys;
         return selectedKeys.every(({ key }, index) => keyMap[index] === key);
       });
+      if (isAlreadyInASequence) return 'already-in-sequence';
 
-      return isAlreadyInASequence;
+      return undefined;
     }),
+  );
+
+  hasConflict$ = this.conflictKind$.pipe(
+    map((conflictKind) => conflictKind !== undefined),
   );
 
   emitShortcutEdited(keys: KeyboardEvent[] | null, event: Event) {
