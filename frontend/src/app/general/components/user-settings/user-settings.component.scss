@@ -3,6 +3,9 @@
 }
 
 .table {
+  border-radius: var(--bs-border-radius);
+  overflow: hidden;
+
   &__column-content {
     vertical-align: middle;
   }
@@ -20,5 +23,10 @@
     &--hidden {
       visibility: hidden;
     }
+  }
+
+  &__container {
+    overflow-x: auto;
+    max-width: 100%;
   }
 }

@@ -1,4 +1,5 @@
 import { CdkTableModule } from '@angular/cdk/table';
+import { AsyncPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,6 +16,7 @@ import {
   ShortcutAction,
   ShortcutMapping,
 } from 'src/app/_models/hotkey';
+import { ScreenService } from 'src/app/_services/screen.service';
 import { EditShortcutDialogComponent } from 'src/app/general/components/edit-shortcut-dialog/edit-shortcut-dialog.component';
 import { componentId } from 'src/utils/DOM';
 import { capitalize } from 'src/utils/string';
@@ -27,6 +29,7 @@ import { ProfileTabLayoutComponent } from '../profile-tab-layout/profile-tab-lay
     ButtonComponent,
     EditShortcutDialogComponent,
     ProfileTabLayoutComponent,
+    AsyncPipe,
   ],
   templateUrl: './user-settings.component.html',
   styleUrl: './user-settings.component.scss',
@@ -42,6 +45,8 @@ export class UserSettingsComponent {
     keys: KeyCombination;
   }>();
   shortcutResetRequested = output<ShortcutAction>();
+
+  isMobile$ = inject(ScreenService).isMobile$;
 
   mappings = computed(() => {
     const shortcutMapping = this.shortcutMap();

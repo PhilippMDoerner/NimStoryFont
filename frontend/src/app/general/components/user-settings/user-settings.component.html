@@ -1,85 +1,101 @@
 <app-profile-tab-layout>
   <h1 class="cdk-visually-hidden">Settings</h1>
 
-  <section [attr.aria-labelledby]="shortcutsSectionLabelId">
-    <h2 [id]="shortcutsSectionLabelId">Shortcuts</h2>
+  @if ((isMobile$ | async) !== true) {
+    <section [attr.aria-labelledby]="shortcutsSectionLabelId">
+      <h2 [id]="shortcutsSectionLabelId">Shortcuts</h2>
 
-    <table
-      class="table table-hover table-dark"
-      cdk-table
-      [dataSource]="mappings() ?? []"
-    >
-      <ng-container cdkColumnDef="index">
-        <th cdk-header-cell *cdkHeaderCellDef>#</th>
-        <td
-          class="table__column-content"
-          cdk-cell
-          *cdkCellDef="let mapping; let i = index"
+      <div class="table__container">
+        <table
+          class="table table-hover table-dark"
+          cdk-table
+          [dataSource]="mappings() ?? []"
         >
-          {{ i + 1 }}
-        </td>
-      </ng-container>
+          <ng-container cdkColumnDef="index">
+            <th cdk-header-cell *cdkHeaderCellDef>#</th>
+            <td
+              class="table__column-content"
+              cdk-cell
+              *cdkCellDef="let mapping; let i = index"
+            >
+              {{ i + 1 }}
+            </td>
+          </ng-container>
 
-      <ng-container cdkColumnDef="action">
-        <th cdk-header-cell *cdkHeaderCellDef>Action</th>
-        <td class="table__column-content" cdk-cell *cdkCellDef="let mapping">
-          <strong>
-            {{ mapping.actionLabel }}
-          </strong>
-        </td>
-      </ng-container>
+          <ng-container cdkColumnDef="action">
+            <th cdk-header-cell *cdkHeaderCellDef>Action</th>
+            <td
+              class="table__column-content"
+              cdk-cell
+              *cdkCellDef="let mapping"
+            >
+              <strong>
+                {{ mapping.actionLabel }}
+              </strong>
+            </td>
+          </ng-container>
 
-      <ng-container cdkColumnDef="shortcut">
-        <th cdk-header-cell *cdkHeaderCellDef>Shortcut</th>
-        <td class="table__column-content" cdk-cell *cdkCellDef="let mapping">
-          {{ mapping.shortcut }}
-          @if (mapping.modified) {
-            <strong class="table__modified-column">*</strong>
-          }
-        </td>
-      </ng-container>
+          <ng-container cdkColumnDef="shortcut">
+            <th cdk-header-cell *cdkHeaderCellDef>Shortcut</th>
+            <td
+              class="table__column-content"
+              cdk-cell
+              *cdkCellDef="let mapping"
+            >
+              {{ mapping.shortcut }}
+              @if (mapping.modified) {
+                <strong class="table__modified-column">*</strong>
+              }
+            </td>
+          </ng-container>
 
-      <ng-container cdkColumnDef="actions">
-        <th cdk-header-cell *cdkHeaderCellDef>Edit</th>
-        <td class="table__column-content" cdk-cell *cdkCellDef="let mapping">
-          <div class="table__action-buttons">
-            <button
-              btn
-              [kind]="'SECONDARY'"
-              [icon]="'pencil'"
-              [size]="'SMALL'"
-              [attr.aria-label]="
-                'Edit shortcut for action \'' + mapping.actionLabel + '\''
-              "
-              (clicked)="openEditShortcutDialog(editShortcutDialog)"
-            ></button>
+          <ng-container cdkColumnDef="actions">
+            <th cdk-header-cell *cdkHeaderCellDef>Edit</th>
+            <td
+              class="table__column-content"
+              cdk-cell
+              *cdkCellDef="let mapping"
+            >
+              <div class="table__action-buttons">
+                <button
+                  btn
+                  [kind]="'SECONDARY'"
+                  [icon]="'pencil'"
+                  [size]="'SMALL'"
+                  [attr.aria-label]="
+                    'Edit shortcut for action \'' + mapping.actionLabel + '\''
+                  "
+                  (clicked)="openEditShortcutDialog(editShortcutDialog)"
+                ></button>
 
-            <ng-template #editShortcutDialog>
-              <app-edit-shortcut-dialog
-                [action]="mapping.action"
-                (cancelled)="modalService.dismissAll()"
-                (shortcutEdited)="
-                  emitShortcutEdited($event.action, $event.shortcut)
-                "
-              />
-            </ng-template>
+                <ng-template #editShortcutDialog>
+                  <app-edit-shortcut-dialog
+                    [action]="mapping.action"
+                    (cancelled)="modalService.dismissAll()"
+                    (shortcutEdited)="
+                      emitShortcutEdited($event.action, $event.shortcut)
+                    "
+                  />
+                </ng-template>
 
-            <button
-              btn
-              [class.table__action-button--hidden]="!mapping.modified"
-              [kind]="'INFO-OUTLINE'"
-              [icon]="'arrow-rotate-left'"
-              [attr.aria-label]="
-                'Reset shortcut for action ' + mapping.actionLabel
-              "
-              (clicked)="emitShortcutReset(mapping.action)"
-            ></button>
-          </div>
-        </td>
-      </ng-container>
+                <button
+                  btn
+                  [class.table__action-button--hidden]="!mapping.modified"
+                  [kind]="'INFO-OUTLINE'"
+                  [icon]="'arrow-rotate-left'"
+                  [attr.aria-label]="
+                    'Reset shortcut for action ' + mapping.actionLabel
+                  "
+                  (clicked)="emitShortcutReset(mapping.action)"
+                ></button>
+              </div>
+            </td>
+          </ng-container>
 
-      <tr cdk-header-row *cdkHeaderRowDef="displayedColumns"></tr>
-      <tr cdk-row *cdkRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-  </section>
+          <tr cdk-header-row *cdkHeaderRowDef="displayedColumns"></tr>
+          <tr cdk-row *cdkRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </div>
+    </section>
+  }
 </app-profile-tab-layout>
