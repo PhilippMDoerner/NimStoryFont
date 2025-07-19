@@ -1,10 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-
-type Key = Pick<
-  KeyboardEvent,
-  'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey' | 'key'
->;
+import { Key } from 'src/app/_models/hotkey';
 
 @Component({
   selector: 'app-key',

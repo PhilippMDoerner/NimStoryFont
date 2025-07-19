@@ -33,7 +33,6 @@
       @if (conflictKind) {
         <div class="form-text">
           <app-icon [icon]="'circle-exclamation'" />
-          {{ conflictKind }}
           @switch (conflictKind) {
             @case ("already-in-sequence") {
               Shortcut is already taken or part of another shortcut
@@ -44,12 +43,10 @@
 
       <div class="body__keys">
         @for (key of value$ | async; track key.timeStamp) {
-          <div>
-            <app-key [key]="key" />
-            @if (!$last) {
-              <span class="body__key-separator">+</span>
-            }
-          </div>
+          <app-key [key]="key" />
+          @if (!$last) {
+            <span class="body__key-separator">+</span>
+          }
         }
       </div>
 

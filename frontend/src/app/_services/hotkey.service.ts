@@ -17,8 +17,13 @@ import {
   timeout,
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
-import { encodeKey } from '../_functions/keyMapper';
-import { ACTIONS, MODIFIER_KEYS, ShortcutAction } from '../_models/hotkey';
+import {
+  ACTIONS,
+  equals,
+  Key,
+  MODIFIER_KEYS,
+  ShortcutAction,
+} from '../_models/hotkey';
 import { UserPreferencesStore } from '../user-preferences.store';
 
 @Injectable({
@@ -42,7 +47,6 @@ export class HotkeyService {
       // Ignore keyup events from modifier keys. We only care about "real" keys
       return !MODIFIER_KEYS.has(event.key);
     }),
-    map((event) => encodeKey(event)),
     debugLog('keyup'),
     share(),
   );
@@ -50,7 +54,10 @@ export class HotkeyService {
   private actions$: Observable<ShortcutAction> = this.hotkeyMap$.pipe(
     map((hotkeyMap) => {
       const sequences = ACTIONS.map((action) => ({
-        sequence: hotkeyMap[action].keys.map((key) => key.toLowerCase()),
+        sequence: hotkeyMap[action].keys.map((key) => ({
+          ...key,
+          key: key.key.toLowerCase(),
+        })),
         action,
       }));
       // Sorting the actions is necessary so that the longest key-combinations can emit first.
@@ -64,7 +71,7 @@ export class HotkeyService {
         this.keyup$.pipe(
           bufferCount(sequence.length, 1),
           filter((lastNKeys) =>
-            sequence.every((key, index) => key === lastNKeys[index]),
+            sequence.every((key, index) => equals(key, lastNKeys[index])),
           ),
           map(() => action),
           debugLog('action'),
@@ -107,7 +114,7 @@ export class HotkeyService {
     );
   }
 
-  public getKeySequence(action: ShortcutAction): Observable<string[]> {
+  public getKeySequence(action: ShortcutAction): Observable<Key[]> {
     return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
   }
 

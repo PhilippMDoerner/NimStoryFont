@@ -18,9 +18,10 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { encodeKey } from 'src/app/_functions/keyMapper';
+import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
 import {
   ACTIONS,
+  equals,
   KeyCombination,
   MODIFIER_KEYS,
   ShortcutAction,
@@ -70,9 +71,7 @@ export class EditShortcutDialogComponent {
     }, [] as KeyboardEvent[]),
   );
 
-  text$ = this.value$.pipe(
-    map((keyEvents) => keyEvents.map(encodeKey).join(' + ')),
-  );
+  text$ = this.value$.pipe(map((keyEvents) => encodeKeyCombination(keyEvents)));
 
   conflictKind$ = combineLatest({
     currentKeymap: this.currentKeymap$,
@@ -80,8 +79,10 @@ export class EditShortcutDialogComponent {
   }).pipe(
     map(({ currentKeymap, selectedKeys }) => {
       const isAlreadyInASequence = ACTIONS.some((action) => {
-        const keyMap = currentKeymap?.[action]?.keys;
-        return selectedKeys.every(({ key }, index) => keyMap[index] === key);
+        const existingCombo = currentKeymap?.[action]?.keys;
+        return existingCombo.every((key, index) =>
+          equals(selectedKeys[index], key),
+        );
       });
       if (isAlreadyInASequence) return 'already-in-sequence';
 
@@ -99,7 +100,7 @@ export class EditShortcutDialogComponent {
 
     this.shortcutEdited.emit({
       action: this.action(),
-      shortcut: keys.map(encodeKey),
+      shortcut: keys,
     });
   }
 }

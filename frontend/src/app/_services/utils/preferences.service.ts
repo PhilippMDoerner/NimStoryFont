@@ -1,11 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
+import { KeyCombination, parseKeyCombinationStr } from 'src/app/_models/hotkey';
 import {
   GeneralMetadata,
   MetaDataEntry,
   MetaDataKind,
-  SHORTCUT_KEY_SEPARATOR,
   ShortcutMetadataEntry,
 } from 'src/app/_models/userMetadata';
 import { SidebarOption } from 'src/app/design/molecules';
@@ -43,7 +43,7 @@ export class PreferencesService {
             (entry) =>
               ({
                 ...entry,
-                value: entry.value.split(SHORTCUT_KEY_SEPARATOR),
+                value: parseKeyCombinationStr(entry.value) as KeyCombination,
               }) satisfies ShortcutMetadataEntry,
           ),
         ),

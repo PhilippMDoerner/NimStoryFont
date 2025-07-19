@@ -23,6 +23,7 @@ import {
 } from 'rxjs';
 import { debugLog } from 'src/utils/rxjs-operators';
 import { capitalize } from 'src/utils/string';
+import { encodeKeyCombination } from '../_functions/keyMapper';
 import { ShortcutAction } from '../_models/hotkey';
 import { HotkeyService } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
@@ -67,7 +68,7 @@ export class HotkeyDirective {
     const hotkeyCombo = this.hotkeyCombination();
     if (!hotkeyCombo) return undefined;
 
-    const comboStr = Array.from(hotkeyCombo).map(capitalize).join(' + ');
+    const comboStr = encodeKeyCombination(hotkeyCombo, true);
 
     const hotkeyDescription = this.description();
     if (!hotkeyDescription) return comboStr;

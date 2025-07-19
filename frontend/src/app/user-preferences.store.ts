@@ -14,9 +14,11 @@ import { toBoolean } from 'src/utils/bool';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
 import { withQueries } from 'src/utils/store/withQueries';
+import { encodeKeyCombination } from './_functions/keyMapper';
 import {
   DEFAULT_MAPPINGS,
   KeyCombination,
+  parseKeyCombinationStr,
   ShortcutAction,
   ShortcutMapping,
 } from './_models/hotkey';
@@ -24,7 +26,6 @@ import { httpErrorToast } from './_models/toast';
 import {
   GeneralMetadata,
   MetaDataEntry,
-  SHORTCUT_KEY_SEPARATOR,
   ShortcutMetadataEntry,
 } from './_models/userMetadata';
 import { PreferencesService } from './_services/utils/preferences.service';
@@ -116,7 +117,7 @@ export const UserPreferencesStore = signalStore(
             return {
               category: 'shortcut',
               name: action,
-              value: keys.join(SHORTCUT_KEY_SEPARATOR),
+              value: encodeKeyCombination(keys),
               id: entryId,
             };
           }),
@@ -132,7 +133,7 @@ export const UserPreferencesStore = signalStore(
           map(
             (newEntry): ShortcutMetadataEntry => ({
               ...newEntry,
-              value: newEntry.value.split(SHORTCUT_KEY_SEPARATOR),
+              value: parseKeyCombinationStr(newEntry.value) as KeyCombination,
             }),
           ),
           tapResponse({

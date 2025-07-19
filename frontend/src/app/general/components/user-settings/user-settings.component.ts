@@ -9,6 +9,7 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
 import {
   KeyCombination,
   ShortcutAction,
@@ -49,14 +50,7 @@ export class UserSettingsComponent {
     return Object.entries(shortcutMapping).map(([action, shortcut], index) => ({
       actionLabel: capitalize(action).replaceAll('-', ' '),
       action,
-      shortcut: shortcut.keys
-        .map((key) =>
-          key
-            .split('+')
-            .map((keyPiece) => capitalize(keyPiece))
-            .join('+'),
-        )
-        .join(' + '),
+      shortcut: encodeKeyCombination(shortcut.keys, true),
       index,
       modified: shortcut.modified,
     }));

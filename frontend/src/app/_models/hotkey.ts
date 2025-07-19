@@ -1,3 +1,8 @@
+import { capitalize } from 'src/utils/string';
+
+export type Key = Pick<KeyboardEvent, 'key'> &
+  Partial<Pick<KeyboardEvent, 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>>;
+
 export const MODIFIER_KEYS = new Set([
   'Alt',
   'Control',
@@ -30,26 +35,71 @@ export const ACTIONS = [
 export const ACTIONS_SET = new Set<string>(ACTIONS);
 export type ShortcutAction = (typeof ACTIONS)[number];
 
-export type KeyCombination = string[];
+export type KeyCombination = Key[];
 
 export type ShortcutMapping = {
   [key in ShortcutAction]: { keys: KeyCombination; modified: boolean };
 };
 
 export const DEFAULT_MAPPINGS: ShortcutMapping = {
-  'scroll-top': { keys: ['Alt+t'], modified: false },
-  create: { keys: ['Alt+c'], modified: false },
-  delete: { keys: ['Alt+d'], modified: false },
-  update: { keys: ['Alt+e'], modified: false },
-  'description-update': { keys: ['Alt+w'], modified: false },
-  cancel: { keys: ['Alt+q'], modified: false },
-  'jump-to-next-entry': { keys: ['Alt+ArrowDown'], modified: false },
-  'jump-to-prior-entry': { keys: ['Alt+ArrowUp'], modified: false },
-  search: { keys: ['Alt+s'], modified: false },
-  focus: { keys: ['Alt+f'], modified: false },
-  cut: { keys: ['Alt+x'], modified: false },
-  toggle: { keys: ['Alt+r'], modified: false },
-  'show-tooltips': { keys: ['Alt+g'], modified: false },
-  'show-help': { keys: ['Alt+h'], modified: false },
-  'show-onboarding': { keys: ['Alt+o'], modified: false },
+  'scroll-top': { keys: [{ key: 't', altKey: true }], modified: false },
+  create: { keys: [{ key: 'c', altKey: true }], modified: false },
+  delete: { keys: [{ key: 'd', altKey: true }], modified: false },
+  update: { keys: [{ key: 'e', altKey: true }], modified: false },
+  'description-update': { keys: [{ key: 'w', altKey: true }], modified: false },
+  cancel: { keys: [{ key: 'q', altKey: true }], modified: false },
+  'jump-to-next-entry': {
+    keys: [{ key: 'ArrowDown', altKey: true }],
+    modified: false,
+  },
+  'jump-to-prior-entry': {
+    keys: [{ key: 'ArrowUp', altKey: true }],
+    modified: false,
+  },
+  search: { keys: [{ key: 's', altKey: true }], modified: false },
+  focus: { keys: [{ key: 'f', altKey: true }], modified: false },
+  cut: { keys: [{ key: 'x', altKey: true }], modified: false },
+  toggle: { keys: [{ key: 'r', altKey: true }], modified: false },
+  'show-tooltips': { keys: [{ key: 'g', altKey: true }], modified: false },
+  'show-help': { keys: [{ key: 'h', altKey: true }], modified: false },
+  'show-onboarding': { keys: [{ key: 'o', altKey: true }], modified: false },
 };
+
+export function equals(a: Key | undefined, b: Key | undefined) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+
+  return (
+    a.key === b.key &&
+    (a.altKey ?? false) === (b.altKey ?? false) &&
+    (a.ctrlKey ?? false) === (b.ctrlKey ?? false) &&
+    (a.metaKey ?? false) === (b.metaKey ?? false) &&
+    (a.shiftKey ?? false) === (b.shiftKey ?? false)
+  );
+}
+
+export function parseKeyCombinationStr(
+  str: string,
+): KeyCombination | undefined {
+  const keyStrs = str.toLowerCase().split('-');
+  const keys = keyStrs.map((keyStr) => parseKeyStr(keyStr));
+  if (keys.some((key) => !key)) return undefined;
+
+  return keys as Key[];
+}
+
+export function parseKeyStr(str: string): Key | undefined {
+  const segments = str.toLowerCase().split('+');
+  const key = segments.find(
+    (segment) => !MODIFIER_KEYS.has(capitalize(segment)),
+  );
+  if (!key) return undefined;
+
+  return {
+    key,
+    altKey: segments.includes('alt'),
+    ctrlKey: segments.includes('ctrl'),
+    metaKey: segments.includes('meta'),
+    shiftKey: segments.includes('shift'),
+  };
+}
