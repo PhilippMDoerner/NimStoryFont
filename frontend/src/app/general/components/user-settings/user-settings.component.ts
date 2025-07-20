@@ -17,11 +17,23 @@ import {
   ShortcutMapping,
 } from 'src/app/_models/hotkey';
 import { ScreenService } from 'src/app/_services/screen.service';
+import {
+  ListComponent,
+  ListEntry,
+} from 'src/app/design/molecule/list/list.component';
 import { EditShortcutDialogComponent } from 'src/app/general/components/edit-shortcut-dialog/edit-shortcut-dialog.component';
 import { componentId } from 'src/utils/DOM';
 import { capitalize } from 'src/utils/string';
 import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import { ProfileTabLayoutComponent } from '../profile-tab-layout/profile-tab-layout.component';
+
+type MappingEntry = ListEntry<{
+  actionLabel: string;
+  action: ShortcutAction;
+  shortcut: string;
+  modified: boolean;
+}>;
+
 @Component({
   selector: 'app-user-settings',
   imports: [
@@ -30,6 +42,7 @@ import { ProfileTabLayoutComponent } from '../profile-tab-layout/profile-tab-lay
     EditShortcutDialogComponent,
     ProfileTabLayoutComponent,
     AsyncPipe,
+    ListComponent,
   ],
   templateUrl: './user-settings.component.html',
   styleUrl: './user-settings.component.scss',
@@ -48,17 +61,26 @@ export class UserSettingsComponent {
 
   isMobile$ = inject(ScreenService).isMobile$;
 
-  mappings = computed(() => {
+  mappingEntries = computed<MappingEntry[] | undefined>(() => {
     const shortcutMapping = this.shortcutMap();
     if (!shortcutMapping) return;
 
-    return Object.entries(shortcutMapping).map(([action, shortcut], index) => ({
-      actionLabel: capitalize(action).replaceAll('-', ' '),
-      action,
-      shortcut: encodeKeyCombination(shortcut.keys, true),
-      index,
-      modified: shortcut.modified,
-    }));
+    return Object.entries(shortcutMapping).map(([action, shortcut]) => {
+      const entry = {
+        actionLabel: capitalize(action).replaceAll('-', ' '),
+        action: action as ShortcutAction,
+        shortcut: encodeKeyCombination(shortcut.keys, true),
+        modified: shortcut.modified,
+      };
+      return {
+        trackId: entry.action,
+        ariaText: {
+          kind: 'aria-label',
+          label: entry.actionLabel,
+        },
+        data: entry,
+      } satisfies ListEntry<unknown>;
+    });
   });
 
   displayedColumns = ['index', 'action', 'shortcut', 'actions'];

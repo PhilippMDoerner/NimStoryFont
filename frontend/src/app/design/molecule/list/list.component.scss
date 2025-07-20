@@ -1,0 +1,47 @@
+:host {
+  display: block;
+}
+
+:host {
+  outline: none;
+  outline-offset: -4px;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    border-radius: var(--bs-border-radius);
+  }
+}
+
+.list {
+  &__item {
+    outline: none;
+    outline-offset: -3px;
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+      border-radius: var(--bs-border-radius);
+    }
+  }
+
+  &__tooltip {
+    max-width: 300px;
+  }
+}
+
+.tooltip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacer-2);
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+
+  &__entry {
+    padding: var(--spacer-0) var(--spacer-2);
+  }
+
+  &__entry-text {
+    line-break: loose;
+  }
+}

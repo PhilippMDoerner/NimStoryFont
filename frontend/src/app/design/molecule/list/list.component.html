@@ -1,0 +1,37 @@
+@let focusIndex = focusIndex$ | async;
+@for (entry of entries(); track entry.trackId) {
+  @let isInFocus = focusIndex === $index;
+  <li
+    [class]="'list__item ' + listItemClassStr()"
+    tabindex="-1"
+    #listItem
+    (click)="entryActivated.emit(entry.data)"
+    (keydown.Enter)="entryActivated.emit(entry.data)"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        entryTemplate();
+        context: {
+          $implicit: {
+            data: entry.data,
+            isInFocus: isInFocus,
+            index: $index,
+            first: $first,
+            last: $last,
+          },
+        }
+      "
+    />
+  </li>
+}
+
+<ng-template #tipContent>
+  <div class="list__tooltip tooltip">
+    @for (line of tooltipLines(); track line.icon) {
+      <div class="tooltip__entry">
+        <span class="tooltip__entry-text"> {{ line.text }} = </span>
+        <app-icon [icon]="line.icon" />
+      </div>
+    }
+  </div>
+</ng-template>

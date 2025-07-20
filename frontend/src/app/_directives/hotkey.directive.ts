@@ -25,10 +25,13 @@ import {
 import { debugLog } from 'src/utils/rxjs-operators';
 import { encodeKeyCombination } from '../_functions/keyMapper';
 import { ShortcutAction } from '../_models/hotkey';
-import { HotkeyService } from '../_services/hotkey.service';
+import { HotkeyService, WatchOptions } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
 export type TooltipBehavior = 'OnHotkey' | 'Always' | 'Never';
+type DirectiveWatchOptions = Omit<WatchOptions, 'eventSource'> & {
+  useGlobalEventSource?: boolean;
+};
 
 @Directive({
   selector: '[hotkeyAction]',
@@ -44,12 +47,28 @@ export class HotkeyDirective {
   public element = inject(ElementRef<HTMLElement>);
 
   hotkeyAction = input.required<ShortcutAction | undefined>();
-  modalAction = input<boolean>(true);
+  watchOptions = input<DirectiveWatchOptions>({
+    isModalAction: false,
+    suppressEvent: false,
+  });
   actionDisabled = input<boolean>(false);
   description = input<string>();
 
   actionTriggered = output<{ host: HTMLElement }>();
 
+  private watchOptions$ = toObservable(this.watchOptions).pipe(
+    map(
+      (options) =>
+        ({
+          isModalAction: false,
+          suppressEvent: false,
+          eventSource: options.useGlobalEventSource
+            ? undefined // Use default event source
+            : this.element.nativeElement,
+          ...options,
+        }) as WatchOptions,
+    ),
+  );
   private hotkeyCombination$ = toObservable(this.hotkeyAction).pipe(
     switchMap((action) => {
       if (!action) return of(undefined);
@@ -57,8 +76,16 @@ export class HotkeyDirective {
     }),
   );
   ariaShortcutText = toSignal(
-    this.hotkeyCombination$.pipe(
-      map((combo) => (combo ? encodeKeyCombination(combo, true) : undefined)),
+    combineLatest({
+      combo: this.hotkeyCombination$,
+      watchOptions: this.watchOptions$,
+    }).pipe(
+      map(({ combo, watchOptions }) => {
+        if (!combo) return undefined;
+        const comboStr = encodeKeyCombination(combo, true);
+        const isLocalAction = !!watchOptions.eventSource;
+        return `${comboStr}${isLocalAction ? '(Active on focus)' : ''}`;
+      }),
     ),
   );
   private hotkeyCombination = toSignal(this.hotkeyCombination$);
@@ -86,19 +113,18 @@ export class HotkeyDirective {
 
     combineLatest({
       action: toObservable(this.hotkeyAction),
-      isModalAction: toObservable(this.modalAction),
+      watchOptions: this.watchOptions$,
     })
       .pipe(
-        switchMap(({ action, isModalAction }) =>
-          action
-            ? this.hotkeyService.watchAction(action, isModalAction)
-            : EMPTY,
+        switchMap(({ action, watchOptions }) =>
+          action ? this.hotkeyService.watchAction(action, watchOptions) : EMPTY,
         ),
-        withLatestFrom(isDisabled$),
-        filter(([, isDisabled]) => {
+        withLatestFrom(isDisabled$, this.watchOptions$),
+        filter(([, isDisabled, watchOptions]) => {
           if (isDisabled) return false;
           const hasOpenModals = this.modalService.hasOpenModals();
-          const canSeeActionInOpenModal = hasOpenModals && this.modalAction();
+          const canSeeActionInOpenModal =
+            hasOpenModals && !!watchOptions.isModalAction;
           return !hasOpenModals || canSeeActionInOpenModal;
         }),
         debugLog('Emitting Hotkey'),
@@ -128,13 +154,15 @@ export class HotkeyDirective {
   private keepTooltipInSync() {
     combineLatest({
       action: toObservable(this.hotkeyAction),
-      isModalAction: toObservable(this.modalAction),
+      watchOptions: this.watchOptions$,
       isDisabled: toObservable(this.actionDisabled),
     })
       .pipe(
-        switchMap(({ action, isModalAction, isDisabled }) => {
+        switchMap(({ action, watchOptions, isDisabled }) => {
           if (isDisabled || !action) return of(false);
-          return this.hotkeyService.hasVisibleTooltip(isModalAction);
+          return this.hotkeyService.hasVisibleTooltip(
+            watchOptions.isModalAction,
+          );
         }),
         takeUntilDestroyed(),
       )
