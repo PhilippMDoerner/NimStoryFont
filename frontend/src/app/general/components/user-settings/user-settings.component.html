@@ -17,6 +17,9 @@
           class="container shortcut-table__body"
           [entries]="mappingEntries() ?? []"
           [listItemClasses]="['row', 'shortcut-table__row']"
+          (entryActivated)="
+            openEditShortcutDialog($event.action, $event.modified)
+          "
         >
           <ng-template #entryTemplate let-context>
             <div class="col-4">
@@ -45,29 +48,7 @@
                   context.data.actionLabel +
                   '\''
                 "
-                (clicked)="openEditShortcutDialog(editShortcutDialog)"
-              ></button>
-
-              <ng-template #editShortcutDialog>
-                <app-edit-shortcut-dialog
-                  [action]="context.data.action"
-                  (cancelled)="modalService.dismissAll()"
-                  (shortcutEdited)="
-                    emitShortcutEdited($event.action, $event.shortcut)
-                  "
-                />
-              </ng-template>
-
-              <button
-                btn
-                [class.table__action-button--hidden]="!context.data.modified"
-                [tabIndex]="context.isInFocus ? 0 : -1"
-                [kind]="'INFO-OUTLINE'"
-                [icon]="'arrow-rotate-left'"
-                [attr.aria-label]="
-                  'Reset shortcut for action ' + context.data.actionLabel
-                "
-                (clicked)="emitShortcutReset(context.data.action)"
+                (clicked)="onEditButtonClicked(context.data, $event)"
               ></button>
             </div>
           </ng-template>

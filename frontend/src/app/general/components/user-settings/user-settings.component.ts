@@ -7,7 +7,6 @@ import {
   inject,
   input,
   output,
-  TemplateRef,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
@@ -39,7 +38,6 @@ type MappingEntry = ListEntry<{
   imports: [
     CdkTableModule,
     ButtonComponent,
-    EditShortcutDialogComponent,
     ProfileTabLayoutComponent,
     AsyncPipe,
     ListComponent,
@@ -86,10 +84,19 @@ export class UserSettingsComponent {
   displayedColumns = ['index', 'action', 'shortcut', 'actions'];
   shortcutsSectionLabelId = `shortcuts-${componentId()}`;
 
-  openEditShortcutDialog(ref: TemplateRef<unknown>) {
-    this.modalService.open(ref, {
+  openEditShortcutDialog(action: ShortcutAction, modified: boolean) {
+    const modalRef = this.modalService.open(EditShortcutDialogComponent, {
       windowClass: 'edit-shortcut-dialog',
     });
+    const component: EditShortcutDialogComponent = modalRef.componentInstance;
+    component.action.set(action);
+    component.modified.set(modified);
+    component.shortcutEdited.subscribe(({ action, shortcut }) =>
+      this.emitShortcutEdited(action, shortcut),
+    );
+    component.shortcutReset.subscribe((action) =>
+      this.emitShortcutReset(action),
+    );
   }
 
   emitShortcutEdited(action: ShortcutAction, keys: KeyCombination) {
@@ -98,6 +105,12 @@ export class UserSettingsComponent {
   }
 
   emitShortcutReset(action: ShortcutAction) {
+    this.modalService.dismissAll();
     this.shortcutResetRequested.emit(action);
+  }
+
+  onEditButtonClicked(entry: MappingEntry, event: Event) {
+    event.stopPropagation();
+    this.openEditShortcutDialog(entry.data.action, entry.data.modified);
   }
 }

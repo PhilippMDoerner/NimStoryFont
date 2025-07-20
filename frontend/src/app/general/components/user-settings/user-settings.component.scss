@@ -7,6 +7,7 @@
     border-radius: calc(2 * var(--bs-border-radius));
     overflow: hidden;
     background-color: var(--bs-dark);
+    margin-bottom: var(--spacer-3);
 
     &__row {
       display: flex;

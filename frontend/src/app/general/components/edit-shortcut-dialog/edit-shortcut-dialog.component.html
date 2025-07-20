@@ -69,6 +69,14 @@
           [text]="'Save'"
           [disabled]="(hasConflict$ | async) !== false"
         ></button>
+        <button
+          btn
+          [disabled]="!modified()"
+          [kind]="'INFO-OUTLINE'"
+          [icon]="'arrow-rotate-left'"
+          [text]="'Reset to default'"
+          (clicked)="emitShortcutReset()"
+        ></button>
       </div>
     </form>
   </div>

@@ -4,7 +4,7 @@ import {
   Component,
   ElementRef,
   inject,
-  input,
+  model,
   output,
   viewChild,
 } from '@angular/core';
@@ -40,12 +40,14 @@ import { componentId } from 'src/utils/DOM';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditShortcutDialogComponent {
-  action = input.required<ShortcutAction>();
+  action = model.required<ShortcutAction>();
+  modified = model.required<boolean>();
 
   shortcutEdited = output<{
     action: ShortcutAction;
     shortcut: KeyCombination;
   }>();
+  shortcutReset = output<ShortcutAction>();
   cancelled = output<void>();
 
   keyInput = viewChild.required<ElementRef<HTMLInputElement>>('keyInput');
@@ -102,5 +104,9 @@ export class EditShortcutDialogComponent {
       action: this.action(),
       shortcut: keys,
     });
+  }
+
+  emitShortcutReset() {
+    this.shortcutReset.emit(this.action());
   }
 }
