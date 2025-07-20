@@ -18,7 +18,6 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { NgbOffcanvas, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { debounceTime, filter, fromEvent, map, switchMap } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { ScreenService } from 'src/app/_services/screen.service';
 import { SwipeService } from 'src/app/_services/swipe.service';
@@ -48,7 +47,6 @@ export const showSidebarSignal = signal(true);
     NgTemplateOutlet,
     MobileHeaderComponent,
     IconComponent,
-    HotkeyDirective,
     SpinnerComponent,
     NgbTooltip,
   ],

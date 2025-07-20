@@ -16,7 +16,6 @@ export const MODIFIER_KEYS = new Set([
 ]);
 
 export const ACTIONS = [
-  'scroll-top',
   'create',
   'delete',
   'update',
@@ -28,7 +27,6 @@ export const ACTIONS = [
   'focus',
   'cut',
   'toggle',
-  'show-help',
   'show-tooltips',
   'show-onboarding',
 ] as const;
@@ -42,7 +40,6 @@ export type ShortcutMapping = {
 };
 
 export const DEFAULT_MAPPINGS: ShortcutMapping = {
-  'scroll-top': { keys: [{ key: 't', altKey: true }], modified: false },
   create: { keys: [{ key: 'c', altKey: true }], modified: false },
   delete: { keys: [{ key: 'd', altKey: true }], modified: false },
   update: { keys: [{ key: 'e', altKey: true }], modified: false },
@@ -61,7 +58,6 @@ export const DEFAULT_MAPPINGS: ShortcutMapping = {
   cut: { keys: [{ key: 'x', altKey: true }], modified: false },
   toggle: { keys: [{ key: 'r', altKey: true }], modified: false },
   'show-tooltips': { keys: [{ key: 'g', altKey: true }], modified: false },
-  'show-help': { keys: [{ key: 'h', altKey: true }], modified: false },
   'show-onboarding': { keys: [{ key: 'o', altKey: true }], modified: false },
 };
 

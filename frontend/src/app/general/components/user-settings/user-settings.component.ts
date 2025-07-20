@@ -31,8 +31,29 @@ type MappingEntry = ListEntry<{
   action: ShortcutAction;
   shortcut: string;
   modified: boolean;
+  description: string;
 }>;
 
+const DESCRIPTIONS: Record<ShortcutAction, string> = {
+  delete:
+    'Toggle delete confirmation button if given page has one. This still requires confirming the delete.',
+  cancel: 'Cancels currently active actions',
+  update: 'Activates edit mode if given page has one',
+  create:
+    'Moves to creating a specific item if given page has a way to create one',
+  'description-update':
+    'Activates write mode of text-editors for a description if one is present on the page',
+  'jump-to-next-entry':
+    'Focus and scroll into center the next entry of the list',
+  'jump-to-prior-entry':
+    'Focus and scroll into center the previous entry of the list',
+  focus: 'Focus and scroll into center the currently focused Encounter',
+  cut: 'Start cutting out the currently focused encounter',
+  toggle: 'Toggle view of diaryentry to read or edit mode',
+  'show-onboarding': 'Starts the onboarding tour',
+  'show-tooltips': 'Toggles visibility of hotkey tooltips',
+  search: 'Activates search mode',
+};
 @Component({
   selector: 'app-user-settings',
   imports: [
@@ -69,6 +90,7 @@ export class UserSettingsComponent {
         action: action as ShortcutAction,
         shortcut: encodeKeyCombination(shortcut.keys, true),
         modified: shortcut.modified,
+        description: DESCRIPTIONS[action as ShortcutAction],
       };
       return {
         trackId: entry.action,
@@ -77,7 +99,7 @@ export class UserSettingsComponent {
           label: entry.actionLabel,
         },
         data: entry,
-      } satisfies ListEntry<unknown>;
+      } satisfies MappingEntry;
     });
   });
 

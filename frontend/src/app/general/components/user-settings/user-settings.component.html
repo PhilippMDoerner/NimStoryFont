@@ -8,9 +8,9 @@
       <div class="shortcut-table">
         <div class="container">
           <div class="shortcut-table__row row h4">
-            <div class="col-4">Action</div>
-            <div class="col-4">Shortcut</div>
-            <div class="col-4">Edit Actions</div>
+            <div class="col-2">Action</div>
+            <div class="col-2">Shortcut</div>
+            <div class="col-7">Description</div>
           </div>
         </div>
         <app-list
@@ -22,11 +22,11 @@
           "
         >
           <ng-template #entryTemplate let-context>
-            <div class="col-4">
+            <div class="col-2">
               <div class="cdk-visually-hidden">Shortcut Action</div>
               {{ context.data.actionLabel }}
             </div>
-            <div class="col-4">
+            <div class="col-2">
               <div class="cdk-visually-hidden">Shortcut Keys</div>
 
               {{ context.data.shortcut }}
@@ -34,7 +34,12 @@
                 <strong class="table__modified-column">*</strong>
               }
             </div>
-            <div class="col-4">
+            <div class="col-7">
+              <div class="cdk-visually-hidden">Shortcut Description</div>
+              {{ context.data.description }}
+            </div>
+
+            <div class="col-1">
               <div class="cdk-visually-hidden">Actions</div>
 
               <button
