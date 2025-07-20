@@ -53,7 +53,7 @@ export class OnboardingModalComponent {
       .pipe(
         filter(
           ({ queryState, isLoggedIn }) =>
-            isLoggedIn && (queryState === 'success' || queryState === 'error'),
+            isLoggedIn && queryState === 'success',
         ),
         takeOnceOrUntilDestroyed(),
         filter(({ metadata }) => !metadata?.hasSeenOnboarding),
