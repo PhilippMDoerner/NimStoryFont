@@ -113,13 +113,3 @@ export const ROUTES: Routes = [
     ],
   },
 ];
-
-@NgModule({
-  imports: [
-    RouterModule.forRoot(ROUTES, {
-      enableViewTransitions: true,
-    }),
-  ],
-  exports: [RouterModule],
-})
-export class AppRoutingModule {}
