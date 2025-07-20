@@ -30,7 +30,7 @@ import { ScreenService } from '../_services/screen.service';
 
 export type TooltipBehavior = 'OnHotkey' | 'Always' | 'Never';
 type DirectiveWatchOptions = Omit<WatchOptions, 'eventSource'> & {
-  useGlobalEventSource?: boolean;
+  useLocalEventSource?: boolean;
 };
 
 @Directive({
@@ -62,9 +62,9 @@ export class HotkeyDirective {
         ({
           isModalAction: false,
           suppressEvent: false,
-          eventSource: options.useGlobalEventSource
-            ? undefined // Use default event source
-            : this.element.nativeElement,
+          eventSource: options.useLocalEventSource
+            ? this.element.nativeElement
+            : undefined, // Use default event source,
           ...options,
         }) as WatchOptions,
     ),
