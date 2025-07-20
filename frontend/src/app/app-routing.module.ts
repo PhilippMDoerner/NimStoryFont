@@ -1,5 +1,5 @@
-import { inject, NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Routes } from '@angular/router';
 import { loginGuard } from './_guards/login.guard';
 import { rootRedirect } from './_redirects/root.redirect';
 import { redirectWithQueryParams } from './_redirects/with-query-params.redirect';
