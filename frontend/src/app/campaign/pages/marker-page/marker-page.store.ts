@@ -24,6 +24,7 @@ interface MarkerState {}
 const initialState: MarkerState = {};
 
 export const MarkerPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed(() => {
     const globalStore = inject(GlobalStore);

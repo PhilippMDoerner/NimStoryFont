@@ -25,6 +25,7 @@ const initialState: HomePageState = {
 };
 
 export const HomePageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withMethods((state) => {
     const articleService = inject(ArticleService);

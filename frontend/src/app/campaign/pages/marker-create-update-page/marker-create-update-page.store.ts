@@ -25,6 +25,7 @@ const initialState: MarkerCreateUpdateState = {
 };
 
 export const MarkerCreateUpdateStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withQueries(() => {
     const globalStore = inject(GlobalStore);

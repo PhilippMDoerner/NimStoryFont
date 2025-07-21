@@ -1,6 +1,5 @@
 import { loginGuard } from '../_guards/login.guard';
 import { onlyOnlineGuard } from '../_guards/only-online.guard';
-import { SiteAdministrationPageStore } from '../administration/pages/site-administration-page/site-administration-page.store';
 import { registrationGuard } from './pages/registration/registration.guard';
 
 export const generalRoutes = [
@@ -36,7 +35,6 @@ export const generalRoutes = [
       ),
     data: { name: 'registration' },
     canActivate: [loginGuard, registrationGuard, onlyOnlineGuard],
-    providers: [SiteAdministrationPageStore],
     title: 'Registration',
   },
   //User Routes

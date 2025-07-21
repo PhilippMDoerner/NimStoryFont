@@ -48,6 +48,7 @@ const initialState: SessionaudioCreateUpdateState = {
 };
 
 export const SessionaudioCreateUpdatePageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed((store) => {
     const globalStore = inject(GlobalStore);

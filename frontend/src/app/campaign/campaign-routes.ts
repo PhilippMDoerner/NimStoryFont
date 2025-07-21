@@ -152,7 +152,6 @@ const detailRoutes: Route[] = [
         (m) => m.HomePageComponent,
       ),
     data: { name: 'home', requiredMinimumRole: 'guest' },
-    providers: [HomePageStore],
     resolve: {
       articles: () => inject(HomePageStore).loadMoreArticles(0),
     },
@@ -167,7 +166,6 @@ const detailRoutes: Route[] = [
         (m) => m.SearchPageComponent,
       ),
     data: { name: 'search', requiredMinimumRole: 'guest' },
-    providers: [SearchPageStore],
     resolve: {
       searchResults: (route: ActivatedRouteSnapshot) =>
         inject(SearchPageStore).loadSearchArticles(
@@ -711,7 +709,6 @@ const detailRoutes: Route[] = [
         (m) => m.QuoteOverviewPageComponent,
       ),
     data: { name: 'quote-overview', requiredMinimumRole: 'guest' },
-    providers: [QuoteOverviewPageStore],
     resolve: {
       quotes: (route: ActivatedRouteSnapshot) =>
         inject(QuoteOverviewPageStore).loadQuotes(route.params['name']),
@@ -796,7 +793,6 @@ const detailRoutes: Route[] = [
           import(
             './pages/marker-create-update-page/marker-create-update-page.component'
           ).then((m) => m.MarkerCreateUpdatePageComponent),
-        providers: [MarkerCreateUpdateStore],
         // canDeactivate: [onExitReset(MarkerCreateUpdateStore)],
         resolve: {
           maps: () => inject(MarkerCreateUpdateStore).loadCampaignMaps(),
@@ -813,7 +809,6 @@ const detailRoutes: Route[] = [
           import(
             './pages/marker-create-update-page/marker-create-update-page.component'
           ).then((m) => m.MarkerCreateUpdatePageComponent),
-        providers: [MarkerCreateUpdateStore],
         // canDeactivate: [onExitReset(MarkerCreateUpdateStore)],
         resolve: {
           maps: () => inject(MarkerCreateUpdateStore).loadCampaignMaps(),
@@ -831,7 +826,6 @@ const detailRoutes: Route[] = [
           import('./pages/marker-page/marker-page.component').then(
             (m) => m.MarkerPageComponent,
           ),
-        providers: [MarkerPageStore],
         canDeactivate: [onEnterReset(MarkerPageStore)],
         resolve: {
           marker: (route: ActivatedRouteSnapshot) =>
@@ -851,7 +845,6 @@ const detailRoutes: Route[] = [
           import(
             './pages/marker-create-update-page/marker-create-update-page.component'
           ).then((m) => m.MarkerCreateUpdatePageComponent),
-        providers: [MarkerCreateUpdateStore],
         // canDeactivate: [onExitReset(MarkerCreateUpdateStore)],
         resolve: {
           maps: () => inject(MarkerCreateUpdateStore).loadCampaignMaps(),
@@ -882,7 +875,6 @@ const detailRoutes: Route[] = [
             './pages/session-audio-overview-page/session-audio-overview-page.component'
           ).then((m) => m.SessionAudioOverviewPageComponent),
         data: { name: 'sessionaudio-overview', requiredMinimumRole: 'guest' },
-        providers: [SessionAudioOverviewPageStore],
         resolve: {
           sessionAudios: () =>
             inject(SessionAudioOverviewPageStore).loadCampaignSessionAudios(),
@@ -897,7 +889,6 @@ const detailRoutes: Route[] = [
             './pages/sessionaudio-create-update-page/sessionaudio-create-update-page.component'
           ).then((m) => m.SessionaudioCreateUpdatePageComponent),
         data: { name: 'sessionaudio-create', requiredMinimumRole: 'member' },
-        providers: [SessionaudioCreateUpdatePageStore],
         resolve: {
           campaignSessions: () =>
             inject(SessionaudioCreateUpdatePageStore).loadCampaignSessions(),
@@ -913,7 +904,6 @@ const detailRoutes: Route[] = [
             (m) => m.SessionaudioPageComponent,
           ),
         data: { name: 'sessionaudio', requiredMinimumRole: 'guest' },
-        providers: [SessionaudioPageStore],
         resolve: {
           sessionaudio: (route: ActivatedRouteSnapshot) =>
             inject(SessionaudioPageStore).loadSessionaudio({
@@ -935,7 +925,6 @@ const detailRoutes: Route[] = [
             './pages/sessionaudio-create-update-page/sessionaudio-create-update-page.component'
           ).then((m) => m.SessionaudioCreateUpdatePageComponent),
         data: { name: 'sessionaudio-update', requiredMinimumRole: 'member' },
-        providers: [SessionaudioCreateUpdatePageStore],
         resolve: {
           campaignSessions: () =>
             inject(SessionaudioCreateUpdatePageStore).loadCampaignSessions(),
@@ -958,7 +947,6 @@ const detailRoutes: Route[] = [
       import('./pages/graph-page/graph-page.component').then(
         (m) => m.GraphPageComponent,
       ),
-    providers: [GraphPageStore],
     resolve: {
       nodeMap: () => inject(GraphPageStore).loadGraph(),
       linkTypes: () => inject(GraphPageStore).loadCustomLinkTypes(),
@@ -975,7 +963,6 @@ const detailRoutes: Route[] = [
       ).then((m) => m.CampaignConfigAdministrationPageComponent),
     data: { name: 'campaign-config-tables' },
     canActivate: [campaignGuard],
-    providers: [ConfigAdministrationPageStore],
     canDeactivate: [onEnterReset(ConfigAdministrationPageStore)],
     title: campaignTitle('Config Tables'),
   },

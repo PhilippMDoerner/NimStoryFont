@@ -36,6 +36,7 @@ const initialState: GraphPageState = {
 };
 
 export const GraphPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withQueries(() => {
     const relationshipService = inject(RelationshipService);

@@ -40,6 +40,7 @@ const initialState: SiteAdministrationPageState = {
 };
 
 export const SiteAdministrationPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withMethods((state) => {
     const userService = inject(UserService);

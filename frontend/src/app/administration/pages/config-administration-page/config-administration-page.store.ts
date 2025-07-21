@@ -30,6 +30,7 @@ export interface ConfigAdministrationPageState {}
 const initialState: ConfigAdministrationPageState = {};
 
 export const ConfigAdministrationPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed(() => {
     const globalStore = inject(GlobalStore);

@@ -33,6 +33,7 @@ const initialState: SessionaudioPageState = {
 };
 
 export const SessionaudioPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed(() => {
     const globalStore = inject(GlobalStore);

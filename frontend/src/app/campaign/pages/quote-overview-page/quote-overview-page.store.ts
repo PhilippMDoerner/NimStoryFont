@@ -49,6 +49,7 @@ function sortQuotes(quotes: Quote[]): Quote[] {
 }
 
 export const QuoteOverviewPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed(() => {
     const globalStore = inject(GlobalStore);
