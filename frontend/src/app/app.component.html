@@ -20,9 +20,11 @@
 }
 
 <app-page [contentId]="contentId" (logout)="logout()"></app-page>
-<app-toast-overlay></app-toast-overlay>
 
-<app-onboarding-modal
-  class="d-none"
-  [isCampaignAdmin]="hasCampaignAdminRights()"
-/>
+@defer {
+  <app-toast-overlay></app-toast-overlay>
+  <app-onboarding-modal
+    class="d-none"
+    [isCampaignAdmin]="hasCampaignAdminRights()"
+  />
+}

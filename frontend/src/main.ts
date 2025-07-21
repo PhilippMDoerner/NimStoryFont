@@ -1,5 +1,3 @@
-/// <reference types="@angular/localize" />
-
 import { APP_BASE_HREF } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
@@ -17,8 +15,8 @@ import { TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 import { errorInterceptor } from './app/_interceptors/errorInterceptor';
 import { offlineInterceptor } from './app/_interceptors/offlineInterceptor';
 import { FORMLY_MODULE } from './app/_modules/formly_constants';
-import { ROUTES } from './app/app-routing.module';
 import { AppComponent } from './app/app.component';
+import { ROUTES } from './app/app.routes';
 import { AuthStore } from './app/auth.store';
 import { GlobalStore } from './app/global.store';
 import { NavigationStore } from './app/navigation.store';
