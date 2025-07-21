@@ -14,7 +14,7 @@ import { Login } from './_models/login';
 import { httpErrorToast } from './_models/toast';
 import { RoutingService } from './_services/routing.service';
 import { TokenService } from './_services/utils/token.service';
-import { ToastService } from './design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from './design/organisms/toast-overlay/toast.service';
 
 export const AuthStore = signalStore(
   { providedIn: 'root' },

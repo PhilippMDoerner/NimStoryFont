@@ -17,7 +17,7 @@ import { GroupService } from 'src/app/_services/article/group.service';
 import { UserService } from 'src/app/_services/article/user.service';
 import { AdminService } from 'src/app/_services/utils/admin.service';
 import { CampaignService } from 'src/app/_services/utils/campaign.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { replaceItem } from 'src/utils/array';
 import { RequestState } from 'src/utils/store/factory-types';
 

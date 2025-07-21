@@ -30,7 +30,7 @@ import {
   ShortcutMetadataEntry,
 } from './_models/userMetadata';
 import { PreferencesService } from './_services/utils/preferences.service';
-import { ToastService } from './design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from './design/organisms/toast-overlay/toast.service';
 
 export interface UserPreferencesState {
   updateShortcutsState: RequestState;

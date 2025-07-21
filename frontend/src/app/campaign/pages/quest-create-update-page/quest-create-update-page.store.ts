@@ -7,7 +7,7 @@ import { Quest, QuestRaw } from 'src/app/_models/quest';
 import { CharacterService } from 'src/app/_services/article/character.service';
 import { QuestService } from 'src/app/_services/article/quest.service';
 import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';

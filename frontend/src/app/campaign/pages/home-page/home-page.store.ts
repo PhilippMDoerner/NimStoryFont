@@ -8,7 +8,7 @@ import { map, pipe, switchMap, tap } from 'rxjs';
 import { OverviewItem } from 'src/app/_models/overview';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { ArticleService } from 'src/app/_services/article/article.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 

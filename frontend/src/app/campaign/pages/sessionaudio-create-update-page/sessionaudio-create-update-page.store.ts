@@ -25,7 +25,7 @@ import { SessionAudio, SessionAudioRaw } from 'src/app/_models/sessionAudio';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { SessionAudioService } from 'src/app/_services/article/session-audio.service';
 import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';

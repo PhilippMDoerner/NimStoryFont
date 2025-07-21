@@ -18,7 +18,7 @@ import { httpErrorToast, successToast } from 'src/app/_models/toast';
 import { CharacterService } from 'src/app/_services/article/character.service';
 import { OrganizationMembershipService } from 'src/app/_services/article/organization-membership.service';
 import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

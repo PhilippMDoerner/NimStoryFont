@@ -11,7 +11,7 @@ import {
 import { shareReplay, switchMap } from 'rxjs';
 import { Quest } from 'src/app/_models/quest';
 import { QuestService } from 'src/app/_services/article/quest.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';

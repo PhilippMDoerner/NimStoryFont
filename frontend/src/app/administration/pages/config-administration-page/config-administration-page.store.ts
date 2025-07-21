@@ -19,7 +19,7 @@ import { httpErrorToast } from 'src/app/_models/toast';
 import { MarkerTypeService } from 'src/app/_services/article/marker-type.service';
 import { PlayerClassService } from 'src/app/_services/article/player-class.service';
 import { RelationshipTypeService } from 'src/app/_services/article/relationship-type.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

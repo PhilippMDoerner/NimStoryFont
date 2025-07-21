@@ -9,7 +9,7 @@ import { LocationService } from 'src/app/_services/article/location.service';
 import { MapService } from 'src/app/_services/article/map.service';
 import { MarkerTypeService } from 'src/app/_services/article/marker-type.service';
 import { MarkerService } from 'src/app/_services/article/marker.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';

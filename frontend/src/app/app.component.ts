@@ -10,7 +10,7 @@ import {
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { fadeOut } from 'src/app/design/animations/fadeIn';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { BypassBlockDirective } from './_directives/bypass-block.directive';
 import { BeforeInstallPromptEvent, PwaService } from './_services/pwa.service';

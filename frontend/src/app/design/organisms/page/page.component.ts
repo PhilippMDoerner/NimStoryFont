@@ -54,6 +54,15 @@ export const showSidebarSignal = signal(true);
   providers: [NgbOffcanvas],
 })
 export class PageComponent {
+  titleService = inject(FaviconService);
+  globalStore = inject(GlobalStore);
+  sidebarService = inject(NgbOffcanvas);
+  swipeService = inject(SwipeService);
+  screenService = inject(ScreenService);
+  routingService = inject(RoutingService);
+  host = inject(ElementRef);
+  navStore = inject(NavigationStore);
+
   contentId = input.required<string>();
 
   readonly logout = output<void>();
@@ -64,16 +73,7 @@ export class PageComponent {
   sidebarTemplate =
     viewChild.required<TemplateRef<SidebarComponent>>('sidebar');
   sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
-
-  titleService = inject(FaviconService);
-  globalStore = inject(GlobalStore);
-  sidebarService = inject(NgbOffcanvas);
-  swipeService = inject(SwipeService);
-  screenService = inject(ScreenService);
-  routingService = inject(RoutingService);
-  host = inject(ElementRef);
-  navStore = inject(NavigationStore);
-
+  isMobile$ = this.screenService.isMobile$;
   mobileHeaderTitle = computed(() => {
     const campaignName = this.globalStore.campaignName();
     return campaignName ? capitalize(campaignName) : '';

@@ -20,7 +20,7 @@ import {
 import { httpErrorToast } from 'src/app/_models/toast';
 import { RelationshipTypeService } from 'src/app/_services/article/relationship-type.service';
 import { RelationshipService } from 'src/app/_services/article/relationship.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem, sortAlphabetically } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

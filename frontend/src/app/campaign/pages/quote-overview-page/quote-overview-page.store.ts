@@ -16,7 +16,7 @@ import { EncounterService } from 'src/app/_services/article/encounter.service';
 import { QuoteConnectionService } from 'src/app/_services/article/quote-connection.service';
 import { QuoteService } from 'src/app/_services/article/quote.service';
 import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

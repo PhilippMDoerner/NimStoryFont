@@ -13,7 +13,7 @@ import { Timestamp } from 'src/app/_models/sessionAudio';
 import { httpErrorToast, successToast } from 'src/app/_models/toast';
 import { SessionAudioTimestampService } from 'src/app/_services/article/session-audio-timestamp.service';
 import { SessionAudioService } from 'src/app/_services/article/session-audio.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
