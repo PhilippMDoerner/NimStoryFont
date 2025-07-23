@@ -8,6 +8,7 @@ import {
   resetTracking,
   trackCampaignName,
 } from './_resolvers/campaign.resolver';
+import { adminRoutes } from './administration/administration-routes';
 import { campaignRoutes } from './campaign/campaign-routes';
 import { generalRoutes } from './general/general-routes';
 import { campaignCreationGuard } from './general/pages/create-campaign/campaign-creation.guard';
@@ -83,10 +84,7 @@ export const ROUTES: Routes = [
                 children: [
                   {
                     path: 'admin',
-                    loadChildren: () =>
-                      import('./administration/administration-routes').then(
-                        (m) => m.adminRoutes,
-                      ),
+                    children: adminRoutes,
                   },
                   {
                     path: `campaigns`,
