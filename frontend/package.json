@@ -12,6 +12,7 @@
     "storybook": "ng run nimstoryfont-gui:storybook",
     "build-storybook": "ng run nimstoryfont-gui:build-storybook",
     "source-map-explorer": "npm run build && source-map-explorer dist/nimstoryfont-gui/*.js",
+    "import-visualizer": "npx @rx-angular/import-graph-visualizer --entry-points src/main.ts",
     "lint": "ng lint"
   },
   "private": true,
