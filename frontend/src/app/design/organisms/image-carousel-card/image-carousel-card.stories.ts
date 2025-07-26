@@ -1,4 +1,4 @@
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { Image } from 'src/app/_models/image';
 import { FORMLY_CHILD_MODULE } from 'src/app/_modules/formly_constants';

@@ -1,5 +1,5 @@
 import { FormlyModule } from '@ngx-formly/core';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { Timestamp } from 'src/app/_models/sessionAudio';
 import {

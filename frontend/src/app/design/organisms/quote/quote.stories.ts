@@ -1,5 +1,5 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { CharacterDetails } from 'src/app/_models/character';
 import { OverviewItem } from 'src/app/_models/overview';

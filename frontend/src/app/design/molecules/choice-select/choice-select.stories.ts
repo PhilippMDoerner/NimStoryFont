@@ -1,4 +1,4 @@
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn } from '@storybook/angular';
 import { ChoiceSelectComponent } from './choice-select.component';
 

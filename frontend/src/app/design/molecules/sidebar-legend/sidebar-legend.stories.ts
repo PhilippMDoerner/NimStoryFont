@@ -1,4 +1,4 @@
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { DEFAULT_SEARCH_PREFERENCES } from '../_models/search-preferences';
 import { SidebarLegendComponent } from './sidebar-legend.component';

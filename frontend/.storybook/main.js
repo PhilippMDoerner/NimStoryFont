@@ -4,11 +4,10 @@ module.exports = {
   ],
 
   addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
     '@storybook/addon-a11y',
     'storybook-preset-inline-svg',
-    '@chromatic-com/storybook'
+    '@chromatic-com/storybook',
+    '@storybook/addon-docs'
   ],
 
   framework: {

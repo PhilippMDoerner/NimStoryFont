@@ -1,5 +1,5 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { dummyMarkerTypes } from 'src/app/_services/article/marker-type.service.mock';
 import { dummyClasses } from 'src/app/_services/article/player-class.service.mock';
