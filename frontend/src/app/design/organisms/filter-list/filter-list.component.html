@@ -88,7 +88,11 @@
               class="letter-list__item"
               [style.view-transition-name]="item.link"
             >
-              <a class="letter-list__link" [routerLink]="item.link">
+              <a
+                class="letter-list__link"
+                [routerLink]="item.link"
+                [attr.aria-label]="item[labelProp()]"
+              >
                 @let body = bodyProp() ? item[bodyProp()] : undefined;
                 <app-overview-entry
                   [img]="item.img"
