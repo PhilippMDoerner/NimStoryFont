@@ -1,16 +1,16 @@
-@import '/src/screens.scss';
+@use "/src/screens.scss" as screen;
 
-.image-container img{
+.image-container img {
   object-fit: contain;
   width: 100%;
   max-height: 10rem;
-  
-  @include media-breakpoint-up(md){
+
+  @include screen.media-breakpoint-up(md) {
     max-height: 18rem;
   }
 }
 
-.image-caption{
+.image-caption {
   position: absolute;
   background: var(--wiki-bg-transparent);
   width: 50%;
@@ -21,12 +21,12 @@
   left: 0;
   right: 0;
 
-  p{
-      margin: 0;
+  p {
+    margin: 0;
   }
 }
 
-.edit-image-buttons{
+.edit-image-buttons {
   display: flex;
   align-items: center;
   align-content: center;
@@ -35,6 +35,6 @@
   margin-top: var(--spacer-2);
 }
 
-.defaultImage{
+.defaultImage {
   position: relative;
 }

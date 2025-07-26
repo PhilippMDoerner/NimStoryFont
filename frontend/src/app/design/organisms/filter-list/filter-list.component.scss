@@ -1,5 +1,5 @@
 @use "src/utils" as utils;
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 @include utils.reset-list-styles();
 
@@ -76,7 +76,7 @@
       var(--bs-border-color);
     padding: var(--spacer-3) var(--spacer-0);
 
-    @include media-breakpoint-up(md) {
+    @include screen.media-breakpoint-up(md) {
       padding: var(--spacer-3) var(--spacer-4);
     }
   }

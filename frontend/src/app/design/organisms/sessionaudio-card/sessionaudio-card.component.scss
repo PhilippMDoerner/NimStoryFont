@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 .card {
   &-title {

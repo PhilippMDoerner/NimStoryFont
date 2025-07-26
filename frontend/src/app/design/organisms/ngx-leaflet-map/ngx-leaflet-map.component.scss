@@ -1,8 +1,8 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 :host {
   --map-height: 400px;
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     --map-height: 600px;
   }
 }

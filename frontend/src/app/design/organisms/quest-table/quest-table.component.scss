@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 :host {
   --table-bg: var(--bs-gray-dark);
@@ -40,7 +40,7 @@
     &--desktop-only {
       display: none;
 
-      @include media-breakpoint-up(md) {
+      @include screen.media-breakpoint-up(md) {
         display: table-cell;
       }
     }

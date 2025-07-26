@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 @keyframes shrink-bar {
   0% {
@@ -44,7 +44,7 @@
   --toast-padding-y: calc(var(--bs-toast-padding-y) / 2);
   --bs-toast-border-width: 3px;
 
-  @include media-breakpoint-up(sm) {
+  @include screen.media-breakpoint-up(sm) {
     width: fit-content;
     max-width: 50%;
     bottom: 5%;

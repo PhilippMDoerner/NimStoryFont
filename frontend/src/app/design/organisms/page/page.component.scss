@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 :host {
   --sb-width: 18rem;
@@ -12,7 +12,7 @@
   flex-direction: column;
 
   // On desktop, show both sidebar and page side by side, now absolute positioning
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     overflow: hidden;
     flex-direction: row;
   }
@@ -22,7 +22,7 @@
   width: 100%;
   z-index: 2;
 
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     display: none;
   }
 }
@@ -33,7 +33,7 @@
   .sidebar {
     width: var(--sb-width);
   }
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     display: unset;
   }
 }
@@ -46,7 +46,7 @@
   overflow-y: auto;
 
   // Desktop view show side-by-side with page
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     position: unset;
     height: 100%;
     max-height: unset;
