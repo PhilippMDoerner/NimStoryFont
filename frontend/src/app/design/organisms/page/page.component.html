@@ -38,6 +38,9 @@
       [id]="contentId()"
       [attr.aria-busy]="isLoading()"
     >
+      <div class="cdk-visually-hidden" #titleContainer [tabIndex]="-1">
+        {{ title() }}
+      </div>
       @if (isLoading()) {
         <div class="page__loading-container" aria-hidden="true">
           <app-spinner class="page__loading-spinner"></app-spinner>

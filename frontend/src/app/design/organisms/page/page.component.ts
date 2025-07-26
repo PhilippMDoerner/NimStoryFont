@@ -1,4 +1,3 @@
-import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -79,6 +78,8 @@ export class PageComponent {
     return campaignName ? capitalize(campaignName) : '';
   });
   isLoading = this.globalStore.isLoadingPage;
+  titleContainer =
+    viewChild.required<ElementRef<HTMLDivElement>>('titleContainer');
 
   contentScrollEvents$ = toObservable(this.innerContentElement).pipe(
     filterNil(),
@@ -115,6 +116,7 @@ export class PageComponent {
       campaign: this.globalStore.campaignName(),
     }),
   );
+  title = computed(() => this.navStore.currentRoute()?.title);
 
   campaignBackgroundImage$ = toObservable(
     this.globalStore.currentCampaign,
@@ -124,15 +126,13 @@ export class PageComponent {
   );
 
   constructor() {
-    const liveAnouncer = inject(LiveAnnouncer);
     effect(() => {
       const loading = this.isLoading();
-      const title = untracked(() => this.navStore.currentRoute()?.title);
-      if (!title || loading) return;
+      const titleContainer = this.titleContainer();
+      const title = untracked(() => this.title());
+      if (!title || loading || !titleContainer) return;
 
-      const loadingMessage = 'Loaded ' + title;
-
-      liveAnouncer.announce(loadingMessage);
+      titleContainer.nativeElement.focus();
     });
 
     this.pageSwipesRight$
