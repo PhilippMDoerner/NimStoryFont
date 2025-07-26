@@ -149,6 +149,7 @@ $nav-tabs-link-hover-border-color: $nav-tabs-border-color $nav-tabs-border-color
 $nav-tabs-link-active-color: $white;
 $nav-tabs-link-active-border-color: $nav-tabs-border-color
   $nav-tabs-border-color transparent;
+$nav-underline-link-active-color: $white;
 
 // Navbar
 
@@ -263,7 +264,7 @@ input.form-control:focus {
 
 select.form-select {
   color: white !important;
-  background-color: var(--bs-secondary) !important;
+  background-color: var(--bs-dark) !important;
 }
 
 select:focus {

@@ -16,15 +16,15 @@
     [icon]="'plus'"
     [text]="badgeText()"
     [interactionMode]="'BUTTON'"
-    [hotkey]="createHotkey()"
-    [disabledHotkey]="disableHotkeys()"
-    (hotkeyPressed)="toggleForm()"
+    [hotkeyAction]="createHotkey()"
+    [actionDisabled]="disableHotkeys()"
+    (actionTriggered)="toggleForm()"
     (badgeClick)="toggleForm()"
   ></app-badge>
 </ng-template>
 
 <ng-template #createState>
-  <form class="form" (keydown.Escape)="onCancel()">
+  <form class="form" (keydown.Escape)="onCancel()" (submit)="onSubmit($event)">
     <label [for]="id" class="cdk-visually-hidden">
       {{ formFieldLabel() }}
     </label>
@@ -49,7 +49,6 @@
       [icon]="'check'"
       [type]="'submit'"
       [disabled]="userModel == null"
-      (clicked)="onSubmit()"
     ></button>
 
     <!-- Cancel Button -->
@@ -59,9 +58,9 @@
       [kind]="cancelButtonType()"
       [size]="'SMALL'"
       [icon]="'times'"
-      [hotkey]="'q'"
-      [disabledHotkey]="disableHotkeys()"
-      (hotkeyPressed)="toggleForm()"
+      [hotkeyAction]="'cancel'"
+      [actionDisabled]="disableHotkeys()"
+      (actionTriggered)="toggleForm()"
       (clicked)="toggleForm()"
     ></button>
   </form>

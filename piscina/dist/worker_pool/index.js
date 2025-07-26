@@ -1,105 +1,54 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WorkerInfo = exports.AsynchronouslyCreatedResourcePool = void 0;
+exports.AsynchronouslyCreatedResourcePool = exports.WorkerInfo = void 0;
 const node_worker_threads_1 = require("node:worker_threads");
+const node_perf_hooks_1 = require("node:perf_hooks");
 const node_assert_1 = __importDefault(require("node:assert"));
 const errors_1 = require("../errors");
 const symbols_1 = require("../symbols");
-class AsynchronouslyCreatedResource {
-    constructor() {
-        this.onreadyListeners = [];
-    }
-    markAsReady() {
-        const listeners = this.onreadyListeners;
-        (0, node_assert_1.default)(listeners !== null);
-        this.onreadyListeners = null;
-        for (const listener of listeners) {
-            listener();
-        }
-    }
-    isReady() {
-        return this.onreadyListeners === null;
-    }
-    onReady(fn) {
-        if (this.onreadyListeners === null) {
-            fn(); // Zalgo is okay here.
-            return;
-        }
-        this.onreadyListeners.push(fn);
-    }
-}
-class AsynchronouslyCreatedResourcePool {
-    constructor(maximumUsage) {
-        this.pendingItems = new Set();
-        this.readyItems = new Set();
-        this.maximumUsage = maximumUsage;
-        this.onAvailableListeners = [];
-    }
-    add(item) {
-        this.pendingItems.add(item);
-        item.onReady(() => {
-            /* istanbul ignore else */
-            if (this.pendingItems.has(item)) {
-                this.pendingItems.delete(item);
-                this.readyItems.add(item);
-                this.maybeAvailable(item);
-            }
-        });
-    }
-    delete(item) {
-        this.pendingItems.delete(item);
-        this.readyItems.delete(item);
-    }
-    findAvailable() {
-        let minUsage = this.maximumUsage;
-        let candidate = null;
-        for (const item of this.readyItems) {
-            const usage = item.currentUsage();
-            if (usage === 0)
-                return item;
-            if (usage < minUsage) {
-                candidate = item;
-                minUsage = usage;
-            }
-        }
-        return candidate;
-    }
-    *[Symbol.iterator]() {
-        yield* this.pendingItems;
-        yield* this.readyItems;
-    }
-    get size() {
-        return this.pendingItems.size + this.readyItems.size;
-    }
-    maybeAvailable(item) {
-        /* istanbul ignore else */
-        if (item.currentUsage() < this.maximumUsage) {
-            for (const listener of this.onAvailableListeners) {
-                listener(item);
-            }
-        }
-    }
-    onAvailable(fn) {
-        this.onAvailableListeners.push(fn);
-    }
-}
-exports.AsynchronouslyCreatedResourcePool = AsynchronouslyCreatedResourcePool;
-class WorkerInfo extends AsynchronouslyCreatedResource {
-    constructor(worker, port, onMessage) {
+const histogram_1 = require("../histogram");
+const base_1 = require("./base");
+Object.defineProperty(exports, "AsynchronouslyCreatedResourcePool", { enumerable: true, get: function () { return base_1.AsynchronouslyCreatedResourcePool; } });
+__exportStar(require("./balancer"), exports);
+class WorkerInfo extends base_1.AsynchronouslyCreatedResource {
+    constructor(worker, port, onMessage, enableHistogram) {
         super();
-        this.idleTimeout = null; // eslint-disable-line no-undef
+        this.idleTimeout = null;
         this.lastSeenResponseCount = 0;
+        this.terminating = false;
+        this.destroyed = false;
         this.worker = worker;
         this.port = port;
         this.port.on('message', (message) => this._handleResponse(message));
         this.onMessage = onMessage;
         this.taskInfos = new Map();
         this.sharedBuffer = new Int32Array(new SharedArrayBuffer(symbols_1.kFieldCount * Int32Array.BYTES_PER_ELEMENT));
+        this.histogram = enableHistogram ? (0, node_perf_hooks_1.createHistogram)() : null;
+    }
+    get id() {
+        return this.worker.threadId;
     }
     destroy() {
+        if (this.terminating || this.destroyed)
+            return;
+        this.terminating = true;
         this.worker.terminate();
         this.port.close();
         this.clearIdleTimeout();
@@ -107,9 +56,12 @@ class WorkerInfo extends AsynchronouslyCreatedResource {
             taskInfo.done(errors_1.Errors.ThreadTermination());
         }
         this.taskInfos.clear();
+        this.terminating = false;
+        this.destroyed = true;
+        this.markAsDestroyed();
     }
     clearIdleTimeout() {
-        if (this.idleTimeout !== null) {
+        if (this.idleTimeout != null) {
             clearTimeout(this.idleTimeout);
             this.idleTimeout = null;
         }
@@ -125,6 +77,10 @@ class WorkerInfo extends AsynchronouslyCreatedResource {
         return this;
     }
     _handleResponse(message) {
+        var _a;
+        if (message.time != null) {
+            (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.record(histogram_1.PiscinaHistogramHandler.toHistogramIntegerNano(message.time));
+        }
         this.onMessage(message);
         if (this.taskInfos.size === 0) {
             // No more tasks running on this Worker means it should not keep the
@@ -134,11 +90,13 @@ class WorkerInfo extends AsynchronouslyCreatedResource {
     }
     postTask(taskInfo) {
         (0, node_assert_1.default)(!this.taskInfos.has(taskInfo.taskId));
+        (0, node_assert_1.default)(!this.terminating && !this.destroyed);
         const message = {
             task: taskInfo.releaseTask(),
             taskId: taskInfo.taskId,
             filename: taskInfo.filename,
-            name: taskInfo.name
+            name: taskInfo.name,
+            histogramEnabled: this.histogram != null ? 1 : 0
         };
         try {
             this.port.postMessage(message, taskInfo.transferList);
@@ -159,6 +117,8 @@ class WorkerInfo extends AsynchronouslyCreatedResource {
         Atomics.notify(this.sharedBuffer, symbols_1.kRequestCountField, 1);
     }
     processPendingMessages() {
+        if (this.destroyed)
+            return;
         // If we *know* that there are more messages than we have received using
         // 'message' events yet, then try to load and handle them synchronously,
         // without the need to wait for more expensive events on the event loop.
@@ -184,6 +144,30 @@ class WorkerInfo extends AsynchronouslyCreatedResource {
         if (this.isRunningAbortableTask())
             return Infinity;
         return this.taskInfos.size;
+    }
+    get interface() {
+        const worker = this;
+        return {
+            get id() {
+                return worker.worker.threadId;
+            },
+            get currentUsage() {
+                return worker.currentUsage();
+            },
+            get isRunningAbortableTask() {
+                return worker.isRunningAbortableTask();
+            },
+            get histogram() {
+                return worker.histogram != null ? histogram_1.PiscinaHistogramHandler.createHistogramSummary(worker.histogram) : null;
+            },
+            get terminating() {
+                return worker.terminating;
+            },
+            get destroyed() {
+                return worker.destroyed;
+            },
+            [symbols_1.kWorkerData]: worker
+        };
     }
 }
 exports.WorkerInfo = WorkerInfo;

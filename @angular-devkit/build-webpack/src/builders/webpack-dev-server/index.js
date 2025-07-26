@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runWebpackDevServer = runWebpackDevServer;
 const architect_1 = require("@angular-devkit/architect");
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const rxjs_1 = require("rxjs");
 const webpack_1 = __importDefault(require("webpack"));
 const webpack_dev_server_1 = __importDefault(require("webpack-dev-server"));
@@ -86,7 +86,7 @@ function runWebpackDevServer(config, context, options = {}) {
     })));
 }
 const builder = (0, architect_1.createBuilder)((options, context) => {
-    const configPath = (0, path_1.resolve)(context.workspaceRoot, options.webpackConfig);
+    const configPath = (0, node_path_1.resolve)(context.workspaceRoot, options.webpackConfig);
     return (0, rxjs_1.from)((0, utils_1.getWebpackConfig)(configPath)).pipe((0, rxjs_1.switchMap)((config) => runWebpackDevServer(config, context)));
 });
 exports.default = builder;

@@ -1,6 +1,6 @@
 {
   "name": "@testing-library/jest-dom",
-  "version": "6.5.0",
+  "version": "6.6.3",
   "description": "Custom jest matchers to test the state of the DOM",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

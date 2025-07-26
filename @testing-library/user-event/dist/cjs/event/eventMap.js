@@ -17,6 +17,14 @@ const eventMap = {
             composed: true
         }
     },
+    blur: {
+        EventType: 'FocusEvent',
+        defaultInit: {
+            bubbles: false,
+            cancelable: false,
+            composed: true
+        }
+    },
     click: {
         EventType: 'PointerEvent',
         defaultInit: {
@@ -61,6 +69,30 @@ const eventMap = {
         defaultInit: {
             bubbles: true,
             cancelable: true,
+            composed: true
+        }
+    },
+    focus: {
+        EventType: 'FocusEvent',
+        defaultInit: {
+            bubbles: false,
+            cancelable: false,
+            composed: true
+        }
+    },
+    focusin: {
+        EventType: 'FocusEvent',
+        defaultInit: {
+            bubbles: true,
+            cancelable: false,
+            composed: true
+        }
+    },
+    focusout: {
+        EventType: 'FocusEvent',
+        defaultInit: {
+            bubbles: true,
+            cancelable: false,
             composed: true
         }
     },

@@ -91,6 +91,24 @@ class AssetSourceGenerator extends Generator {
 	}
 
 	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		switch (generateContext.type) {
+			case "javascript": {
+				return new RawSource(
+					`throw new Error(${JSON.stringify(error.message)});`
+				);
+			}
+			default:
+				return null;
+		}
+	}
+
+	/**
 	 * @param {NormalModule} module module for which the bailout reason should be determined
 	 * @param {ConcatenationBailoutReasonContext} context context
 	 * @returns {string | undefined} reason why this module can't be concatenated, undefined when it can be concatenated
@@ -104,6 +122,7 @@ class AssetSourceGenerator extends Generator {
 	 * @returns {SourceTypes} available types (do not mutate)
 	 */
 	getTypes(module) {
+		/** @type {Set<string>} */
 		const sourceTypes = new Set();
 		const connections = this._moduleGraph.getIncomingConnections(module);
 
@@ -115,12 +134,13 @@ class AssetSourceGenerator extends Generator {
 			sourceTypes.add(connection.originModule.type.split("/")[0]);
 		}
 
-		if (sourceTypes.has("javascript") && sourceTypes.has("css")) {
-			return JS_AND_CSS_URL_TYPES;
-		} else if (sourceTypes.has("javascript")) {
+		if (sourceTypes.size > 0) {
+			if (sourceTypes.has("javascript") && sourceTypes.has("css")) {
+				return JS_AND_CSS_URL_TYPES;
+			} else if (sourceTypes.has("css")) {
+				return CSS_URL_TYPES;
+			}
 			return JS_TYPES;
-		} else if (sourceTypes.has("css")) {
-			return CSS_URL_TYPES;
 		}
 
 		return NO_TYPES;

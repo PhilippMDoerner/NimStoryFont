@@ -12,6 +12,7 @@ const LoaderImportDependency = require("./LoaderImportDependency");
 
 /** @typedef {import("../../declarations/LoaderContext").LoaderPluginLoaderContext} LoaderPluginLoaderContext */
 /** @typedef {import("../Compilation").DepConstructor} DepConstructor */
+/** @typedef {import("../Compilation").ExecuteModuleExports} ExecuteModuleExports */
 /** @typedef {import("../Compilation").ExecuteModuleResult} ExecuteModuleResult */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Module")} Module */
@@ -20,7 +21,7 @@ const LoaderImportDependency = require("./LoaderImportDependency");
 /**
  * @callback ImportModuleCallback
  * @param {(Error | null)=} err error object
- * @param {any=} exports exports of the evaluated module
+ * @param {ExecuteModuleExports=} exports exports of the evaluated module
  */
 
 /**
@@ -30,12 +31,9 @@ const LoaderImportDependency = require("./LoaderImportDependency");
  * @property {string=} baseUri target base uri
  */
 
-class LoaderPlugin {
-	/**
-	 * @param {object} options options
-	 */
-	constructor(options = {}) {}
+const PLUGIN_NAME = "LoaderPlugin";
 
+class LoaderPlugin {
 	/**
 	 * Apply the plugin
 	 * @param {Compiler} compiler the compiler instance
@@ -43,7 +41,7 @@ class LoaderPlugin {
 	 */
 	apply(compiler) {
 		compiler.hooks.compilation.tap(
-			"LoaderPlugin",
+			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				compilation.dependencyFactories.set(
 					LoaderDependency,
@@ -56,10 +54,10 @@ class LoaderPlugin {
 			}
 		);
 
-		compiler.hooks.compilation.tap("LoaderPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			const moduleGraph = compilation.moduleGraph;
 			NormalModule.getCompilationHooks(compilation).loader.tap(
-				"LoaderPlugin",
+				PLUGIN_NAME,
 				loaderContext => {
 					loaderContext.loadModule = (request, callback) => {
 						const dep = new LoaderDependency(request);
@@ -150,12 +148,7 @@ class LoaderPlugin {
 								for (const d of buildDependencies) {
 									loaderContext.addBuildDependency(d);
 								}
-								return callback(
-									null,
-									source,
-									/** @type {object | null} */ (map),
-									referencedModule
-								);
+								return callback(null, source, map, referencedModule);
 							}
 						);
 					};
@@ -271,8 +264,7 @@ class LoaderPlugin {
 						);
 					};
 
-					// eslint-disable-next-line no-warning-comments
-					// @ts-ignore Overloading doesn't work
+					// @ts-expect-error overloading doesn't work
 					loaderContext.importModule = (request, options, callback) => {
 						if (!callback) {
 							return new Promise((resolve, reject) => {

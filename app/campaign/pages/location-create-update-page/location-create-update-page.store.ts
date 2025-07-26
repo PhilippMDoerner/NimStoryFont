@@ -4,7 +4,7 @@ import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { shareReplay, switchMap } from 'rxjs';
 import { Location, LocationRaw } from 'src/app/_models/location';
 import { LocationService } from 'src/app/_services/article/location.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';

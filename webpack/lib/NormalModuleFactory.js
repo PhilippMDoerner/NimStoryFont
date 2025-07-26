@@ -37,6 +37,7 @@ const {
 /** @typedef {import("../declarations/WebpackOptions").ModuleOptionsNormalized} ModuleOptions */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
 /** @typedef {import("./Generator")} Generator */
+/** @typedef {import("./ModuleFactory").ModuleFactoryCallback} ModuleFactoryCallback */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCreateData} ModuleFactoryCreateData */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCreateDataContextInfo} ModuleFactoryCreateDataContextInfo */
 /** @typedef {import("./ModuleFactory").ModuleFactoryResult} ModuleFactoryResult */
@@ -50,7 +51,10 @@ const {
 /** @typedef {import("./ResolverFactory").ResolveRequest} ResolveRequest */
 /** @typedef {import("./ResolverFactory").ResolverWithOptions} ResolverWithOptions */
 /** @typedef {import("./dependencies/ModuleDependency")} ModuleDependency */
+/** @typedef {import("./javascript/JavascriptParser").ImportAttributes} ImportAttributes */
+/** @typedef {import("./rules/RuleSetCompiler").RuleSetRules} RuleSetRules */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
+/** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 
 /** @typedef {Pick<RuleSetRule, 'type' | 'sideEffects' | 'parser' | 'generator' | 'resolve' | 'layer'>} ModuleSettings */
 /** @typedef {Partial<NormalModuleCreateData & { settings: ModuleSettings }>} CreateData */
@@ -61,7 +65,7 @@ const {
  * @property {ModuleFactoryCreateData["resolveOptions"]} resolveOptions
  * @property {string} context
  * @property {string} request
- * @property {Record<string, any> | undefined} assertions
+ * @property {ImportAttributes | undefined} assertions
  * @property {ModuleDependency[]} dependencies
  * @property {string} dependencyType
  * @property {CreateData} createData
@@ -81,7 +85,15 @@ const {
  * @property {string=} context
  */
 
-/** @typedef {ResourceData & { data: Record<string, any> }} ResourceDataWithData */
+/**
+ * @typedef {object} ResourceSchemeData
+ * @property {string=} mimetype mime type of the resource
+ * @property {string=} parameters additional parameters for the resource
+ * @property {"base64" | false=} encoding encoding of the resource
+ * @property {string=} encodedContent encoded content of the resource
+ */
+
+/** @typedef {ResourceData & { data: ResourceSchemeData & Partial<ResolveRequest> }} ResourceDataWithData */
 
 /**
  * @typedef {object} ParsedLoaderRequest
@@ -186,20 +198,13 @@ const mergeGlobalOptions = (globalOptions, type, localOptions) => {
 
 // TODO webpack 6 remove
 /**
+ * @template {import("tapable").Hook<EXPECTED_ANY, EXPECTED_ANY>} T
  * @param {string} name name
- * @param {TODO} hook hook
+ * @param {T} hook hook
  * @returns {string} result
  */
 const deprecationChangedHookMessage = (name, hook) => {
-	const names = hook.taps
-		.map(
-			/**
-			 * @param {TODO} tapped tapped
-			 * @returns {string} name
-			 */
-			tapped => tapped.name
-		)
-		.join(", ");
+	const names = hook.taps.map(tapped => tapped.name).join(", ");
 
 	return (
 		`NormalModuleFactory.${name} (${names}) is no longer a waterfall hook, but a bailing hook instead. ` +
@@ -224,14 +229,16 @@ const ruleSetCompiler = new RuleSetCompiler([
 	new BasicMatcherRulePlugin("issuerLayer"),
 	new ObjectMatcherRulePlugin("assert", "assertions", value => {
 		if (value) {
-			return /** @type {any} */ (value)._isLegacyAssert !== undefined;
+			return (
+				/** @type {ImportAttributes} */ (value)._isLegacyAssert !== undefined
+			);
 		}
 
 		return false;
 	}),
 	new ObjectMatcherRulePlugin("with", "assertions", value => {
 		if (value) {
-			return !(/** @type {any} */ (value)._isLegacyAssert);
+			return !(/** @type {ImportAttributes} */ (value)._isLegacyAssert);
 		}
 		return false;
 	}),
@@ -252,7 +259,7 @@ class NormalModuleFactory extends ModuleFactory {
 	 * @param {InputFileSystem} param.fs file system
 	 * @param {ResolverFactory} param.resolverFactory resolverFactory
 	 * @param {ModuleOptions} param.options options
-	 * @param {object} param.associatedObjectForCache an object to which the cache will be attached
+	 * @param {AssociatedObjectForCache} param.associatedObjectForCache an object to which the cache will be attached
 	 * @param {boolean=} param.layers enable layers
 	 */
 	constructor({
@@ -281,9 +288,9 @@ class NormalModuleFactory extends ModuleFactory {
 			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
 			/** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
-			/** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
+			/** @type {AsyncSeriesBailHook<[CreateData, ResolveData], Module | void>} */
 			createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
-			/** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData]>} */
+			/** @type {SyncWaterfallHook<[Module, CreateData, ResolveData]>} */
 			module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
 			/** @type {HookMap<SyncBailHook<[ParserOptions], Parser | void>>} */
 			createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),
@@ -305,23 +312,24 @@ class NormalModuleFactory extends ModuleFactory {
 		this.resolverFactory = resolverFactory;
 		this.ruleSet = ruleSetCompiler.compile([
 			{
-				rules: options.defaultRules
+				rules: /** @type {RuleSetRules} */ (options.defaultRules)
 			},
 			{
-				rules: options.rules
+				rules: /** @type {RuleSetRules} */ (options.rules)
 			}
 		]);
 		this.context = context || "";
 		this.fs = fs;
 		this._globalParserOptions = options.parser;
 		this._globalGeneratorOptions = options.generator;
-		/** @type {Map<string, WeakMap<object, Parser>>} */
+		/** @type {Map<string, WeakMap<ParserOptions, Parser>>} */
 		this.parserCache = new Map();
-		/** @type {Map<string, WeakMap<object, Generator>>} */
+		/** @type {Map<string, WeakMap<GeneratorOptions, Generator>>} */
 		this.generatorCache = new Map();
 		/** @type {Set<Module>} */
 		this._restoredUnsafeCacheEntries = new Set();
 
+		/** @type {(resource: string) => import("./util/identifier").ParsedResource} */
 		const cacheParseResource = parseResource.bindCache(
 			associatedObjectForCache
 		);
@@ -448,20 +456,22 @@ class NormalModuleFactory extends ModuleFactory {
 					const matchResourceMatch = MATCH_RESOURCE_REGEX.exec(request);
 					if (matchResourceMatch) {
 						let matchResource = matchResourceMatch[1];
+						// Check if matchResource starts with ./ or ../
 						if (matchResource.charCodeAt(0) === 46) {
-							// 46 === ".", 47 === "/"
+							// 46 is "."
 							const secondChar = matchResource.charCodeAt(1);
 							if (
-								secondChar === 47 ||
-								(secondChar === 46 && matchResource.charCodeAt(2) === 47)
+								secondChar === 47 || // 47 is "/"
+								(secondChar === 46 && matchResource.charCodeAt(2) === 47) // "../"
 							) {
-								// if matchResources startsWith ../ or ./
+								// Resolve relative path against context
 								matchResource = join(this.fs, context, matchResource);
 							}
 						}
+
 						matchResourceData = {
-							resource: matchResource,
-							...cacheParseResource(matchResource)
+							...cacheParseResource(matchResource),
+							resource: matchResource
 						};
 						requestWithoutMatchResource = request.slice(
 							matchResourceMatch[0].length
@@ -624,12 +634,13 @@ class NormalModuleFactory extends ModuleFactory {
 								] === "object" &&
 								settings[/** @type {keyof ModuleSettings} */ (r.type)] !== null
 							) {
-								settings[r.type] = cachedCleverMerge(
-									settings[/** @type {keyof ModuleSettings} */ (r.type)],
-									r.value
-								);
+								const type = /** @type {keyof ModuleSettings} */ (r.type);
+								/** @type {TODO} */
+								(settings)[type] = cachedCleverMerge(settings[type], r.value);
 							} else {
-								settings[r.type] = r.value;
+								const type = /** @type {keyof ModuleSettings} */ (r.type);
+								/** @type {TODO} */
+								(settings)[type] = r.value;
 							}
 						}
 					}
@@ -754,9 +765,9 @@ class NormalModuleFactory extends ModuleFactory {
 				const defaultResolve = context => {
 					if (/^($|\?)/.test(unresolvedResource)) {
 						resourceData = {
+							...cacheParseResource(unresolvedResource),
 							resource: unresolvedResource,
-							data: {},
-							...cacheParseResource(unresolvedResource)
+							data: {}
 						};
 						continueCallback();
 					}
@@ -786,11 +797,11 @@ class NormalModuleFactory extends ModuleFactory {
 										/** @type {string} */
 										(_resolvedResource);
 									resourceData = {
+										...cacheParseResource(resolvedResource),
 										resource: resolvedResource,
 										data:
 											/** @type {ResolveRequest} */
-											(resolvedResourceResolveData),
-										...cacheParseResource(resolvedResource)
+											(resolvedResourceResolveData)
 									};
 								}
 								continueCallback();
@@ -852,7 +863,7 @@ class NormalModuleFactory extends ModuleFactory {
 
 	/**
 	 * @param {ModuleFactoryCreateData} data data object
-	 * @param {function((Error | null)=, ModuleFactoryResult=): void} callback callback
+	 * @param {ModuleFactoryCallback} callback callback
 	 * @returns {void}
 	 */
 	create(data, callback) {
@@ -862,12 +873,11 @@ class NormalModuleFactory extends ModuleFactory {
 		const dependency = dependencies[0];
 		const request = dependency.request;
 		const assertions = dependency.assertions;
+		const dependencyType = dependency.category || "";
 		const contextInfo = data.contextInfo;
 		const fileDependencies = new LazySet();
 		const missingDependencies = new LazySet();
 		const contextDependencies = new LazySet();
-		const dependencyType =
-			(dependencies.length > 0 && dependencies[0].category) || "";
 		/** @type {ResolveData} */
 		const resolveData = {
 			contextInfo,
@@ -1223,7 +1233,7 @@ If changing the source code is not an option there is also a resolve options cal
 					}
 				);
 			},
-			/** @type {Callback<TODO>} */ (callback)
+			/** @type {Callback<(LoaderItem | undefined)[]>} */ (callback)
 		);
 	}
 

@@ -8,6 +8,9 @@ var parser_input_1 = tslib_1.__importDefault(require("./parser-input"));
 var utils = tslib_1.__importStar(require("../utils"));
 var function_registry_1 = tslib_1.__importDefault(require("../functions/function-registry"));
 var atrule_syntax_1 = require("../tree/atrule-syntax");
+var logger_1 = tslib_1.__importDefault(require("../logger"));
+var selector_1 = tslib_1.__importDefault(require("../tree/selector"));
+var anonymous_1 = tslib_1.__importDefault(require("../tree/anonymous"));
 //
 // less.js - parser
 //
@@ -51,6 +54,22 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
             type: type || 'Syntax',
             message: msg
         }, imports);
+    }
+    /**
+     *
+     * @param {string} msg
+     * @param {number} index
+     * @param {string} type
+     */
+    function warn(msg, index, type) {
+        if (!context.quiet) {
+            logger_1.default.warn((new less_error_1.default({
+                index: index !== null && index !== void 0 ? index : parserInput.i,
+                filename: fileInfo.filename,
+                type: type ? "".concat(type.toUpperCase(), " WARNING") : 'WARNING',
+                message: msg
+            }, imports)).toString());
+        }
     }
     function expect(arg, msg) {
         // some older browsers return typeof 'function' for RegExp
@@ -759,11 +778,20 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 do {
                     option = null;
                     elements = null;
-                    while (!(option = parserInput.$re(/^(all)(?=\s*(\)|,))/))) {
+                    var first = true;
+                    while (!(option = parserInput.$re(/^(!?all)(?=\s*(\)|,))/))) {
                         e = this.element();
                         if (!e) {
                             break;
                         }
+                        /**
+                         * @note - This will not catch selectors in pseudos like :is() and :where() because
+                         * they don't currently parse their contents as selectors.
+                         */
+                        if (!first && e.combinator.value) {
+                            warn('Targeting complex selectors can have unexpected behavior, and this behavior may change in the future.', index);
+                        }
+                        first = false;
                         if (elements) {
                             elements.push(e);
                         }
@@ -823,16 +851,23 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     var elements;
                     var args;
                     var hasParens;
+                    var parensIndex;
+                    var parensWS = false;
                     if (s !== '.' && s !== '#') {
                         return;
                     }
                     parserInput.save(); // stop us absorbing part of an invalid selector
                     elements = this.elements();
                     if (elements) {
+                        parensIndex = parserInput.i;
                         if (parserInput.$char('(')) {
+                            parensWS = parserInput.isWhitespace(-2);
                             args = this.args(true).args;
                             expectChar(')');
                             hasParens = true;
+                            if (parensWS) {
+                                warn('Whitespace between a mixin name and parentheses for a mixin call is deprecated', parensIndex, 'DEPRECATED');
+                            }
                         }
                         if (getLookup !== false) {
                             lookups = this.ruleLookups();
@@ -856,6 +891,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                                 return new tree_1.default.NamespaceValue(mixin, lookups);
                             }
                             else {
+                                if (!hasParens) {
+                                    warn('Calling a mixin without parentheses is deprecated', parensIndex, 'DEPRECATED');
+                                }
                                 return mixin;
                             }
                         }
@@ -1145,24 +1183,25 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 expectChar(')');
                 return new tree_1.default.Quoted('', "alpha(opacity=".concat(value, ")"));
             },
-            //
-            // A Selector Element
-            //
-            //     div
-            //     + h1
-            //     #socks
-            //     input[type="text"]
-            //
-            // Elements are the building blocks for Selectors,
-            // they are made out of a `Combinator` (see combinator rule),
-            // and an element name, such as a tag a class, or `*`.
-            //
+            /**
+             * A Selector Element
+             *
+             *   div
+             *   + h1
+             *   #socks
+             *   input[type="text"]
+             *
+             * Elements are the building blocks for Selectors,
+             * they are made out of a `Combinator` (see combinator rule),
+             * and an element name, such as a tag a class, or `*`.
+             */
             element: function () {
                 var e;
                 var c;
                 var v;
                 var index = parserInput.i;
                 c = this.combinator();
+                /** This selector parser is quite simplistic and will pass a number of invalid selectors. */
                 e = parserInput.$re(/^(?:\d+\.\d+|\d+)%/) ||
                     // eslint-disable-next-line no-control-regex
                     parserInput.$re(/^(?:[.#]?|:*)(?:[\w-]|[^\x00-\x9f]|\\(?:[A-Fa-f0-9]{1,6} ?|[^A-Fa-f0-9]))+/) ||
@@ -1172,9 +1211,26 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 if (!e) {
                     parserInput.save();
                     if (parserInput.$char('(')) {
-                        if ((v = this.selector(false)) && parserInput.$char(')')) {
-                            e = new (tree_1.default.Paren)(v);
-                            parserInput.forget();
+                        if ((v = this.selector(false))) {
+                            var selectors = [];
+                            while (parserInput.$char(',')) {
+                                selectors.push(v);
+                                selectors.push(new anonymous_1.default(','));
+                                v = this.selector(false);
+                            }
+                            selectors.push(v);
+                            if (parserInput.$char(')')) {
+                                if (selectors.length > 1) {
+                                    e = new (tree_1.default.Paren)(new selector_1.default(selectors));
+                                }
+                                else {
+                                    e = new (tree_1.default.Paren)(v);
+                                }
+                                parserInput.forget();
+                            }
+                            else {
+                                parserInput.restore('Missing closing \')\'');
+                            }
                         }
                         else {
                             parserInput.restore('Missing closing \')\'');
@@ -1265,6 +1321,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             error('Extend can only be used at the end of selector');
                         }
                         c = parserInput.currentChar();
+                        if (Array.isArray(e)) {
+                            e.forEach(function (ele) { return elements.push(ele); });
+                        }
                         if (elements) {
                             elements.push(e);
                         }
@@ -1439,7 +1498,12 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                         merge = !isVariable && name.length > 1 && name.pop().value;
                         // Custom property values get permissive parsing
                         if (name[0].value && name[0].value.slice(0, 2) === '--') {
-                            value = this.permissiveValue(/[;}]/);
+                            if (parserInput.$char(';')) {
+                                value = new anonymous_1.default('');
+                            }
+                            else {
+                                value = this.permissiveValue(/[;}]/, true);
+                            }
                         }
                         // Try to store values as anonymous
                         // If we need the value later we'll re-parse it in ruleset.parseValue
@@ -1458,7 +1522,12 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             important = this.important();
                         }
                         else if (isVariable) {
-                            // As a last resort, try permissiveValue
+                            /**
+                             * As a last resort, try permissiveValue
+                             *
+                             * @todo - This has created some knock-on problems of not
+                             * flagging incorrect syntax or detecting user intent.
+                             */
                             value = this.permissiveValue();
                         }
                     }
@@ -1489,6 +1558,8 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
              * First, it will try to parse comments and entities to reach
              * the end. This is mostly like the Expression parser except no
              * math is allowed.
+             *
+             * @param {RexExp} untilTokens - Characters to stop parsing at
              */
             permissiveValue: function (untilTokens) {
                 var i;
@@ -1550,6 +1621,7 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                         parserInput.forget();
                         return new tree_1.default.Anonymous('', index);
                     }
+                    /** @type {string} */
                     var item = void 0;
                     for (i = 0; i < value.length; i++) {
                         item = value[i];
@@ -1563,8 +1635,16 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             }
                             // Treat like quoted values, but replace vars like unquoted expressions
                             var quote = new tree_1.default.Quoted('\'', item, true, index, fileInfo);
-                            quote.variableRegex = /@([\w-]+)/g;
-                            quote.propRegex = /\$([\w-]+)/g;
+                            var variableRegex = /@([\w-]+)/g;
+                            var propRegex = /\$([\w-]+)/g;
+                            if (variableRegex.test(item)) {
+                                warn('@[ident] in unknown values will not be evaluated as variables in the future. Use @{[ident]}', index, 'DEPRECATED');
+                            }
+                            if (propRegex.test(item)) {
+                                warn('$[ident] in unknown values will not be evaluated as property references in the future. Use ${[ident]}', index, 'DEPRECATED');
+                            }
+                            quote.variableRegex = /@([\w-]+)|@{([\w-]+)}/g;
+                            quote.propRegex = /\$([\w-]+)|\${([\w-]+)}/g;
                             result.push(quote);
                         }
                     }
@@ -1853,6 +1933,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                         hasUnknown = true;
                         isRooted = false;
                         break;
+                    case '@starting-style':
+                        isRooted = false;
+                        break;
                     default:
                         hasUnknown = true;
                         break;
@@ -1952,7 +2035,14 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             break;
                         }
                         parserInput.save();
-                        op = parserInput.$char('/') || parserInput.$char('*') || parserInput.$str('./');
+                        op = parserInput.$char('/') || parserInput.$char('*');
+                        if (!op) {
+                            var index = parserInput.i;
+                            op = parserInput.$str('./');
+                            if (op) {
+                                warn('./ operator is deprecated', index, 'DEPRECATED');
+                            }
+                        }
                         if (!op) {
                             parserInput.forget();
                             break;
@@ -2213,7 +2303,7 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 var index = parserInput.i;
                 do {
                     e = this.comment();
-                    if (e) {
+                    if (e && !e.isLineComment) {
                         entities.push(e);
                         continue;
                     }

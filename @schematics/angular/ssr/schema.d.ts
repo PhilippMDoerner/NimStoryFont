@@ -11,11 +11,6 @@ export type Schema = {
      */
     project: string;
     /**
-     * Configure the server application to use the Angular Server Routing API and App Engine
-     * APIs (currently in Developer Preview).
-     */
-    serverRouting?: boolean;
-    /**
      * Skip the automatic installation of packages. You will need to manually install the
      * dependencies later.
      */

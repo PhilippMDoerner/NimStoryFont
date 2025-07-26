@@ -1,134 +1,151 @@
-import { DOCUMENT } from '@angular/common';
-import { DestroyRef, inject, Injectable } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { inject, Injectable } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
-  debounceTime,
-  EMPTY,
+  bufferCount,
   filter,
   fromEvent,
   map,
   merge,
   Observable,
+  repeat,
+  retry,
+  scan,
   share,
-  shareReplay,
-  startWith,
-  tap,
+  switchMap,
+  take,
+  timeout,
 } from 'rxjs';
+import { debugLog } from 'src/utils/rxjs-operators';
+import {
+  ACTIONS,
+  equals,
+  Key,
+  MODIFIER_KEYS,
+  ShortcutAction,
+} from '../_models/hotkey';
+import { UserPreferencesStore } from '../user-preferences.store';
 
-const UNBINDABLE_HOTKEYS = [
-  '',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '0',
-  '-',
-  '=',
-  'Escape',
-  'F1',
-  'F2',
-  'F3',
-  'F4',
-  'F5',
-  'F6',
-  'F7',
-  'F8',
-  'F9',
-  'F10',
-  'F11',
-  'F12',
-  'ArrowLeft',
-  'ArrowRight',
-  '^',
-  'Space',
-] as const;
-export const UNBINDABLE_KEYSET = new Set<string>(UNBINDABLE_HOTKEYS);
-type UnbindableHotkey = (typeof UNBINDABLE_HOTKEYS)[number];
-
-type NotA<T> = T extends UnbindableHotkey ? never : T;
-type NotB<T> = UnbindableHotkey extends T ? never : T;
-export type BindableHotkey<T> = NotA<T> & NotB<T>;
+export interface WatchOptions {
+  isModalAction?: boolean;
+  suppressEvent?: boolean;
+  eventSource?: HTMLElement;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class HotkeyService {
-  private hotkeyDown$: Observable<KeyboardEvent> | undefined;
-  public isHotkeyModifierPressed$: Observable<boolean> | undefined; //Undefined on Server
+  private modalService = inject(NgbModal);
+  private preferencesStore = inject(UserPreferencesStore);
 
-  constructor() {
-    const document = inject(DOCUMENT);
-    const window = inject(DOCUMENT).defaultView;
-    const destroyRef = inject(DestroyRef);
+  private hotkeyMap = this.preferencesStore.shortcutMappings;
+  private hotkeyMap$ = toObservable(this.hotkeyMap);
 
-    if (window) {
-      const keydownEvents$ = fromEvent<KeyboardEvent>(window, 'keydown');
-      const keyupEvents$ = fromEvent<KeyboardEvent>(window, 'keyup');
-      const visibilityChangeEvents$ = merge(
-        fromEvent<Event>(document, 'blur'),
-        fromEvent<Event>(window, 'blur'),
-        fromEvent<Event>(document, 'visibilitychange'),
-        fromEvent<Event>(window, 'visibilitychange'),
-      ).pipe(debounceTime(10));
+  private globalActions$: Observable<ShortcutAction> =
+    this.createActionListener(document.body);
 
-      this.hotkeyDown$ = this.toHotkeydownEvents(keydownEvents$).pipe(
-        takeUntilDestroyed(destroyRef),
-        share(),
-      );
-      this.isHotkeyModifierPressed$ = this.toIsHotkeyActive(
-        keydownEvents$,
-        keyupEvents$,
-        visibilityChangeEvents$,
-      ).pipe(takeUntilDestroyed(destroyRef));
-    }
+  public watchAction(
+    action: ShortcutAction,
+    options: WatchOptions = {},
+  ): Observable<void> {
+    const actions$ = options.eventSource
+      ? this.createActionListener(options.eventSource)
+      : this.globalActions$;
+
+    return actions$.pipe(
+      filter((a) => a === action),
+      filter(() => this.modalActionFilter(!!options.isModalAction)),
+      map(() => void 0),
+    );
   }
 
-  /**
-   * Creates an observable of keydown events on @key that happen while the hotkey is pressed.
-   * Event will get fired everytime @key gets invoked as either:
-   * - alt + @key
-   * - alt + ctrl + @key (This is mostly relevant for firefox which displays a few menus when alt is pressed)
+  public hasVisibleTooltip(isModalAction = false): Observable<boolean> {
+    return this.watchAction('show-tooltips', { isModalAction }).pipe(
+      scan(
+        (currentIsTooltipVisibleValue) => !currentIsTooltipVisibleValue,
+        false,
+      ),
+    );
+  }
+
+  public getKeySequence(action: ShortcutAction): Observable<Key[]> {
+    return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
+  }
+
+  private createKeyListener(eventSource: HTMLElement) {
+    return fromEvent<KeyboardEvent>(eventSource, 'keyup').pipe(
+      filter((event) => {
+        // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
+        const isFromTextInput =
+          event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement;
+        if (isFromTextInput) return false;
+
+        // Ignore keyup events from modifier keys. We only care about "real" keys
+        return !MODIFIER_KEYS.has(event.key);
+      }),
+      debugLog('keyup'),
+      share(),
+    );
+  }
+
+  private createActionListener(eventSource: HTMLElement) {
+    const keyup$ = this.createKeyListener(eventSource);
+
+    return this.hotkeyMap$.pipe(
+      map((hotkeyMap) => {
+        const sequences = ACTIONS.map((action) => ({
+          sequence: hotkeyMap[action].keys.map((key) => ({
+            ...key,
+            key: key.key.toLowerCase(),
+          })),
+          action,
+        }));
+        // Sorting the actions is necessary so that the longest key-combinations can emit first.
+        // This allows scenarios with key Combinations [Alt+C Alt+D] vs [Alt+D] to work,
+        // as the first one will trigger first on the Alt+D press
+        sequences.sort((a, b) => b.sequence.length - a.sequence.length);
+        return sequences;
+      }),
+      switchMap((hotkeySequences) => {
+        const actionListeners$ = hotkeySequences.map(({ sequence, action }) =>
+          keyup$.pipe(
+            bufferCount(sequence.length, 1),
+            filter((lastNKeys) =>
+              sequence.every((key, index) => equals(key, lastNKeys[index])),
+            ),
+            map(() => action),
+            debugLog('action'),
+          ),
+        );
+
+        return merge(...actionListeners$).pipe(
+          // timeout + retry reset the current action-listeners if for 5s no action was fired.
+          // This means if you start a key-combination but don't finish it within 5s, it will be reset
+          timeout(5000),
+          retry(),
+          // take(1) + repeat reset the stream after an action was emitted.
+          // That way the key-combination a b c can't trigger an action on a, a b AND a b c.
+          // Instead it will only trigger the action for the key a.
+          // The keys b c then can only trigger an action if specifically they have an action mapped to them.
+          take(1),
+          repeat(),
+        );
+      }),
+      share(),
+    );
+  }
+
+  /*
+   * Checks if a given action is currently allowed to trigger or not.
+   * An Action may only trigger if:
+   * - No modal is open (We do not want to allow hotkeys to trigger actions *underneath* a modal)
+   * - If a modal is open, then the action must be an action on the currently open modal itself.
    */
-  watch<T>(key: BindableHotkey<T> | undefined): Observable<KeyboardEvent> {
-    if (!window || !this.hotkeyDown$ || !key) return EMPTY;
-
-    return this.hotkeyDown$.pipe(
-      filter((event) => event.key === key),
-      tap((event) => event.preventDefault()),
-    );
-  }
-
-  private toHotkeydownEvents(
-    keydownEvents$: Observable<KeyboardEvent>,
-  ): Observable<KeyboardEvent> {
-    return keydownEvents$.pipe(
-      filter((event) => event.altKey && !UNBINDABLE_KEYSET.has(event.key)),
-      shareReplay(1),
-    );
-  }
-
-  private toIsHotkeyActive(
-    keydownEvents$: Observable<KeyboardEvent>,
-    keyupEvents$: Observable<KeyboardEvent>,
-    visibilityChangeEvents$: Observable<Event>,
-  ): Observable<boolean> {
-    const isAltKeyDown1$ = keydownEvents$.pipe(
-      filter((event) => event.key === 'Alt'),
-      map(() => true),
-    );
-    const isAltKeyDown2 = merge(
-      keyupEvents$.pipe(filter((event) => event.key === 'Alt')),
-      visibilityChangeEvents$,
-    ).pipe(map(() => false));
-
-    return merge(isAltKeyDown1$, isAltKeyDown2).pipe(
-      startWith(false),
-      shareReplay(1),
-    );
+  private modalActionFilter(isModalAction: boolean) {
+    const hasOpenModals = this.modalService.hasOpenModals();
+    if (!hasOpenModals) return true;
+    return hasOpenModals && isModalAction;
   }
 }

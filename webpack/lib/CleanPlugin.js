@@ -19,9 +19,7 @@ const processAsyncTree = require("./util/processAsyncTree");
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
 /** @typedef {import("./util/fs").StatsCallback} StatsCallback */
 
-/** @typedef {(function(string):boolean)|RegExp} IgnoreItem */
 /** @typedef {Map<string, number>} Assets */
-/** @typedef {function(IgnoreItem): void} AddToIgnoreCallback */
 
 /**
  * @typedef {object} CleanPluginCompilationHooks
@@ -51,7 +49,7 @@ const validate = createSchemaValidation(
 const _10sec = 10 * 1000;
 
 /**
- * marge assets map 2 into map 1
+ * merge assets map 2 into map 1
  * @param {Assets} as1 assets
  * @param {Assets} as2 assets
  * @returns {void}
@@ -63,11 +61,13 @@ const mergeAssets = (as1, as2) => {
 	}
 };
 
+/** @typedef {Set<string>} Diff */
+
 /**
  * @param {OutputFileSystem} fs filesystem
  * @param {string} outputPath output path
  * @param {Map<string, number>} currentAssets filename of the current assets (must not start with .. or ., must only use / as path separator)
- * @param {function((Error | null)=, Set<string>=): void} callback returns the filenames of the assets that shouldn't be there
+ * @param {(err?: Error | null, set?: Diff) => void} callback returns the filenames of the assets that shouldn't be there
  * @returns {void}
  */
 const getDiffToFs = (fs, outputPath, currentAssets, callback) => {
@@ -116,7 +116,7 @@ const getDiffToFs = (fs, outputPath, currentAssets, callback) => {
 /**
  * @param {Assets} currentAssets assets list
  * @param {Assets} oldAssets old assets list
- * @returns {Set<string>} diff
+ * @returns {Diff} diff
  */
 const getDiffToOldAssets = (currentAssets, oldAssets) => {
 	const diff = new Set();
@@ -148,9 +148,9 @@ const doStat = (fs, filename, callback) => {
  * @param {string} outputPath output path
  * @param {boolean} dry only log instead of fs modification
  * @param {Logger} logger logger
- * @param {Set<string>} diff filenames of the assets that shouldn't be there
- * @param {function(string): boolean | void} isKept check if the entry is ignored
- * @param {function(Error=, Assets=): void} callback callback
+ * @param {Diff} diff filenames of the assets that shouldn't be there
+ * @param {(path: string) => boolean | void} isKept check if the entry is ignored
+ * @param {(err?: Error, assets?: Assets) => void} callback callback
  * @returns {void}
  */
 const applyDiff = (fs, outputPath, dry, logger, diff, isKept, callback) => {
@@ -296,6 +296,8 @@ const applyDiff = (fs, outputPath, dry, logger, diff, isKept, callback) => {
 /** @type {WeakMap<Compilation, CleanPluginCompilationHooks>} */
 const compilationHooksMap = new WeakMap();
 
+const PLUGIN_NAME = "CleanPlugin";
+
 class CleanPlugin {
 	/**
 	 * @param {Compilation} compilation the compilation
@@ -349,18 +351,18 @@ class CleanPlugin {
 
 		compiler.hooks.emit.tapAsync(
 			{
-				name: "CleanPlugin",
+				name: PLUGIN_NAME,
 				stage: 100
 			},
 			(compilation, callback) => {
 				const hooks = CleanPlugin.getCompilationHooks(compilation);
-				const logger = compilation.getLogger("webpack.CleanPlugin");
+				const logger = compilation.getLogger(`webpack.${PLUGIN_NAME}`);
 				const fs = /** @type {OutputFileSystem} */ (compiler.outputFileSystem);
 
 				if (!fs.readdir) {
 					return callback(
 						new Error(
-							"CleanPlugin: Output filesystem doesn't support listing directories (readdir)"
+							`${PLUGIN_NAME}: Output filesystem doesn't support listing directories (readdir)`
 						)
 					);
 				}
@@ -402,7 +404,7 @@ class CleanPlugin {
 
 				/**
 				 * @param {(Error | null)=} err err
-				 * @param {Set<string>=} diff diff
+				 * @param {Diff=} diff diff
 				 */
 				const diffCallback = (err, diff) => {
 					if (err) {
@@ -415,7 +417,7 @@ class CleanPlugin {
 						outputPath,
 						dry,
 						logger,
-						/** @type {Set<string>} */ (diff),
+						/** @type {Diff} */ (diff),
 						isKept,
 						(err, keptAssets) => {
 							if (err) {

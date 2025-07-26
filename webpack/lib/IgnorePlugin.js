@@ -22,6 +22,8 @@ const validate = createSchemaValidation(
 	}
 );
 
+const PLUGIN_NAME = "IgnorePlugin";
+
 class IgnorePlugin {
 	/**
 	 * @param {IgnorePluginOptions} options IgnorePlugin options
@@ -29,11 +31,6 @@ class IgnorePlugin {
 	constructor(options) {
 		validate(options);
 		this.options = options;
-
-		/**
-		 * @private
-		 * @type {Function}
-		 */
 		this.checkIgnore = this.checkIgnore.bind(this);
 	}
 
@@ -74,8 +71,8 @@ class IgnorePlugin {
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.normalModuleFactory.tap("IgnorePlugin", nmf => {
-			nmf.hooks.beforeResolve.tap("IgnorePlugin", resolveData => {
+		compiler.hooks.normalModuleFactory.tap(PLUGIN_NAME, nmf => {
+			nmf.hooks.beforeResolve.tap(PLUGIN_NAME, resolveData => {
 				const result = this.checkIgnore(resolveData);
 
 				if (
@@ -93,8 +90,8 @@ class IgnorePlugin {
 				return result;
 			});
 		});
-		compiler.hooks.contextModuleFactory.tap("IgnorePlugin", cmf => {
-			cmf.hooks.beforeResolve.tap("IgnorePlugin", this.checkIgnore);
+		compiler.hooks.contextModuleFactory.tap(PLUGIN_NAME, cmf => {
+			cmf.hooks.beforeResolve.tap(PLUGIN_NAME, this.checkIgnore);
 		});
 	}
 }

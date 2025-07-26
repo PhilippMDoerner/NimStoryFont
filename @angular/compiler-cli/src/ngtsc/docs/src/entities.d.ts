@@ -116,6 +116,8 @@ export interface DirectiveEntry extends ClassEntry {
 export interface PipeEntry extends ClassEntry {
     pipeName: string;
     isStandalone: boolean;
+    usage: string;
+    isPure: boolean;
 }
 export interface FunctionSignatureMetadata extends DocEntry {
     params: ParameterEntry[];

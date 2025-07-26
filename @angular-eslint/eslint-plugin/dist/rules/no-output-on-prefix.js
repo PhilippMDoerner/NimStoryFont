@@ -4,7 +4,7 @@ exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-output-on-prefix';
-const STYLE_GUIDE_LINK = 'https://angular.dev/style-guide#style-05-16';
+const STYLE_GUIDE_LINK = 'https://angular.dev/guide/components/outputs#choosing-event-names';
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
     meta: {

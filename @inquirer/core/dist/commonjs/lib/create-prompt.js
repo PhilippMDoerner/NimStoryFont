@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -31,30 +41,33 @@ const readline = __importStar(require("node:readline"));
 const node_async_hooks_1 = require("node:async_hooks");
 const mute_stream_1 = __importDefault(require("mute-stream"));
 const signal_exit_1 = require("signal-exit");
-const screen_manager_js_1 = __importDefault(require("./screen-manager.js"));
-const promise_polyfill_js_1 = require("./promise-polyfill.js");
-const hook_engine_js_1 = require("./hook-engine.js");
-const errors_js_1 = require("./errors.js");
+const screen_manager_ts_1 = __importDefault(require("./screen-manager.js"));
+const promise_polyfill_ts_1 = require("./promise-polyfill.js");
+const hook_engine_ts_1 = require("./hook-engine.js");
+const errors_ts_1 = require("./errors.js");
 function getCallSites() {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const _prepareStackTrace = Error.prepareStackTrace;
+    let result = [];
     try {
-        let result = [];
         Error.prepareStackTrace = (_, callSites) => {
             const callSitesWithoutCurrent = callSites.slice(1);
             result = callSitesWithoutCurrent;
             return callSitesWithoutCurrent;
         };
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions, unicorn/error-message
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         new Error().stack;
+    }
+    catch {
+        // An error will occur if the Node flag --frozen-intrinsics is used.
+        // https://nodejs.org/api/cli.html#--frozen-intrinsics
         return result;
     }
-    finally {
-        Error.prepareStackTrace = _prepareStackTrace;
-    }
+    Error.prepareStackTrace = _prepareStackTrace;
+    return result;
 }
 function createPrompt(view) {
     const callSites = getCallSites();
-    const callerFilename = callSites[1]?.getFileName?.();
     const prompt = (config, context = {}) => {
         // Default `input` to stdin
         const { input = process.stdin, signal } = context;
@@ -67,12 +80,11 @@ function createPrompt(view) {
             input,
             output,
         });
-        const screen = new screen_manager_js_1.default(rl);
-        const { promise, resolve, reject } = promise_polyfill_js_1.PromisePolyfill.withResolver();
-        /** @deprecated pass an AbortSignal in the context options instead. See {@link https://github.com/SBoudrias/Inquirer.js#canceling-prompt} */
-        const cancel = () => reject(new errors_js_1.CancelPromptError());
+        const screen = new screen_manager_ts_1.default(rl);
+        const { promise, resolve, reject } = promise_polyfill_ts_1.PromisePolyfill.withResolver();
+        const cancel = () => reject(new errors_ts_1.CancelPromptError());
         if (signal) {
-            const abort = () => reject(new errors_js_1.AbortPromptError({ cause: signal.reason }));
+            const abort = () => reject(new errors_ts_1.AbortPromptError({ cause: signal.reason }));
             if (signal.aborted) {
                 abort();
                 return Object.assign(promise, { cancel });
@@ -81,8 +93,14 @@ function createPrompt(view) {
             cleanups.add(() => signal.removeEventListener('abort', abort));
         }
         cleanups.add((0, signal_exit_1.onExit)((code, signal) => {
-            reject(new errors_js_1.ExitPromptError(`User force closed the prompt with ${code} ${signal}`));
+            reject(new errors_ts_1.ExitPromptError(`User force closed the prompt with ${code} ${signal}`));
         }));
+        // SIGINT must be explicitly handled by the prompt so the ExitPromptError can be handled.
+        // Otherwise, the prompt will stop and in some scenarios never resolve.
+        // Ref issue #1741
+        const sigint = () => reject(new errors_ts_1.ExitPromptError(`User force closed the prompt with SIGINT`));
+        rl.on('SIGINT', sigint);
+        cleanups.add(() => rl.removeListener('SIGINT', sigint));
         // Re-renders only happen when the state change; but the readline cursor could change position
         // and that also requires a re-render (and a manual one because we mute the streams).
         // We set the listener after the initial workLoop to avoid a double render if render triggered
@@ -90,11 +108,11 @@ function createPrompt(view) {
         const checkCursorPos = () => screen.checkCursorPos();
         rl.input.on('keypress', checkCursorPos);
         cleanups.add(() => rl.input.removeListener('keypress', checkCursorPos));
-        return (0, hook_engine_js_1.withHooks)(rl, (cycle) => {
+        return (0, hook_engine_ts_1.withHooks)(rl, (cycle) => {
             // The close event triggers immediately when the user press ctrl+c. SignalExit on the other hand
             // triggers after the process is done (which happens after timeouts are done triggering.)
             // We triggers the hooks cleanup phase on rl `close` so active timeouts can be cleared.
-            const hooksCleanup = node_async_hooks_1.AsyncResource.bind(() => hook_engine_js_1.effectScheduler.clearAll());
+            const hooksCleanup = node_async_hooks_1.AsyncResource.bind(() => hook_engine_ts_1.effectScheduler.clearAll());
             rl.on('close', hooksCleanup);
             cleanups.add(() => rl.removeListener('close', hooksCleanup));
             cycle(() => {
@@ -105,11 +123,12 @@ function createPrompt(view) {
                     // Typescript won't allow this, but not all users rely on typescript.
                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     if (nextView === undefined) {
+                        const callerFilename = callSites[1]?.getFileName();
                         throw new Error(`Prompt functions must return a string.\n    at ${callerFilename}`);
                     }
                     const [content, bottomContent] = typeof nextView === 'string' ? [nextView] : nextView;
                     screen.render(content, bottomContent);
-                    hook_engine_js_1.effectScheduler.run();
+                    hook_engine_ts_1.effectScheduler.run();
                 }
                 catch (error) {
                     reject(error);
@@ -117,10 +136,10 @@ function createPrompt(view) {
             });
             return Object.assign(promise
                 .then((answer) => {
-                hook_engine_js_1.effectScheduler.clearAll();
+                hook_engine_ts_1.effectScheduler.clearAll();
                 return answer;
             }, (error) => {
-                hook_engine_js_1.effectScheduler.clearAll();
+                hook_engine_ts_1.effectScheduler.clearAll();
                 throw error;
             })
                 // Wait for the promise to settle, then cleanup.

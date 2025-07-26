@@ -22,6 +22,7 @@ const { parseResource } = require("./util/identifier");
 /** @typedef {import("estree").SourceLocation} SourceLocation */
 /** @typedef {import("estree").Statement} Statement */
 /** @typedef {import("estree").Super} Super */
+/** @typedef {import("estree").VariableDeclaration} VariableDeclaration */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("./javascript/JavascriptParser")} JavascriptParser */
@@ -68,7 +69,7 @@ const collectDeclaration = (declarations, pattern) => {
  */
 const getHoistedDeclarations = (branch, includeFunctionDeclarations) => {
 	const declarations = new Set();
-	/** @type {Array<TODO | null | undefined>} */
+	/** @type {Array<Statement | null | undefined>} */
 	const stack = [branch];
 	while (stack.length > 0) {
 		const node = stack.pop();
@@ -87,12 +88,12 @@ const getHoistedDeclarations = (branch, includeFunctionDeclarations) => {
 				stack.push(node.alternate);
 				break;
 			case "ForStatement":
-				stack.push(node.init);
+				stack.push(/** @type {VariableDeclaration} */ (node.init));
 				stack.push(node.body);
 				break;
 			case "ForInStatement":
 			case "ForOfStatement":
-				stack.push(node.left);
+				stack.push(/** @type {VariableDeclaration} */ (node.left));
 				stack.push(node.body);
 				break;
 			case "DoWhileStatement":
@@ -158,6 +159,7 @@ class ConstPlugin {
 				 * @param {JavascriptParser} parser the parser
 				 */
 				const handler = parser => {
+					parser.hooks.terminate.tap(PLUGIN_NAME, statement => true);
 					parser.hooks.statementIf.tap(PLUGIN_NAME, statement => {
 						if (parser.scope.isAsmJs) return;
 						const param = parser.evaluateExpression(statement.test);
@@ -177,52 +179,20 @@ class ConstPlugin {
 								? statement.alternate
 								: statement.consequent;
 							if (branchToRemove) {
-								// Before removing the dead branch, the hoisted declarations
-								// must be collected.
-								//
-								// Given the following code:
-								//
-								//     if (true) f() else g()
-								//     if (false) {
-								//       function f() {}
-								//       const g = function g() {}
-								//       if (someTest) {
-								//         let a = 1
-								//         var x, {y, z} = obj
-								//       }
-								//     } else {
-								//       …
-								//     }
-								//
-								// the generated code is:
-								//
-								//     if (true) f() else {}
-								//     if (false) {
-								//       var f, x, y, z;   (in loose mode)
-								//       var x, y, z;      (in strict mode)
-								//     } else {
-								//       …
-								//     }
-								//
-								// NOTE: When code runs in strict mode, `var` declarations
-								// are hoisted but `function` declarations don't.
-								//
-								const declarations = parser.scope.isStrict
-									? getHoistedDeclarations(branchToRemove, false)
-									: getHoistedDeclarations(branchToRemove, true);
-								const replacement =
-									declarations.length > 0
-										? `{ var ${declarations.join(", ")}; }`
-										: "{}";
-								const dep = new ConstDependency(
-									replacement,
-									/** @type {Range} */ (branchToRemove.range)
-								);
-								dep.loc = /** @type {SourceLocation} */ (branchToRemove.loc);
-								parser.state.module.addPresentationalDependency(dep);
+								this.eliminateUnusedStatement(parser, branchToRemove);
 							}
 							return bool;
 						}
+					});
+					parser.hooks.unusedStatement.tap(PLUGIN_NAME, statement => {
+						if (
+							parser.scope.isAsmJs ||
+							// Check top level scope here again
+							parser.scope.topLevelScope === true
+						)
+							return;
+						this.eliminateUnusedStatement(parser, statement);
+						return true;
 					});
 					parser.hooks.expressionConditionalOperator.tap(
 						PLUGIN_NAME,
@@ -531,6 +501,56 @@ class ConstPlugin {
 					.tap(PLUGIN_NAME, handler);
 			}
 		);
+	}
+
+	/**
+	 * Eliminate an unused statement.
+	 * @param {JavascriptParser} parser the parser
+	 * @param {Statement} statement the statement to remove
+	 * @returns {void}
+	 */
+	eliminateUnusedStatement(parser, statement) {
+		// Before removing the unused branch, the hoisted declarations
+		// must be collected.
+		//
+		// Given the following code:
+		//
+		//     if (true) f() else g()
+		//     if (false) {
+		//       function f() {}
+		//       const g = function g() {}
+		//       if (someTest) {
+		//         let a = 1
+		//         var x, {y, z} = obj
+		//       }
+		//     } else {
+		//       …
+		//     }
+		//
+		// the generated code is:
+		//
+		//     if (true) f() else {}
+		//     if (false) {
+		//       var f, x, y, z;   (in loose mode)
+		//       var x, y, z;      (in strict mode)
+		//     } else {
+		//       …
+		//     }
+		//
+		// NOTE: When code runs in strict mode, `var` declarations
+		// are hoisted but `function` declarations don't.
+		//
+		const declarations = parser.scope.isStrict
+			? getHoistedDeclarations(statement, false)
+			: getHoistedDeclarations(statement, true);
+		const replacement =
+			declarations.length > 0 ? `{ var ${declarations.join(", ")}; }` : "{}";
+		const dep = new ConstDependency(
+			`// removed by dead control flow\n${replacement}`,
+			/** @type {Range} */ (statement.range)
+		);
+		dep.loc = /** @type {SourceLocation} */ (statement.loc);
+		parser.state.module.addPresentationalDependency(dep);
 	}
 }
 

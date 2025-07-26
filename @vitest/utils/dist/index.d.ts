@@ -5,30 +5,30 @@ export { ArgumentsType, Arrayable, Awaitable, Constructable, DeepMerge, ErrorWit
 
 type Inspect = (value: unknown, options: Options) => string;
 interface Options {
-    showHidden: boolean;
-    depth: number;
-    colors: boolean;
-    customInspect: boolean;
-    showProxy: boolean;
-    maxArrayLength: number;
-    breakLength: number;
-    truncate: number;
-    seen: unknown[];
-    inspect: Inspect;
-    stylize: (value: string, styleType: string) => string;
+	showHidden: boolean;
+	depth: number;
+	colors: boolean;
+	customInspect: boolean;
+	showProxy: boolean;
+	maxArrayLength: number;
+	breakLength: number;
+	truncate: number;
+	seen: unknown[];
+	inspect: Inspect;
+	stylize: (value: string, styleType: string) => string;
 }
 type LoupeOptions = Partial<Options>;
 interface StringifyOptions extends PrettyFormatOptions {
-    maxLength?: number;
+	maxLength?: number;
 }
-declare function stringify(object: unknown, maxDepth?: number, { maxLength, ...options }?: StringifyOptions): string;
+declare function stringify(object: unknown, maxDepth?: number, { maxLength,...options }?: StringifyOptions): string;
 declare function format(...args: unknown[]): string;
 declare function inspect(obj: unknown, options?: LoupeOptions): string;
 declare function objDisplay(obj: unknown, options?: LoupeOptions): string;
 
 interface HighlightOptions {
-    jsx?: boolean;
-    colors?: Colors;
+	jsx?: boolean;
+	colors?: Colors;
 }
 declare function highlight(code: string, options?: HighlightOptions): string;
 
@@ -41,15 +41,17 @@ declare function offsetToLineNumber(source: string, offset: number): number;
 declare function shuffle<T>(array: T[], seed?: number): T[];
 
 interface SafeTimers {
-    nextTick: (cb: () => void) => void;
-    setTimeout: typeof setTimeout;
-    setInterval: typeof setInterval;
-    clearInterval: typeof clearInterval;
-    clearTimeout: typeof clearTimeout;
-    setImmediate: typeof setImmediate;
-    clearImmediate: typeof clearImmediate;
+	nextTick: (cb: () => void) => void;
+	setTimeout: typeof setTimeout;
+	setInterval: typeof setInterval;
+	clearInterval: typeof clearInterval;
+	clearTimeout: typeof clearTimeout;
+	setImmediate: typeof setImmediate;
+	clearImmediate: typeof clearImmediate;
+	queueMicrotask: typeof queueMicrotask;
 }
 declare function getSafeTimers(): SafeTimers;
 declare function setSafeTimers(): void;
 
-export { type SafeTimers, type StringifyOptions, format, getSafeTimers, highlight, inspect, lineSplitRE, nanoid, objDisplay, offsetToLineNumber, positionToOffset, setSafeTimers, shuffle, stringify };
+export { format, getSafeTimers, highlight, inspect, lineSplitRE, nanoid, objDisplay, offsetToLineNumber, positionToOffset, setSafeTimers, shuffle, stringify };
+export type { LoupeOptions, SafeTimers, StringifyOptions };

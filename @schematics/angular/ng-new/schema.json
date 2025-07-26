@@ -139,12 +139,9 @@
       "type": "boolean",
       "x-user-analytics": "ep.ng_ssr"
     },
-    "serverRouting": {
-      "description": "Create a server application in the initial project using the Server Routing and App Engine APIs (Developer Preview).",
-      "type": "boolean"
-    },
-    "experimentalZoneless": {
+    "zoneless": {
       "description": "Create an initial application that does not utilize `zone.js`.",
+      "x-prompt": "Do you want to create a 'zoneless' application without zone.js (Developer Preview)?",
       "type": "boolean",
       "default": false
     }

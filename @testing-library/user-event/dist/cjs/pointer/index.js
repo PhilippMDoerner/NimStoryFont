@@ -1,13 +1,8 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
-require('../utils/keyDef/readNextDescriptor.js');
 var level = require('../utils/misc/level.js');
 var wait = require('../utils/misc/wait.js');
-require('../options.js');
 var parseKeyDef = require('./parseKeyDef.js');
 
 async function pointer(input) {
@@ -39,11 +34,11 @@ async function pointerAction(instance, action) {
     const previousPosition = instance.system.pointer.getPreviousPosition(pointerName);
     var _action_target, _action_coords, _action_node, _action_offset;
     const position = {
-        target: (_action_target = action.target) !== null && _action_target !== void 0 ? _action_target : getPrevTarget(instance, previousPosition),
-        coords: (_action_coords = action.coords) !== null && _action_coords !== void 0 ? _action_coords : previousPosition === null || previousPosition === void 0 ? void 0 : previousPosition.coords,
+        target: (_action_target = action.target) !== null && _action_target !== undefined ? _action_target : getPrevTarget(instance, previousPosition),
+        coords: (_action_coords = action.coords) !== null && _action_coords !== undefined ? _action_coords : previousPosition === null || previousPosition === undefined ? undefined : previousPosition.coords,
         caret: {
-            node: (_action_node = action.node) !== null && _action_node !== void 0 ? _action_node : hasCaretPosition(action) ? undefined : previousPosition === null || previousPosition === void 0 ? void 0 : (_previousPosition_caret = previousPosition.caret) === null || _previousPosition_caret === void 0 ? void 0 : _previousPosition_caret.node,
-            offset: (_action_offset = action.offset) !== null && _action_offset !== void 0 ? _action_offset : hasCaretPosition(action) ? undefined : previousPosition === null || previousPosition === void 0 ? void 0 : (_previousPosition_caret1 = previousPosition.caret) === null || _previousPosition_caret1 === void 0 ? void 0 : _previousPosition_caret1.offset
+            node: (_action_node = action.node) !== null && _action_node !== undefined ? _action_node : hasCaretPosition(action) ? undefined : previousPosition === null || previousPosition === undefined ? undefined : (_previousPosition_caret = previousPosition.caret) === null || _previousPosition_caret === undefined ? undefined : _previousPosition_caret.node,
+            offset: (_action_offset = action.offset) !== null && _action_offset !== undefined ? _action_offset : hasCaretPosition(action) ? undefined : previousPosition === null || previousPosition === undefined ? undefined : (_previousPosition_caret1 = previousPosition.caret) === null || _previousPosition_caret1 === undefined ? undefined : _previousPosition_caret1.offset
         }
     };
     if ('keyDef' in action) {
@@ -66,14 +61,14 @@ async function pointerAction(instance, action) {
 }
 function hasCaretPosition(action) {
     var _action_target, _ref;
-    return !!((_ref = (_action_target = action.target) !== null && _action_target !== void 0 ? _action_target : action.node) !== null && _ref !== void 0 ? _ref : action.offset !== undefined);
+    return !!((_ref = (_action_target = action.target) !== null && _action_target !== undefined ? _action_target : action.node) !== null && _ref !== undefined ? _ref : action.offset !== undefined);
 }
 function getPrevTarget(instance, position) {
     if (!position) {
         throw new Error('This pointer has no previous position. Provide a target property!');
     }
     var _position_target;
-    return (_position_target = position.target) !== null && _position_target !== void 0 ? _position_target : instance.config.document.body;
+    return (_position_target = position.target) !== null && _position_target !== undefined ? _position_target : instance.config.document.body;
 }
 
 exports.pointer = pointer;

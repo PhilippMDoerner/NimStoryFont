@@ -138,7 +138,7 @@ class PartiallyOrderedSet {
         return undefined;
     }
     get [Symbol.toStringTag]() {
-        return 'Set';
+        return 'PartiallyOrderedSet';
     }
 }
 exports.PartiallyOrderedSet = PartiallyOrderedSet;

@@ -11,7 +11,10 @@ const Generator = require("../Generator");
 const InitFragment = require("../InitFragment");
 const {
 	JS_AND_CSS_EXPORT_TYPES,
-	JS_AND_CSS_TYPES
+	JS_AND_CSS_TYPES,
+	CSS_TYPES,
+	JS_TYPE,
+	CSS_TYPE
 } = require("../ModuleSourceTypesConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const Template = require("../Template");
@@ -26,21 +29,26 @@ const Template = require("../Template");
 /** @typedef {import("../DependencyTemplate").CssDependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../Generator").GenerateContext} GenerateContext */
 /** @typedef {import("../Generator").UpdateHashContext} UpdateHashContext */
+/** @typedef {import("../Module").BuildInfo} BuildInfo */
+/** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../Module").ConcatenationBailoutReasonContext} ConcatenationBailoutReasonContext */
 /** @typedef {import("../Module").SourceTypes} SourceTypes */
+/** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../NormalModule")} NormalModule */
 /** @typedef {import("../util/Hash")} Hash */
 
 class CssGenerator extends Generator {
 	/**
 	 * @param {CssAutoGeneratorOptions | CssGlobalGeneratorOptions | CssModuleGeneratorOptions} options options
+	 * @param {ModuleGraph} moduleGraph the module graph
 	 */
-	constructor(options) {
+	constructor(options, moduleGraph) {
 		super();
 		this.convention = options.exportsConvention;
 		this.localIdentName = options.localIdentName;
 		this.exportsOnly = options.exportsOnly;
 		this.esModule = options.esModule;
+		this._moduleGraph = moduleGraph;
 	}
 
 	/**
@@ -71,7 +79,7 @@ class CssGenerator extends Generator {
 		const initFragments = [];
 		/** @type {CssData} */
 		const cssData = {
-			esModule: this.esModule,
+			esModule: /** @type {boolean} */ (this.esModule),
 			exports: new Map()
 		};
 
@@ -131,7 +139,8 @@ class CssGenerator extends Generator {
 
 		switch (generateContext.type) {
 			case "javascript": {
-				module.buildInfo.cssData = cssData;
+				/** @type {BuildInfo} */
+				(module.buildInfo).cssData = cssData;
 
 				generateContext.runtimeRequirements.add(RuntimeGlobals.module);
 
@@ -165,6 +174,13 @@ class CssGenerator extends Generator {
 						);
 					}
 					return source;
+				}
+
+				if (
+					cssData.exports.size === 0 &&
+					!(/** @type {BuildMeta} */ (module.buildMeta).isCSSModule)
+				) {
+					return new RawSource("");
 				}
 
 				const needNsObj =
@@ -203,6 +219,29 @@ class CssGenerator extends Generator {
 
 				return InitFragment.addToSource(source, initFragments, generateContext);
 			}
+			default:
+				return null;
+		}
+	}
+
+	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		switch (generateContext.type) {
+			case "javascript": {
+				return new RawSource(
+					`throw new Error(${JSON.stringify(error.message)});`
+				);
+			}
+			case "css": {
+				return new RawSource(`/**\n ${error.message} \n**/`);
+			}
+			default:
+				return null;
 		}
 	}
 
@@ -212,7 +251,22 @@ class CssGenerator extends Generator {
 	 */
 	getTypes(module) {
 		// TODO, find a better way to prevent the original module from being removed after concatenation, maybe it is a bug
-		return this.exportsOnly ? JS_AND_CSS_EXPORT_TYPES : JS_AND_CSS_TYPES;
+		if (this.exportsOnly) {
+			return JS_AND_CSS_EXPORT_TYPES;
+		}
+		const sourceTypes = new Set();
+		const connections = this._moduleGraph.getIncomingConnections(module);
+		for (const connection of connections) {
+			if (!connection.originModule) {
+				continue;
+			}
+			if (connection.originModule.type.split("/")[0] !== CSS_TYPE)
+				sourceTypes.add(JS_TYPE);
+		}
+		if (sourceTypes.has(JS_TYPE)) {
+			return JS_AND_CSS_TYPES;
+		}
+		return CSS_TYPES;
 	}
 
 	/**
@@ -223,16 +277,22 @@ class CssGenerator extends Generator {
 	getSize(module, type) {
 		switch (type) {
 			case "javascript": {
-				if (!module.buildInfo.cssData) {
+				const cssData = /** @type {BuildInfo} */ (module.buildInfo).cssData;
+				if (!cssData) {
 					return 42;
 				}
-
-				const exports = module.buildInfo.cssData.exports;
+				if (cssData.exports.size === 0) {
+					if (/** @type {BuildMeta} */ (module.buildMeta).isCSSModule) {
+						return 42;
+					}
+					return 0;
+				}
+				const exports = cssData.exports;
 				const stringifiedExports = JSON.stringify(
 					Array.from(exports).reduce((obj, [key, value]) => {
 						obj[key] = value;
 						return obj;
-					}, {})
+					}, /** @type {Record<string, string>} */ ({}))
 				);
 
 				return stringifiedExports.length + 42;
@@ -246,6 +306,8 @@ class CssGenerator extends Generator {
 
 				return originalSource.size();
 			}
+			default:
+				return 0;
 		}
 	}
 
@@ -254,7 +316,7 @@ class CssGenerator extends Generator {
 	 * @param {UpdateHashContext} updateHashContext context for updating hash
 	 */
 	updateHash(hash, { module }) {
-		hash.update(this.esModule.toString());
+		hash.update(/** @type {boolean} */ (this.esModule).toString());
 	}
 }
 

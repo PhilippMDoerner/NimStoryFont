@@ -1,10 +1,9 @@
 {
   "name": "@angular/compiler-cli",
-  "version": "19.1.6",
+  "version": "20.0.3",
   "description": "Angular - the compiler CLI for Node.js",
   "typings": "index.d.ts",
   "bin": {
-    "ngcc": "./bundles/ngcc/index.js",
     "ngc": "./bundles/src/bin/ngc.js",
     "ng-xi18n": "./bundles/src/bin/ng_xi18n.js"
   },
@@ -25,10 +24,6 @@
       "types": "./linker/babel/index.d.ts",
       "default": "./bundles/linker/babel/index.js"
     },
-    "./private/bazel": {
-      "types": "./private/bazel.d.ts",
-      "default": "./bundles/private/bazel.js"
-    },
     "./private/localize": {
       "types": "./private/localize.d.ts",
       "default": "./bundles/private/localize.js"
@@ -43,18 +38,23 @@
     }
   },
   "dependencies": {
-    "@babel/core": "7.26.0",
+    "@babel/core": "7.27.4",
     "@jridgewell/sourcemap-codec": "^1.4.14",
     "reflect-metadata": "^0.2.0",
     "chokidar": "^4.0.0",
     "convert-source-map": "^1.5.1",
     "semver": "^7.0.0",
     "tslib": "^2.3.0",
-    "yargs": "^17.2.1"
+    "yargs": "^18.0.0"
   },
   "peerDependencies": {
-    "@angular/compiler": "19.1.6",
-    "typescript": ">=5.5 <5.8"
+    "@angular/compiler": "20.0.3",
+    "typescript": ">=5.8 <5.9"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",
@@ -67,7 +67,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": "^18.19.1 || ^20.11.1 || >=22.0.0"
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "bugs": {
     "url": "https://github.com/angular/angular/issues"

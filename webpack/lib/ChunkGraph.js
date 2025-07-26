@@ -8,6 +8,7 @@
 const util = require("util");
 const Entrypoint = require("./Entrypoint");
 const ModuleGraphConnection = require("./ModuleGraphConnection");
+const { DEFAULTS } = require("./config/defaults");
 const { first } = require("./util/SetHelpers");
 const SortableSet = require("./util/SortableSet");
 const {
@@ -35,6 +36,7 @@ const {
 /** @typedef {import("./Generator").SourceTypes} SourceTypes */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
+/** @typedef {import("./Module").RuntimeRequirements} RuntimeRequirements */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./ModuleGraphConnection").ConnectionState} ConnectionState */
 /** @typedef {import("./RuntimeModule")} RuntimeModule */
@@ -61,15 +63,13 @@ const compareModuleIterables = compareIterables(compareModulesByIdentifier);
 class ModuleHashInfo {
 	/**
 	 * @param {string} hash hash
-	 * @param {string} renderedHash  rendered hash
+	 * @param {string} renderedHash rendered hash
 	 */
 	constructor(hash, renderedHash) {
 		this.hash = hash;
 		this.renderedHash = renderedHash;
 	}
 }
-
-/** @template T @typedef {(set: SortableSet<T>) => T[]} SetToArrayFunction<T> */
 
 /**
  * @template T
@@ -92,7 +92,7 @@ const getModuleRuntimes = chunks => {
 
 /**
  * @param {WeakMap<Module, Set<string>> | undefined} sourceTypesByModule sourceTypesByModule
- * @returns {function (SortableSet<Module>): Map<string, SortableSet<Module>>} modules by source type
+ * @returns {(set: SortableSet<Module>) => Map<string, SortableSet<Module>>} modules by source type
  */
 const modulesBySourceType = sourceTypesByModule => set => {
 	/** @type {Map<string, SortableSet<Module>>} */
@@ -122,18 +122,21 @@ const modulesBySourceType = sourceTypesByModule => set => {
 const defaultModulesBySourceType = modulesBySourceType(undefined);
 
 /**
+ * @typedef {(set: SortableSet<Module>) => Module[]} ModuleSetToArrayFunction
+ */
+
+/**
  * @template T
- * @type {WeakMap<Function, any>}
+ * @type {WeakMap<ModuleComparator, ModuleSetToArrayFunction>}
  */
 const createOrderedArrayFunctionMap = new WeakMap();
 
 /**
  * @template T
- * @param {function(T, T): -1|0|1} comparator comparator function
- * @returns {SetToArrayFunction<T>} set as ordered array
+ * @param {ModuleComparator} comparator comparator function
+ * @returns {ModuleSetToArrayFunction} set as ordered array
  */
 const createOrderedArrayFunction = comparator => {
-	/** @type {SetToArrayFunction<T>} */
 	let fn = createOrderedArrayFunctionMap.get(comparator);
 	if (fn !== undefined) return fn;
 	fn = set => {
@@ -205,11 +208,11 @@ class ChunkGraphModule {
 		this.hashes = undefined;
 		/** @type {ModuleId | null} */
 		this.id = null;
-		/** @type {RuntimeSpecMap<Set<string>> | undefined} */
+		/** @type {RuntimeSpecMap<Set<string>, RuntimeRequirements> | undefined} */
 		this.runtimeRequirements = undefined;
-		/** @type {RuntimeSpecMap<string> | undefined} */
+		/** @type {RuntimeSpecMap<string, bigint> | undefined} */
 		this.graphHashes = undefined;
-		/** @type {RuntimeSpecMap<string> | undefined} */
+		/** @type {RuntimeSpecMap<string, string> | undefined} */
 		this.graphHashesWithConnections = undefined;
 	}
 }
@@ -237,12 +240,14 @@ class ChunkGraphChunk {
 	}
 }
 
+/** @typedef {(a: Module, b: Module) => -1 | 0 | 1} ModuleComparator */
+
 class ChunkGraph {
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {string | Hash} hashFunction the hash function to use
 	 */
-	constructor(moduleGraph, hashFunction = "md4") {
+	constructor(moduleGraph, hashFunction = DEFAULTS.HASH_FUNCTION) {
 		/**
 		 * @private
 		 * @type {WeakMap<Module, ChunkGraphModule>}
@@ -535,7 +540,7 @@ class ChunkGraph {
 
 	/**
 	 * @param {Module} module the module
-	 * @param {function(Chunk, Chunk): -1|0|1} sortFn sort function
+	 * @param {(a: Chunk, b: Chunk) => -1 | 0 | 1} sortFn sort function
 	 * @returns {Iterable<Chunk>} iterable of chunks (do not modify)
 	 */
 	getOrderedModuleChunksIterable(module, sortFn) {
@@ -663,7 +668,6 @@ class ChunkGraph {
 			if (st === undefined) return;
 			if (!sourceTypes) {
 				sourceTypes = st;
-				continue;
 			} else if (!newSet) {
 				for (const type of st) {
 					if (!newSet) {
@@ -686,7 +690,7 @@ class ChunkGraph {
 
 	/**
 	 * @param {Chunk} chunk the chunk
-	 * @param {function(Module, Module): -1|0|1} comparator comparator function
+	 * @param {ModuleComparator} comparator comparator function
 	 * @returns {Iterable<Module>} return the modules for this chunk
 	 */
 	getOrderedChunkModulesIterable(chunk, comparator) {
@@ -698,7 +702,7 @@ class ChunkGraph {
 	/**
 	 * @param {Chunk} chunk the chunk
 	 * @param {string} sourceType source type
-	 * @param {function(Module, Module): -1|0|1} comparator comparator function
+	 * @param {ModuleComparator} comparator comparator function
 	 * @returns {Iterable<Module> | undefined} return the modules for this chunk
 	 */
 	getOrderedChunkModulesIterableBySourceType(chunk, sourceType, comparator) {
@@ -722,7 +726,7 @@ class ChunkGraph {
 
 	/**
 	 * @param {Chunk} chunk the chunk
-	 * @param {function(Module, Module): -1|0|1} comparator comparator function
+	 * @param {ModuleComparator} comparator comparator function
 	 * @returns {Module[]} return the modules for this chunk (cached, do not modify)
 	 */
 	getOrderedChunkModules(chunk, comparator) {

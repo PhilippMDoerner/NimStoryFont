@@ -9,7 +9,7 @@ var _path = _interopRequireDefault(require("path"));
 var _lodash = _interopRequireDefault(require("lodash.debounce"));
 var _resolve = _interopRequireDefault(require("resolve"));
 var _module = require("module");
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const nativeRequireResolve = parseFloat(process.versions.node) >= 8.9;
 // eslint-disable-line
 

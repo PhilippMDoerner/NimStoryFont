@@ -49,9 +49,9 @@ exports.getConfiguredPackageManager = getConfiguredPackageManager;
 exports.getSchematicDefaults = getSchematicDefaults;
 exports.isWarningEnabled = isWarningEnabled;
 const core_1 = require("@angular-devkit/core");
-const fs_1 = require("fs");
-const os = __importStar(require("os"));
-const path = __importStar(require("path"));
+const node_fs_1 = require("node:fs");
+const os = __importStar(require("node:os"));
+const path = __importStar(require("node:path"));
 const find_up_1 = require("./find-up");
 const json_file_1 = require("./json-file");
 function isJsonObject(value) {
@@ -60,14 +60,14 @@ function isJsonObject(value) {
 function createWorkspaceHost() {
     return {
         readFile(path) {
-            return fs_1.promises.readFile(path, 'utf-8');
+            return node_fs_1.promises.readFile(path, 'utf-8');
         },
         async writeFile(path, data) {
-            await fs_1.promises.writeFile(path, data);
+            await node_fs_1.promises.writeFile(path, data);
         },
         async isDirectory(path) {
             try {
-                const stats = await fs_1.promises.stat(path);
+                const stats = await node_fs_1.promises.stat(path);
                 return stats.isDirectory();
             }
             catch {
@@ -76,7 +76,7 @@ function createWorkspaceHost() {
         },
         async isFile(path) {
             try {
-                const stats = await fs_1.promises.stat(path);
+                const stats = await node_fs_1.promises.stat(path);
                 return stats.isFile();
             }
             catch {
@@ -119,19 +119,19 @@ function globalFilePath() {
     // global file in home directory, with this user will have
     // choice to move change its location to meet XDG convention
     const xdgConfig = xdgConfigHome(home, 'config.json');
-    if ((0, fs_1.existsSync)(xdgConfig)) {
+    if ((0, node_fs_1.existsSync)(xdgConfig)) {
         return xdgConfig;
     }
     // NOTE: This check is for the old configuration location, for more
     // information see https://github.com/angular/angular-cli/pull/20556
     const xdgConfigOld = xdgConfigHomeOld(home);
-    if ((0, fs_1.existsSync)(xdgConfigOld)) {
+    if ((0, node_fs_1.existsSync)(xdgConfigOld)) {
         /* eslint-disable no-console */
         console.warn(`Old configuration location detected: ${xdgConfigOld}\n` +
             `Please move the file to the new location ~/.config/angular/config.json`);
         return xdgConfigOld;
     }
-    if ((0, fs_1.existsSync)(defaultGlobalFilePath)) {
+    if ((0, node_fs_1.existsSync)(defaultGlobalFilePath)) {
         return defaultGlobalFilePath;
     }
     return null;

@@ -1,4 +1,3 @@
-/// <reference types="node" />
 /** An authenticated message of arbitrary type. */
 export interface Envelope {
     /**
@@ -36,11 +35,10 @@ export interface Signature {
      */
     keyid: string;
 }
-export declare const Envelope: {
-    fromJSON(object: any): Envelope;
-    toJSON(message: Envelope): unknown;
-};
-export declare const Signature: {
-    fromJSON(object: any): Signature;
-    toJSON(message: Signature): unknown;
-};
+export declare const Envelope: MessageFns<Envelope>;
+export declare const Signature: MessageFns<Signature>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

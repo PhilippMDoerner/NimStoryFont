@@ -65,8 +65,9 @@ function isValidImgNode(node) {
 function isValidObjectNode(node) {
     let hasTitleAttribute = false, hasAriaLabelAttribute = false;
     for (const attribute of node.attributes) {
-        hasTitleAttribute = attribute.name === 'title';
-        hasAriaLabelAttribute = isAriaLabel(attribute.name);
+        hasTitleAttribute = hasTitleAttribute || attribute.name === 'title';
+        hasAriaLabelAttribute =
+            hasAriaLabelAttribute || isAriaLabel(attribute.name);
     }
     // Note that we return "early" before looping through `element.inputs`.
     // Because if the element has an attribute, then we don't need to iterate
@@ -76,8 +77,8 @@ function isValidObjectNode(node) {
     }
     let hasTitleBinding = false, hasAriaLabelBinding = false;
     for (const input of node.inputs) {
-        hasTitleBinding = input.name === 'title';
-        hasAriaLabelBinding = isAriaLabel(input.name);
+        hasTitleBinding = hasTitleBinding || input.name === 'title';
+        hasAriaLabelBinding = hasAriaLabelBinding || isAriaLabel(input.name);
     }
     if (hasTitleBinding || hasAriaLabelBinding) {
         return true;
@@ -92,8 +93,9 @@ function isValidObjectNode(node) {
 function isValidAreaNode(node) {
     let hasAltAttribute = false, hasAriaLabelAttribute = false;
     for (const attribute of node.attributes) {
-        hasAltAttribute = isAlt(attribute.name);
-        hasAriaLabelAttribute = isAriaLabel(attribute.name);
+        hasAltAttribute = hasAltAttribute || isAlt(attribute.name);
+        hasAriaLabelAttribute =
+            hasAriaLabelAttribute || isAriaLabel(attribute.name);
     }
     // Note that we return "early" before looping through `element.inputs`.
     // Because if the element has an attribute, then we don't need to iterate
@@ -103,8 +105,8 @@ function isValidAreaNode(node) {
     }
     let hasAltBinding = false, hasAriaLabelBinding = false;
     for (const input of node.inputs) {
-        hasAltBinding = isAlt(input.name);
-        hasAriaLabelBinding = isAriaLabel(input.name);
+        hasAltBinding = hasAltBinding || isAlt(input.name);
+        hasAriaLabelBinding = hasAriaLabelBinding || isAriaLabel(input.name);
     }
     return hasAltBinding || hasAriaLabelBinding;
 }

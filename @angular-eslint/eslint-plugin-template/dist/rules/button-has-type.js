@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.INVALID_TYPE_DATA_KEY = exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.INVALID_TYPE_DATA_KEY = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -65,6 +65,9 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Buttons default to `type="submit"` when no type is specified. If placed inside a form, the button triggers a form submission on click. Enforcing the type attribute clarifies the code\'s intent and prevents unintended form submissions.',
+};
 function isTypeAttributePresentInElement({ inputs, attributes, }) {
     return [...inputs, ...attributes].some(({ name }) => name === TYPE_ATTRIBUTE_NAME);
 }

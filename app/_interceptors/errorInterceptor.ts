@@ -6,7 +6,7 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { interval, Observable, retry, tap } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { log } from 'src/utils/logging';
 import { httpErrorToast, ToastConfig } from '../_models/toast';
 import { RoutingService } from '../_services/routing.service';
@@ -59,6 +59,14 @@ export function errorInterceptor(
         switch (err.status) {
           case 401:
             return tokenService.refreshUserData();
+          case 400:
+            if (req.method === 'GET') {
+              // Only enable these retries for GET requests as for POST requests these may indicate sth seriously wrong. But I'm not super sure on that
+              // This mostly should occur because of "database is locked"
+              return interval(500);
+            } else {
+              throw err;
+            }
           case 502:
             return interval(1000);
           default:

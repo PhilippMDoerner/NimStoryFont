@@ -28,6 +28,18 @@ function updateTsConfig(packageName, ...paths) {
         file.modify(jsonPath, Array.isArray(value) ? [...value, ...paths] : paths);
     };
 }
+function addTsProjectReference(...paths) {
+    return (host) => {
+        if (!host.exists('tsconfig.json')) {
+            return host;
+        }
+        const newReferences = paths.map((path) => ({ path }));
+        const file = new json_file_1.JSONFile(host, 'tsconfig.json');
+        const jsonPath = ['references'];
+        const value = file.get(jsonPath);
+        file.modify(jsonPath, Array.isArray(value) ? [...value, ...newReferences] : newReferences);
+    };
+}
 function addDependenciesToPackageJson() {
     return (host) => {
         [
@@ -38,13 +50,13 @@ function addDependenciesToPackageJson() {
             },
             {
                 type: dependencies_1.NodeDependencyType.Dev,
-                name: '@angular-devkit/build-angular',
-                version: latest_versions_1.latestVersions.DevkitBuildAngular,
+                name: '@angular/build',
+                version: latest_versions_1.latestVersions.AngularBuild,
             },
             {
                 type: dependencies_1.NodeDependencyType.Dev,
                 name: 'ng-packagr',
-                version: latest_versions_1.latestVersions['ng-packagr'],
+                version: latest_versions_1.latestVersions.NgPackagr,
             },
             {
                 type: dependencies_1.NodeDependencyType.Default,
@@ -60,7 +72,7 @@ function addDependenciesToPackageJson() {
         return host;
     };
 }
-function addLibToWorkspaceFile(options, projectRoot, projectName) {
+function addLibToWorkspaceFile(options, projectRoot, projectName, hasZoneDependency) {
     return (0, workspace_1.updateWorkspace)((workspace) => {
         workspace.projects.add({
             name: projectName,
@@ -70,11 +82,8 @@ function addLibToWorkspaceFile(options, projectRoot, projectName) {
             prefix: options.prefix,
             targets: {
                 build: {
-                    builder: workspace_models_1.Builders.NgPackagr,
+                    builder: workspace_models_1.Builders.BuildNgPackagr,
                     defaultConfiguration: 'production',
-                    options: {
-                        project: `${projectRoot}/ng-package.json`,
-                    },
                     configurations: {
                         production: {
                             tsConfig: `${projectRoot}/tsconfig.lib.prod.json`,
@@ -85,10 +94,10 @@ function addLibToWorkspaceFile(options, projectRoot, projectName) {
                     },
                 },
                 test: {
-                    builder: workspace_models_1.Builders.Karma,
+                    builder: workspace_models_1.Builders.BuildKarma,
                     options: {
                         tsConfig: `${projectRoot}/tsconfig.spec.json`,
-                        polyfills: ['zone.js', 'zone.js/testing'],
+                        polyfills: hasZoneDependency ? ['zone.js', 'zone.js/testing'] : undefined,
                     },
                 },
             },
@@ -130,11 +139,15 @@ function default_1(options) {
             }),
             (0, schematics_1.move)(libDir),
         ]);
+        const hasZoneDependency = (0, dependencies_1.getPackageJsonDependency)(host, 'zone.js') !== null;
         return (0, schematics_1.chain)([
             (0, schematics_1.mergeWith)(templateSource),
-            addLibToWorkspaceFile(options, libDir, packageName),
+            addLibToWorkspaceFile(options, libDir, packageName, hasZoneDependency),
             options.skipPackageJson ? (0, schematics_1.noop)() : addDependenciesToPackageJson(),
             options.skipTsConfig ? (0, schematics_1.noop)() : updateTsConfig(packageName, './' + distRoot),
+            options.skipTsConfig
+                ? (0, schematics_1.noop)()
+                : addTsProjectReference('./' + (0, posix_1.join)(libDir, 'tsconfig.lib.json'), './' + (0, posix_1.join)(libDir, 'tsconfig.spec.json')),
             options.standalone
                 ? (0, schematics_1.noop)()
                 : (0, schematics_1.schematic)('module', {
@@ -154,12 +167,10 @@ function default_1(options) {
                 export: true,
                 standalone: options.standalone,
                 project: packageName,
-            }),
-            (0, schematics_1.schematic)('service', {
-                name: options.name,
-                flat: true,
-                path: sourceDir,
-                project: packageName,
+                // Explicitly set an empty `type` since it doesn't necessarily make sense in a library.
+                // This also ensures that the generated files are valid even if the `component` schematic
+                // inherits its `type` from the workspace.
+                type: '',
             }),
             (_tree, context) => {
                 if (!options.skipPackageJson && !options.skipInstall) {

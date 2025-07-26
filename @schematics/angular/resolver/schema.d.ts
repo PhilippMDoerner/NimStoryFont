@@ -34,4 +34,17 @@ export type Schema = {
      * Skip the generation of a unit test file `spec.ts` for the new resolver.
      */
     skipTests?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.resolver.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
+/**
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.resolver.ts`.
+ */
+export declare enum TypeSeparator {
+    Empty = "-",
+    TypeSeparator = "."
+}

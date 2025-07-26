@@ -107,10 +107,6 @@ export type SchematicOptions = {
  */
 export type AngularApplicationOptionsSchema = {
     /**
-     * Generate an application that does not use `zone.js`.
-     */
-    experimentalZoneless?: boolean;
-    /**
      * Include the styles for the root component directly within the `app.component.ts` file.
      * Only CSS styles can be included inline. By default, a separate stylesheet file (e.g.,
      * `app.component.css`) is created.
@@ -149,11 +145,6 @@ export type AngularApplicationOptionsSchema = {
      */
     routing?: boolean;
     /**
-     * Set up a server application using the Server Routing and App Engine APIs (Developer
-     * Preview).
-     */
-    serverRouting?: boolean;
-    /**
      * Skip the automatic installation of packages. You will need to manually install the
      * dependencies later.
      */
@@ -191,6 +182,10 @@ export type AngularApplicationOptionsSchema = {
      * component styles are scoped and applied.
      */
     viewEncapsulation?: ViewEncapsulation;
+    /**
+     * Generate an application that does not use `zone.js`.
+     */
+    zoneless?: boolean;
 };
 /**
  * The type of stylesheet files to be created for components in the application.
@@ -303,6 +298,10 @@ export type AngularComponentOptionsSchema = {
      * `my-component.component.css`.
      */
     name: string;
+    /**
+     * Generate component template files with an '.ng.html' file extension instead of '.html'.
+     */
+    ngHtml?: boolean;
     /**
      * The path where the component files should be created, relative to the current workspace.
      * If not provided, a folder with the same name as the component will be created in the
@@ -437,6 +436,11 @@ export type AngularDirectiveOptionsSchema = {
      * other standalone components or directives.
      */
     standalone?: boolean;
+    /**
+     * Append a custom type to the directive's filename. For example, if you set the type to
+     * `directive`, the file will be named `example.directive.ts`.
+     */
+    type?: string;
 };
 /**
  * Creates a new enum in your project. Enums (enumerations) are a way to define a set of
@@ -507,12 +511,34 @@ export type AngularGuardOptionsSchema = {
      * Skip the generation of a unit test file `spec.ts` for the new guard.
      */
     skipTests?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.guard.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
 export declare enum Implement {
     CanActivate = "CanActivate",
     CanActivateChild = "CanActivateChild",
     CanDeactivate = "CanDeactivate",
     CanMatch = "CanMatch"
+}
+/**
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.guard.ts`.
+ *
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.interceptor.ts`.
+ *
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.pipe.ts`.
+ *
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.resolver.ts`.
+ */
+export declare enum TypeSeparator {
+    Empty = "-",
+    TypeSeparator = "."
 }
 /**
  * Creates a new interceptor in your project. Interceptors are used to intercept and modify
@@ -551,6 +577,11 @@ export type AngularInterceptorOptionsSchema = {
      * Skip the generation of a unit test file `spec.ts` for the new interceptor.
      */
     skipTests?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.interceptor.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
 /**
  * Creates a new interface in your project. Interfaces define the structure of objects in
@@ -658,10 +689,6 @@ export type AngularNgNewOptionsSchema = {
      */
     directory?: string;
     /**
-     * Create an initial application that does not utilize `zone.js`.
-     */
-    experimentalZoneless?: boolean;
-    /**
      * Include the styles for the initial application's root component directly within the
      * `app.component.ts` file. By default, a separate stylesheet file (e.g.,
      * `app.component.css`) is created.
@@ -703,11 +730,6 @@ export type AngularNgNewOptionsSchema = {
      * modules for managing navigation between different views in your application.
      */
     routing?: boolean;
-    /**
-     * Create a server application in the initial project using the Server Routing and App
-     * Engine APIs (Developer Preview).
-     */
-    serverRouting?: boolean;
     /**
      * Do not initialize a Git repository in the new workspace. By default, a Git repository is
      * initialized to help you track changes to your project.
@@ -752,6 +774,10 @@ export type AngularNgNewOptionsSchema = {
      * encapsulated using Shadow DOM).
      */
     viewEncapsulation?: ViewEncapsulation;
+    /**
+     * Create an initial application that does not utilize `zone.js`.
+     */
+    zoneless?: boolean;
 };
 /**
  * Configure the initial Git commit for the new repository.
@@ -814,6 +840,11 @@ export type AngularPipeOptionsSchema = {
      * standalone components, directives, or pipes.
      */
     standalone?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.pipe.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
 /**
  * Creates a new resolver in your project. Resolvers are used to pre-fetch data before a
@@ -851,6 +882,11 @@ export type AngularResolverOptionsSchema = {
      * Skip the generation of a unit test file `spec.ts` for the new resolver.
      */
     skipTests?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.resolver.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
 /**
  * Creates a new service in your project. Services are used to encapsulate reusable logic,
@@ -882,6 +918,11 @@ export type AngularServiceOptionsSchema = {
      * Skip the generation of a unit test file `spec.ts` for the service.
      */
     skipTests?: boolean;
+    /**
+     * Append a custom type to the service's filename. For example, if you set the type to
+     * `service`, the file will be named `my-service.service.ts`.
+     */
+    type?: string;
 };
 /**
  * Creates a new web worker in your project. Web workers allow you to run JavaScript code in

@@ -1,14 +1,8 @@
 'use strict';
 
 var UI = require('../../document/UI.js');
-require('../../utils/click/isClickableInput.js');
 require('../../utils/dataTransfer/Clipboard.js');
-require('../../utils/edit/isEditable.js');
-require('../../utils/edit/maxLength.js');
 var selection = require('../../utils/focus/selection.js');
-require('../../utils/keyDef/readNextDescriptor.js');
-require('../../utils/misc/level.js');
-require('../../options.js');
 var resolveCaretPosition = require('./resolveCaretPosition.js');
 
 function setSelectionPerMouseDown({ document, target, clickCount, node, offset }) {
@@ -31,13 +25,13 @@ function setSelectionPerMouseDown({ document, target, clickCount, node, offset }
     // TODO: implement modifying selection per shift/ctrl+mouse
     if (targetHasOwnSelection) {
         UI.setUISelection(target, {
-            anchorOffset: start !== null && start !== void 0 ? start : text.length,
-            focusOffset: end !== null && end !== void 0 ? end : text.length
+            anchorOffset: start !== null && start !== undefined ? start : text.length,
+            focusOffset: end !== null && end !== undefined ? end : text.length
         });
         return {
             node: target,
-            start: start !== null && start !== void 0 ? start : 0,
-            end: end !== null && end !== void 0 ? end : text.length
+            start: start !== null && start !== undefined ? start : 0,
+            end: end !== null && end !== undefined ? end : text.length
         };
     } else {
         const { node: startNode, offset: startOffset } = resolveCaretPosition.resolveCaretPosition({
@@ -58,8 +52,8 @@ function setSelectionPerMouseDown({ document, target, clickCount, node, offset }
             throw new Error('The given offset is out of bounds.');
         }
         const selection = document.getSelection();
-        selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
-        selection === null || selection === void 0 ? void 0 : selection.addRange(range.cloneRange());
+        selection === null || selection === undefined ? undefined : selection.removeAllRanges();
+        selection === null || selection === undefined ? undefined : selection.addRange(range.cloneRange());
         return range;
     }
 }
@@ -70,7 +64,7 @@ function getTextRange(text, pos, clickCount) {
             pos
         ];
     }
-    const textPos = pos !== null && pos !== void 0 ? pos : text.length;
+    const textPos = pos !== null && pos !== undefined ? pos : text.length;
     if (clickCount % 3 === 2) {
         return [
             textPos - text.substr(0, pos).match(/(\w+|\s+|\W)?$/)[0].length,

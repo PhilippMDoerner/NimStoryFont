@@ -44,6 +44,7 @@ export interface FocusItem<T> {
 export class FocusListComponent<T> {
   entries = input.required<FocusItem<T>[]>();
   disableHotkeyNavigation = input(false);
+  listLabel = input.required<string>();
 
   itemTemplate =
     contentChild.required<
@@ -60,10 +61,10 @@ export class FocusListComponent<T> {
   focusItemEvent$ = new Subject<number>();
   private arrowEvents$ = merge(
     this.hotkeyService
-      .watch('ArrowDown')
+      .watchAction('jump-to-next-entry')
       .pipe(map(() => ({ type: 'down' }) as const)),
     this.hotkeyService
-      .watch('ArrowUp')
+      .watchAction('jump-to-prior-entry')
       .pipe(map(() => ({ type: 'up' }) as const)),
   );
   focusIndex$ = this.deriveFocusItemIndex();

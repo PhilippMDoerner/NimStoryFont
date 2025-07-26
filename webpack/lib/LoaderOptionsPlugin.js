@@ -11,7 +11,13 @@ const createSchemaValidation = require("./util/create-schema-validation");
 
 /** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
 /** @typedef {import("./Compiler")} Compiler */
+/** @typedef {import("./ModuleFilenameHelpers").Matcher} Matcher  */
 /** @typedef {import("./ModuleFilenameHelpers").MatchObject} MatchObject  */
+
+/**
+ * @template T
+ * @typedef {import("../declarations/LoaderContext").LoaderContext<T>} LoaderContext
+ */
 
 const validate = createSchemaValidation(
 	require("../schemas/plugins/LoaderOptionsPlugin.check.js"),
@@ -22,6 +28,8 @@ const validate = createSchemaValidation(
 	}
 );
 
+const PLUGIN_NAME = "LoaderOptionsPlugin";
+
 class LoaderOptionsPlugin {
 	/**
 	 * @param {LoaderOptionsPluginOptions & MatchObject} options options object
@@ -31,10 +39,7 @@ class LoaderOptionsPlugin {
 		// If no options are set then generate empty options object
 		if (typeof options !== "object") options = {};
 		if (!options.test) {
-			// This is mocking a RegExp object which always returns true
-			// TODO: Figure out how to do `as unknown as RegExp` for this line
-			// in JSDoc equivalent
-			/** @type {any} */
+			/** @type {TODO} */
 			const defaultTrueMockRegExp = {
 				test: () => true
 			};
@@ -52,9 +57,9 @@ class LoaderOptionsPlugin {
 	 */
 	apply(compiler) {
 		const options = this.options;
-		compiler.hooks.compilation.tap("LoaderOptionsPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
-				"LoaderOptionsPlugin",
+				PLUGIN_NAME,
 				(context, module) => {
 					const resource = module.resource;
 					if (!resource) return;
@@ -70,7 +75,7 @@ class LoaderOptionsPlugin {
 								continue;
 							}
 
-							/** @type {any} */
+							/** @type {TODO} */
 							(context)[key] = options[key];
 						}
 					}

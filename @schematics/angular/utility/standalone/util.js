@@ -17,6 +17,7 @@ exports.applyChangesToFile = applyChangesToFile;
 exports.isMergeAppConfigCall = isMergeAppConfigCall;
 exports.findProvidersLiteral = findProvidersLiteral;
 const schematics_1 = require("@angular-devkit/schematics");
+const posix_1 = require("node:path/posix");
 const typescript_1 = __importDefault(require("../../third_party/github.com/Microsoft/TypeScript/lib/typescript"));
 const change_1 = require("../change");
 const project_targets_1 = require("../project-targets");
@@ -31,14 +32,17 @@ async function getMainFilePath(tree, projectName) {
     const workspace = await (0, workspace_1.getWorkspace)(tree);
     const project = workspace.projects.get(projectName);
     const buildTarget = project?.targets.get('build');
-    if (!buildTarget) {
+    if (!project || !buildTarget) {
         throw (0, project_targets_1.targetBuildNotFoundError)();
     }
     const options = buildTarget.options;
-    return buildTarget.builder === workspace_models_1.Builders.Application ||
-        buildTarget.builder === workspace_models_1.Builders.BuildApplication
-        ? options.browser
-        : options.main;
+    if (buildTarget.builder === workspace_models_1.Builders.Application ||
+        buildTarget.builder === workspace_models_1.Builders.BuildApplication) {
+        // These builders support a default of `<project_source_root>/main.ts`
+        const projectSourceRoot = project.sourceRoot ?? (0, posix_1.join)(project.root, 'src');
+        return options.browser ?? (0, posix_1.join)(projectSourceRoot, 'main.ts');
+    }
+    return options.main;
 }
 /**
  * Gets a TypeScript source file at a specific path.

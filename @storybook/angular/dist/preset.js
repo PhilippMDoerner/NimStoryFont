@@ -6,12 +6,16 @@ const getAbsolutePath = (input) => (0, node_path_1.dirname)(require.resolve((0, 
 exports.addons = [
     require.resolve('./server/framework-preset-angular-cli'),
     require.resolve('./server/framework-preset-angular-ivy'),
-    require.resolve('./server/framework-preset-angular-docs'),
 ];
-const previewAnnotations = (entries = [], options) => {
-    const annotations = [...entries, require.resolve('./client/config')];
+const previewAnnotations = async (entries = [], options) => {
+    const annotations = [...entries, require.resolve('./client/config.mjs')];
     if (options.enableProdMode) {
-        annotations.unshift(require.resolve('./client/preview-prod'));
+        annotations.unshift(require.resolve('./client/preview-prod.mjs'));
+    }
+    const docsConfig = await options.presets.apply('docs', {}, options);
+    const docsEnabled = Object.keys(docsConfig).length > 0;
+    if (docsEnabled) {
+        annotations.push(require.resolve('./client/docs/config.mjs'));
     }
     return annotations;
 };

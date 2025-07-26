@@ -44,7 +44,7 @@ function createClipboardItem(window, ...blobs) {
             });
         }
         constructor(d){
-            _define_property(this, "data", void 0);
+            _define_property(this, "data", undefined);
             this.data = d;
         }
     }(dataMap);
@@ -74,15 +74,14 @@ function createClipboardStub(window, control) {
             ];
         }
         constructor(...args){
-            super(...args);
-            _define_property(this, "items", []);
+            super(...args), _define_property(this, "items", []);
         }
     }(), {
         [ClipboardStubControl]: control
     });
 }
 function isClipboardStub(clipboard) {
-    return !!(clipboard === null || clipboard === void 0 ? void 0 : clipboard[ClipboardStubControl]);
+    return !!(clipboard === null || clipboard === undefined ? undefined : clipboard[ClipboardStubControl]);
 }
 function attachClipboardStubToView(window) {
     if (isClipboardStub(window.navigator.clipboard)) {
@@ -124,7 +123,7 @@ function detachClipboardStubFromView(window) {
 }
 async function readDataTransferFromClipboard(document) {
     const window = document.defaultView;
-    const clipboard = window === null || window === void 0 ? void 0 : window.navigator.clipboard;
+    const clipboard = window === null || window === undefined ? undefined : window.navigator.clipboard;
     const items = clipboard && await clipboard.read();
     if (!items) {
         throw new Error('The Clipboard API is unavailable.');
@@ -143,7 +142,7 @@ async function writeDataTransferToClipboard(document, clipboardData) {
     const items = [];
     for(let i = 0; i < clipboardData.items.length; i++){
         const dtItem = clipboardData.items[i];
-        const blob = getBlobFromDataTransferItem(window, dtItem);
+        const blob = await getBlobFromDataTransferItem(window, dtItem);
         items.push(createClipboardItem(window, blob));
     }
     const written = clipboard && await clipboard.write(items).then(()=>true, // Can happen with other implementations that e.g. require permissions

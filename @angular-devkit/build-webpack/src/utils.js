@@ -42,9 +42,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getEmittedFiles = getEmittedFiles;
 exports.getWebpackConfig = getWebpackConfig;
-const fs_1 = require("fs");
-const path = __importStar(require("path"));
-const url_1 = require("url");
+const node_fs_1 = require("node:fs");
+const path = __importStar(require("node:path"));
+const node_url_1 = require("node:url");
 function getEmittedFiles(compilation) {
     const files = [];
     const chunkFileNames = new Set();
@@ -57,7 +57,7 @@ function getEmittedFiles(compilation) {
             chunkFileNames.add(file);
             files.push({
                 id: chunk.id?.toString(),
-                name: chunk.name,
+                name: chunk.name ?? undefined,
                 file,
                 extension: path.extname(file),
                 initial: chunk.isOnlyInitial(),
@@ -90,32 +90,37 @@ function loadEsmModule(modulePath) {
     return new Function('modulePath', `return import(modulePath);`)(modulePath);
 }
 async function getWebpackConfig(configPath) {
-    if (!(0, fs_1.existsSync)(configPath)) {
+    if (!(0, node_fs_1.existsSync)(configPath)) {
         throw new Error(`Webpack configuration file ${configPath} does not exist.`);
     }
+    let config;
     switch (path.extname(configPath)) {
         case '.mjs':
             // Load the ESM configuration file using the TypeScript dynamic import workaround.
             // Once TypeScript provides support for keeping the dynamic import this workaround can be
             // changed to a direct dynamic import.
-            return (await loadEsmModule((0, url_1.pathToFileURL)(configPath))).default;
+            config = await loadEsmModule((0, node_url_1.pathToFileURL)(configPath));
+            break;
         case '.cjs':
-            return require(configPath);
+            config = require(configPath);
+            break;
         default:
             // The file could be either CommonJS or ESM.
             // CommonJS is tried first then ESM if loading fails.
             try {
-                return require(configPath);
+                config = require(configPath);
+                break;
             }
             catch (e) {
-                if (e.code === 'ERR_REQUIRE_ESM') {
+                if (e.code === 'ERR_REQUIRE_ESM' ||
+                    e.code === 'ERR_REQUIRE_ASYNC_MODULE') {
                     // Load the ESM configuration file using the TypeScript dynamic import workaround.
                     // Once TypeScript provides support for keeping the dynamic import this workaround can be
                     // changed to a direct dynamic import.
-                    return (await loadEsmModule((0, url_1.pathToFileURL)(configPath)))
-                        .default;
+                    config = await loadEsmModule((0, node_url_1.pathToFileURL)(configPath));
                 }
                 throw e;
             }
     }
+    return 'default' in config ? config.default : config;
 }

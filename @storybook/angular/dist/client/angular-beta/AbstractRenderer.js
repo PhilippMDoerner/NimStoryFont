@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AbstractRenderer = exports.STORY_UID_ATTRIBUTE = void 0;
 const platform_browser_1 = require("@angular/platform-browser");
@@ -41,6 +8,7 @@ const StorybookModule_1 = require("./StorybookModule");
 const StorybookProvider_1 = require("./StorybookProvider");
 const BootstrapQueue_1 = require("./utils/BootstrapQueue");
 const PropertyExtractor_1 = require("./utils/PropertyExtractor");
+const Zoneless_1 = require("./utils/Zoneless");
 const applicationRefs = new Map();
 /**
  * Attribute name for the story UID that may be written to the targetDOMNode.
@@ -115,12 +83,12 @@ class AbstractRenderer {
             ...(storyFnAngular.applicationConfig?.providers ?? []),
         ];
         if (STORYBOOK_ANGULAR_OPTIONS?.experimentalZoneless) {
-            const { provideExperimentalZonelessChangeDetection } = await Promise.resolve().then(() => __importStar(require('@angular/core')));
-            if (!provideExperimentalZonelessChangeDetection) {
-                throw new Error('Experimental zoneless change detection requires Angular 18 or higher');
+            const provideZonelessChangeDetectionFn = await (0, Zoneless_1.getProvideZonelessChangeDetectionFn)();
+            if (!provideZonelessChangeDetectionFn) {
+                throw new Error('Zoneless change detection requires Angular 18 or higher');
             }
             else {
-                providers.unshift(provideExperimentalZonelessChangeDetection());
+                providers.unshift(provideZonelessChangeDetectionFn());
             }
         }
         const applicationRef = await (0, BootstrapQueue_1.queueBootstrapping)(() => {
@@ -177,7 +145,7 @@ class AbstractRenderer {
         const previousStoryRenderInfo = this.previousStoryRenderInfo.get(targetDOMNode);
         const currentStoryRender = {
             storyFnAngular,
-            moduleMetadataSnapshot: (0, telejson_1.stringify)(moduleMetadata, { allowFunction: false }),
+            moduleMetadataSnapshot: (0, telejson_1.stringify)(moduleMetadata, { maxDepth: 50 }),
         };
         this.previousStoryRenderInfo.set(targetDOMNode, currentStoryRender);
         if (

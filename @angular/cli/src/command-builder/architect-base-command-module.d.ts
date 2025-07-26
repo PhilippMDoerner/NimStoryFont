@@ -21,7 +21,7 @@ export declare abstract class ArchitectBaseCommandModule<T extends object> exten
     private _architectHost;
     protected getArchitectHost(): WorkspaceNodeModulesArchitectHost;
     private _architect;
-    protected getArchitect(): Architect;
+    protected getArchitect(skipUndefinedArrayTransform: boolean): Architect;
     protected getArchitectTargetOptions(target: Target): Promise<Option[]>;
     private warnOnMissingNodeModules;
     protected getArchitectTarget(): string;

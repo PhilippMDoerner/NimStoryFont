@@ -1,11 +1,5 @@
 import { setUISelection } from '../../document/UI.js';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { getTargetTypeAndSelection } from './getTargetTypeAndSelection.js';
 
 /**
@@ -19,7 +13,7 @@ import { getTargetTypeAndSelection } from './getTargetTypeAndSelection.js';
             focusOffset
         }, 'modify');
     }
-    (_focusNode_ownerDocument = focusNode.ownerDocument) === null || _focusNode_ownerDocument === void 0 ? void 0 : (_focusNode_ownerDocument_getSelection = _focusNode_ownerDocument.getSelection()) === null || _focusNode_ownerDocument_getSelection === void 0 ? void 0 : _focusNode_ownerDocument_getSelection.extend(focusNode, focusOffset);
+    (_focusNode_ownerDocument = focusNode.ownerDocument) === null || _focusNode_ownerDocument === undefined ? undefined : (_focusNode_ownerDocument_getSelection = _focusNode_ownerDocument.getSelection()) === null || _focusNode_ownerDocument_getSelection === undefined ? undefined : _focusNode_ownerDocument_getSelection.extend(focusNode, focusOffset);
 }
 
 export { modifySelection };

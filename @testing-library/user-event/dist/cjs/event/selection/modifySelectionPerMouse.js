@@ -1,13 +1,7 @@
 'use strict';
 
 var UI = require('../../document/UI.js');
-require('../../utils/click/isClickableInput.js');
 require('../../utils/dataTransfer/Clipboard.js');
-require('../../utils/edit/isEditable.js');
-require('../../utils/edit/maxLength.js');
-require('../../utils/keyDef/readNextDescriptor.js');
-require('../../utils/misc/level.js');
-require('../../options.js');
 var resolveCaretPosition = require('./resolveCaretPosition.js');
 
 function modifySelectionPerMouseMove(selectionRange, { document, target, node, offset }) {
@@ -38,8 +32,8 @@ function modifySelectionPerMouseMove(selectionRange, { document, target, node, o
             range.setEnd(selectionFocus.node, selectionFocus.offset);
         }
         const selection = document.getSelection();
-        selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
-        selection === null || selection === void 0 ? void 0 : selection.addRange(range.cloneRange());
+        selection === null || selection === undefined ? undefined : selection.removeAllRanges();
+        selection === null || selection === undefined ? undefined : selection.addRange(range.cloneRange());
     }
 }
 

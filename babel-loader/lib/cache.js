@@ -10,7 +10,6 @@
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
-const crypto = require("crypto");
 const {
   promisify
 } = require("util");
@@ -19,17 +18,15 @@ const {
   writeFile,
   mkdir
 } = require("fs/promises");
-const findCacheDirP = import("find-cache-dir");
+const {
+  sync: findUpSync
+} = require("find-up");
+const {
+  env
+} = process;
 const transform = require("./transform");
-// Lazily instantiated when needed
+const serialize = require("./serialize");
 let defaultCacheDirectory = null;
-let hashType = "sha256";
-// use md5 hashing if sha256 is not available
-try {
-  crypto.createHash(hashType);
-} catch {
-  hashType = "md5";
-}
 const gunzip = promisify(zlib.gunzip);
 const gzip = promisify(zlib.gzip);
 
@@ -68,15 +65,37 @@ const write = async function (filename, compress, result) {
  *
  * @return {String}
  */
-const filename = function (source, identifier, options) {
-  const hash = crypto.createHash(hashType);
-  const contents = JSON.stringify({
-    source,
-    options,
-    identifier
-  });
-  hash.update(contents);
+const filename = function (source, identifier, options, hash) {
+  hash.update(serialize([options, source, identifier]));
   return hash.digest("hex") + ".json";
+};
+const addTimestamps = async function (externalDependencies, getFileTimestamp) {
+  for (const depAndEmptyTimestamp of externalDependencies) {
+    try {
+      const [dep] = depAndEmptyTimestamp;
+      const {
+        timestamp
+      } = await getFileTimestamp(dep);
+      depAndEmptyTimestamp.push(timestamp);
+    } catch {
+      // ignore errors if timestamp is not available
+    }
+  }
+};
+const areExternalDependenciesModified = async function (externalDepsWithTimestamp, getFileTimestamp) {
+  for (const depAndTimestamp of externalDepsWithTimestamp) {
+    const [dep, timestamp] = depAndTimestamp;
+    let newTimestamp;
+    try {
+      newTimestamp = (await getFileTimestamp(dep)).timestamp;
+    } catch {
+      return true;
+    }
+    if (timestamp !== newTimestamp) {
+      return true;
+    }
+  }
+  return false;
 };
 
 /**
@@ -92,14 +111,21 @@ const handleCache = async function (directory, params) {
     cacheIdentifier,
     cacheDirectory,
     cacheCompression,
+    hash,
+    getFileTimestamp,
     logger
   } = params;
-  const file = path.join(directory, filename(source, cacheIdentifier, options));
+  const file = path.join(directory, filename(source, cacheIdentifier, options, hash));
   try {
     // No errors mean that the file was previously cached
     // we just need to return it
     logger.debug(`reading cache file '${file}'`);
-    return await read(file, cacheCompression);
+    const result = await read(file, cacheCompression);
+    if (!(await areExternalDependenciesModified(result.externalDependencies, getFileTimestamp))) {
+      logger.debug(`validated cache file '${file}'`);
+      return result;
+    }
+    logger.debug(`discarded cache file '${file}' due to changes in external dependencies`);
   } catch {
     // conitnue if cache can't be read
     logger.debug(`discarded cache as it can not be read`);
@@ -124,20 +150,16 @@ const handleCache = async function (directory, params) {
   // return it to the user asap and write it in cache
   logger.debug(`applying Babel transform`);
   const result = await transform(source, options);
-
-  // Do not cache if there are external dependencies,
-  // since they might change and we cannot control it.
-  if (!result.externalDependencies.length) {
-    try {
-      logger.debug(`writing result to cache file '${file}'`);
-      await write(file, cacheCompression, result);
-    } catch (err) {
-      if (fallback) {
-        // Fallback to tmpdir if node_modules folder not writable
-        return handleCache(os.tmpdir(), params);
-      }
-      throw err;
+  await addTimestamps(result.externalDependencies, getFileTimestamp);
+  try {
+    logger.debug(`writing result to cache file '${file}'`);
+    await write(file, cacheCompression, result);
+  } catch (err) {
+    if (fallback) {
+      // Fallback to tmpdir if node_modules folder not writable
+      return handleCache(os.tmpdir(), params);
     }
+    throw err;
   }
   return result;
 };
@@ -172,15 +194,18 @@ module.exports = async function (params) {
   if (typeof params.cacheDirectory === "string") {
     directory = params.cacheDirectory;
   } else {
-    if (defaultCacheDirectory === null) {
-      const {
-        default: findCacheDir
-      } = await findCacheDirP;
-      defaultCacheDirectory = findCacheDir({
-        name: "babel-loader"
-      }) || os.tmpdir();
-    }
+    defaultCacheDirectory ??= findCacheDir("babel-loader");
     directory = defaultCacheDirectory;
   }
   return await handleCache(directory, params);
 };
+function findCacheDir(name) {
+  if (env.CACHE_DIR && !["true", "false", "1", "0"].includes(env.CACHE_DIR)) {
+    return path.join(env.CACHE_DIR, name);
+  }
+  const rootPkgJSONPath = path.dirname(findUpSync("package.json"));
+  if (rootPkgJSONPath) {
+    return path.join(rootPkgJSONPath, "node_modules", ".cache", name);
+  }
+  return os.tmpdir();
+}

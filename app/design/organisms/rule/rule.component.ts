@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -32,6 +33,7 @@ type RuleState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
     CompareFormComponent,
     ContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RuleComponent implements OnInit {
   rule = input.required<Rule | undefined>();
@@ -60,7 +62,7 @@ export class RuleComponent implements OnInit {
         label: 'Edit',
         icon: 'pencil',
         active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
-        hotkey: this.disabledHotkeys() ? undefined : 'e',
+        hotkeyAction: this.disabledHotkeys() ? undefined : 'update',
       });
     }
 
@@ -70,7 +72,7 @@ export class RuleComponent implements OnInit {
         actionName: 'delete',
         label: 'Delete',
         icon: 'trash',
-        hotkey: this.disabledHotkeys() ? undefined : 'd',
+        hotkeyAction: this.disabledHotkeys() ? undefined : 'delete',
         modal: {
           ...DEFAULT_DELETE_MODAL_DATA,
           heading: `Delete ${this.rule()?.name}`,

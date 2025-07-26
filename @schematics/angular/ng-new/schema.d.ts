@@ -21,10 +21,6 @@ export type Schema = {
      */
     directory?: string;
     /**
-     * Create an initial application that does not utilize `zone.js`.
-     */
-    experimentalZoneless?: boolean;
-    /**
      * Include the styles for the initial application's root component directly within the
      * `app.component.ts` file. By default, a separate stylesheet file (e.g.,
      * `app.component.css`) is created.
@@ -66,11 +62,6 @@ export type Schema = {
      * modules for managing navigation between different views in your application.
      */
     routing?: boolean;
-    /**
-     * Create a server application in the initial project using the Server Routing and App
-     * Engine APIs (Developer Preview).
-     */
-    serverRouting?: boolean;
     /**
      * Do not initialize a Git repository in the new workspace. By default, a Git repository is
      * initialized to help you track changes to your project.
@@ -115,6 +106,10 @@ export type Schema = {
      * encapsulated using Shadow DOM).
      */
     viewEncapsulation?: ViewEncapsulation;
+    /**
+     * Create an initial application that does not utilize `zone.js`.
+     */
+    zoneless?: boolean;
 };
 /**
  * Configure the initial Git commit for the new repository.

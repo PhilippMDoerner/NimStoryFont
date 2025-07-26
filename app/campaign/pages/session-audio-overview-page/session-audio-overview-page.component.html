@@ -11,8 +11,8 @@
         [icon]="'plus'"
         [text]="'Add Recording'"
         [routerLink]="createUrl()"
-        [hotkey]="'c'"
-        (hotkeyPressed)="routingService.routeToPath(createUrl())"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="routingService.routeToPath(createUrl())"
       ></a>
     }
 

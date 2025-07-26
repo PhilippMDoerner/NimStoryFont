@@ -6,6 +6,9 @@ exports.supportedFlatConfigNames = [
     'eslint.config.js',
     'eslint.config.mjs',
     'eslint.config.cjs',
+    'eslint.config.ts',
+    'eslint.config.mts',
+    'eslint.config.cts',
 ];
 async function resolveESLintClass(useFlatConfig = false) {
     try {
@@ -18,7 +21,6 @@ async function resolveESLintClass(useFlatConfig = false) {
         if (!useFlatConfig) {
             return eslint.ESLint;
         }
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { FlatESLint } = require('eslint/use-at-your-own-risk');
         return FlatESLint;
     }
@@ -27,6 +29,9 @@ async function resolveESLintClass(useFlatConfig = false) {
     }
 }
 async function resolveAndInstantiateESLint(eslintConfigPath, options, useFlatConfig = false) {
+    if (options.stats && !useFlatConfig) {
+        throw new Error('The --stats option requires ESLint Flat Config');
+    }
     if (useFlatConfig &&
         eslintConfigPath &&
         !exports.supportedFlatConfigNames.some((name) => eslintConfigPath.endsWith(name))) {
@@ -51,6 +56,7 @@ async function resolveAndInstantiateESLint(eslintConfigPath, options, useFlatCon
         errorOnUnmatchedPattern: false,
     };
     if (useFlatConfig) {
+        eslintOptions.stats = !!options.stats;
         if (typeof options.useEslintrc !== 'undefined') {
             throw new Error('For Flat Config, the `useEslintrc` option is not applicable. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
         }
@@ -61,7 +67,7 @@ async function resolveAndInstantiateESLint(eslintConfigPath, options, useFlatCon
             throw new Error('For Flat Config, ESLint removed `ignorePath` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
         }
         if (options.reportUnusedDisableDirectives) {
-            throw new Error('For Flat Config, ESLint removed `reportedUnusedDisableDirectives` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
+            throw new Error('For Flat Config, ESLint removed `reportUnusedDisableDirectives` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
         }
         /**
          * Adapted from https://github.com/eslint/eslint/blob/50f03a119e6827c03b1d6c86d3aa1f4820b609e8/lib/cli.js#L144

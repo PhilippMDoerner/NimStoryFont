@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isInteractiveElement = isInteractiveElement;
+exports.isInherentlyInteractiveElement = isInherentlyInteractiveElement;
 exports.isNonInteractiveRole = isNonInteractiveRole;
 const attributes_comparator_1 = require("../attributes-comparator");
 const get_attribute_value_1 = require("../get-attribute-value");
@@ -36,7 +36,7 @@ function checkIsNonInteractiveRole(node) {
  * has a dynamic handler on it and we need to discern whether or not
  * it's intention is to be interacted with on the DOM.
  */
-function isInteractiveElement(node) {
+function isInherentlyInteractiveElement(node) {
     return (0, get_dom_elements_1.getDomElements)().has(node.name) && checkIsInteractiveElement(node);
 }
 function isNonInteractiveRole(node) {

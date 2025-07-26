@@ -1,6 +1,8 @@
-import { C as Colors } from './index-c1cfc5e9.js';
-export { F as Formatter, c as createColors, g as getDefaultColors, i as isSupported } from './index-c1cfc5e9.js';
+import { C as Colors } from './index-8b61d5bc.js';
+export { F as Formatter, g as getDefaultColors } from './index-8b61d5bc.js';
 
+declare function isSupported(): boolean;
+declare function createColors(): Colors;
 declare const _default: Colors;
 
-export { Colors, _default as default };
+export { Colors, createColors, _default as default, isSupported };

@@ -13,6 +13,7 @@ const { JS_TYPES } = require("../ModuleSourceTypesConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../../declarations/WebpackOptions").JsonGeneratorOptions} JsonGeneratorOptions */
 /** @typedef {import("../ExportsInfo")} ExportsInfo */
 /** @typedef {import("../Generator").GenerateContext} GenerateContext */
 /** @typedef {import("../Module").ConcatenationBailoutReasonContext} ConcatenationBailoutReasonContext */
@@ -20,10 +21,12 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 /** @typedef {import("../NormalModule")} NormalModule */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("./JsonData")} JsonData */
-/** @typedef {import("./JsonModulesPlugin").RawJsonData} RawJsonData */
+/** @typedef {import("./JsonModulesPlugin").JsonArray} JsonArray */
+/** @typedef {import("./JsonModulesPlugin").JsonObject} JsonObject */
+/** @typedef {import("./JsonModulesPlugin").JsonValue} JsonValue */
 
 /**
- * @param {RawJsonData} data Raw JSON data
+ * @param {JsonValue} data Raw JSON data
  * @returns {undefined|string} stringified data
  */
 const stringifySafe = data => {
@@ -38,30 +41,35 @@ const stringifySafe = data => {
 };
 
 /**
- * @param {RawJsonData} data Raw JSON data (always an object or array)
+ * @param {JsonObject | JsonArray} data Raw JSON data (always an object or array)
  * @param {ExportsInfo} exportsInfo exports info
  * @param {RuntimeSpec} runtime the runtime
- * @returns {RawJsonData} reduced data
+ * @returns {JsonObject | JsonArray} reduced data
  */
 const createObjectForExportsInfo = (data, exportsInfo, runtime) => {
 	if (exportsInfo.otherExportsInfo.getUsed(runtime) !== UsageState.Unused)
 		return data;
 	const isArray = Array.isArray(data);
-	/** @type {RawJsonData} */
+	/** @type {JsonObject | JsonArray} */
 	const reducedData = isArray ? [] : {};
 	for (const key of Object.keys(data)) {
 		const exportInfo = exportsInfo.getReadOnlyExportInfo(key);
 		const used = exportInfo.getUsed(runtime);
 		if (used === UsageState.Unused) continue;
 
-		/** @type {RawJsonData} */
+		// The real type is `JsonObject | JsonArray`, but typescript doesn't work `Object.keys(['string', 'other-string', 'etc'])` properly
+		const newData = /** @type {JsonObject} */ (data)[key];
 		const value =
-			used === UsageState.OnlyPropertiesUsed && exportInfo.exportsInfo
-				? createObjectForExportsInfo(data[key], exportInfo.exportsInfo, runtime)
-				: data[key];
+			used === UsageState.OnlyPropertiesUsed &&
+			exportInfo.exportsInfo &&
+			typeof newData === "object" &&
+			newData
+				? createObjectForExportsInfo(newData, exportInfo.exportsInfo, runtime)
+				: newData;
 
 		const name = /** @type {string} */ (exportInfo.getUsedName(key, runtime));
-		/** @type {Record<string, RawJsonData>} */ (reducedData)[name] = value;
+		/** @type {JsonObject} */
+		(reducedData)[name] = value;
 	}
 	if (isArray) {
 		const arrayLengthWhenUsed =
@@ -71,8 +79,11 @@ const createObjectForExportsInfo = (data, exportsInfo, runtime) => {
 				: undefined;
 
 		let sizeObjectMinusArray = 0;
-		for (let i = 0; i < reducedData.length; i++) {
-			if (reducedData[i] === undefined) {
+		const reducedDataLength =
+			/** @type {JsonArray} */
+			(reducedData).length;
+		for (let i = 0; i < reducedDataLength; i++) {
+			if (/** @type {JsonArray} */ (reducedData)[i] === undefined) {
 				sizeObjectMinusArray -= 2;
 			} else {
 				sizeObjectMinusArray += `${i}`.length + 3;
@@ -82,7 +93,7 @@ const createObjectForExportsInfo = (data, exportsInfo, runtime) => {
 			sizeObjectMinusArray +=
 				`${arrayLengthWhenUsed}`.length +
 				8 -
-				(arrayLengthWhenUsed - reducedData.length) * 2;
+				(arrayLengthWhenUsed - reducedDataLength) * 2;
 		}
 		if (sizeObjectMinusArray < 0)
 			return Object.assign(
@@ -94,11 +105,12 @@ const createObjectForExportsInfo = (data, exportsInfo, runtime) => {
 		/** @type {number} */
 		const generatedLength =
 			arrayLengthWhenUsed !== undefined
-				? Math.max(arrayLengthWhenUsed, reducedData.length)
-				: reducedData.length;
+				? Math.max(arrayLengthWhenUsed, reducedDataLength)
+				: reducedDataLength;
 		for (let i = 0; i < generatedLength; i++) {
-			if (reducedData[i] === undefined) {
-				reducedData[i] = 0;
+			if (/** @type {JsonArray} */ (reducedData)[i] === undefined) {
+				/** @type {JsonArray} */
+				(reducedData)[i] = 0;
 			}
 		}
 	}
@@ -106,6 +118,14 @@ const createObjectForExportsInfo = (data, exportsInfo, runtime) => {
 };
 
 class JsonGenerator extends Generator {
+	/**
+	 * @param {JsonGeneratorOptions} options options
+	 */
+	constructor(options) {
+		super();
+		this.options = options;
+	}
+
 	/**
 	 * @param {NormalModule} module fresh module
 	 * @returns {SourceTypes} available types (do not mutate)
@@ -120,7 +140,7 @@ class JsonGenerator extends Generator {
 	 * @returns {number} estimate size of the module
 	 */
 	getSize(module, type) {
-		/** @type {RawJsonData | undefined} */
+		/** @type {JsonValue | undefined} */
 		const data =
 			module.buildInfo &&
 			module.buildInfo.jsonData &&
@@ -153,7 +173,7 @@ class JsonGenerator extends Generator {
 			concatenationScope
 		}
 	) {
-		/** @type {RawJsonData | undefined} */
+		/** @type {JsonValue | undefined} */
 		const data =
 			module.buildInfo &&
 			module.buildInfo.jsonData &&
@@ -166,7 +186,7 @@ class JsonGenerator extends Generator {
 			);
 		}
 		const exportsInfo = moduleGraph.getExportsInfo(module);
-		/** @type {RawJsonData} */
+		/** @type {JsonValue} */
 		const finalJson =
 			typeof data === "object" &&
 			data &&
@@ -176,9 +196,11 @@ class JsonGenerator extends Generator {
 		// Use JSON because JSON.parse() is much faster than JavaScript evaluation
 		const jsonStr = /** @type {string} */ (stringifySafe(finalJson));
 		const jsonExpr =
-			jsonStr.length > 20 && typeof finalJson === "object"
+			this.options.JSONParse &&
+			jsonStr.length > 20 &&
+			typeof finalJson === "object"
 				? `/*#__PURE__*/JSON.parse('${jsonStr.replace(/[\\']/g, "\\$&")}')`
-				: jsonStr;
+				: jsonStr.replace(/"__proto__":/g, '["__proto__"]:');
 		/** @type {string} */
 		let content;
 		if (concatenationScope) {
@@ -193,6 +215,16 @@ class JsonGenerator extends Generator {
 			content = `${module.moduleArgument}.exports = ${jsonExpr};`;
 		}
 		return new RawSource(content);
+	}
+
+	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		return new RawSource(`throw new Error(${JSON.stringify(error.message)});`);
 	}
 }
 

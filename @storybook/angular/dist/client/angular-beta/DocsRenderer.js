@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DocsRenderer = void 0;
 const core_events_1 = require("storybook/internal/core-events");
-const preview_api_1 = require("storybook/internal/preview-api");
+const preview_api_1 = require("storybook/preview-api");
 const AbstractRenderer_1 = require("./AbstractRenderer");
 const StoryUID_1 = require("./utils/StoryUID");
 class DocsRenderer extends AbstractRenderer_1.AbstractRenderer {

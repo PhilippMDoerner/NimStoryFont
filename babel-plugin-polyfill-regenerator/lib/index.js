@@ -3,9 +3,9 @@
 exports.__esModule = true;
 exports.default = void 0;
 var _helperDefinePolyfillProvider = _interopRequireDefault(require("@babel/helper-define-polyfill-provider"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const runtimeCompat = "#__secret_key__@babel/runtime__compatibility";
-var _default = (0, _helperDefinePolyfillProvider.default)(({
+var _default = exports.default = (0, _helperDefinePolyfillProvider.default)(({
   debug,
   targets,
   babel
@@ -41,7 +41,6 @@ var _default = (0, _helperDefinePolyfillProvider.default)(({
     }
   };
 });
-exports.default = _default;
 const isRegenerator = meta => meta.kind === "global" && meta.name === "regeneratorRuntime";
 function shallowEqual(obj1, obj2) {
   return JSON.stringify(obj1) === JSON.stringify(obj2);

@@ -1,8 +1,9 @@
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
 function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == typeof i ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != typeof t || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != typeof i) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 /* global __resourceQuery, __webpack_hash__ */
 /// <reference types="webpack/module" />
 import webpackHotLog from "webpack/hot/log.js";
@@ -42,7 +43,7 @@ import { isProgressSupported, defineProgressElement } from "./progress.js";
  * @param {boolean | { warnings?: boolean | string; errors?: boolean | string; runtimeErrors?: boolean | string; }} overlayOptions
  */
 var decodeOverlayOptions = function decodeOverlayOptions(overlayOptions) {
-  if (typeof overlayOptions === "object") {
+  if (_typeof(overlayOptions) === "object") {
     ["warnings", "errors", "runtimeErrors"].forEach(function (property) {
       if (typeof overlayOptions[property] === "string") {
         var overlayFilterFunctionString = decodeURIComponent(overlayOptions[property]);
@@ -155,7 +156,7 @@ if (parsedResourceQuery.overlay) {
   }
 
   // Fill in default "true" params for partially-specified objects.
-  if (typeof options.overlay === "object") {
+  if (_typeof(options.overlay) === "object") {
     options.overlay = _objectSpread({
       errors: true,
       warnings: true,
@@ -163,7 +164,7 @@ if (parsedResourceQuery.overlay) {
     }, options.overlay);
     decodeOverlayOptions(options.overlay);
   }
-  enabledFeatures.Overlay = true;
+  enabledFeatures.Overlay = options.overlay !== false;
 }
 if (parsedResourceQuery.logging) {
   options.logging = parsedResourceQuery.logging;
@@ -203,7 +204,7 @@ logEnabledFeatures(enabledFeatures);
 self.addEventListener("beforeunload", function () {
   status.isUnloading = true;
 });
-var overlay = typeof window !== "undefined" ? createOverlay(typeof options.overlay === "object" ? {
+var overlay = typeof window !== "undefined" ? createOverlay(_typeof(options.overlay) === "object" ? {
   trustedTypesPolicyName: options.overlay.trustedTypesPolicyName,
   catchRuntimeError: options.overlay.runtimeErrors
 } : {
@@ -282,7 +283,7 @@ var ansiRegex = new RegExp(["[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\
  */
 var stripAnsi = function stripAnsi(string) {
   if (typeof string !== "string") {
-    throw new TypeError("Expected a `string`, got `".concat(typeof string, "`"));
+    throw new TypeError("Expected a `string`, got `".concat(_typeof(string), "`"));
   }
   return string.replace(ansiRegex, "");
 };

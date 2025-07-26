@@ -82,6 +82,17 @@ async function* serveWithVite(serverOptions, builderName, builderAction, context
         browserOptions.prerender = undefined;
         browserOptions.ssr ||= true;
     }
+    // Disable auto CSP.
+    browserOptions.security = {
+        autoCsp: false,
+    };
+    // Disable JSON build stats.
+    // These are not accessible with the dev server and can cause HMR fallbacks.
+    if (browserOptions.statsJson === true) {
+        context.logger.warn('Build JSON statistics output (`statsJson` option) has been disabled.' +
+            ' The development server does not support this option.');
+    }
+    browserOptions.statsJson = false;
     // Set all packages as external to support Vite's prebundle caching
     browserOptions.externalPackages = serverOptions.prebundle;
     // Disable generating a full manifest with routes.
@@ -103,19 +114,12 @@ async function* serveWithVite(serverOptions, builderName, builderAction, context
         // https://nodejs.org/api/process.html#processsetsourcemapsenabledval
         process.setSourceMapsEnabled(true);
     }
+    const componentsHmrCanBeUsed = browserOptions.aot && serverOptions.liveReload && serverOptions.hmr;
     // Enable to support link-based component style hot reloading (`NG_HMR_CSTYLES=1` can be used to enable)
-    browserOptions.externalRuntimeStyles =
-        serverOptions.liveReload && serverOptions.hmr && environment_options_1.useComponentStyleHmr;
+    browserOptions.externalRuntimeStyles = componentsHmrCanBeUsed && environment_options_1.useComponentStyleHmr;
     // Enable to support component template hot replacement (`NG_HMR_TEMPLATE=0` can be used to disable selectively)
     // This will also replace file-based/inline styles as code if external runtime styles are not enabled.
-    browserOptions.templateUpdates =
-        serverOptions.liveReload && serverOptions.hmr && environment_options_1.useComponentTemplateHmr;
-    if (browserOptions.templateUpdates) {
-        context.logger.warn('Component HMR has been enabled.\n' +
-            'If you encounter application reload issues, you can manually reload the page to bypass HMR and/or disable this feature with the' +
-            ' `--no-hmr` command line option.\n' +
-            'Please consider reporting any issues you encounter here: https://github.com/angular/angular-cli/issues\n');
-    }
+    browserOptions.templateUpdates = componentsHmrCanBeUsed && environment_options_1.useComponentTemplateHmr;
     browserOptions.incrementalResults = true;
     // Setup the prebundling transformer that will be shared across Vite prebundling requests
     const prebundleTransformer = new internal_1.JavaScriptTransformer(
@@ -242,8 +246,9 @@ async function* serveWithVite(serverOptions, builderName, builderAction, context
             externalMetadata.explicitServer.length = 0;
             externalMetadata.implicitServer.length = 0;
             externalMetadata.implicitBrowser.length = 0;
-            externalMetadata.explicitBrowser.push(...explicit);
-            externalMetadata.explicitServer.push(...explicit, ...node_module_1.builtinModules);
+            const externalDeps = browserOptions.externalDependencies ?? [];
+            externalMetadata.explicitBrowser.push(...explicit, ...externalDeps);
+            externalMetadata.explicitServer.push(...explicit, ...externalDeps, ...node_module_1.builtinModules);
             externalMetadata.implicitServer.push(...implicitServerFiltered);
             externalMetadata.implicitBrowser.push(...implicitBrowserFiltered);
             // The below needs to be sorted as Vite uses these options are part of the hashing invalidation algorithm.
@@ -302,7 +307,10 @@ async function* serveWithVite(serverOptions, builderName, builderAction, context
                 });
             }
             // Setup server and start listening
-            const serverConfiguration = await setupServer(serverOptions, generatedFiles, assetFiles, browserOptions.preserveSymlinks, externalMetadata, ssrMode, prebundleTransformer, target, (0, internal_1.isZonelessApp)(polyfills), componentStyles, templateUpdates, browserOptions.loader, browserOptions.define, extensions?.middleware, transformers?.indexHtml, thirdPartySourcemaps);
+            const serverConfiguration = await setupServer(serverOptions, generatedFiles, assetFiles, browserOptions.preserveSymlinks, externalMetadata, ssrMode, prebundleTransformer, target, (0, internal_1.isZonelessApp)(polyfills), componentStyles, templateUpdates, browserOptions.loader, {
+                ...browserOptions.define,
+                'ngHmrMode': browserOptions.templateUpdates ? 'true' : 'false',
+            }, extensions?.middleware, transformers?.indexHtml, thirdPartySourcemaps);
             server = await createServer(serverConfiguration);
             await server.listen();
             // Setup builder context logging for browser clients
@@ -660,6 +668,7 @@ async function setupServer(serverOptions, outputFiles, assets, preserveSymlinks,
                 templateUpdates,
                 ssrMode,
                 resetComponentUpdates: () => templateUpdates.clear(),
+                projectRoot: serverOptions.projectRoot,
             }),
             (0, plugins_1.createRemoveIdPrefixPlugin)(externalMetadata.explicitBrowser),
             await (0, plugins_1.createAngularSsrTransformPlugin)(serverOptions.workspaceRoot),

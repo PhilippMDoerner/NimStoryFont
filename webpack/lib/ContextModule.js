@@ -29,6 +29,7 @@ const {
 const makeSerializable = require("./util/makeSerializable");
 
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./Chunk").ChunkId} ChunkId */
@@ -39,11 +40,13 @@ const makeSerializable = require("./util/makeSerializable");
 /** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./Generator").SourceTypes} SourceTypes */
+/** @typedef {import("./Module").BuildCallback} BuildCallback */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./Module").BuildMeta} BuildMeta */
 /** @typedef {import("./Module").CodeGenerationContext} CodeGenerationContext */
 /** @typedef {import("./Module").CodeGenerationResult} CodeGenerationResult */
 /** @typedef {import("./Module").LibIdentOptions} LibIdentOptions */
+/** @typedef {import("./Module").NeedBuildCallback} NeedBuildCallback */
 /** @typedef {import("./Module").NeedBuildContext} NeedBuildContext */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./RequestShortener")} RequestShortener */
@@ -78,10 +81,10 @@ const makeSerializable = require("./util/makeSerializable");
 
 /**
  * @typedef {object} ContextModuleOptionsExtras
- * @property {false|string|string[]} resource
+ * @property {false | string | string[]} resource
  * @property {string=} resourceQuery
  * @property {string=} resourceFragment
- * @property {TODO} resolveOptions
+ * @property {ResolveOptions=} resolveOptions
  */
 
 /** @typedef {ContextOptions & ContextModuleOptionsExtras} ContextModuleOptions */
@@ -399,7 +402,7 @@ class ContextModule extends Module {
 
 	/**
 	 * @param {NeedBuildContext} context context info
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function, returns true, if the module needs a rebuild
+	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
 	 */
 	needBuild({ fileSystemInfo }, callback) {
@@ -422,7 +425,7 @@ class ContextModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {

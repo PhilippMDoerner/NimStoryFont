@@ -4,7 +4,9 @@ import { version } from '../package.json';
 import type { Transferable, ResourceLimits, EnvSpecifier } from './types';
 import { kQueueOptions, kTransferable, kValue } from './symbols';
 import { TaskQueue, ArrayTaskQueue, FixedQueue, PiscinaTask, TransferList, TransferListItem } from './task_queue';
+import { PiscinaLoadBalancer } from './worker_pool';
 import { AbortSignalAny } from './abort';
+import { PiscinaHistogram } from './histogram';
 interface Options {
     filename?: string | null;
     name?: string;
@@ -13,7 +15,7 @@ interface Options {
     idleTimeout?: number;
     maxQueue?: number | 'auto';
     concurrentTasksPerWorker?: number;
-    useAtomics?: boolean;
+    atomics?: 'sync' | 'async' | 'disabled';
     resourceLimits?: ResourceLimits;
     argv?: string[];
     execArgv?: string[];
@@ -24,6 +26,8 @@ interface Options {
     trackUnmanagedFds?: boolean;
     closeTimeout?: number;
     recordTiming?: boolean;
+    loadBalancer?: PiscinaLoadBalancer;
+    workerHistogram?: boolean;
 }
 interface FilledOptions extends Options {
     filename: string | null;
@@ -33,11 +37,12 @@ interface FilledOptions extends Options {
     idleTimeout: number;
     maxQueue: number;
     concurrentTasksPerWorker: number;
-    useAtomics: boolean;
+    atomics: Options['atomics'];
     taskQueue: TaskQueue;
     niceIncrement: number;
     closeTimeout: number;
     recordTiming: boolean;
+    workerHistogram: boolean;
 }
 interface RunOptions {
     transferList?: TransferList;
@@ -51,14 +56,6 @@ interface CloseOptions {
 export default class Piscina<T = any, R = any> extends EventEmitterAsyncResource {
     #private;
     constructor(options?: Options);
-    /** @deprecated Use run(task, options) instead **/
-    runTask(task: T, transferList?: TransferList, filename?: string, abortSignal?: AbortSignalAny): Promise<R>;
-    /** @deprecated Use run(task, options) instead **/
-    runTask(task: T, transferList?: TransferList, filename?: AbortSignalAny, abortSignal?: undefined): Promise<R>;
-    /** @deprecated Use run(task, options) instead **/
-    runTask(task: T, transferList?: string, filename?: AbortSignalAny, abortSignal?: undefined): Promise<R>;
-    /** @deprecated Use run(task, options) instead **/
-    runTask(task: T, transferList?: AbortSignalAny, filename?: undefined, abortSignal?: undefined): Promise<R>;
     run(task: T, options?: RunOptions): Promise<R>;
     close(options?: CloseOptions): Promise<void>;
     destroy(): Promise<void>;
@@ -68,8 +65,7 @@ export default class Piscina<T = any, R = any> extends EventEmitterAsyncResource
     get threads(): Worker[];
     get queueSize(): number;
     get completed(): number;
-    get waitTime(): any;
-    get runTime(): any;
+    get histogram(): PiscinaHistogram;
     get utilization(): number;
     get duration(): number;
     get needsDrain(): boolean;
@@ -79,7 +75,7 @@ export default class Piscina<T = any, R = any> extends EventEmitterAsyncResource
     static get Piscina(): typeof Piscina;
     static get FixedQueue(): typeof FixedQueue;
     static get ArrayTaskQueue(): typeof ArrayTaskQueue;
-    static move(val: Transferable | TransferListItem | ArrayBufferView | ArrayBuffer | MessagePort): ArrayBuffer | ArrayBufferView | MessagePort | Transferable;
+    static move(val: Transferable | TransferListItem | ArrayBufferView | ArrayBuffer | MessagePort): ArrayBuffer | ArrayBufferView<ArrayBufferLike> | MessagePort | Transferable;
     static get transferableSymbol(): symbol;
     static get valueSymbol(): symbol;
     static get queueOptionsSymbol(): symbol;

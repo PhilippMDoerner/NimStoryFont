@@ -354,7 +354,6 @@ var index = defineProvider(function (api, {
           path.replaceWith(t.callExpression(utils.injectDefaultImport(`${coreJSBase}/is-iterable${ext}`, "isIterable"), [path.node.right] // meta.kind === "in" narrows this
           ));
         }
-
         return;
       }
       if (path.parentPath.isUnaryExpression({
@@ -392,5 +391,5 @@ var index = defineProvider(function (api, {
   };
 });
 
-export default index;
+export { index as default };
 //# sourceMappingURL=index.mjs.map

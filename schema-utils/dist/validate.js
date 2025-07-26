@@ -15,7 +15,7 @@ exports.needValidate = needValidate;
 exports.validate = validate;
 var _ValidationError = _interopRequireDefault(require("./ValidationError"));
 var _memorize = _interopRequireDefault(require("./util/memorize"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const getAjv = (0, _memorize.default)(() => {
   // Use CommonJS require for ajv libs so TypeScript consumers aren't locked into esModuleInterop (see #110).
   // eslint-disable-next-line global-require
@@ -35,14 +35,19 @@ const getAjv = (0, _memorize.default)(() => {
     $data: true
   });
   ajvKeywords(ajv, ["instanceof", "patternRequired"]);
+  // TODO set `{ keywords: true }` for the next major release and remove `keywords/limit.js`
   addFormats(ajv, {
-    keywords: true
+    keywords: false
   });
 
   // Custom keywords
   // eslint-disable-next-line global-require
   const addAbsolutePathKeyword = require("./keywords/absolutePath").default;
   addAbsolutePathKeyword(ajv);
+
+  // eslint-disable-next-line global-require
+  const addLimitKeyword = require("./keywords/limit").default;
+  addLimitKeyword(ajv);
   const addUndefinedAsNullKeyword =
   // eslint-disable-next-line global-require
   require("./keywords/undefinedAsNull").default;
@@ -56,16 +61,19 @@ const getAjv = (0, _memorize.default)(() => {
 /** @typedef {import("ajv").ErrorObject} ErrorObject */
 
 /**
- * @typedef {Object} Extend
- * @property {string=} formatMinimum
- * @property {string=} formatMaximum
- * @property {string=} formatExclusiveMinimum
- * @property {string=} formatExclusiveMaximum
+ * @typedef {Object} ExtendedSchema
+ * @property {(string | number)=} formatMinimum
+ * @property {(string | number)=} formatMaximum
+ * @property {(string | boolean)=} formatExclusiveMinimum
+ * @property {(string | boolean)=} formatExclusiveMaximum
  * @property {string=} link
  * @property {boolean=} undefinedAsNull
  */
 
-/** @typedef {(JSONSchema4 | JSONSchema6 | JSONSchema7) & Extend} Schema */
+// TODO remove me in the next major release
+/** @typedef {ExtendedSchema} Extend */
+
+/** @typedef {(JSONSchema4 | JSONSchema6 | JSONSchema7) & ExtendedSchema} Schema */
 
 /** @typedef {ErrorObject & { children?: Array<ErrorObject> }} SchemaUtilErrorObject */
 
@@ -179,7 +187,7 @@ function validateObject(schema, options) {
 function filterErrors(errors) {
   /** @type {Array<SchemaUtilErrorObject>} */
   let newErrors = [];
-  for (const error of /** @type {Array<SchemaUtilErrorObject>} */errors) {
+  for (const error of (/** @type {Array<SchemaUtilErrorObject>} */errors)) {
     const {
       instancePath
     } = error;

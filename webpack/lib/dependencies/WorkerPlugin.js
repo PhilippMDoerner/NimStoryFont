@@ -27,11 +27,14 @@ const WorkerDependency = require("./WorkerDependency");
 
 /** @typedef {import("estree").CallExpression} CallExpression */
 /** @typedef {import("estree").Expression} Expression */
+/** @typedef {import("estree").Identifier} Identifier */
+/** @typedef {import("estree").MemberExpression} MemberExpression */
 /** @typedef {import("estree").ObjectExpression} ObjectExpression */
 /** @typedef {import("estree").Pattern} Pattern */
 /** @typedef {import("estree").Property} Property */
 /** @typedef {import("estree").SpreadElement} SpreadElement */
 /** @typedef {import("../../declarations/WebpackOptions").ChunkLoading} ChunkLoading */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
 /** @typedef {import("../../declarations/WebpackOptions").OutputModule} OutputModule */
 /** @typedef {import("../../declarations/WebpackOptions").WasmLoading} WasmLoading */
@@ -45,7 +48,6 @@ const WorkerDependency = require("./WorkerDependency");
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("../javascript/JavascriptParser")} Parser */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../util/createHash").Algorithm} Algorithm */
 /** @typedef {import("./HarmonyImportDependencyParserPlugin").HarmonySettings} HarmonySettings */
 
 /**
@@ -117,45 +119,81 @@ class WorkerPlugin {
 				/**
 				 * @param {JavascriptParser} parser the parser
 				 * @param {Expression} expr expression
-				 * @returns {[BasicEvaluatedExpression, [number, number]] | void} parsed
+				 * @returns {[string, Range] | void} parsed
 				 */
 				const parseModuleUrl = (parser, expr) => {
-					if (
-						expr.type !== "NewExpression" ||
-						expr.callee.type === "Super" ||
-						expr.arguments.length !== 2
-					)
+					if (expr.type !== "NewExpression" || expr.callee.type === "Super")
 						return;
-					const [arg1, arg2] = expr.arguments;
-					if (arg1.type === "SpreadElement") return;
-					if (arg2.type === "SpreadElement") return;
-					const callee = parser.evaluateExpression(expr.callee);
-					if (!callee.isIdentifier() || callee.identifier !== "URL") return;
-					const arg2Value = parser.evaluateExpression(arg2);
 					if (
-						!arg2Value.isString() ||
-						!(/** @type {string} */ (arg2Value.string).startsWith("file://")) ||
-						arg2Value.string !== getUrl(parser.state.module)
+						expr.arguments.length === 1 &&
+						expr.arguments[0].type === "MemberExpression" &&
+						isMetaUrl(parser, expr.arguments[0])
 					) {
-						return;
+						const arg1 = expr.arguments[0];
+						return [
+							getUrl(parser.state.module),
+							[
+								/** @type {Range} */ (arg1.range)[0],
+								/** @type {Range} */ (arg1.range)[1]
+							]
+						];
+					} else if (expr.arguments.length === 2) {
+						const [arg1, arg2] = expr.arguments;
+						if (arg1.type === "SpreadElement") return;
+						if (arg2.type === "SpreadElement") return;
+						const callee = parser.evaluateExpression(expr.callee);
+						if (!callee.isIdentifier() || callee.identifier !== "URL") return;
+						const arg2Value = parser.evaluateExpression(arg2);
+						if (
+							!arg2Value.isString() ||
+							!(
+								/** @type {string} */ (arg2Value.string).startsWith("file://")
+							) ||
+							arg2Value.string !== getUrl(parser.state.module)
+						) {
+							return;
+						}
+						const arg1Value = parser.evaluateExpression(arg1);
+						if (!arg1Value.isString()) return;
+						return [
+							/** @type {string} */ (arg1Value.string),
+							[
+								/** @type {Range} */ (arg1.range)[0],
+								/** @type {Range} */ (arg2.range)[1]
+							]
+						];
 					}
-					const arg1Value = parser.evaluateExpression(arg1);
-					return [
-						arg1Value,
-						[
-							/** @type {Range} */ (arg1.range)[0],
-							/** @type {Range} */ (arg2.range)[1]
-						]
-					];
 				};
 
 				/**
 				 * @param {JavascriptParser} parser the parser
+				 * @param {MemberExpression} expr expression
+				 * @returns {boolean} is `import.meta.url`
+				 */
+				const isMetaUrl = (parser, expr) => {
+					const chain = parser.extractMemberExpressionChain(expr);
+
+					if (
+						chain.members.length !== 1 ||
+						chain.object.type !== "MetaProperty" ||
+						chain.object.meta.name !== "import" ||
+						chain.object.property.name !== "meta" ||
+						chain.members[0] !== "url"
+					)
+						return false;
+
+					return true;
+				};
+
+				/** @typedef {Record<string, EXPECTED_ANY>} Values */
+
+				/**
+				 * @param {JavascriptParser} parser the parser
 				 * @param {ObjectExpression} expr expression
-				 * @returns {{ expressions: Record<string, Expression | Pattern>, otherElements: (Property | SpreadElement)[], values: Record<string, any>, spread: boolean, insertType: "comma" | "single", insertLocation: number }} parsed object
+				 * @returns {{ expressions: Record<string, Expression | Pattern>, otherElements: (Property | SpreadElement)[], values: Values, spread: boolean, insertType: "comma" | "single", insertLocation: number }} parsed object
 				 */
 				const parseObjectExpression = (parser, expr) => {
-					/** @type {Record<string, any>} */
+					/** @type {Values} */
 					const values = {};
 					/** @type {Record<string, Expression | Pattern>} */
 					const expressions = {};
@@ -174,7 +212,8 @@ class WorkerPlugin {
 							expressions[prop.key.name] = prop.value;
 							if (!prop.shorthand && !prop.value.type.endsWith("Pattern")) {
 								const value = parser.evaluateExpression(
-									/** @type {Expression} */ (prop.value)
+									/** @type {Expression} */
+									(prop.value)
 								);
 								if (value.isCompileTimeValue())
 									values[prop.key.name] = value.asCompileTimeValue();
@@ -217,10 +256,27 @@ class WorkerPlugin {
 						const [arg1, arg2] = expr.arguments;
 						if (arg1.type === "SpreadElement") return;
 						if (arg2 && arg2.type === "SpreadElement") return;
-						const parsedUrl = parseModuleUrl(parser, arg1);
-						if (!parsedUrl) return;
-						const [url, range] = parsedUrl;
-						if (!url.isString()) return;
+
+						/** @type {string} */
+						let url;
+						/** @type {Range} */
+						let range;
+						/** @type {boolean} */
+						let needNewUrl = false;
+
+						if (arg1.type === "MemberExpression" && isMetaUrl(parser, arg1)) {
+							url = getUrl(parser.state.module);
+							range = [
+								/** @type {Range} */ (arg1.range)[0],
+								/** @type {Range} */ (arg1.range)[1]
+							];
+							needNewUrl = true;
+						} else {
+							const parsedUrl = parseModuleUrl(parser, arg1);
+							if (!parsedUrl) return;
+							[url, range] = parsedUrl;
+						}
+
 						const {
 							expressions,
 							otherElements,
@@ -234,7 +290,7 @@ class WorkerPlugin {
 									/** @type {Record<string, Expression | Pattern>} */
 									expressions: {},
 									otherElements: [],
-									/** @type {Record<string, any>} */
+									/** @type {Values} */
 									values: {},
 									spread: false,
 									insertType: arg2 ? "spread" : "argument",
@@ -320,7 +376,7 @@ class WorkerPlugin {
 								parser.state.module.identifier()
 							)}|${i}`;
 							const hash = createHash(
-								/** @type {Algorithm} */
+								/** @type {HashFunction} */
 								(compilation.outputOptions.hashFunction)
 							);
 							hash.update(name);
@@ -342,13 +398,10 @@ class WorkerPlugin {
 							}
 						});
 						block.loc = expr.loc;
-						const dep = new WorkerDependency(
-							/** @type {string} */ (url.string),
-							range,
-							{
-								publicPath: this._workerPublicPath
-							}
-						);
+						const dep = new WorkerDependency(url, range, {
+							publicPath: this._workerPublicPath,
+							needNewUrl
+						});
 						dep.loc = /** @type {DependencyLocation} */ (expr.loc);
 						block.addDependency(dep);
 						parser.state.module.addBlock(block);
@@ -370,7 +423,7 @@ class WorkerPlugin {
 								);
 								dep.loc = /** @type {DependencyLocation} */ (expr.loc);
 								parser.state.module.addPresentationalDependency(dep);
-								/** @type {TODO} */
+								/** @type {EXPECTED_ANY} */
 								(expressions).type = undefined;
 							}
 						} else if (insertType === "comma") {
@@ -406,7 +459,13 @@ class WorkerPlugin {
 
 						parser.walkExpression(expr.callee);
 						for (const key of Object.keys(expressions)) {
-							if (expressions[key]) parser.walkExpression(expressions[key]);
+							if (expressions[key]) {
+								if (expressions[key].type.endsWith("Pattern")) continue;
+								parser.walkExpression(
+									/** @type {Expression} */
+									(expressions[key])
+								);
+							}
 						}
 						for (const prop of otherElements) {
 							parser.walkProperty(prop);

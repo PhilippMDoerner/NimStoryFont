@@ -23,14 +23,16 @@ const { registerNotSerializable } = require("../util/serialization");
 /** @typedef {import("../Compilation")} Compilation */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
+/** @typedef {import("../Module").BuildCallback} BuildCallback */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../Module").CodeGenerationContext} CodeGenerationContext */
 /** @typedef {import("../Module").CodeGenerationResult} CodeGenerationResult */
 /** @typedef {import("../Module").LibIdentOptions} LibIdentOptions */
+/** @typedef {import("../Module").NeedBuildCallback} NeedBuildCallback */
 /** @typedef {import("../Module").NeedBuildContext} NeedBuildContext */
 /** @typedef {import("../Module").SourceTypes} SourceTypes */
+/** @typedef {import("../ModuleFactory").ModuleFactoryCallback} ModuleFactoryCallback */
 /** @typedef {import("../ModuleFactory").ModuleFactoryCreateData} ModuleFactoryCreateData */
-/** @typedef {import("../ModuleFactory").ModuleFactoryResult} ModuleFactoryResult */
 /** @typedef {import("../RequestShortener")} RequestShortener */
 /** @typedef {import("../ResolverFactory").ResolverWithOptions} ResolverWithOptions */
 /** @typedef {import("../WebpackError")} WebpackError */
@@ -42,8 +44,8 @@ const { registerNotSerializable } = require("../util/serialization");
 
 /**
  * @typedef {object} BackendApi
- * @property {function(function((Error | null)=) : void): void} dispose
- * @property {function(Module): ModuleResult} module
+ * @property {(callback: (err?: (Error | null)) => void) => void} dispose
+ * @property {(module: Module) => ModuleResult} module
  */
 
 const HMR_DEPENDENCY_TYPES = new Set([
@@ -54,7 +56,7 @@ const HMR_DEPENDENCY_TYPES = new Set([
 ]);
 
 /**
- * @param {undefined|string|RegExp|Function} test test option
+ * @param {Options["test"]} test test option
  * @param {Module} module the module
  * @returns {boolean | null | string} true, if the module should be selected
  */
@@ -169,7 +171,7 @@ class LazyCompilationProxyModule extends Module {
 
 	/**
 	 * @param {NeedBuildContext} context context info
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function, returns true, if the module needs a rebuild
+	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
 	 */
 	needBuild(context, callback) {
@@ -181,7 +183,7 @@ class LazyCompilationProxyModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
@@ -315,13 +317,13 @@ class LazyCompilationDependencyFactory extends ModuleFactory {
 
 	/**
 	 * @param {ModuleFactoryCreateData} data data object
-	 * @param {function((Error | null)=, ModuleFactoryResult=): void} callback callback
+	 * @param {ModuleFactoryCallback} callback callback
 	 * @returns {void}
 	 */
 	create(data, callback) {
-		const dependency = /** @type {LazyCompilationDependency} */ (
-			data.dependencies[0]
-		);
+		const dependency =
+			/** @type {LazyCompilationDependency} */
+			(data.dependencies[0]);
 		callback(null, {
 			module: dependency.proxyModule.originalModule
 		});
@@ -331,7 +333,7 @@ class LazyCompilationDependencyFactory extends ModuleFactory {
 /**
  * @callback BackendHandler
  * @param {Compiler} compiler compiler
- * @param {function(Error | null, BackendApi=): void} callback callback
+ * @param {(err: Error | null, backendApi?: BackendApi) => void} callback callback
  * @returns {void}
  */
 
@@ -341,13 +343,21 @@ class LazyCompilationDependencyFactory extends ModuleFactory {
  * @returns {Promise<BackendApi>} backend
  */
 
+/** @typedef {BackendHandler | PromiseBackendHandler} BackEnd */
+
+/**
+ * @typedef {object} Options options
+ * @property {BackEnd} backend the backend
+ * @property {boolean=} entries
+ * @property {boolean=} imports
+ * @property {(RegExp | string | ((module: Module) => boolean))=} test additional filter for lazy compiled entrypoint modules
+ */
+
+const PLUGIN_NAME = "LazyCompilationPlugin";
+
 class LazyCompilationPlugin {
 	/**
-	 * @param {object} options options
-	 * @param {BackendHandler | PromiseBackendHandler} options.backend the backend
-	 * @param {boolean} options.entries true, when entries are lazy compiled
-	 * @param {boolean} options.imports true, when import() modules are lazy compiled
-	 * @param {RegExp | string | (function(Module): boolean) | undefined} options.test additional filter for lazy compiled entrypoint modules
+	 * @param {Options} options options
 	 */
 	constructor({ backend, entries, imports, test }) {
 		this.backend = backend;
@@ -364,29 +374,26 @@ class LazyCompilationPlugin {
 	apply(compiler) {
 		/** @type {BackendApi} */
 		let backend;
-		compiler.hooks.beforeCompile.tapAsync(
-			"LazyCompilationPlugin",
-			(params, callback) => {
-				if (backend !== undefined) return callback();
-				const promise = this.backend(compiler, (err, result) => {
-					if (err) return callback(err);
-					backend = /** @type {BackendApi} */ (result);
+		compiler.hooks.beforeCompile.tapAsync(PLUGIN_NAME, (params, callback) => {
+			if (backend !== undefined) return callback();
+			const promise = this.backend(compiler, (err, result) => {
+				if (err) return callback(err);
+				backend = /** @type {BackendApi} */ (result);
+				callback();
+			});
+			if (promise && promise.then) {
+				promise.then(b => {
+					backend = b;
 					callback();
-				});
-				if (promise && promise.then) {
-					promise.then(b => {
-						backend = b;
-						callback();
-					}, callback);
-				}
+				}, callback);
 			}
-		);
+		});
 		compiler.hooks.thisCompilation.tap(
-			"LazyCompilationPlugin",
+			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				normalModuleFactory.hooks.module.tap(
-					"LazyCompilationPlugin",
-					(originalModule, createData, resolveData) => {
+					PLUGIN_NAME,
+					(module, createData, resolveData) => {
 						if (
 							resolveData.dependencies.every(dep =>
 								HMR_DEPENDENCY_TYPES.has(dep.type)
@@ -407,7 +414,7 @@ class LazyCompilationPlugin {
 												hmrDep.request
 									)
 							);
-							if (!isReferringToDynamicImport) return;
+							if (!isReferringToDynamicImport) return module;
 						} else if (
 							!resolveData.dependencies.every(
 								dep =>
@@ -418,21 +425,21 @@ class LazyCompilationPlugin {
 									(this.entries && dep.type === "entry")
 							)
 						)
-							return;
+							return module;
 						if (
 							/webpack[/\\]hot[/\\]|webpack-dev-server[/\\]client|webpack-hot-middleware[/\\]client/.test(
 								resolveData.request
 							) ||
-							!checkTest(this.test, originalModule)
+							!checkTest(this.test, module)
 						)
-							return;
-						const moduleInfo = backend.module(originalModule);
-						if (!moduleInfo) return;
+							return module;
+						const moduleInfo = backend.module(module);
+						if (!moduleInfo) return module;
 						const { client, data, active } = moduleInfo;
 
 						return new LazyCompilationProxyModule(
 							compiler.context,
-							originalModule,
+							module,
 							resolveData.request,
 							client,
 							data,
@@ -446,7 +453,7 @@ class LazyCompilationPlugin {
 				);
 			}
 		);
-		compiler.hooks.shutdown.tapAsync("LazyCompilationPlugin", callback => {
+		compiler.hooks.shutdown.tapAsync(PLUGIN_NAME, callback => {
 			backend.dispose(callback);
 		});
 	}

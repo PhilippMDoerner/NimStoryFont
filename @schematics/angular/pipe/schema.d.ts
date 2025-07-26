@@ -49,4 +49,17 @@ export type Schema = {
      * standalone components, directives, or pipes.
      */
     standalone?: boolean;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.pipe.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
+/**
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.pipe.ts`.
+ */
+export declare enum TypeSeparator {
+    Empty = "-",
+    TypeSeparator = "."
+}

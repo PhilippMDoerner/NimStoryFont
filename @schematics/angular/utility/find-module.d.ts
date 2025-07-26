@@ -17,8 +17,10 @@ export interface ModuleOptions {
     routingModuleExt?: string;
     standalone?: boolean;
 }
-export declare const MODULE_EXT = ".module.ts";
-export declare const ROUTING_MODULE_EXT = "-routing.module.ts";
+export declare const MODULE_EXT = "-module.ts";
+export declare const ROUTING_MODULE_EXT = "-routing-module.ts";
+export declare const MODULE_EXT_LEGACY = ".module.ts";
+export declare const ROUTING_MODULE_EXT_LEGACY = "-routing.module.ts";
 /**
  * Find the module referred by a set of options passed to the schematics.
  */

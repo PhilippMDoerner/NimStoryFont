@@ -79,8 +79,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommandModuleError = exports.CommandModule = exports.CommandScope = void 0;
 const core_1 = require("@angular-devkit/core");
-const fs_1 = require("fs");
-const path = __importStar(require("path"));
+const node_fs_1 = require("node:fs");
+const path = __importStar(require("node:path"));
 const yargs_1 = __importDefault(require("yargs"));
 const helpers_1 = require("yargs/helpers");
 const analytics_1 = require("../analytics/analytics");
@@ -131,7 +131,7 @@ let CommandModule = (() => {
                             longDescriptionRelativePath: path
                                 .relative(path.join(__dirname, '../../../../'), this.longDescriptionPath)
                                 .replace(/\\/g, path.posix.sep),
-                            longDescription: (0, fs_1.readFileSync)(this.longDescriptionPath, 'utf8').replace(/\r\n/g, '\n'),
+                            longDescription: (0, node_fs_1.readFileSync)(this.longDescriptionPath, 'utf8').replace(/\r\n/g, '\n'),
                         }
                         : {}),
                 };

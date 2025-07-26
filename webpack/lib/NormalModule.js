@@ -8,7 +8,12 @@
 const parseJson = require("json-parse-even-better-errors");
 const { getContext, runLoaders } = require("loader-runner");
 const querystring = require("querystring");
-const { HookMap, SyncHook, AsyncSeriesBailHook } = require("tapable");
+const {
+	HookMap,
+	SyncHook,
+	SyncWaterfallHook,
+	AsyncSeriesBailHook
+} = require("tapable");
 const {
 	CachedSource,
 	OriginalSource,
@@ -52,11 +57,13 @@ const memoize = require("./util/memoize");
 /** @typedef {import("../declarations/WebpackOptions").Mode} Mode */
 /** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
+/** @typedef {import("../declarations/WebpackOptions").NoParse} NoParse */
 /** @typedef {import("./ChunkGraph")} ChunkGraph */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./Generator")} Generator */
+/** @typedef {import("./Generator").GenerateErrorFn} GenerateErrorFn */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./Module").BuildMeta} BuildMeta */
 /** @typedef {import("./Module").CodeGenerationContext} CodeGenerationContext */
@@ -65,6 +72,8 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./Module").KnownBuildInfo} KnownBuildInfo */
 /** @typedef {import("./Module").LibIdentOptions} LibIdentOptions */
 /** @typedef {import("./Module").NeedBuildContext} NeedBuildContext */
+/** @typedef {import("./Module").NeedBuildCallback} NeedBuildCallback */
+/** @typedef {import("./Module").BuildCallback} BuildCallback */
 /** @typedef {import("./Generator").SourceTypes} SourceTypes */
 /** @typedef {import("./Module").UnsafeCacheData} UnsafeCacheData */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
@@ -72,10 +81,13 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./ModuleTypeConstants").JavaScriptModuleTypes} JavaScriptModuleTypes */
 /** @typedef {import("./NormalModuleFactory")} NormalModuleFactory */
 /** @typedef {import("./NormalModuleFactory").ResourceDataWithData} ResourceDataWithData */
+/** @typedef {import("./NormalModuleFactory").ResourceSchemeData} ResourceSchemeData */
 /** @typedef {import("./Parser")} Parser */
+/** @typedef {import("./Parser").PreparsedAst} PreparsedAst */
 /** @typedef {import("./RequestShortener")} RequestShortener */
 /** @typedef {import("./ResolverFactory").ResolveContext} ResolveContext */
 /** @typedef {import("./ResolverFactory").ResolverWithOptions} ResolverWithOptions */
+/** @typedef {import("./ResolverFactory").ResolveRequest} ResolveRequest */
 /** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
 /** @typedef {import("./logging/Logger").Logger} WebpackLogger */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
@@ -83,16 +95,15 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./util/Hash")} Hash */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
-/** @typedef {import("./util/createHash").Algorithm} Algorithm */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
+/** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 /**
  * @template T
  * @typedef {import("./util/deprecation").FakeHook<T>} FakeHook
  */
 
-/** @typedef {{[k: string]: any}} ParserOptions */
-/** @typedef {{[k: string]: any}} GeneratorOptions */
-
-/** @typedef {UnsafeCacheData & { parser: undefined | Parser, parserOptions: undefined | ParserOptions, generator: undefined | Generator, generatorOptions: undefined | GeneratorOptions }} NormalModuleUnsafeCacheData */
+/** @typedef {{ [k: string]: EXPECTED_ANY }} ParserOptions */
+/** @typedef {{ [k: string]: EXPECTED_ANY }} GeneratorOptions */
 
 /**
  * @template T
@@ -126,7 +137,7 @@ const ABSOLUTE_PATH_REGEX = /^([a-zA-Z]:\\|\\\\|\/)/;
 /**
  * @typedef {object} LoaderItem
  * @property {string} loader
- * @property {any} options
+ * @property {string | null | undefined | Record<string, EXPECTED_ANY>} options
  * @property {string?} ident
  * @property {string?} type
  */
@@ -134,7 +145,7 @@ const ABSOLUTE_PATH_REGEX = /^([a-zA-Z]:\\|\\\\|\/)/;
 /**
  * @param {string} context absolute context path
  * @param {string} source a source path
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} new source path
  */
 const contextifySourceUrl = (context, source, associatedObjectForCache) => {
@@ -149,13 +160,13 @@ const contextifySourceUrl = (context, source, associatedObjectForCache) => {
 /**
  * @param {string} context absolute context path
  * @param {SourceMap} sourceMap a source map
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {SourceMap} new source map
  */
 const contextifySourceMap = (context, sourceMap, associatedObjectForCache) => {
 	if (!Array.isArray(sourceMap.sources)) return sourceMap;
 	const { sourceRoot } = sourceMap;
-	/** @type {function(string): string} */
+	/** @type {(source: string) => string} */
 	const mapper = !sourceRoot
 		? source => source
 		: sourceRoot.endsWith("/")
@@ -202,7 +213,7 @@ const asBuffer = input => {
 
 class NonErrorEmittedError extends WebpackError {
 	/**
-	 * @param {any} error value which is not an instance of Error
+	 * @param {EXPECTED_ANY} error value which is not an instance of Error
 	 */
 	constructor(error) {
 		super();
@@ -218,14 +229,17 @@ makeSerializable(
 	"NonErrorEmittedError"
 );
 
+/** @typedef {[string | Buffer, string | SourceMapSource, PreparsedAst]}  Result */
+
 /**
  * @typedef {object} NormalModuleCompilationHooks
- * @property {SyncHook<[LoaderContext<any>, NormalModule]>} loader
- * @property {SyncHook<[LoaderItem[], NormalModule, LoaderContext<any>]>} beforeLoaders
+ * @property {SyncHook<[LoaderContext<EXPECTED_ANY>, NormalModule]>} loader
+ * @property {SyncHook<[LoaderItem[], NormalModule, LoaderContext<EXPECTED_ANY>]>} beforeLoaders
  * @property {SyncHook<[NormalModule]>} beforeParse
  * @property {SyncHook<[NormalModule]>} beforeSnapshot
  * @property {HookMap<FakeHook<AsyncSeriesBailHook<[string, NormalModule], string | Buffer | null>>>} readResourceForScheme
- * @property {HookMap<AsyncSeriesBailHook<[LoaderContext<any>], string | Buffer | null>>} readResource
+ * @property {HookMap<AsyncSeriesBailHook<[LoaderContext<EXPECTED_ANY>], string | Buffer | null>>} readResource
+ * @property {SyncWaterfallHook<[Result, NormalModule]>} processResult
  * @property {AsyncSeriesBailHook<[NormalModule, NeedBuildContext], boolean>} needBuild
  */
 
@@ -238,7 +252,7 @@ makeSerializable(
  * @property {string} rawRequest request without resolving
  * @property {LoaderItem[]} loaders list of loaders
  * @property {string} resource path + query of the real resource
- * @property {Record<string, any>=} resourceResolveData resource resolve data
+ * @property {(ResourceSchemeData & Partial<ResolveRequest>)=} resourceResolveData resource resolve data
  * @property {string} context context directory for resolving
  * @property {string=} matchResource path + query of the matched resource (virtual)
  * @property {Parser} parser the parser used
@@ -250,6 +264,8 @@ makeSerializable(
 
 /** @type {WeakMap<Compilation, NormalModuleCompilationHooks>} */
 const compilationHooksMap = new WeakMap();
+
+/** @typedef {Map<string, EXPECTED_ANY>} CodeGeneratorData */
 
 class NormalModule extends Module {
 	/**
@@ -304,6 +320,7 @@ class NormalModule extends Module {
 				readResource: new HookMap(
 					() => new AsyncSeriesBailHook(["loaderContext"])
 				),
+				processResult: new SyncWaterfallHook(["result", "module"]),
 				needBuild: new AsyncSeriesBailHook(["module", "context"])
 			};
 			compilationHooksMap.set(
@@ -390,7 +407,7 @@ class NormalModule extends Module {
 		this._isEvaluatingSideEffects = false;
 		/** @type {WeakSet<ModuleGraph> | undefined} */
 		this._addedSideEffectsBailout = undefined;
-		/** @type {Map<string, any>} */
+		/** @type {CodeGeneratorData} */
 		this._codeGeneratorData = new Map();
 	}
 
@@ -490,9 +507,7 @@ class NormalModule extends Module {
 	 * @returns {UnsafeCacheData} cached data
 	 */
 	getUnsafeCacheData() {
-		const data =
-			/** @type {NormalModuleUnsafeCacheData} */
-			(super.getUnsafeCacheData());
+		const data = super.getUnsafeCacheData();
 		data.parserOptions = this.parserOptions;
 		data.generatorOptions = this.generatorOptions;
 		return data;
@@ -500,7 +515,7 @@ class NormalModule extends Module {
 
 	/**
 	 * restore unsafe cache data
-	 * @param {NormalModuleUnsafeCacheData} unsafeCacheData data from getUnsafeCacheData
+	 * @param {UnsafeCacheData} unsafeCacheData data from getUnsafeCacheData
 	 * @param {NormalModuleFactory} normalModuleFactory the normal module factory handling the unsafe caching
 	 */
 	restoreFromUnsafeCache(unsafeCacheData, normalModuleFactory) {
@@ -509,7 +524,7 @@ class NormalModule extends Module {
 
 	/**
 	 * restore unsafe cache data
-	 * @param {object} unsafeCacheData data from getUnsafeCacheData
+	 * @param {UnsafeCacheData} unsafeCacheData data from getUnsafeCacheData
 	 * @param {NormalModuleFactory} normalModuleFactory the normal module factory handling the unsafe caching
 	 */
 	_restoreFromUnsafeCache(unsafeCacheData, normalModuleFactory) {
@@ -529,7 +544,7 @@ class NormalModule extends Module {
 	 * @param {string} name the asset name
 	 * @param {string | Buffer} content the content
 	 * @param {(string | SourceMap)=} sourceMap an optional source map
-	 * @param {object=} associatedObjectForCache object for caching
+	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @returns {Source} the created source
 	 */
 	createSourceForAsset(
@@ -574,12 +589,14 @@ class NormalModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {InputFileSystem} fs file system from reading
 	 * @param {NormalModuleCompilationHooks} hooks the hooks
-	 * @returns {import("../declarations/LoaderContext").NormalModuleLoaderContext<T>} loader context
+	 * @returns {import("../declarations/LoaderContext").LoaderContext<T>} loader context
 	 */
 	_createLoaderContext(resolver, options, compilation, fs, hooks) {
 		const { requestShortener } = compilation.runtimeTemplate;
 		const getCurrentLoaderName = () => {
-			const currentLoader = this.getCurrentLoader(loaderContext);
+			const currentLoader = this.getCurrentLoader(
+				/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+			);
 			if (!currentLoader) return "(not in loader scope)";
 			return requestShortener.shorten(currentLoader.loader);
 		};
@@ -588,13 +605,22 @@ class NormalModule extends Module {
 		 */
 		const getResolveContext = () => ({
 			fileDependencies: {
-				add: d => /** @type {TODO} */ (loaderContext).addDependency(d)
+				add: d =>
+					/** @type {LoaderContext<EXPECTED_ANY>} */ (
+						loaderContext
+					).addDependency(d)
 			},
 			contextDependencies: {
-				add: d => /** @type {TODO} */ (loaderContext).addContextDependency(d)
+				add: d =>
+					/** @type {LoaderContext<EXPECTED_ANY>} */ (
+						loaderContext
+					).addContextDependency(d)
 			},
 			missingDependencies: {
-				add: d => /** @type {TODO} */ (loaderContext).addMissingDependency(d)
+				add: d =>
+					/** @type {LoaderContext<EXPECTED_ANY>} */ (
+						loaderContext
+					).addMissingDependency(d)
 			}
 		});
 		const getAbsolutify = memoize(() =>
@@ -637,21 +663,27 @@ class NormalModule extends Module {
 					? getContextifyInContext()(request)
 					: getContextify()(context, request),
 			/**
-			 * @param {(string | typeof import("./util/Hash"))=} type type
+			 * @param {HashFunction=} type type
 			 * @returns {Hash} hash
 			 */
 			createHash: type =>
 				createHash(
 					type ||
-						/** @type {Algorithm} */
+						/** @type {HashFunction} */
 						(compilation.outputOptions.hashFunction)
 				)
 		};
 		/** @type {import("../declarations/LoaderContext").NormalModuleLoaderContext<T>} */
 		const loaderContext = {
 			version: 2,
+			/**
+			 * @param {import("../declarations/LoaderContext").Schema=} schema schema
+			 * @returns {T} options
+			 */
 			getOptions: schema => {
-				const loader = this.getCurrentLoader(loaderContext);
+				const loader = this.getCurrentLoader(
+					/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+				);
 
 				let { options } = /** @type {LoaderItem} */ (loader);
 
@@ -682,13 +714,13 @@ class NormalModule extends Module {
 					if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
 						[, name, baseDataPath] = match;
 					}
-					getValidate()(schema, options, {
+					getValidate()(schema, /** @type {EXPECTED_OBJECT} */ (options), {
 						name,
 						baseDataPath
 					});
 				}
 
-				return options;
+				return /** @type {T} */ (options);
 			},
 			emitWarning: warning => {
 				if (!(warning instanceof Error)) {
@@ -711,7 +743,9 @@ class NormalModule extends Module {
 				);
 			},
 			getLogger: name => {
-				const currentLoader = this.getCurrentLoader(loaderContext);
+				const currentLoader = this.getCurrentLoader(
+					/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+				);
 				return compilation.getLogger(() =>
 					[currentLoader && currentLoader.loader, name, this.identifier()]
 						.filter(Boolean)
@@ -723,24 +757,32 @@ class NormalModule extends Module {
 			},
 			getResolve(options) {
 				const child = options ? resolver.withOptions(options) : resolver;
-				return (context, request, callback) => {
-					if (callback) {
-						child.resolve({}, context, request, getResolveContext(), callback);
-					} else {
-						return new Promise((resolve, reject) => {
+				return /** @type {ReturnType<import("../declarations/LoaderContext").NormalModuleLoaderContext<T>["getResolve"]>} */ (
+					(context, request, callback) => {
+						if (callback) {
 							child.resolve(
 								{},
 								context,
 								request,
 								getResolveContext(),
-								(err, result) => {
-									if (err) reject(err);
-									else resolve(result);
-								}
+								callback
 							);
-						});
+						} else {
+							return new Promise((resolve, reject) => {
+								child.resolve(
+									{},
+									context,
+									request,
+									getResolveContext(),
+									(err, result) => {
+										if (err) reject(err);
+										else resolve(result);
+									}
+								);
+							});
+						}
 					}
-				};
+				);
 			},
 			emitFile: (name, content, sourceMap, assetInfo) => {
 				const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
@@ -779,7 +821,7 @@ class NormalModule extends Module {
 			webpack: true,
 			sourceMap: Boolean(this.useSourceMap),
 			mode: options.mode || "production",
-			hashFunction: /** @type {TODO} */ (options.output.hashFunction),
+			hashFunction: /** @type {string} */ (options.output.hashFunction),
 			hashDigest: /** @type {string} */ (options.output.hashDigest),
 			hashDigestLength: /** @type {number} */ (options.output.hashDigestLength),
 			hashSalt: /** @type {string} */ (options.output.hashSalt),
@@ -791,14 +833,19 @@ class NormalModule extends Module {
 
 		Object.assign(loaderContext, options.loader);
 
-		hooks.loader.call(/** @type {LoaderContext<any>} */ (loaderContext), this);
+		// After `hooks.loader.call` is called, the loaderContext is typed as LoaderContext<EXPECTED_ANY>
+		hooks.loader.call(
+			/** @type {LoaderContext<EXPECTED_ANY>} */
+			(loaderContext),
+			this
+		);
 
-		return loaderContext;
+		return /** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext);
 	}
 
 	// TODO remove `loaderContext` in webpack@6
 	/**
-	 * @param {TODO} loaderContext loader context
+	 * @param {LoaderContext<EXPECTED_ANY>} loaderContext loader context
 	 * @param {number} index index
 	 * @returns {LoaderItem | null} loader
 	 */
@@ -819,7 +866,7 @@ class NormalModule extends Module {
 	 * @param {string} context the compilation context
 	 * @param {string | Buffer} content the content
 	 * @param {(string | SourceMapSource | null)=} sourceMap an optional source map
-	 * @param {object=} associatedObjectForCache object for caching
+	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @returns {Source} the created source
 	 */
 	createSource(context, content, sourceMap, associatedObjectForCache) {
@@ -863,7 +910,7 @@ class NormalModule extends Module {
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
 	 * @param {NormalModuleCompilationHooks} hooks the hooks
-	 * @param {function((WebpackError | null)=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	_doBuild(options, compilation, resolver, fs, hooks, callback) {
@@ -874,8 +921,6 @@ class NormalModule extends Module {
 			fs,
 			hooks
 		);
-
-		/** @typedef {[string | Buffer, string | SourceMapSource, Record<string, any>]}  Result */
 
 		/**
 		 * @param {Error | null} err err
@@ -897,8 +942,10 @@ class NormalModule extends Module {
 				});
 				return callback(error);
 			}
-
-			const result = /** @type {Result} */ (_result);
+			const result = hooks.processResult.call(
+				/** @type {Result} */ (_result),
+				this
+			);
 			const source = result[0];
 			const sourceMap = result.length >= 1 ? result[1] : null;
 			const extraInfo = result.length >= 2 ? result[2] : null;
@@ -950,7 +997,8 @@ class NormalModule extends Module {
 			hooks.beforeLoaders.call(
 				this.loaders,
 				this,
-				/** @type {LoaderContext<any>} */ (loaderContext)
+				/** @type {LoaderContext<EXPECTED_ANY>} */
+				(loaderContext)
 			);
 		} catch (err) {
 			processResult(/** @type {Error} */ (err));
@@ -968,7 +1016,7 @@ class NormalModule extends Module {
 				loaders: this.loaders,
 				context: loaderContext,
 				/**
-				 * @param {LoaderContext<TODO>} loaderContext the loader context
+				 * @param {LoaderContext<EXPECTED_ANY>} loaderContext the loader context
 				 * @param {string} resourcePath the resource Path
 				 * @param {(err: Error | null, result?: string | Buffer) => void} callback callback
 				 */
@@ -997,10 +1045,9 @@ class NormalModule extends Module {
 				loaderContext._compilation =
 					loaderContext._compiler =
 					loaderContext._module =
-					// eslint-disable-next-line no-warning-comments
-					// @ts-ignore
 					loaderContext.fs =
-						undefined;
+						/** @type {EXPECTED_ANY} */
+						(undefined);
 
 				if (!result) {
 					/** @type {BuildInfo} */
@@ -1051,7 +1098,7 @@ class NormalModule extends Module {
 	}
 
 	/**
-	 * @param {TODO} rule rule
+	 * @param {Exclude<NoParse, EXPECTED_ANY[]>} rule rule
 	 * @param {string} content content
 	 * @returns {boolean} result
 	 */
@@ -1069,7 +1116,7 @@ class NormalModule extends Module {
 	}
 
 	/**
-	 * @param {TODO} noParseRule no parse rule
+	 * @param {undefined | NoParse} noParseRule no parse rule
 	 * @param {string} request request
 	 * @returns {boolean} check if module should not be parsed, returns "true" if the module should !not! be parsed, returns "false" if the module !must! be parsed
 	 */
@@ -1104,7 +1151,7 @@ class NormalModule extends Module {
 	 */
 	_initBuildHash(compilation) {
 		const hash = createHash(
-			/** @type {Algorithm} */
+			/** @type {HashFunction} */
 			(compilation.outputOptions.hashFunction)
 		);
 		if (this._source) {
@@ -1122,7 +1169,7 @@ class NormalModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
@@ -1232,8 +1279,8 @@ class NormalModule extends Module {
 									(depWithoutGlob !== dep
 										? /** @type {NonNullable<KnownBuildInfo["contextDependencies"]>} */
 											(
-												/** @type {BuildInfo} */ (this.buildInfo)
-													.contextDependencies
+												/** @type {BuildInfo} */
+												(this.buildInfo).contextDependencies
 											)
 										: deps
 									).add(absolute);
@@ -1416,16 +1463,35 @@ class NormalModule extends Module {
 			runtimeRequirements.add(RuntimeGlobals.thisAsExports);
 		}
 
-		/** @type {function(): Map<string, any>} */
+		/**
+		 * @type {() => CodeGeneratorData}
+		 */
 		const getData = () => this._codeGeneratorData;
 
 		const sources = new Map();
 		for (const type of sourceTypes || chunkGraph.getModuleSourceTypes(this)) {
+			// TODO webpack@6 make generateError required
+			const generator =
+				/** @type {Generator & { generateError?: GenerateErrorFn }} */
+				(this.generator);
 			const source = this.error
-				? new RawSource(
-						`throw new Error(${JSON.stringify(this.error.message)});`
-					)
-				: /** @type {Generator} */ (this.generator).generate(this, {
+				? generator.generateError
+					? generator.generateError(this.error, this, {
+							dependencyTemplates,
+							runtimeTemplate,
+							moduleGraph,
+							chunkGraph,
+							runtimeRequirements,
+							runtime,
+							concatenationScope,
+							codeGenerationResults,
+							getData,
+							type
+						})
+					: new RawSource(
+							`throw new Error(${JSON.stringify(this.error.message)});`
+						)
+				: generator.generate(this, {
 						dependencyTemplates,
 						runtimeTemplate,
 						moduleGraph,
@@ -1468,7 +1534,7 @@ class NormalModule extends Module {
 
 	/**
 	 * @param {NeedBuildContext} context context info
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function, returns true, if the module needs a rebuild
+	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
 	 */
 	needBuild(context, callback) {
@@ -1585,7 +1651,11 @@ class NormalModule extends Module {
 	 * @returns {void}
 	 */
 	updateHash(hash, context) {
-		hash.update(/** @type {BuildInfo} */ (this.buildInfo).hash);
+		const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+		hash.update(
+			/** @type {string} */
+			(buildInfo.hash)
+		);
 		/** @type {Generator} */
 		(this.generator).updateHash(hash, {
 			module: this,
@@ -1610,7 +1680,7 @@ class NormalModule extends Module {
 
 	/**
 	 * @param {ObjectDeserializerContext} context context
-	 * @returns {TODO} Module
+	 * @returns {NormalModule} module
 	 */
 	static deserialize(context) {
 		const obj = new NormalModule({

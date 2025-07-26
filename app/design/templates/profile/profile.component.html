@@ -1,45 +1,7 @@
-<app-page-container>
+<app-profile-tab-layout>
   <article class="profile">
     <!-- Section Heading -->
-    <div class="row profile__heading heading">
-      <app-article-context-menu
-        class="profile__edit-container"
-        [deleteLabel]="'Delete your account'"
-        (deleteConfirmed)="profileDelete.emit(user())"
-      />
-
-      <h1 class="col-12 col-sm-6 heading__text">
-        <app-icon [icon]="'circle-user'" />
-        Profile
-      </h1>
-
-      <!-- Header Buttons -->
-      <div class="col-12 col-sm-6 heading__buttons">
-        <button
-          btn
-          class="heading__button"
-          [kind]="'SECONDARY'"
-          [icon]="showProfileEditForm() ? 'times' : 'pencil'"
-          [text]="
-            showProfileEditForm() ? 'Cancel Profile Edit' : 'Edit Profile'
-          "
-          (clicked)="toggleProfileEditState()"
-        ></button>
-
-        <button
-          btn
-          class="heading__button"
-          [kind]="'SECONDARY'"
-          [icon]="showPasswordEditForm() ? 'times' : 'pencil'"
-          [text]="
-            showPasswordEditForm() ? 'Cancel Password Edit' : 'Edit Password'
-          "
-          (clicked)="togglePasswordEditState()"
-        ></button>
-      </div>
-    </div>
-
-    <app-separator />
+    <h1 class="cdk-visually-hidden">Profile</h1>
 
     <!-- Profile -->
     @if (!showProfileEditForm()) {
@@ -106,13 +68,5 @@
         ></app-form>
       </app-card>
     }
-
-    <app-article-footer
-      class="mt-5 d-block"
-      [buttonLabel]="
-        campaignName() ? 'Back To ' + campaignName() : 'Back to Campaigns'
-      "
-      [buttonLink]="backUrl()"
-    />
   </article>
-</app-page-container>
+</app-profile-tab-layout>

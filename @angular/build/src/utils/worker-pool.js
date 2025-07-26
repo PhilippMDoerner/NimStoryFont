@@ -17,7 +17,7 @@ class WorkerPool extends piscina_1.Piscina {
             idleTimeout: 1000,
             // Web containers do not support transferable objects with receiveOnMessagePort which
             // is used when the Atomics based wait loop is enable.
-            useAtomics: !process.versions.webcontainer,
+            atomics: process.versions.webcontainer ? 'disabled' : 'sync',
             recordTiming: false,
             ...options,
         };

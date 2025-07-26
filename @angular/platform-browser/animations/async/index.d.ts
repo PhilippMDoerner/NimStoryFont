@@ -1,20 +1,12 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
-import { EnvironmentProviders } from '@angular/core';
 import * as i0 from '@angular/core';
-import { InjectionToken } from '@angular/core';
-import { NgZone } from '@angular/core';
-import { OnDestroy } from '@angular/core';
-import { Renderer2 } from '@angular/core';
-import { RendererFactory2 } from '@angular/core';
-import { RendererType2 } from '@angular/core';
-import { ɵAnimationEngine } from '@angular/animations/browser';
-import { ɵAnimationRendererFactory } from '@angular/animations/browser';
+import { EnvironmentProviders, OnDestroy, RendererFactory2, NgZone, RendererType2, Renderer2, InjectionToken } from '@angular/core';
+import { ɵAnimationEngine as _AnimationEngine, ɵAnimationRendererFactory as _AnimationRendererFactory } from '@angular/animations/browser';
 
 /**
  * Returns the set of dependency-injection providers
@@ -43,16 +35,9 @@ import { ɵAnimationRendererFactory } from '@angular/animations/browser';
  *
  * @publicApi
  */
-export declare function provideAnimationsAsync(type?: 'animations' | 'noop'): EnvironmentProviders;
+declare function provideAnimationsAsync(type?: 'animations' | 'noop'): EnvironmentProviders;
 
-/**
- * Provides a custom scheduler function for the async loading of the animation package.
- *
- * Private token for investigation purposes
- */
-export declare const ɵASYNC_ANIMATION_LOADING_SCHEDULER_FN: InjectionToken<(<T>(loadFn: () => T) => T)>;
-
-export declare class ɵAsyncAnimationRendererFactory implements OnDestroy, RendererFactory2 {
+declare class AsyncAnimationRendererFactory implements OnDestroy, RendererFactory2 {
     private doc;
     private delegate;
     private zone;
@@ -68,10 +53,10 @@ export declare class ɵAsyncAnimationRendererFactory implements OnDestroy, Rende
      * @param moduleImpl allows to provide a mock implmentation (or will load the animation module)
      */
     constructor(doc: Document, delegate: RendererFactory2, zone: NgZone, animationType: 'animations' | 'noop', moduleImpl?: Promise<{
-        ɵcreateEngine: (type: "animations" | "noop", doc: Document) => ɵAnimationEngine;
-        ɵAnimationRendererFactory: typeof ɵAnimationRendererFactory;
+        ɵcreateEngine: (type: "animations" | "noop", doc: Document) => _AnimationEngine;
+        ɵAnimationRendererFactory: typeof _AnimationRendererFactory;
     }> | undefined);
-    /** @nodoc */
+    /** @docs-private */
     ngOnDestroy(): void;
     /**
      * This method is delegating the renderer creation to the factories.
@@ -90,8 +75,14 @@ export declare class ɵAsyncAnimationRendererFactory implements OnDestroy, Rende
      * @param componentId ID of the component that is being replaced.
      */
     protected componentReplaced(componentId: string): void;
-    static ɵfac: i0.ɵɵFactoryDeclaration<ɵAsyncAnimationRendererFactory, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<ɵAsyncAnimationRendererFactory>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<AsyncAnimationRendererFactory, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<AsyncAnimationRendererFactory>;
 }
+/**
+ * Provides a custom scheduler function for the async loading of the animation package.
+ *
+ * Private token for investigation purposes
+ */
+declare const ɵASYNC_ANIMATION_LOADING_SCHEDULER_FN: InjectionToken<(<T>(loadFn: () => T) => T)>;
 
-export { }
+export { provideAnimationsAsync, ɵASYNC_ANIMATION_LOADING_SCHEDULER_FN, AsyncAnimationRendererFactory as ɵAsyncAnimationRendererFactory };

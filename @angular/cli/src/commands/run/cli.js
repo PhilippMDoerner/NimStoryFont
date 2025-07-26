@@ -7,14 +7,14 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const architect_base_command_module_1 = require("../../command-builder/architect-base-command-module");
 const command_module_1 = require("../../command-builder/command-module");
 class RunCommandModule extends architect_base_command_module_1.ArchitectBaseCommandModule {
     scope = command_module_1.CommandScope.In;
     command = 'run <target>';
     describe = 'Runs an Architect target with an optional custom builder configuration defined in your project.';
-    longDescriptionPath = (0, path_1.join)(__dirname, 'long-description.md');
+    longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     async builder(argv) {
         const { jsonHelp, getYargsCompletions, help } = this.context.args.options;
         const localYargs = argv

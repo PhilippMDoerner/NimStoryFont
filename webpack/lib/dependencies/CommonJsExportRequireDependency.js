@@ -71,9 +71,7 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	 * @returns {string[]} the imported id
 	 */
 	getIds(moduleGraph) {
-		return (
-			/** @type {TODO} */ (moduleGraph.getMeta(this))[idsSymbol] || this.ids
-		);
+		return moduleGraph.getMeta(this)[idsSymbol] || this.ids;
 	}
 
 	/**
@@ -82,7 +80,7 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	 * @returns {void}
 	 */
 	setIds(moduleGraph, ids) {
-		/** @type {TODO} */ (moduleGraph.getMeta(this))[idsSymbol] = ids;
+		moduleGraph.getMeta(this)[idsSymbol] = ids;
 	}
 
 	/**
@@ -190,7 +188,8 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		if (reexportInfo) {
 			return {
 				exports: Array.from(
-					/** @type {TODO} */ (reexportInfo).exports,
+					/** @type {Set<string>} */
+					(reexportInfo.exports),
 					name => ({
 						name,
 						from,

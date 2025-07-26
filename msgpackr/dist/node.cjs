@@ -971,7 +971,10 @@ function asSafeString(property) {
 	if (typeof property === 'string') return property;
 	if (typeof property === 'number' || typeof property === 'boolean' || typeof property === 'bigint') return property.toString();
 	if (property == null) return property + '';
-	throw new Error('Invalid property type for record', typeof property);
+	if (currentUnpackr.allowArraysInMapKeys && Array.isArray(property) && property.flat().every(item => ['string', 'number', 'boolean', 'bigint'].includes(typeof item))) {
+		return property.flat().toString();
+	}
+	throw new Error(`Invalid property type for record: ${typeof property}`);
 }
 // the registration of the record definition extension (as "r")
 const recordDefinition = (id, highByte) => {
@@ -1021,20 +1024,33 @@ currentExtensions[0x69] = (data) => {
 		referenceMap = new Map();
 	let token = src[position$1];
 	let target;
-	// TODO: handle Maps, Sets, and other types that can cycle; this is complicated, because you potentially need to read
-	// ahead past references to record structure definitions
+	// TODO: handle any other types that can cycle and make the code more robust if there are other extensions
 	if (token >= 0x90 && token < 0xa0 || token == 0xdc || token == 0xdd)
 		target = [];
+	else if (token >= 0x80 && token < 0x90 || token == 0xde || token == 0xdf)
+		target = new Map();
+	else if ((token >= 0xc7 && token <= 0xc9 || token >= 0xd4 && token <= 0xd8) && src[position$1 + 1] === 0x73)
+		target = new Set();
 	else
 		target = {};
 
 	let refEntry = { target }; // a placeholder object
 	referenceMap.set(id, refEntry);
 	let targetProperties = read(); // read the next value as the target object to id
-	if (refEntry.used) // there is a cycle, so we have to assign properties to original target
-		return Object.assign(target, targetProperties)
-	refEntry.target = targetProperties; // the placeholder wasn't used, replace with the deserialized one
-	return targetProperties // no cycle, can just use the returned read object
+	if (!refEntry.used) {
+		// no cycle, can just use the returned read object
+		return refEntry.target = targetProperties // replace the placeholder with the real one
+	} else {
+		// there is a cycle, so we have to assign properties to original target
+		Object.assign(target, targetProperties);
+	}
+
+	// copy over map/set entries if we're able to
+	if (target instanceof Map)
+		for (let [k, v] of targetProperties.entries()) target.set(k, v);
+	if (target instanceof Set)
+		for (let i of Array.from(targetProperties)) target.add(i);
+	return target
 };
 
 currentExtensions[0x70] = (data) => {
@@ -1053,18 +1069,16 @@ const typedArrays = ['Int8','Uint8','Uint8Clamped','Int16','Uint16','Int32','Uin
 let glbl = typeof globalThis === 'object' ? globalThis : window;
 currentExtensions[0x74] = (data) => {
 	let typeCode = data[0];
+	// we always have to slice to get a new ArrayBuffer that is aligned
+	let buffer = Uint8Array.prototype.slice.call(data, 1).buffer;
+
 	let typedArrayName = typedArrays[typeCode];
 	if (!typedArrayName) {
-		if (typeCode === 16) {
-			let ab = new ArrayBuffer(data.length - 1);
-			let u8 = new Uint8Array(ab);
-			u8.set(data.subarray(1));
-			return ab;
-		}
+		if (typeCode === 16) return buffer
+		if (typeCode === 17) return new DataView(buffer)
 		throw new Error('Could not find typed array for code ' + typeCode)
 	}
-	// we have to always slice/copy here to get a new ArrayBuffer that is word/byte aligned
-	return new glbl[typedArrayName](Uint8Array.prototype.slice.call(data, 1).buffer)
+	return new glbl[typedArrayName](buffer)
 };
 currentExtensions[0x78] = () => {
 	let data = read();
@@ -1092,13 +1106,13 @@ currentExtensions[0xff] = (data) => {
 		return new Date(
 			((data[0] << 22) + (data[1] << 14) + (data[2] << 6) + (data[3] >> 2)) / 1000000 +
 			((data[3] & 0x3) * 0x100000000 + data[4] * 0x1000000 + (data[5] << 16) + (data[6] << 8) + data[7]) * 1000)
-	else if (data.length == 12)// TODO: Implement support for negative
+	else if (data.length == 12)
 		return new Date(
 			((data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3]) / 1000000 +
 			(((data[4] & 0x80) ? -0x1000000000000 : 0) + data[6] * 0x10000000000 + data[7] * 0x100000000 + data[8] * 0x1000000 + (data[9] << 16) + (data[10] << 8) + data[11]) * 1000)
 	else
 		return new Date('invalid')
-}; // notepack defines extension 0 to mean undefined, so use that as the default here
+};
 // registration of bulk record definition?
 // currentExtensions[0x52] = () =>
 
@@ -1703,11 +1717,11 @@ class Packr extends Unpackr {
 			} else if (type === 'boolean') {
 				target[position++] = value ? 0xc3 : 0xc2;
 			} else if (type === 'bigint') {
-				if (value < (BigInt(1)<<BigInt(63)) && value >= -(BigInt(1)<<BigInt(63))) {
+				if (value < 0x8000000000000000 && value >= -0x8000000000000000) {
 					// use a signed int as long as it fits
 					target[position++] = 0xd3;
 					targetView.setBigInt64(position, value);
-				} else if (value < (BigInt(1)<<BigInt(64)) && value > 0) {
+				} else if (value < 0x10000000000000000 && value > 0) {
 					// if we can fit an unsigned int, use that
 					target[position++] = 0xcf;
 					targetView.setBigUint64(position, value);
@@ -1718,7 +1732,7 @@ class Packr extends Unpackr {
 						targetView.setFloat64(position, Number(value));
 					} else if (this.largeBigIntToString) {
 						return pack(value.toString());
-					} else if (this.useBigIntExtension && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
+					} else if ((this.useBigIntExtension || this.moreTypes) && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
 						target[position++] = 0xc7;
 						position++;
 						target[position++] = 0x42; // "B" for BigInt
@@ -2037,7 +2051,7 @@ class Packr extends Unpackr {
 	}
 }
 
-extensionClasses = [ Date, Set, Error, RegExp, ArrayBuffer, Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/, C1Type ];
+extensionClasses = [ Date, Set, Error, RegExp, ArrayBuffer, Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/, DataView, C1Type ];
 extensions = [{
 	pack(date, allocateForWrite, pack) {
 		let seconds = date.getTime() / 1000;
@@ -2123,6 +2137,13 @@ extensions = [{
 			writeExtBuffer(typedArray, typedArrays.indexOf(constructor.name), allocateForWrite);
 		else
 			writeBuffer(typedArray, allocateForWrite);
+	}
+}, {
+	pack(arrayBuffer, allocateForWrite) {
+		if (this.moreTypes)
+			writeExtBuffer(arrayBuffer, 0x11, allocateForWrite);
+		else
+			writeBuffer(hasNodeBuffer$1 ? Buffer.from(arrayBuffer) : new Uint8Array(arrayBuffer), allocateForWrite);
 	}
 }, {
 	pack(c1, allocateForWrite) { // specific 0xC1 object
@@ -2756,10 +2777,14 @@ function readStruct(src, position, srcEnd, unpackr) {
 			throw new Error('Could not find typed structure ' + recordId);
 	}
 	var construct = structure.construct;
+	var fullConstruct = structure.fullConstruct;
 	if (!construct) {
 		construct = structure.construct = function LazyObject() {
 		};
-		var prototype = construct.prototype;
+		fullConstruct = structure.fullConstruct = function LoadedObject() {
+		};
+		fullConstruct.prototype = unpackr.structPrototype ?? {};
+		var prototype = construct.prototype = unpackr.structPrototype ? Object.create(unpackr.structPrototype) : {};
 		let properties = [];
 		let currentOffset = 0;
 		let lastRefProperty;
@@ -2960,12 +2985,12 @@ function readStruct(src, position, srcEnd, unpackr) {
 				Object.defineProperty(prototype, property.key, { get: withSource(property.get), enumerable: true });
 				let valueFunction = 'v' + i++;
 				args.push(valueFunction);
-				objectLiteralProperties.push('[' + JSON.stringify(property.key) + ']:' + valueFunction + '(s)');
+				objectLiteralProperties.push('o[' + JSON.stringify(property.key) + ']=' + valueFunction + '(s)');
 			}
 			if (hasInheritedProperties) {
 				objectLiteralProperties.push('__proto__:this');
 			}
-			let toObject = (new Function(...args, 'return function(s){return{' + objectLiteralProperties.join(',') + '}}')).apply(null, properties.map(prop => prop.get));
+			let toObject = (new Function(...args, 'var c=this;return function(s){var o=new c();' + objectLiteralProperties.join(';') + ';return o;}')).apply(fullConstruct, properties.map(prop => prop.get));
 			Object.defineProperty(prototype, 'toJSON', {
 				value(omitUnderscoredProperties) {
 					return toObject.call(this, this[sourceSymbol]);

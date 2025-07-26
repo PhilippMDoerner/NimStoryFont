@@ -35,10 +35,7 @@ export declare class KeyboardHost {
         Symbol: boolean;
         SymbolLock: boolean;
     };
-    readonly pressed: Record<string, {
-        keyDef: keyboardKey;
-        unpreventedDefault: boolean;
-    }>;
+    private readonly pressed;
     carryChar: string;
     private lastKeydownTarget;
     private readonly modifierLockStart;

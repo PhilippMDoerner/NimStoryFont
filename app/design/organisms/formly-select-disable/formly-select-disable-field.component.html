@@ -20,7 +20,7 @@
         <option
           [ngValue]="entry.value[props['valueProp']]"
           [disabled]="!entry.enabled"
-          [selected]="entry.value[props['valueProp']] === modelValue"
+          [selected]="entry.value[props['valueProp']] === modelValue()"
         >
           {{ entry.value[props["labelProp"]] }}
         </option>

@@ -31,14 +31,14 @@ var _default = exports.default = (0, _helperPluginUtils.declare)((api, options, 
     var supportsCJSDefault = (0, _helpers.hasMinVersion)(DUAL_MODE_RUNTIME, runtimeVersion);
   }
   if (hasOwnProperty.call(options, "useBuiltIns")) {
-    if (options["useBuiltIns"]) {
+    if (options.useBuiltIns) {
       throw new Error("The 'useBuiltIns' option has been removed. The @babel/runtime " + "module now uses builtins by default.");
     } else {
       throw new Error("The 'useBuiltIns' option has been removed. Use the 'corejs'" + "option to polyfill with `core-js` via @babel/runtime.");
     }
   }
   if (hasOwnProperty.call(options, "polyfill")) {
-    if (options["polyfill"] === false) {
+    if (options.polyfill === false) {
       throw new Error("The 'polyfill' option has been removed. The @babel/runtime " + "module now skips polyfilling by default.");
     } else {
       throw new Error("The 'polyfill' option has been removed. Use the 'corejs'" + "option to polyfill with `core-js` via @babel/runtime.");
@@ -70,12 +70,15 @@ var _default = exports.default = (0, _helperPluginUtils.declare)((api, options, 
       if (!useRuntimeHelpers) return;
       let modulePath;
       file.set("helperGenerator", name => {
-        var _modulePath, _ref;
-        (_modulePath = modulePath) != null ? _modulePath : modulePath = (0, _index.default)((_ref = moduleName != null ? moduleName : file.get("runtimeHelpersModuleName")) != null ? _ref : "@babel/runtime", dirname, absoluteRuntime);
+        var _ref;
+        modulePath != null ? modulePath : modulePath = (0, _index.default)((_ref = moduleName != null ? moduleName : file.get("runtimeHelpersModuleName")) != null ? _ref : "@babel/runtime", dirname, absoluteRuntime);
         {
           if (!(file.availableHelper != null && file.availableHelper(name, runtimeVersion))) {
             if (name === "regeneratorRuntime") {
               return _core.types.arrowFunctionExpression([], _core.types.identifier("regeneratorRuntime"));
+            }
+            if (name === "regenerator" || name === "regeneratorKeys" || name === "regeneratorAsync" || name === "regeneratorAsyncGen") {
+              return _core.types.identifier("__interal_marker_fallback_regenerator__");
             }
             return;
           }

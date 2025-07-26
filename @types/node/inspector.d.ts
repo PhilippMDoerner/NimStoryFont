@@ -6,7 +6,7 @@
 /**
  * The `node:inspector` module provides an API for interacting with the V8
  * inspector.
- * @see [source](https://github.com/nodejs/node/blob/v22.x/lib/inspector.js)
+ * @see [source](https://github.com/nodejs/node/blob/v24.x/lib/inspector.js)
  */
 declare module 'inspector' {
     import EventEmitter = require('node:events');
@@ -1721,6 +1721,38 @@ declare module 'inspector' {
          */
         type MonotonicTime = number;
         /**
+         * Information about the request initiator.
+         */
+        interface Initiator {
+            /**
+             * Type of this initiator.
+             */
+            type: string;
+            /**
+             * Initiator JavaScript stack trace, set for Script only.
+             * Requires the Debugger domain to be enabled.
+             */
+            stack?: Runtime.StackTrace | undefined;
+            /**
+             * Initiator URL, set for Parser type or for Script type (when script is importing module) or for SignedExchange type.
+             */
+            url?: string | undefined;
+            /**
+             * Initiator line number, set for Parser type or for Script type (when script is importing
+             * module) (0-based).
+             */
+            lineNumber?: number | undefined;
+            /**
+             * Initiator column number, set for Parser type or for Script type (when script is importing
+             * module) (0-based).
+             */
+            columnNumber?: number | undefined;
+            /**
+             * Set if another request triggered this request (e.g. preflight).
+             */
+            requestId?: RequestId | undefined;
+        }
+        /**
          * HTTP request data.
          */
         interface Request {
@@ -1751,6 +1783,10 @@ declare module 'inspector' {
              * Request data.
              */
             request: Request;
+            /**
+             * Request initiator.
+             */
+            initiator: Initiator;
             /**
              * Timestamp.
              */
@@ -1810,6 +1846,30 @@ declare module 'inspector' {
     namespace NodeRuntime {
         interface NotifyWhenWaitingForDisconnectParameterType {
             enabled: boolean;
+        }
+    }
+    namespace Target {
+        type SessionID = string;
+        type TargetID = string;
+        interface TargetInfo {
+            targetId: TargetID;
+            type: string;
+            title: string;
+            url: string;
+            attached: boolean;
+            canAccessOpener: boolean;
+        }
+        interface SetAutoAttachParameterType {
+            autoAttach: boolean;
+            waitForDebuggerOnStart: boolean;
+        }
+        interface TargetCreatedEventDataType {
+            targetInfo: TargetInfo;
+        }
+        interface AttachedToTargetEventDataType {
+            sessionId: SessionID;
+            targetInfo: TargetInfo;
+            waitingForDebugger: boolean;
         }
     }
 
@@ -2201,6 +2261,8 @@ declare module 'inspector' {
          */
         post(method: 'NodeRuntime.notifyWhenWaitingForDisconnect', params?: NodeRuntime.NotifyWhenWaitingForDisconnectParameterType, callback?: (err: Error | null) => void): void;
         post(method: 'NodeRuntime.notifyWhenWaitingForDisconnect', callback?: (err: Error | null) => void): void;
+        post(method: 'Target.setAutoAttach', params?: Target.SetAutoAttachParameterType, callback?: (err: Error | null) => void): void;
+        post(method: 'Target.setAutoAttach', callback?: (err: Error | null) => void): void;
 
         addListener(event: string, listener: (...args: any[]) => void): this;
         /**
@@ -2319,6 +2381,8 @@ declare module 'inspector' {
          * example, when inspector.waitingForDebugger is called
          */
         addListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        addListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        addListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         emit(event: string | symbol, ...args: any[]): boolean;
         emit(event: 'inspectorNotification', message: InspectorNotification<object>): boolean;
         emit(event: 'Runtime.executionContextCreated', message: InspectorNotification<Runtime.ExecutionContextCreatedEventDataType>): boolean;
@@ -2352,6 +2416,8 @@ declare module 'inspector' {
         emit(event: 'Network.loadingFinished', message: InspectorNotification<Network.LoadingFinishedEventDataType>): boolean;
         emit(event: 'NodeRuntime.waitingForDisconnect'): boolean;
         emit(event: 'NodeRuntime.waitingForDebugger'): boolean;
+        emit(event: 'Target.targetCreated', message: InspectorNotification<Target.TargetCreatedEventDataType>): boolean;
+        emit(event: 'Target.attachedToTarget', message: InspectorNotification<Target.AttachedToTargetEventDataType>): boolean;
         on(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -2469,6 +2535,8 @@ declare module 'inspector' {
          * example, when inspector.waitingForDebugger is called
          */
         on(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        on(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        on(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         once(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -2586,6 +2654,8 @@ declare module 'inspector' {
          * example, when inspector.waitingForDebugger is called
          */
         once(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        once(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        once(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         prependListener(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -2703,6 +2773,8 @@ declare module 'inspector' {
          * example, when inspector.waitingForDebugger is called
          */
         prependListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        prependListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        prependListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         prependOnceListener(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -2820,6 +2892,8 @@ declare module 'inspector' {
          * example, when inspector.waitingForDebugger is called
          */
         prependOnceListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        prependOnceListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        prependOnceListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
     }
 
     /**
@@ -2829,7 +2903,7 @@ declare module 'inspector' {
      * If wait is `true`, will block until a client has connected to the inspect port
      * and flow control has been passed to the debugger client.
      *
-     * See the [security warning](https://nodejs.org/docs/latest-v22.x/api/cli.html#warning-binding-inspector-to-a-public-ipport-combination-is-insecure)
+     * See the [security warning](https://nodejs.org/docs/latest-v24.x/api/cli.html#warning-binding-inspector-to-a-public-ipport-combination-is-insecure)
      * regarding the `host` parameter usage.
      * @param port Port to listen on for inspector connections. Defaults to what was specified on the CLI.
      * @param host Host to listen on for inspector connections. Defaults to what was specified on the CLI.
@@ -2912,7 +2986,6 @@ declare module 'inspector' {
          * Broadcasts the `Network.requestWillBeSent` event to connected frontends. This event indicates that
          * the application is about to send an HTTP request.
          * @since v22.6.0
-         * @experimental
          */
         function requestWillBeSent(params: RequestWillBeSentEventDataType): void;
         /**
@@ -2921,7 +2994,6 @@ declare module 'inspector' {
          * Broadcasts the `Network.responseReceived` event to connected frontends. This event indicates that
          * HTTP response is available.
          * @since v22.6.0
-         * @experimental
          */
         function responseReceived(params: ResponseReceivedEventDataType): void;
         /**
@@ -2930,7 +3002,6 @@ declare module 'inspector' {
          * Broadcasts the `Network.loadingFinished` event to connected frontends. This event indicates that
          * HTTP request has finished loading.
          * @since v22.6.0
-         * @experimental
          */
         function loadingFinished(params: LoadingFinishedEventDataType): void;
         /**
@@ -2939,7 +3010,6 @@ declare module 'inspector' {
          * Broadcasts the `Network.loadingFailed` event to connected frontends. This event indicates that
          * HTTP request has failed to load.
          * @since v22.7.0
-         * @experimental
          */
         function loadingFailed(params: LoadingFailedEventDataType): void;
     }
@@ -2956,7 +3026,7 @@ declare module 'node:inspector' {
 /**
  * The `node:inspector/promises` module provides an API for interacting with the V8
  * inspector.
- * @see [source](https://github.com/nodejs/node/blob/v22.x/lib/inspector/promises.js)
+ * @see [source](https://github.com/nodejs/node/blob/v24.x/lib/inspector/promises.js)
  * @since v19.0.0
  */
 declare module 'inspector/promises' {
@@ -2978,6 +3048,7 @@ declare module 'inspector/promises' {
         NodeWorker,
         Network,
         NodeRuntime,
+        Target,
     } from 'inspector';
 
     /**
@@ -3314,6 +3385,7 @@ declare module 'inspector/promises' {
          * Enable the `NodeRuntime.waitingForDisconnect`.
          */
         post(method: 'NodeRuntime.notifyWhenWaitingForDisconnect', params?: NodeRuntime.NotifyWhenWaitingForDisconnectParameterType): Promise<void>;
+        post(method: 'Target.setAutoAttach', params?: Target.SetAutoAttachParameterType): Promise<void>;
 
         addListener(event: string, listener: (...args: any[]) => void): this;
         /**
@@ -3432,6 +3504,8 @@ declare module 'inspector/promises' {
          * example, when inspector.waitingForDebugger is called
          */
         addListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        addListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        addListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         emit(event: string | symbol, ...args: any[]): boolean;
         emit(event: 'inspectorNotification', message: InspectorNotification<object>): boolean;
         emit(event: 'Runtime.executionContextCreated', message: InspectorNotification<Runtime.ExecutionContextCreatedEventDataType>): boolean;
@@ -3465,6 +3539,8 @@ declare module 'inspector/promises' {
         emit(event: 'Network.loadingFinished', message: InspectorNotification<Network.LoadingFinishedEventDataType>): boolean;
         emit(event: 'NodeRuntime.waitingForDisconnect'): boolean;
         emit(event: 'NodeRuntime.waitingForDebugger'): boolean;
+        emit(event: 'Target.targetCreated', message: InspectorNotification<Target.TargetCreatedEventDataType>): boolean;
+        emit(event: 'Target.attachedToTarget', message: InspectorNotification<Target.AttachedToTargetEventDataType>): boolean;
         on(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -3582,6 +3658,8 @@ declare module 'inspector/promises' {
          * example, when inspector.waitingForDebugger is called
          */
         on(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        on(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        on(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         once(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -3699,6 +3777,8 @@ declare module 'inspector/promises' {
          * example, when inspector.waitingForDebugger is called
          */
         once(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        once(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        once(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         prependListener(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -3816,6 +3896,8 @@ declare module 'inspector/promises' {
          * example, when inspector.waitingForDebugger is called
          */
         prependListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        prependListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        prependListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
         prependOnceListener(event: string, listener: (...args: any[]) => void): this;
         /**
          * Emitted when any notification from the V8 Inspector is received.
@@ -3933,6 +4015,8 @@ declare module 'inspector/promises' {
          * example, when inspector.waitingForDebugger is called
          */
         prependOnceListener(event: 'NodeRuntime.waitingForDebugger', listener: () => void): this;
+        prependOnceListener(event: 'Target.targetCreated', listener: (message: InspectorNotification<Target.TargetCreatedEventDataType>) => void): this;
+        prependOnceListener(event: 'Target.attachedToTarget', listener: (message: InspectorNotification<Target.AttachedToTargetEventDataType>) => void): this;
     }
 
     export {
@@ -3953,6 +4037,7 @@ declare module 'inspector/promises' {
         NodeWorker,
         Network,
         NodeRuntime,
+        Target,
     };
 }
 

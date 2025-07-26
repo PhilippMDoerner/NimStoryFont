@@ -50,6 +50,7 @@ const {
 /** @typedef {import("./Chunk").ChunkId} ChunkId */
 /** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
+/** @typedef {import("./Compilation").Records} Records */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("./Module")} Module */
@@ -93,13 +94,6 @@ class HotModuleReplacementPlugin {
 			parserHooksMap.set(parser, hooks);
 		}
 		return hooks;
-	}
-
-	/**
-	 * @param {object=} options options
-	 */
-	constructor(options) {
-		this.options = options || {};
 	}
 
 	/**
@@ -382,15 +376,15 @@ class HotModuleReplacementPlugin {
 							);
 					}
 				});
-				/** @type {TupleSet<[Module, Chunk]>} */
+				/** @type {TupleSet<Module, Chunk>} */
 				const updatedModules = new TupleSet();
-				/** @type {TupleSet<[Module, Chunk]>} */
+				/** @type {TupleSet<Module, Chunk>} */
 				const fullHashModules = new TupleSet();
-				/** @type {TupleSet<[Module, RuntimeSpec]>} */
+				/** @type {TupleSet<Module, RuntimeSpec>} */
 				const nonCodeGeneratedModules = new TupleSet();
 				compilation.hooks.fullHash.tap(PLUGIN_NAME, hash => {
 					const chunkGraph = compilation.chunkGraph;
-					const records = compilation.records;
+					const records = /** @type {Records} */ (compilation.records);
 					for (const chunk of compilation.chunks) {
 						/**
 						 * @param {Module} module module
@@ -484,7 +478,7 @@ class HotModuleReplacementPlugin {
 					},
 					() => {
 						const chunkGraph = compilation.chunkGraph;
-						const records = compilation.records;
+						const records = /** @type {Records} */ (compilation.records);
 						if (records.hash === compilation.hash) return;
 						if (
 							!records.chunkModuleHashes ||

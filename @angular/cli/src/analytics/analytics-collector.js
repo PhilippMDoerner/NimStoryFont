@@ -41,10 +41,10 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsCollector = void 0;
-const crypto_1 = require("crypto");
-const https = __importStar(require("https"));
-const os = __importStar(require("os"));
-const querystring = __importStar(require("querystring"));
+const node_crypto_1 = require("node:crypto");
+const https = __importStar(require("node:https"));
+const os = __importStar(require("node:os"));
+const querystring = __importStar(require("node:querystring"));
 const semver = __importStar(require("semver"));
 const environment_options_1 = require("../utilities/environment-options");
 const error_1 = require("../utilities/error");
@@ -67,7 +67,7 @@ class AnalyticsCollector {
                 ? TRACKING_ID_PROD
                 : TRACKING_ID_STAGING,
             // Built-in user properties
-            [analytics_parameters_1.RequestParameter.SessionId]: (0, crypto_1.randomUUID)(),
+            [analytics_parameters_1.RequestParameter.SessionId]: (0, node_crypto_1.randomUUID)(),
             [analytics_parameters_1.RequestParameter.UserAgentArchitecture]: os.arch(),
             [analytics_parameters_1.RequestParameter.UserAgentPlatform]: os.platform(),
             [analytics_parameters_1.RequestParameter.UserAgentPlatformVersion]: os.release(),

@@ -32,7 +32,10 @@ const nonNumericOnlyHash = require("../util/nonNumericOnlyHash");
 /** @typedef {import("../../declarations/WebpackOptions").AssetGeneratorOptions} AssetGeneratorOptions */
 /** @typedef {import("../../declarations/WebpackOptions").AssetModuleFilename} AssetModuleFilename */
 /** @typedef {import("../../declarations/WebpackOptions").AssetModuleOutputPath} AssetModuleOutputPath */
+/** @typedef {import("../../declarations/WebpackOptions").AssetResourceGeneratorOptions} AssetResourceGeneratorOptions */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../../declarations/WebpackOptions").RawPublicPath} RawPublicPath */
+/** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Compilation")} Compilation */
 /** @typedef {import("../Compilation").AssetInfo} AssetInfo */
 /** @typedef {import("../Compilation").InterpolatedPathAndAssetInfo} InterpolatedPathAndAssetInfo */
@@ -49,13 +52,13 @@ const nonNumericOnlyHash = require("../util/nonNumericOnlyHash");
 /** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
 /** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
 /** @typedef {import("../util/Hash")} Hash */
-/** @typedef {import("../util/createHash").Algorithm} Algorithm */
+/** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 /**
  * @template T
  * @template U
- * @param {Array<T> | Set<T>} a a
- * @param {Array<U> | Set<U>} b b
+ * @param {string | Array<T> | Set<T> | undefined} a a
+ * @param {string | Array<U> | Set<U> | undefined} b b
  * @returns {Array<T> & Array<U>} array
  */
 const mergeMaybeArrays = (a, b) => {
@@ -68,13 +71,12 @@ const mergeMaybeArrays = (a, b) => {
 };
 
 /**
- * @template {object} T
- * @template {object} U
- * @param {TODO} a a
- * @param {TODO} b b
- * @returns {T & U} object
+ * @param {AssetInfo} a a
+ * @param {AssetInfo} b b
+ * @returns {AssetInfo} object
  */
 const mergeAssetInfo = (a, b) => {
+	/** @type {AssetInfo} */
 	const result = { ...a, ...b };
 	for (const key of Object.keys(a)) {
 		if (key in b) {
@@ -93,7 +95,12 @@ const mergeAssetInfo = (a, b) => {
 					result[key] = a[key] || b[key];
 					break;
 				case "related":
-					result[key] = mergeRelatedInfo(a[key], b[key]);
+					result[key] = mergeRelatedInfo(
+						/** @type {NonNullable<AssetInfo["related"]>} */
+						(a[key]),
+						/** @type {NonNullable<AssetInfo["related"]>} */
+						(b[key])
+					);
 					break;
 				default:
 					throw new Error(`Can't handle conflicting asset info for ${key}`);
@@ -104,11 +111,9 @@ const mergeAssetInfo = (a, b) => {
 };
 
 /**
- * @template {object} T
- * @template {object} U
- * @param {TODO} a a
- * @param {TODO} b b
- * @returns {T & U} object
+ * @param {NonNullable<AssetInfo["related"]>} a a
+ * @param {NonNullable<AssetInfo["related"]>} b b
+ * @returns {NonNullable<AssetInfo["related"]>} object
  */
 const mergeRelatedInfo = (a, b) => {
 	const result = { ...a, ...b };
@@ -160,7 +165,7 @@ const encodeDataUri = (encoding, source) => {
 };
 
 /**
- * @param {string} encoding encoding
+ * @param {"base64" | false} encoding encoding
  * @param {string} content content
  * @returns {Buffer} decoded content
  */
@@ -212,12 +217,186 @@ class AssetGenerator extends Generator {
 	 * @param {RuntimeTemplate} runtimeTemplate runtime template
 	 * @returns {string} source file name
 	 */
-	getSourceFileName(module, runtimeTemplate) {
+	static getSourceFileName(module, runtimeTemplate) {
 		return makePathsRelative(
 			runtimeTemplate.compilation.compiler.context,
 			module.matchResource || module.resource,
 			runtimeTemplate.compilation.compiler.root
 		).replace(/^\.\//, "");
+	}
+
+	/**
+	 * @param {NormalModule} module module
+	 * @param {RuntimeTemplate} runtimeTemplate runtime template
+	 * @returns {[string, string]} return full hash and non-numeric full hash
+	 */
+	static getFullContentHash(module, runtimeTemplate) {
+		const hash = createHash(
+			/** @type {HashFunction} */
+			(runtimeTemplate.outputOptions.hashFunction)
+		);
+
+		if (runtimeTemplate.outputOptions.hashSalt) {
+			hash.update(runtimeTemplate.outputOptions.hashSalt);
+		}
+
+		const source = module.originalSource();
+
+		if (source) {
+			hash.update(source.buffer());
+		}
+
+		if (module.error) {
+			hash.update(module.error.toString());
+		}
+
+		const fullContentHash = /** @type {string} */ (
+			hash.digest(runtimeTemplate.outputOptions.hashDigest)
+		);
+
+		/** @type {string} */
+		const contentHash = nonNumericOnlyHash(
+			fullContentHash,
+			/** @type {number} */
+			(runtimeTemplate.outputOptions.hashDigestLength)
+		);
+
+		return [fullContentHash, contentHash];
+	}
+
+	/**
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {Pick<AssetResourceGeneratorOptions, "filename" | "outputPath">} generatorOptions generator options
+	 * @param {{ runtime: RuntimeSpec, runtimeTemplate: RuntimeTemplate, chunkGraph: ChunkGraph }} generateContext context for generate
+	 * @param {string} contentHash the content hash
+	 * @returns {{ filename: string, originalFilename: string, assetInfo: AssetInfo }} info
+	 */
+	static getFilenameWithInfo(
+		module,
+		generatorOptions,
+		{ runtime, runtimeTemplate, chunkGraph },
+		contentHash
+	) {
+		const assetModuleFilename =
+			generatorOptions.filename ||
+			/** @type {AssetModuleFilename} */
+			(runtimeTemplate.outputOptions.assetModuleFilename);
+
+		const sourceFilename = AssetGenerator.getSourceFileName(
+			module,
+			runtimeTemplate
+		);
+		let { path: filename, info: assetInfo } =
+			runtimeTemplate.compilation.getAssetPathWithInfo(assetModuleFilename, {
+				module,
+				runtime,
+				filename: sourceFilename,
+				chunkGraph,
+				contentHash
+			});
+
+		const originalFilename = filename;
+
+		if (generatorOptions.outputPath) {
+			const { path: outputPath, info } =
+				runtimeTemplate.compilation.getAssetPathWithInfo(
+					generatorOptions.outputPath,
+					{
+						module,
+						runtime,
+						filename: sourceFilename,
+						chunkGraph,
+						contentHash
+					}
+				);
+			filename = path.posix.join(outputPath, filename);
+			assetInfo = mergeAssetInfo(assetInfo, info);
+		}
+
+		return { originalFilename, filename, assetInfo };
+	}
+
+	/**
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {Pick<AssetResourceGeneratorOptions, "publicPath">} generatorOptions generator options
+	 * @param {GenerateContext} generateContext context for generate
+	 * @param {string} filename the filename
+	 * @param {AssetInfo} assetInfo the asset info
+	 * @param {string} contentHash the content hash
+	 * @returns {{ assetPath: string, assetInfo: AssetInfo }} asset path and info
+	 */
+	static getAssetPathWithInfo(
+		module,
+		generatorOptions,
+		{ runtime, runtimeTemplate, type, chunkGraph, runtimeRequirements },
+		filename,
+		assetInfo,
+		contentHash
+	) {
+		const sourceFilename = AssetGenerator.getSourceFileName(
+			module,
+			runtimeTemplate
+		);
+
+		let assetPath;
+
+		if (generatorOptions.publicPath !== undefined && type === "javascript") {
+			const { path, info } = runtimeTemplate.compilation.getAssetPathWithInfo(
+				generatorOptions.publicPath,
+				{
+					module,
+					runtime,
+					filename: sourceFilename,
+					chunkGraph,
+					contentHash
+				}
+			);
+			assetInfo = mergeAssetInfo(assetInfo, info);
+			assetPath = JSON.stringify(path + filename);
+		} else if (
+			generatorOptions.publicPath !== undefined &&
+			type === "css-url"
+		) {
+			const { path, info } = runtimeTemplate.compilation.getAssetPathWithInfo(
+				generatorOptions.publicPath,
+				{
+					module,
+					runtime,
+					filename: sourceFilename,
+					chunkGraph,
+					contentHash
+				}
+			);
+			assetInfo = mergeAssetInfo(assetInfo, info);
+			assetPath = path + filename;
+		} else if (type === "javascript") {
+			// add __webpack_require__.p
+			runtimeRequirements.add(RuntimeGlobals.publicPath);
+			assetPath = runtimeTemplate.concatenation(
+				{ expr: RuntimeGlobals.publicPath },
+				filename
+			);
+		} else if (type === "css-url") {
+			const compilation = runtimeTemplate.compilation;
+			const path =
+				compilation.outputOptions.publicPath === "auto"
+					? CssUrlDependency.PUBLIC_PATH_AUTO
+					: compilation.getAssetPath(
+							/** @type {TemplatePath} */
+							(compilation.outputOptions.publicPath),
+							{
+								hash: compilation.hash
+							}
+						);
+
+			assetPath = path + filename;
+		}
+
+		return {
+			// eslint-disable-next-line object-shorthand
+			assetPath: /** @type {string} */ (assetPath),
+			assetInfo: { sourceFilename, ...assetInfo }
+		};
 	}
 
 	/**
@@ -296,7 +475,6 @@ class AssetGenerator extends Generator {
 				module
 			});
 		} else {
-			/** @type {"base64" | false | undefined} */
 			let encoding =
 				/** @type {AssetGeneratorDataUrlOptions} */
 				(this.dataUrlOptions).encoding;
@@ -319,12 +497,15 @@ class AssetGenerator extends Generator {
 				module.resourceResolveData.encoding === encoding &&
 				decodeDataUriContent(
 					module.resourceResolveData.encoding,
-					module.resourceResolveData.encodedContent
+					/** @type {string} */ (module.resourceResolveData.encodedContent)
 				).equals(source.buffer())
 			) {
 				encodedContent = module.resourceResolveData.encodedContent;
 			} else {
-				encodedContent = encodeDataUri(encoding, source);
+				encodedContent = encodeDataUri(
+					/** @type {"base64" | false} */ (encoding),
+					source
+				);
 			}
 
 			encodedSource = `data:${mimeType}${
@@ -333,127 +514,6 @@ class AssetGenerator extends Generator {
 		}
 
 		return encodedSource;
-	}
-
-	/**
-	 * @private
-	 * @param {NormalModule} module module for which the code should be generated
-	 * @param {GenerateContext} generateContext context for generate
-	 * @param {string} contentHash the content hash
-	 * @returns {{ filename: string, originalFilename: string, assetInfo: AssetInfo }} info
-	 */
-	_getFilenameWithInfo(
-		module,
-		{ runtime, runtimeTemplate, chunkGraph },
-		contentHash
-	) {
-		const assetModuleFilename =
-			this.filename ||
-			/** @type {AssetModuleFilename} */
-			(runtimeTemplate.outputOptions.assetModuleFilename);
-
-		const sourceFilename = this.getSourceFileName(module, runtimeTemplate);
-		let { path: filename, info: assetInfo } =
-			runtimeTemplate.compilation.getAssetPathWithInfo(assetModuleFilename, {
-				module,
-				runtime,
-				filename: sourceFilename,
-				chunkGraph,
-				contentHash
-			});
-
-		const originalFilename = filename;
-
-		if (this.outputPath) {
-			const { path: outputPath, info } =
-				runtimeTemplate.compilation.getAssetPathWithInfo(this.outputPath, {
-					module,
-					runtime,
-					filename: sourceFilename,
-					chunkGraph,
-					contentHash
-				});
-			filename = path.posix.join(outputPath, filename);
-			assetInfo = mergeAssetInfo(assetInfo, info);
-		}
-
-		return { originalFilename, filename, assetInfo };
-	}
-
-	/**
-	 * @private
-	 * @param {NormalModule} module module for which the code should be generated
-	 * @param {GenerateContext} generateContext context for generate
-	 * @param {string} filename the filename
-	 * @param {AssetInfo} assetInfo the asset info
-	 * @param {string} contentHash the content hash
-	 * @returns {{ assetPath: string, assetInfo: AssetInfo }} asset path and info
-	 */
-	_getAssetPathWithInfo(
-		module,
-		{ runtimeTemplate, runtime, chunkGraph, type, runtimeRequirements },
-		filename,
-		assetInfo,
-		contentHash
-	) {
-		const sourceFilename = this.getSourceFileName(module, runtimeTemplate);
-
-		let assetPath;
-
-		if (this.publicPath !== undefined && type === "javascript") {
-			const { path, info } = runtimeTemplate.compilation.getAssetPathWithInfo(
-				this.publicPath,
-				{
-					module,
-					runtime,
-					filename: sourceFilename,
-					chunkGraph,
-					contentHash
-				}
-			);
-			assetInfo = mergeAssetInfo(assetInfo, info);
-			assetPath = JSON.stringify(path + filename);
-		} else if (this.publicPath !== undefined && type === "css-url") {
-			const { path, info } = runtimeTemplate.compilation.getAssetPathWithInfo(
-				this.publicPath,
-				{
-					module,
-					runtime,
-					filename: sourceFilename,
-					chunkGraph,
-					contentHash
-				}
-			);
-			assetInfo = mergeAssetInfo(assetInfo, info);
-			assetPath = path + filename;
-		} else if (type === "javascript") {
-			// add __webpack_require__.p
-			runtimeRequirements.add(RuntimeGlobals.publicPath);
-			assetPath = runtimeTemplate.concatenation(
-				{ expr: RuntimeGlobals.publicPath },
-				filename
-			);
-		} else if (type === "css-url") {
-			const compilation = runtimeTemplate.compilation;
-			const path =
-				compilation.outputOptions.publicPath === "auto"
-					? CssUrlDependency.PUBLIC_PATH_AUTO
-					: compilation.getAssetPath(
-							/** @type {TemplatePath} */
-							(compilation.outputOptions.publicPath),
-							{
-								hash: compilation.hash
-							}
-						);
-
-			assetPath = path + filename;
-		}
-
-		return {
-			// eslint-disable-next-line object-shorthand
-			assetPath: /** @type {string} */ (assetPath),
-			assetInfo: { sourceFilename, ...assetInfo }
-		};
 	}
 
 	/**
@@ -489,53 +549,40 @@ class AssetGenerator extends Generator {
 				data.set("url", { [type]: content, ...data.get("url") });
 			}
 		} else {
-			const hash = createHash(
-				/** @type {Algorithm} */
-				(runtimeTemplate.outputOptions.hashFunction)
-			);
-
-			if (runtimeTemplate.outputOptions.hashSalt) {
-				hash.update(runtimeTemplate.outputOptions.hashSalt);
-			}
-
-			hash.update(/** @type {Source} */ (module.originalSource()).buffer());
-
-			const fullHash =
-				/** @type {string} */
-				(hash.digest(runtimeTemplate.outputOptions.hashDigest));
-
-			if (data) {
-				data.set("fullContentHash", fullHash);
-			}
-
-			/** @type {BuildInfo} */
-			(module.buildInfo).fullContentHash = fullHash;
-
-			/** @type {string} */
-			const contentHash = nonNumericOnlyHash(
-				fullHash,
-				/** @type {number} */
-				(generateContext.runtimeTemplate.outputOptions.hashDigestLength)
+			const [fullContentHash, contentHash] = AssetGenerator.getFullContentHash(
+				module,
+				runtimeTemplate
 			);
 
 			if (data) {
+				data.set("fullContentHash", fullContentHash);
 				data.set("contentHash", contentHash);
 			}
 
+			/** @type {BuildInfo} */
+			(module.buildInfo).fullContentHash = fullContentHash;
+
 			const { originalFilename, filename, assetInfo } =
-				this._getFilenameWithInfo(module, generateContext, contentHash);
+				AssetGenerator.getFilenameWithInfo(
+					module,
+					{ filename: this.filename, outputPath: this.outputPath },
+					generateContext,
+					contentHash
+				);
 
 			if (data) {
 				data.set("filename", filename);
 			}
 
-			let { assetPath, assetInfo: newAssetInfo } = this._getAssetPathWithInfo(
-				module,
-				generateContext,
-				originalFilename,
-				assetInfo,
-				contentHash
-			);
+			let { assetPath, assetInfo: newAssetInfo } =
+				AssetGenerator.getAssetPathWithInfo(
+					module,
+					{ publicPath: this.publicPath },
+					generateContext,
+					originalFilename,
+					assetInfo,
+					contentHash
+				);
 
 			if (data && (type === "javascript" || type === "css-url")) {
 				data.set("url", { [type]: assetPath, ...data.get("url") });
@@ -585,10 +632,32 @@ class AssetGenerator extends Generator {
 	}
 
 	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		switch (generateContext.type) {
+			case "asset": {
+				return new RawSource(error.message);
+			}
+			case "javascript": {
+				return new RawSource(
+					`throw new Error(${JSON.stringify(error.message)});`
+				);
+			}
+			default:
+				return null;
+		}
+	}
+
+	/**
 	 * @param {NormalModule} module fresh module
 	 * @returns {SourceTypes} available types (do not mutate)
 	 */
 	getTypes(module) {
+		/** @type {Set<string>} */
 		const sourceTypes = new Set();
 		const connections = this._moduleGraph.getIncomingConnections(module);
 
@@ -601,27 +670,25 @@ class AssetGenerator extends Generator {
 		}
 
 		if ((module.buildInfo && module.buildInfo.dataUrl) || this.emit === false) {
-			if (sourceTypes) {
+			if (sourceTypes.size > 0) {
 				if (sourceTypes.has("javascript") && sourceTypes.has("css")) {
 					return JS_AND_CSS_URL_TYPES;
-				} else if (sourceTypes.has("javascript")) {
-					return JS_TYPES;
 				} else if (sourceTypes.has("css")) {
 					return CSS_URL_TYPES;
 				}
+				return JS_TYPES;
 			}
 
 			return NO_TYPES;
 		}
 
-		if (sourceTypes) {
+		if (sourceTypes.size > 0) {
 			if (sourceTypes.has("javascript") && sourceTypes.has("css")) {
 				return ASSET_AND_JS_AND_CSS_URL_TYPES;
-			} else if (sourceTypes.has("javascript")) {
-				return ASSET_AND_JS_TYPES;
 			} else if (sourceTypes.has("css")) {
 				return ASSET_AND_CSS_URL_TYPES;
 			}
+			return ASSET_AND_JS_TYPES;
 		}
 
 		return ASSET_TYPES;
@@ -669,6 +736,7 @@ class AssetGenerator extends Generator {
 	 */
 	updateHash(hash, updateHashContext) {
 		const { module } = updateHashContext;
+
 		if (
 			/** @type {BuildInfo} */
 			(module.buildInfo).dataUrl
@@ -704,7 +772,7 @@ class AssetGenerator extends Generator {
 			const pathData = {
 				module,
 				runtime,
-				filename: this.getSourceFileName(module, runtimeTemplate),
+				filename: AssetGenerator.getSourceFileName(module, runtimeTemplate),
 				chunkGraph,
 				contentHash: runtimeTemplate.contentHashReplacement
 			};

@@ -1,14 +1,8 @@
 'use strict';
 
 var dispatchEvent = require('../event/dispatchEvent.js');
-require('../utils/click/isClickableInput.js');
-require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var isElementType = require('../utils/misc/isElementType.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
+require('../utils/dataTransfer/Clipboard.js');
 var UI = require('./UI.js');
 require('@testing-library/dom');
 var interceptor = require('./interceptor.js');

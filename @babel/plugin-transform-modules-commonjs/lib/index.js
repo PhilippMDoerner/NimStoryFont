@@ -162,13 +162,12 @@ var _default = exports.default = (0, _helperPluginUtils.declare)((api, options) 
               }
               header = _core.types.expressionStatement(loadExpr);
             } else {
-              var _header;
               const init = (0, _helperModuleTransforms.wrapInterop)(path, loadExpr, metadata.interop) || loadExpr;
               if (metadata.wrap) {
                 const res = hooks.buildRequireWrapper(metadata.name, init, metadata.wrap, metadata.referenced);
                 if (res === false) continue;else header = res;
               }
-              (_header = header) != null ? _header : header = _core.template.statement.ast`
+              header != null ? header : header = _core.template.statement.ast`
                 var ${metadata.name} = ${init};
               `;
             }

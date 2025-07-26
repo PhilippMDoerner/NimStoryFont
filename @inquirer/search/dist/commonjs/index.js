@@ -32,13 +32,16 @@ function normalizeChoices(choices) {
             };
         }
         const name = choice.name ?? String(choice.value);
-        return {
+        const normalizedChoice = {
             value: choice.value,
             name,
-            description: choice.description,
             short: choice.short ?? name,
             disabled: choice.disabled ?? false,
         };
+        if (choice.description) {
+            normalizedChoice.description = choice.description;
+        }
+        return normalizedChoice;
     });
 }
 exports.default = (0, core_1.createPrompt)((config, done) => {

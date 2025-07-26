@@ -1,11 +1,5 @@
-import '../utils/click/isClickableInput.js';
-import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
 import { isElementType } from '../utils/misc/isElementType.js';
-import '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
-import '../options.js';
+import '../utils/dataTransfer/Clipboard.js';
 import { startTrackValue, trackOrSetValue } from './trackValue.js';
 import { setUISelectionClean, setUISelectionRaw, getUIValue, setUIValueClean, isUIValue, isUISelectionStart } from './UI.js';
 
@@ -13,8 +7,8 @@ const Interceptor = Symbol('Interceptor for programmatical calls');
 function prepareInterceptor(element, propName, interceptorImpl) {
     const prototypeDescriptor = Object.getOwnPropertyDescriptor(element.constructor.prototype, propName);
     const objectDescriptor = Object.getOwnPropertyDescriptor(element, propName);
-    const target = (prototypeDescriptor === null || prototypeDescriptor === void 0 ? void 0 : prototypeDescriptor.set) ? 'set' : 'value';
-    /* istanbul ignore if */ if (typeof (prototypeDescriptor === null || prototypeDescriptor === void 0 ? void 0 : prototypeDescriptor[target]) !== 'function' || prototypeDescriptor[target][Interceptor]) {
+    const target = (prototypeDescriptor === null || prototypeDescriptor === undefined ? undefined : prototypeDescriptor.set) ? 'set' : 'value';
+    /* istanbul ignore if */ if (typeof (prototypeDescriptor === null || prototypeDescriptor === undefined ? undefined : prototypeDescriptor[target]) !== 'function' || prototypeDescriptor[target][Interceptor]) {
         throw new Error(`Element ${element.tagName} does not implement "${String(propName)}".`);
     }
     function intercept(...args) {
@@ -25,11 +19,11 @@ function prepareInterceptor(element, propName, interceptorImpl) {
         } else {
             realFunc.call(this, ...realArgs);
         }
-        then === null || then === void 0 ? void 0 : then();
+        then === null || then === undefined ? undefined : then();
     }
     intercept[Interceptor] = Interceptor;
     Object.defineProperty(element, propName, {
-        ...objectDescriptor !== null && objectDescriptor !== void 0 ? objectDescriptor : prototypeDescriptor,
+        ...objectDescriptor !== null && objectDescriptor !== undefined ? objectDescriptor : prototypeDescriptor,
         [target]: intercept
     });
 }

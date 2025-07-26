@@ -390,7 +390,10 @@ var ListrLogger = class {
     if (!level) {
       return null;
     }
-    icon ||= this.options.icon?.[level];
+    if (!icon) {
+      const i = this.options.icon?.[level];
+      icon = typeof i === "function" ? i() : i;
+    }
     const coloring = this.options.color?.[level];
     if (icon && coloring) {
       icon = coloring(icon);
@@ -925,7 +928,7 @@ var DefaultRenderer = class _DefaultRenderer {
         });
         break;
       case "wrap":
-        parsed = this.wrap(message, columns, { hard: true }).split(import_os3.EOL).map((s, i) => this.indent(s, i));
+        parsed = this.wrap(message, columns, { hard: true, trim: false }).split(import_os3.EOL).map((s, i) => this.indent(s, i));
         break;
       default:
         throw new ListrRendererError("Format option for the renderer is wrong.");
@@ -1163,7 +1166,7 @@ var DefaultRenderer = class _DefaultRenderer {
     return this.format(data, this.style(task, true), level + 1);
   }
   indent(str, i) {
-    return i > 0 ? indent(str.trim(), this.options.indentation) : str.trim();
+    return i > 0 ? indent(str.trimEnd(), this.options.indentation) : str.trimEnd();
   }
 };
 
@@ -2243,6 +2246,13 @@ var Listr = class {
     } else {
       this.events = new ListrEventManager();
     }
+    if (this.options?.forceTTY || process.env["LISTR_FORCE_TTY" /* FORCE_TTY */]) {
+      process.stdout.isTTY = true;
+      process.stderr.isTTY = true;
+    }
+    if (this.options?.forceUnicode) {
+      process.env["LISTR_FORCE_UNICODE" /* FORCE_UNICODE */] = "1";
+    }
     const renderer = getRenderer({
       renderer: this.options.renderer,
       rendererOptions: this.options.rendererOptions,
@@ -2258,13 +2268,6 @@ var Listr = class {
     if (this.options.registerSignalListeners) {
       this.boundSignalHandler = this.signalHandler.bind(this);
       process.once("SIGINT", this.boundSignalHandler).setMaxListeners(0);
-    }
-    if (this.options?.forceTTY || process.env["LISTR_FORCE_TTY" /* FORCE_TTY */]) {
-      process.stdout.isTTY = true;
-      process.stderr.isTTY = true;
-    }
-    if (this.options?.forceUnicode) {
-      process.env["LISTR_FORCE_UNICODE" /* FORCE_UNICODE */] = "1";
     }
   }
   static {
@@ -2357,7 +2360,7 @@ var Listr = class {
       }
     });
     if (this.isRoot()) {
-      this.renderer.end(new Error("Interrupted."));
+      this.renderer?.end(new Error("Interrupted."));
       process.exit(127);
     }
   }

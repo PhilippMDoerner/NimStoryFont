@@ -3,7 +3,8 @@ import { applicationConfig, Meta, StoryObj } from '@storybook/angular';
 import { ToastConfig } from 'src/app/_models/toast';
 import { ELEMENT_TYPES } from 'src/app/design/atoms/_models/button';
 import { ALL_ICONS } from 'src/app/design/atoms/_models/icon';
-import { ToastOverlayComponent, ToastService } from './toast-overlay.component';
+import { ToastOverlayComponent } from './toast-overlay.component';
+import { ToastService } from './toast.service';
 
 const toastService = new ToastService();
 

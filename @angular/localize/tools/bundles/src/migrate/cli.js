@@ -4,15 +4,15 @@
       const require = __cjsCompatRequire(import.meta.url);
     
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/cli.js
 import { ConsoleLogger, LogLevel, NodeJSFileSystem, setFileSystem } from "@angular/compiler-cli/private/localize";
-import glob from "fast-glob";
+import { globSync } from "tinyglobby";
 import yargs from "yargs";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/index.js
 import { getFileSystem } from "@angular/compiler-cli/private/localize";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/migrate.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/migrate.js
 function migrateFile(sourceCode, mapping) {
   const legacyIds = Object.keys(mapping);
   for (const legacyId of legacyIds) {
@@ -26,7 +26,7 @@ function escapeRegExp(str) {
   return str.replace(/([.*+?^=!:${}()|[\]\/\\])/g, "\\$1");
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/index.js
 function migrateFiles({ rootPath: rootPath2, translationFilePaths: translationFilePaths2, mappingFilePath, logger: logger2 }) {
   const fs2 = getFileSystem();
   const absoluteMappingPath = fs2.resolve(rootPath2, mappingFilePath);
@@ -42,7 +42,7 @@ function migrateFiles({ rootPath: rootPath2, translationFilePaths: translationFi
   }
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/migrate/cli.js
 var args = process.argv.slice(2);
 var options = yargs(args).option("r", {
   alias: "root",
@@ -63,7 +63,7 @@ var options = yargs(args).option("r", {
 var fs = new NodeJSFileSystem();
 setFileSystem(fs);
 var rootPath = options.r;
-var translationFilePaths = glob.sync(options.f, { cwd: rootPath, onlyFiles: true });
+var translationFilePaths = globSync(options.f, { cwd: rootPath, onlyFiles: true });
 var logger = new ConsoleLogger(LogLevel.warn);
 migrateFiles({ rootPath, translationFilePaths, mappingFilePath: options.m, logger });
 process.exit(0);

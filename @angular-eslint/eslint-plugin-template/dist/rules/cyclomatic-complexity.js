@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RULE_NAME = void 0;
+const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'cyclomatic-complexity';
@@ -32,17 +33,32 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     create(context, [{ maxComplexity }]) {
         let totalComplexity = 0;
         const parserServices = (0, utils_1.getTemplateParserServices)(context);
+        function increment(node) {
+            totalComplexity += 1;
+            if (totalComplexity <= maxComplexity)
+                return;
+            const loc = parserServices.convertNodeSourceSpanToLoc(node.sourceSpan);
+            context.report({
+                messageId: 'cyclomaticComplexity',
+                loc,
+                data: { maxComplexity, totalComplexity },
+            });
+        }
         return {
-            'BoundAttribute[name=/^(ngForOf|ngIf|ngSwitchCase)$/], TextAttribute[name="ngSwitchDefault"]'({ sourceSpan, }) {
-                totalComplexity += 1;
-                if (totalComplexity <= maxComplexity)
-                    return;
-                const loc = parserServices.convertNodeSourceSpanToLoc(sourceSpan);
-                context.report({
-                    messageId: 'cyclomaticComplexity',
-                    loc,
-                    data: { maxComplexity, totalComplexity },
-                });
+            '*': (node) => {
+                if (node instanceof bundled_angular_compiler_1.TmplAstBoundAttribute &&
+                    /^(ngForOf|ngIf|ngSwitchCase)$/.test(node.name)) {
+                    increment(node);
+                }
+                else if (node instanceof bundled_angular_compiler_1.TmplAstTextAttribute &&
+                    node.name === 'ngSwitchDefault') {
+                    increment(node);
+                }
+                else if (node instanceof bundled_angular_compiler_1.TmplAstIfBlock ||
+                    node instanceof bundled_angular_compiler_1.TmplAstForLoopBlock ||
+                    node instanceof bundled_angular_compiler_1.TmplAstSwitchBlockCase) {
+                    increment(node);
+                }
             },
         };
     },

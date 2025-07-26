@@ -1,6 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import {
   afterNextRender,
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -9,7 +10,7 @@ import {
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { fadeOut } from 'src/app/design/animations/fadeIn';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { BypassBlockDirective } from './_directives/bypass-block.directive';
 import { BeforeInstallPromptEvent, PwaService } from './_services/pwa.service';
@@ -17,7 +18,6 @@ import { CampaignService } from './_services/utils/campaign.service';
 import { GlobalUrlParamsService } from './_services/utils/global-url-params.service';
 import { TokenService } from './_services/utils/token.service';
 import { AuthStore } from './auth.store';
-import { HotkeyModalComponent } from './design/organisms/hotkey-modal/hotkey-modal.component';
 import { PageComponent } from './design/organisms/page/page.component';
 import { ToastOverlayComponent } from './design/organisms/toast-overlay/toast-overlay.component';
 import { OnboardingModalComponent } from './global-components/onboarding/onboarding-modal/onboarding-modal.component';
@@ -31,7 +31,6 @@ import { ServiceWorkerService } from './service-worker.service';
     PageComponent,
     ToastOverlayComponent,
     AsyncPipe,
-    HotkeyModalComponent,
     OnboardingModalComponent,
     BypassBlockDirective,
   ],
@@ -40,6 +39,7 @@ import { ServiceWorkerService } from './service-worker.service';
     '(window:beforeinstallprompt)': 'fireEvent($event)',
   },
   animations: [fadeOut],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   readonly pwaService = inject(PwaService);

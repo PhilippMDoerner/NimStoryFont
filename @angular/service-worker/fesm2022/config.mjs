@@ -1,6 +1,6 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
@@ -238,12 +238,6 @@ function buildCacheQueryOptions(inOptions) {
         ...inOptions,
     };
 }
-
-// This file is not used to build this module. It is only used during editing
-
-/**
- * Generated bundle index. Do not edit.
- */
 
 export { Generator };
 //# sourceMappingURL=config.mjs.map

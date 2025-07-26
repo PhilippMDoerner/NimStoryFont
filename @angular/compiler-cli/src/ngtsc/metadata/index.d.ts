@@ -9,7 +9,7 @@ export * from './src/api';
 export { DtsMetadataReader } from './src/dts';
 export { flattenInheritedDirectiveMetadata } from './src/inheritance';
 export { CompoundMetadataRegistry, LocalMetadataRegistry } from './src/registry';
-export { ResourceRegistry, Resource, ComponentResources, isExternalResource, ExternalResource, } from './src/resource_registry';
+export { ResourceRegistry, Resource, DirectiveResources, isExternalResource, ExternalResource, } from './src/resource_registry';
 export { extractDirectiveTypeCheckMeta, hasInjectableFields, CompoundMetadataReader, isHostDirectiveMetaForGlobalMode, } from './src/util';
 export { BindingPropertyName, ClassPropertyMapping, ClassPropertyName, InputOrOutput, } from './src/property_mapping';
 export { ExportedProviderStatusResolver } from './src/providers';

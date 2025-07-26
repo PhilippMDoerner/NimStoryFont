@@ -33,7 +33,7 @@ export interface ParserOptions {
 }
 declare function parseForESLint(code: string, options: ParserOptions): {
     ast: AST;
-    scopeManager: ScopeManager;
+    scopeManager: InstanceType<typeof ScopeManager>;
     visitorKeys: VisitorKeys;
     services: {
         convertElementSourceSpanToLoc: typeof convertElementSourceSpanToLoc;

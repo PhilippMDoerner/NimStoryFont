@@ -26,5 +26,4 @@ const memoize = fn => {
     return result;
   };
 };
-var _default = memoize;
-exports.default = _default;
+var _default = exports.default = memoize;

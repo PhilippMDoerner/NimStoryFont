@@ -9,12 +9,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = default_1;
 const schematics_1 = require("@angular-devkit/schematics");
-const utility_1 = require("@schematics/angular/utility");
-const path_1 = require("path");
+const node_path_1 = require("node:path");
+const workspace_1 = require("../utility/workspace");
+const workspace_models_1 = require("../utility/workspace-models");
 const ENVIRONMENTS_DIRECTORY = 'environments';
 const ENVIRONMENT_FILE_CONTENT = 'export const environment = {};\n';
 function default_1(options) {
-    return (0, utility_1.updateWorkspace)((workspace) => {
+    return (0, workspace_1.updateWorkspace)((workspace) => {
         const project = workspace.projects.get(options.project);
         if (!project) {
             throw new schematics_1.SchematicsException(`Project name "${options.project}" doesn't not exist.`);
@@ -31,7 +32,7 @@ function default_1(options) {
                 ' A "build" target is required to generate environment files.');
         }
         const serverTarget = project.targets.get('server');
-        const sourceRoot = project.sourceRoot ?? path_1.posix.join(project.root, 'src');
+        const sourceRoot = project.sourceRoot ?? node_path_1.posix.join(project.root, 'src');
         // The generator needs to be iterated prior to returning to ensure all workspace changes that occur
         // within the generator are present for `updateWorkspace` when it writes the workspace file.
         return (0, schematics_1.chain)([
@@ -53,18 +54,19 @@ function log(type, text) {
     return (_, context) => context.logger[type](text);
 }
 function* generateConfigurationEnvironments(buildTarget, serverTarget, sourceRoot, projectName) {
-    if (buildTarget.builder !== utility_1.AngularBuilder.Browser &&
-        buildTarget.builder !== utility_1.AngularBuilder.BrowserEsbuild &&
-        buildTarget.builder !== utility_1.AngularBuilder.Application) {
+    if (buildTarget.builder !== workspace_models_1.Builders.Browser &&
+        buildTarget.builder !== workspace_models_1.Builders.BrowserEsbuild &&
+        buildTarget.builder !== workspace_models_1.Builders.Application &&
+        buildTarget.builder !== workspace_models_1.Builders.BuildApplication) {
         yield log('warn', `"build" target found for project "${projectName}" has a third-party builder "${buildTarget.builder}".` +
             ' The generated project options may not be compatible with this builder.');
     }
-    if (serverTarget && serverTarget.builder !== utility_1.AngularBuilder.Server) {
+    if (serverTarget && serverTarget.builder !== workspace_models_1.Builders.Server) {
         yield log('warn', `"server" target found for project "${projectName}" has a third-party builder "${buildTarget.builder}".` +
             ' The generated project options may not be compatible with this builder.');
     }
     // Create default environment file
-    const defaultFilePath = path_1.posix.join(sourceRoot, ENVIRONMENTS_DIRECTORY, 'environment.ts');
+    const defaultFilePath = node_path_1.posix.join(sourceRoot, ENVIRONMENTS_DIRECTORY, 'environment.ts');
     yield createIfMissing(defaultFilePath);
     const configurationEntries = [
         ...Object.entries(buildTarget.configurations ?? {}),
@@ -80,7 +82,7 @@ function* generateConfigurationEnvironments(buildTarget, serverTarget, sourceRoo
         if (name === buildTarget.defaultConfiguration) {
             continue;
         }
-        const configurationFilePath = path_1.posix.join(sourceRoot, ENVIRONMENTS_DIRECTORY, `environment.${name}.ts`);
+        const configurationFilePath = node_path_1.posix.join(sourceRoot, ENVIRONMENTS_DIRECTORY, `environment.${name}.ts`);
         // Add file replacement option entry for the configuration environment file
         const replacements = (configurationOptions['fileReplacements'] ??= []);
         const existing = replacements.find((value) => value.replace === defaultFilePath);

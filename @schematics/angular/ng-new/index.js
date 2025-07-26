@@ -40,8 +40,7 @@ function default_1(options) {
         minimal: options.minimal,
         standalone: options.standalone,
         ssr: options.ssr,
-        serverRouting: options.serverRouting,
-        experimentalZoneless: options.experimentalZoneless,
+        zoneless: options.zoneless,
     };
     return (0, schematics_1.chain)([
         (0, schematics_1.mergeWith)((0, schematics_1.apply)((0, schematics_1.empty)(), [

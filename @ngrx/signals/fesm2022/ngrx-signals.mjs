@@ -64,7 +64,14 @@ function signalMethod(processingFn, config) {
     const sourceInjector = config?.injector ?? inject(Injector);
     const signalMethodFn = (input, config) => {
         if (isSignal(input)) {
-            const instanceInjector = config?.injector ?? getCallerInjector() ?? sourceInjector;
+            const callerInjector = getCallerInjector();
+            if (typeof ngDevMode !== 'undefined' &&
+                ngDevMode &&
+                config?.injector === undefined &&
+                callerInjector === undefined) {
+                console.warn('@ngrx/signals: The function returned by signalMethod was called', 'outside the injection context with a signal. This may lead to', 'a memory leak. Make sure to call it within the injection context', '(e.g. in a constructor or field initializer) or pass an injector', 'explicitly via the config parameter.\n\nFor more information, see:', 'https://ngrx.io/guide/signals/signal-method#automatic-cleanup');
+            }
+            const instanceInjector = config?.injector ?? callerInjector ?? sourceInjector;
             const watcher = effect(() => {
                 const value = input();
                 untracked(() => processingFn(value));
@@ -91,12 +98,18 @@ function getCallerInjector() {
         return inject(Injector);
     }
     catch {
-        return null;
+        return undefined;
     }
 }
 
 const STATE_WATCHERS = new WeakMap();
 const STATE_SOURCE = Symbol('STATE_SOURCE');
+function isWritableStateSource(stateSource) {
+    return ('set' in stateSource[STATE_SOURCE] &&
+        'update' in stateSource[STATE_SOURCE] &&
+        typeof stateSource[STATE_SOURCE].set === 'function' &&
+        typeof stateSource[STATE_SOURCE].update === 'function');
+}
 function patchState(stateSource, ...updaters) {
     stateSource[STATE_SOURCE].update((currentState) => updaters.reduce((nextState, updater) => ({
         ...nextState,
@@ -174,10 +187,10 @@ function signalStore(...args) {
                 inject(DestroyRef).onDestroy(onDestroy);
             }
         }
-        /** @nocollapse */ static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "19.0.0", ngImport: i0, type: SignalStore, deps: [], target: i0.ɵɵFactoryTarget.Injectable });
-        /** @nocollapse */ static ɵprov = i0.ɵɵngDeclareInjectable({ minVersion: "12.0.0", version: "19.0.0", ngImport: i0, type: SignalStore, providedIn: config.providedIn || null });
+        /** @nocollapse */ static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "19.2.3", ngImport: i0, type: SignalStore, deps: [], target: i0.ɵɵFactoryTarget.Injectable });
+        /** @nocollapse */ static ɵprov = i0.ɵɵngDeclareInjectable({ minVersion: "12.0.0", version: "19.2.3", ngImport: i0, type: SignalStore, providedIn: config.providedIn || null });
     }
-    i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "19.0.0", ngImport: i0, type: SignalStore, decorators: [{
+    i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "19.2.3", ngImport: i0, type: SignalStore, decorators: [{
                 type: Injectable,
                 args: [{ providedIn: config.providedIn || null }]
             }], ctorParameters: () => [] });
@@ -204,7 +217,7 @@ function type() {
 }
 
 function assertUniqueStoreMembers(store, newMemberKeys) {
-    if (!ngDevMode) {
+    if (typeof ngDevMode === 'undefined' || !ngDevMode) {
         return;
     }
     const storeMembers = {
@@ -236,6 +249,40 @@ function withProps(propsFactory) {
 
 function withComputed(signalsFactory) {
     return withProps(signalsFactory);
+}
+
+/**
+ * @description
+ * Allows passing properties, methods, or signals from a SignalStore
+ * to a feature.
+ *
+ * @usageNotes
+ * ```typescript
+ * signalStore(
+ *   withMethods((store) => ({
+ *     load(id: number): Observable<Entity> {
+ *       return of({ id, name: 'John' });
+ *     },
+ *   })),
+ *   withFeature(
+ *     // 👇 has full access to the store
+ *     (store) => withEntityLoader((id) => firstValueFrom(store.load(id)))
+ *   )
+ * );
+ * ```
+ *
+ * @param featureFactory function returning the actual feature
+ */
+function withFeature(featureFactory) {
+    return (store) => {
+        const storeForFactory = {
+            [STATE_SOURCE]: store[STATE_SOURCE],
+            ...store['stateSignals'],
+            ...store['props'],
+            ...store['methods'],
+        };
+        return featureFactory(storeForFactory)(store);
+    };
 }
 
 function withHooks(hooksOrFactory) {
@@ -311,5 +358,5 @@ function withState(stateOrFactory) {
  * Generated bundle index. Do not edit.
  */
 
-export { deepComputed, getState, patchState, signalMethod, signalState, signalStore, signalStoreFeature, type, watchState, withComputed, withHooks, withMethods, withProps, withState };
+export { deepComputed, getState, isWritableStateSource, patchState, signalMethod, signalState, signalStore, signalStoreFeature, type, watchState, withComputed, withFeature, withHooks, withMethods, withProps, withState };
 //# sourceMappingURL=ngrx-signals.mjs.map

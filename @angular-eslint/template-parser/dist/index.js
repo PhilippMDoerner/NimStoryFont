@@ -44,6 +44,7 @@ const KEYS = {
     ForLoopBlockEmpty: ['children'],
     Content: ['children'],
     LetDeclaration: ['value'],
+    ParenthesizedExpression: ['expression'],
 };
 function fallbackKeysFilter(key) {
     let value = null;
@@ -210,9 +211,7 @@ function parseForESLint(code, options) {
         templateNodes: angularCompilerResult.nodes,
         value: code,
     };
-    // @ts-expect-error The types for ScopeManager seem to be wrong, it requires a configuration object or it will throw at runtime
     const scopeManager = new eslint_scope_1.ScopeManager({});
-    // @ts-expect-error Create a global scope for the ScopeManager, the types for Scope also seem to be wrong
     new eslint_scope_1.Scope(scopeManager, 'module', null, ast, false);
     preprocessNode(ast);
     const startSourceSpan = getStartSourceSpanFromAST(ast);
@@ -224,9 +223,7 @@ function parseForESLint(code, options) {
             end: (0, convert_source_span_to_loc_1.convertNodeSourceSpanToLoc)(endSourceSpan).end,
         };
     }
-    // TODO: Investigate no longer suppressing parse errors by default in v19
-    const suppressParseErrors = options.suppressParseErrors ?? true;
-    if (!suppressParseErrors && angularCompilerResult.errors?.length) {
+    if (!options.suppressParseErrors && angularCompilerResult.errors?.length) {
         throw createTemplateParseError(angularCompilerResult.errors[0]);
     }
     return {
@@ -243,7 +240,6 @@ function parse(code, options) {
     return parseForESLint(code, options).ast;
 }
 // NOTE - we cannot migrate this to an import statement because it will make TSC copy the package.json to the dist folder
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 exports.version = require('../package.json').version;
 exports.meta = {
     name: 'angular-eslint/template-parser',

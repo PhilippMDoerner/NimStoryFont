@@ -8,4 +8,5 @@
 import { JsonValue } from '../utils';
 import { JsonPointer } from './interface';
 import { JsonSchema } from './schema';
+export declare function addUndefinedObjectDefaults(value: JsonValue, _pointer: JsonPointer, schema?: JsonSchema): JsonValue;
 export declare function addUndefinedDefaults(value: JsonValue, _pointer: JsonPointer, schema?: JsonSchema): JsonValue;

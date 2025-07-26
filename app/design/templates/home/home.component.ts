@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -6,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { CampaignOverview } from 'src/app/_models/campaign';
 import {
@@ -16,9 +18,6 @@ import {
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { of } from 'rxjs';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { OnlineService } from 'src/app/_services/online.service';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
@@ -64,6 +63,7 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
     ContextMenuComponent,
     SwitchComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
   globalStore = inject(GlobalStore);
@@ -96,9 +96,6 @@ export class HomeComponent {
 
   isOnline$ = inject(OnlineService).online$;
 
-  isHotkeyModifierPressed = toSignal(
-    inject(HotkeyService).isHotkeyModifierPressed$ ?? of(false),
-  );
   timeFilterOptions = computed<MenuItem[]>(() => {
     return FILTER_MODES.map((mode) => ({
       actionName: mode,
@@ -159,7 +156,7 @@ export class HomeComponent {
       .slice(0, firstArticleOutOfTimeframeIndex)
       .map((art) => this.toIconCardEntry(art));
   });
-  pageNumber = 0;
+  pageNumber = signal(0);
   id = componentId();
 
   constructor() {
@@ -172,19 +169,19 @@ export class HomeComponent {
 
       const scrollEvent = this.globalStore.contentScrollEvents();
       if (!scrollEvent) return;
-
-      this.onPageScroll(scrollEvent);
+      const currentPageNumber = untracked(() => this.pageNumber());
+      this.onPageScroll(scrollEvent, currentPageNumber);
     });
   }
 
-  triggerNextPageLoad(): void {
+  triggerNextPageLoad(currentPageNumber: number): void {
     const canLoadNextPage = this.canLoadMore();
     if (!canLoadNextPage) {
       return;
     }
 
-    this.pageNumber += 1;
-    this.loadArticlePage.emit(this.pageNumber);
+    this.pageNumber.set(currentPageNumber + 1);
+    this.loadArticlePage.emit(currentPageNumber);
   }
 
   toggleFeedMode(isSwitchedOn: boolean) {
@@ -220,9 +217,9 @@ export class HomeComponent {
     }
   }
 
-  private onPageScroll(event: ContentScrollEvent) {
+  private onPageScroll(event: ContentScrollEvent, currentPageNumber: number) {
     if (this.isNearPageEnd(event)) {
-      this.triggerNextPageLoad();
+      this.triggerNextPageLoad(currentPageNumber);
     }
   }
 

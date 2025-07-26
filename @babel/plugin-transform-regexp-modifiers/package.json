@@ -1,6 +1,6 @@
 {
   "name": "@babel/plugin-transform-regexp-modifiers",
-  "version": "7.26.0",
+  "version": "7.27.1",
   "description": "Compile inline regular expression modifiers",
   "homepage": "https://babel.dev/docs/en/next/babel-plugin-transform-regexp-modifiers",
   "license": "MIT",
@@ -21,14 +21,14 @@
   },
   "bugs": "https://github.com/babel/babel/issues",
   "dependencies": {
-    "@babel/helper-create-regexp-features-plugin": "^7.25.9",
-    "@babel/helper-plugin-utils": "^7.25.9"
+    "@babel/helper-create-regexp-features-plugin": "^7.27.1",
+    "@babel/helper-plugin-utils": "^7.27.1"
   },
   "peerDependencies": {
     "@babel/core": "^7.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.26.0"
+    "@babel/core": "^7.27.1"
   },
   "engines": {
     "node": ">=6.9.0"

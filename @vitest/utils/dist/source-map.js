@@ -1,4 +1,4 @@
-import { notNullish, isPrimitive } from './helpers.js';
+import { isPrimitive, notNullish } from './helpers.js';
 
 const comma = ','.charCodeAt(0);
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -22,7 +22,7 @@ function decodeInteger(reader, relative) {
     const shouldNegate = value & 1;
     value >>>= 1;
     if (shouldNegate) {
-        value = -0x80000000 | -value;
+        value = -2147483648 | -value;
     }
     return relative + value;
 }
@@ -612,6 +612,40 @@ function generatedPositionFor(map, needle) {
     const { source, line, column, bias } = needle;
     return generatedPosition(map, source, line, column, bias || GREATEST_LOWER_BOUND, false);
 }
+/**
+ * Iterates each mapping in generated position order.
+ */
+function eachMapping(map, cb) {
+    const decoded = decodedMappings(map);
+    const { names, resolvedSources } = map;
+    for (let i = 0; i < decoded.length; i++) {
+        const line = decoded[i];
+        for (let j = 0; j < line.length; j++) {
+            const seg = line[j];
+            const generatedLine = i + 1;
+            const generatedColumn = seg[0];
+            let source = null;
+            let originalLine = null;
+            let originalColumn = null;
+            let name = null;
+            if (seg.length !== 1) {
+                source = resolvedSources[seg[1]];
+                originalLine = seg[2] + 1;
+                originalColumn = seg[3];
+            }
+            if (seg.length === 5)
+                name = names[seg[4]];
+            cb({
+                generatedLine,
+                generatedColumn,
+                source,
+                originalLine,
+                originalColumn,
+                name,
+            });
+        }
+    }
+}
 function OMapping(source, line, column, name) {
     return { source, line, column, name };
 }
@@ -628,33 +662,6 @@ function traceSegmentInternal(segments, memo, line, column, bias) {
     if (index === -1 || index === segments.length)
         return -1;
     return index;
-}
-function sliceGeneratedPositions(segments, memo, line, column, bias) {
-    let min = traceSegmentInternal(segments, memo, line, column, GREATEST_LOWER_BOUND);
-    // We ignored the bias when tracing the segment so that we're guarnateed to find the first (in
-    // insertion order) segment that matched. Even if we did respect the bias when tracing, we would
-    // still need to call `lowerBound()` to find the first segment, which is slower than just looking
-    // for the GREATEST_LOWER_BOUND to begin with. The only difference that matters for us is when the
-    // binary search didn't match, in which case GREATEST_LOWER_BOUND just needs to increment to
-    // match LEAST_UPPER_BOUND.
-    if (!found && bias === LEAST_UPPER_BOUND)
-        min++;
-    if (min === -1 || min === segments.length)
-        return [];
-    // We may have found the segment that started at an earlier column. If this is the case, then we
-    // need to slice all generated segments that match _that_ column, because all such segments span
-    // to our desired column.
-    const matchedColumn = found ? column : segments[min][COLUMN];
-    // The binary search is not guaranteed to find the lower bound when a match wasn't found.
-    if (!found)
-        min = lowerBound(segments, matchedColumn, min);
-    const max = upperBound(segments, matchedColumn, min);
-    const result = [];
-    for (; min <= max; min++) {
-        const segment = segments[min];
-        result.push(GMapping(segment[REV_GENERATED_LINE] + 1, segment[REV_GENERATED_COLUMN]));
-    }
-    return result;
 }
 function generatedPosition(map, source, line, column, bias, all) {
     var _a;
@@ -674,8 +681,6 @@ function generatedPosition(map, source, line, column, bias, all) {
     if (segments == null)
         return all ? [] : GMapping(null, null);
     const memo = cast(map)._bySourceMemos[sourceIndex];
-    if (all)
-        return sliceGeneratedPositions(segments, memo, line, column, bias);
     const index = traceSegmentInternal(segments, memo, line, column, bias);
     if (index === -1)
         return GMapping(null, null);
@@ -781,178 +786,211 @@ const isAbsolute = function(p) {
 const CHROME_IE_STACK_REGEXP = /^\s*at .*(?:\S:\d+|\(native\))/m;
 const SAFARI_NATIVE_CODE_REGEXP = /^(?:eval@)?(?:\[native code\])?$/;
 const stackIgnorePatterns = [
-  "node:internal",
-  /\/packages\/\w+\/dist\//,
-  /\/@vitest\/\w+\/dist\//,
-  "/vitest/dist/",
-  "/vitest/src/",
-  "/vite-node/dist/",
-  "/vite-node/src/",
-  "/node_modules/chai/",
-  "/node_modules/tinypool/",
-  "/node_modules/tinyspy/",
-  // browser related deps
-  "/deps/chunk-",
-  "/deps/@vitest",
-  "/deps/loupe",
-  "/deps/chai",
-  /node:\w+/,
-  /__vitest_test__/,
-  /__vitest_browser__/,
-  /\/deps\/vitest_/
+	"node:internal",
+	/\/packages\/\w+\/dist\//,
+	/\/@vitest\/\w+\/dist\//,
+	"/vitest/dist/",
+	"/vitest/src/",
+	"/vite-node/dist/",
+	"/vite-node/src/",
+	"/node_modules/chai/",
+	"/node_modules/tinypool/",
+	"/node_modules/tinyspy/",
+	"/deps/chunk-",
+	"/deps/@vitest",
+	"/deps/loupe",
+	"/deps/chai",
+	/node:\w+/,
+	/__vitest_test__/,
+	/__vitest_browser__/,
+	/\/deps\/vitest_/
 ];
 function extractLocation(urlLike) {
-  if (!urlLike.includes(":")) {
-    return [urlLike];
-  }
-  const regExp = /(.+?)(?::(\d+))?(?::(\d+))?$/;
-  const parts = regExp.exec(urlLike.replace(/^\(|\)$/g, ""));
-  if (!parts) {
-    return [urlLike];
-  }
-  let url = parts[1];
-  if (url.startsWith("async ")) {
-    url = url.slice(6);
-  }
-  if (url.startsWith("http:") || url.startsWith("https:")) {
-    const urlObj = new URL(url);
-    url = urlObj.pathname;
-  }
-  if (url.startsWith("/@fs/")) {
-    const isWindows = /^\/@fs\/[a-zA-Z]:\//.test(url);
-    url = url.slice(isWindows ? 5 : 4);
-  }
-  return [url, parts[2] || void 0, parts[3] || void 0];
+	// Fail-fast but return locations like "(native)"
+	if (!urlLike.includes(":")) {
+		return [urlLike];
+	}
+	const regExp = /(.+?)(?::(\d+))?(?::(\d+))?$/;
+	const parts = regExp.exec(urlLike.replace(/^\(|\)$/g, ""));
+	if (!parts) {
+		return [urlLike];
+	}
+	let url = parts[1];
+	if (url.startsWith("async ")) {
+		url = url.slice(6);
+	}
+	if (url.startsWith("http:") || url.startsWith("https:")) {
+		const urlObj = new URL(url);
+		urlObj.searchParams.delete("import");
+		urlObj.searchParams.delete("browserv");
+		url = urlObj.pathname + urlObj.hash + urlObj.search;
+	}
+	if (url.startsWith("/@fs/")) {
+		const isWindows = /^\/@fs\/[a-zA-Z]:\//.test(url);
+		url = url.slice(isWindows ? 5 : 4);
+	}
+	return [
+		url,
+		parts[2] || undefined,
+		parts[3] || undefined
+	];
 }
 function parseSingleFFOrSafariStack(raw) {
-  let line = raw.trim();
-  if (SAFARI_NATIVE_CODE_REGEXP.test(line)) {
-    return null;
-  }
-  if (line.includes(" > eval")) {
-    line = line.replace(
-      / line (\d+)(?: > eval line \d+)* > eval:\d+:\d+/g,
-      ":$1"
-    );
-  }
-  if (!line.includes("@") && !line.includes(":")) {
-    return null;
-  }
-  const functionNameRegex = /((.*".+"[^@]*)?[^@]*)(@)/;
-  const matches = line.match(functionNameRegex);
-  const functionName = matches && matches[1] ? matches[1] : void 0;
-  const [url, lineNumber, columnNumber] = extractLocation(
-    line.replace(functionNameRegex, "")
-  );
-  if (!url || !lineNumber || !columnNumber) {
-    return null;
-  }
-  return {
-    file: url,
-    method: functionName || "",
-    line: Number.parseInt(lineNumber),
-    column: Number.parseInt(columnNumber)
-  };
+	let line = raw.trim();
+	if (SAFARI_NATIVE_CODE_REGEXP.test(line)) {
+		return null;
+	}
+	if (line.includes(" > eval")) {
+		line = line.replace(/ line (\d+)(?: > eval line \d+)* > eval:\d+:\d+/g, ":$1");
+	}
+	if (!line.includes("@") && !line.includes(":")) {
+		return null;
+	}
+	// eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation
+	const functionNameRegex = /((.*".+"[^@]*)?[^@]*)(@)/;
+	const matches = line.match(functionNameRegex);
+	const functionName = matches && matches[1] ? matches[1] : undefined;
+	const [url, lineNumber, columnNumber] = extractLocation(line.replace(functionNameRegex, ""));
+	if (!url || !lineNumber || !columnNumber) {
+		return null;
+	}
+	return {
+		file: url,
+		method: functionName || "",
+		line: Number.parseInt(lineNumber),
+		column: Number.parseInt(columnNumber)
+	};
 }
 function parseSingleStack(raw) {
-  const line = raw.trim();
-  if (!CHROME_IE_STACK_REGEXP.test(line)) {
-    return parseSingleFFOrSafariStack(line);
-  }
-  return parseSingleV8Stack(line);
+	const line = raw.trim();
+	if (!CHROME_IE_STACK_REGEXP.test(line)) {
+		return parseSingleFFOrSafariStack(line);
+	}
+	return parseSingleV8Stack(line);
 }
+// Based on https://github.com/stacktracejs/error-stack-parser
+// Credit to stacktracejs
 function parseSingleV8Stack(raw) {
-  let line = raw.trim();
-  if (!CHROME_IE_STACK_REGEXP.test(line)) {
-    return null;
-  }
-  if (line.includes("(eval ")) {
-    line = line.replace(/eval code/g, "eval").replace(/(\(eval at [^()]*)|(,.*$)/g, "");
-  }
-  let sanitizedLine = line.replace(/^\s+/, "").replace(/\(eval code/g, "(").replace(/^.*?\s+/, "");
-  const location = sanitizedLine.match(/ (\(.+\)$)/);
-  sanitizedLine = location ? sanitizedLine.replace(location[0], "") : sanitizedLine;
-  const [url, lineNumber, columnNumber] = extractLocation(
-    location ? location[1] : sanitizedLine
-  );
-  let method = location && sanitizedLine || "";
-  let file = url && ["eval", "<anonymous>"].includes(url) ? void 0 : url;
-  if (!file || !lineNumber || !columnNumber) {
-    return null;
-  }
-  if (method.startsWith("async ")) {
-    method = method.slice(6);
-  }
-  if (file.startsWith("file://")) {
-    file = file.slice(7);
-  }
-  file = resolve(file);
-  if (method) {
-    method = method.replace(/__vite_ssr_import_\d+__\./g, "");
-  }
-  return {
-    method,
-    file,
-    line: Number.parseInt(lineNumber),
-    column: Number.parseInt(columnNumber)
-  };
+	let line = raw.trim();
+	if (!CHROME_IE_STACK_REGEXP.test(line)) {
+		return null;
+	}
+	if (line.includes("(eval ")) {
+		line = line.replace(/eval code/g, "eval").replace(/(\(eval at [^()]*)|(,.*$)/g, "");
+	}
+	let sanitizedLine = line.replace(/^\s+/, "").replace(/\(eval code/g, "(").replace(/^.*?\s+/, "");
+	// capture and preserve the parenthesized location "(/foo/my bar.js:12:87)" in
+	// case it has spaces in it, as the string is split on \s+ later on
+	const location = sanitizedLine.match(/ (\(.+\)$)/);
+	// remove the parenthesized location from the line, if it was matched
+	sanitizedLine = location ? sanitizedLine.replace(location[0], "") : sanitizedLine;
+	// if a location was matched, pass it to extractLocation() otherwise pass all sanitizedLine
+	// because this line doesn't have function name
+	const [url, lineNumber, columnNumber] = extractLocation(location ? location[1] : sanitizedLine);
+	let method = location && sanitizedLine || "";
+	let file = url && ["eval", "<anonymous>"].includes(url) ? undefined : url;
+	if (!file || !lineNumber || !columnNumber) {
+		return null;
+	}
+	if (method.startsWith("async ")) {
+		method = method.slice(6);
+	}
+	if (file.startsWith("file://")) {
+		file = file.slice(7);
+	}
+	// normalize Windows path (\ -> /)
+	file = file.startsWith("node:") || file.startsWith("internal:") ? file : resolve(file);
+	if (method) {
+		method = method.replace(/__vite_ssr_import_\d+__\./g, "");
+	}
+	return {
+		method,
+		file,
+		line: Number.parseInt(lineNumber),
+		column: Number.parseInt(columnNumber)
+	};
 }
 function createStackString(stacks) {
-  return stacks.map((stack) => {
-    const line = `${stack.file}:${stack.line}:${stack.column}`;
-    if (stack.method) {
-      return `    at ${stack.method}(${line})`;
-    }
-    return `    at ${line}`;
-  }).join("\n");
+	return stacks.map((stack) => {
+		const line = `${stack.file}:${stack.line}:${stack.column}`;
+		if (stack.method) {
+			return `    at ${stack.method}(${line})`;
+		}
+		return `    at ${line}`;
+	}).join("\n");
 }
 function parseStacktrace(stack, options = {}) {
-  const { ignoreStackEntries = stackIgnorePatterns } = options;
-  let stacks = !CHROME_IE_STACK_REGEXP.test(stack) ? parseFFOrSafariStackTrace(stack) : parseV8Stacktrace(stack);
-  if (ignoreStackEntries.length) {
-    stacks = stacks.filter(
-      (stack2) => !ignoreStackEntries.some((p) => stack2.file.match(p))
-    );
-  }
-  return stacks.map((stack2) => {
-    var _a;
-    if (options.getFileName) {
-      stack2.file = options.getFileName(stack2.file);
-    }
-    const map = (_a = options.getSourceMap) == null ? void 0 : _a.call(options, stack2.file);
-    if (!map || typeof map !== "object" || !map.version) {
-      return stack2;
-    }
-    const traceMap = new TraceMap(map);
-    const { line, column } = originalPositionFor(traceMap, stack2);
-    if (line != null && column != null) {
-      return { ...stack2, line, column };
-    }
-    return stack2;
-  });
+	const { ignoreStackEntries = stackIgnorePatterns } = options;
+	const stacks = !CHROME_IE_STACK_REGEXP.test(stack) ? parseFFOrSafariStackTrace(stack) : parseV8Stacktrace(stack);
+	return stacks.map((stack) => {
+		var _options$getSourceMap;
+		if (options.getUrlId) {
+			stack.file = options.getUrlId(stack.file);
+		}
+		const map = (_options$getSourceMap = options.getSourceMap) === null || _options$getSourceMap === void 0 ? void 0 : _options$getSourceMap.call(options, stack.file);
+		if (!map || typeof map !== "object" || !map.version) {
+			return shouldFilter(ignoreStackEntries, stack.file) ? null : stack;
+		}
+		const traceMap = new TraceMap(map);
+		const { line, column, source, name } = originalPositionFor(traceMap, stack);
+		let file = stack.file;
+		if (source) {
+			const fileUrl = stack.file.startsWith("file://") ? stack.file : `file://${stack.file}`;
+			const sourceRootUrl = map.sourceRoot ? new URL(map.sourceRoot, fileUrl) : fileUrl;
+			file = new URL(source, sourceRootUrl).pathname;
+			// if the file path is on windows, we need to remove the leading slash
+			if (file.match(/\/\w:\//)) {
+				file = file.slice(1);
+			}
+		}
+		if (shouldFilter(ignoreStackEntries, file)) {
+			return null;
+		}
+		if (line != null && column != null) {
+			return {
+				line,
+				column,
+				file,
+				method: name || stack.method
+			};
+		}
+		return stack;
+	}).filter((s) => s != null);
+}
+function shouldFilter(ignoreStackEntries, file) {
+	return ignoreStackEntries.some((p) => file.match(p));
 }
 function parseFFOrSafariStackTrace(stack) {
-  return stack.split("\n").map((line) => parseSingleFFOrSafariStack(line)).filter(notNullish);
+	return stack.split("\n").map((line) => parseSingleFFOrSafariStack(line)).filter(notNullish);
 }
 function parseV8Stacktrace(stack) {
-  return stack.split("\n").map((line) => parseSingleV8Stack(line)).filter(notNullish);
+	return stack.split("\n").map((line) => parseSingleV8Stack(line)).filter(notNullish);
 }
 function parseErrorStacktrace(e, options = {}) {
-  if (!e || isPrimitive(e)) {
-    return [];
-  }
-  if (e.stacks) {
-    return e.stacks;
-  }
-  const stackStr = e.stack || e.stackStr || "";
-  let stackFrames = parseStacktrace(stackStr, options);
-  if (options.frameFilter) {
-    stackFrames = stackFrames.filter(
-      (f) => options.frameFilter(e, f) !== false
-    );
-  }
-  e.stacks = stackFrames;
-  return stackFrames;
+	if (!e || isPrimitive(e)) {
+		return [];
+	}
+	if (e.stacks) {
+		return e.stacks;
+	}
+	const stackStr = e.stack || "";
+	// if "stack" property was overwritten at runtime to be something else,
+	// ignore the value because we don't know how to process it
+	let stackFrames = typeof stackStr === "string" ? parseStacktrace(stackStr, options) : [];
+	if (!stackFrames.length) {
+		const e_ = e;
+		if (e_.fileName != null && e_.lineNumber != null && e_.columnNumber != null) {
+			stackFrames = parseStacktrace(`${e_.fileName}:${e_.lineNumber}:${e_.columnNumber}`, options);
+		}
+		if (e_.sourceURL != null && e_.line != null && e_._column != null) {
+			stackFrames = parseStacktrace(`${e_.sourceURL}:${e_.line}:${e_.column}`, options);
+		}
+	}
+	if (options.frameFilter) {
+		stackFrames = stackFrames.filter((f) => options.frameFilter(e, f) !== false);
+	}
+	e.stacks = stackFrames;
+	return stackFrames;
 }
 
-export { TraceMap, createStackString, generatedPositionFor, originalPositionFor, parseErrorStacktrace, parseSingleFFOrSafariStack, parseSingleStack, parseSingleV8Stack, parseStacktrace };
+export { TraceMap, createStackString, eachMapping, generatedPositionFor, originalPositionFor, parseErrorStacktrace, parseSingleFFOrSafariStack, parseSingleStack, parseSingleV8Stack, parseStacktrace };

@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Campaign } from 'src/app/_models/campaign';
 import { OverviewItem } from 'src/app/_models/overview';
@@ -11,6 +17,7 @@ import { CreateUpdateComponent } from '../create-update/create-update.component'
   imports: [CreateUpdateComponent],
   templateUrl: './campaign-update.component.html',
   styleUrl: './campaign-update.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignUpdateComponent {
   userModel = input.required<Partial<Campaign>>();

@@ -1,5 +1,10 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -20,6 +25,7 @@ import { CreateUpdateState } from '../_models/create-update-states';
     CompareFormComponent,
     HotkeyDirective,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateUpdateComponent<Full, Raw> {
   heading = input.required<string>();

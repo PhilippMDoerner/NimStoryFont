@@ -42,7 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.execute = execute;
 const private_1 = require("@angular/build/private");
-const path = __importStar(require("path"));
+const path = __importStar(require("node:path"));
 const rxjs_1 = require("rxjs");
 const configs_1 = require("../../tools/webpack/configs");
 const webpack_browser_config_1 = require("../../utils/webpack-browser-config");
@@ -116,7 +116,7 @@ async function initializeBrowser(options, context, webpackConfigurationTransform
         budgets: undefined,
         optimization: false,
         buildOptimizer: false,
-        aot: false,
+        aot: options.aot,
         vendorChunk: true,
         namedChunks: true,
         extractLicenses: false,
@@ -132,13 +132,10 @@ async function initializeBrowser(options, context, webpackConfigurationTransform
 function getBuiltInMainFile() {
     const content = Buffer.from(`
   import { getTestBed } from '@angular/core/testing';
-  import {
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting,
-   } from '@angular/platform-browser-dynamic/testing';
+  import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
 
   // Initialize the Angular testing environment.
-  getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+  getTestBed().initTestEnvironment(BrowserTestingModule, platformBrowserTesting(), {
     errorOnUnknownElements: true,
     errorOnUnknownProperties: true
   });

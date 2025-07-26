@@ -15,6 +15,7 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../../declarations/WebpackOptions").CssGeneratorExportsConvention} CssGeneratorExportsConvention */
 /** @typedef {import("../../declarations/WebpackOptions").CssGeneratorLocalIdentName} CssGeneratorLocalIdentName */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../CssModule")} CssModule */
 /** @typedef {import("../Dependency")} Dependency */
@@ -29,7 +30,6 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
-/** @typedef {import("../util/createHash").Algorithm} Algorithm */
 
 const getCssParser = memoize(() => require("../css/CssParser"));
 
@@ -41,9 +41,10 @@ const getCssParser = memoize(() => require("../css/CssParser"));
  * @returns {string} local ident
  */
 const getLocalIdent = (local, module, chunkGraph, runtimeTemplate) => {
+	const generator = /** @type {CssGenerator} */ (module.generator);
 	const localIdentName =
-		/** @type {CssGenerator} */
-		(module.generator).localIdentName;
+		/** @type {CssGeneratorLocalIdentName} */
+		(generator.localIdentName);
 	const relativeResourcePath = makePathsRelative(
 		/** @type {string} */
 		(module.context),
@@ -52,7 +53,7 @@ const getLocalIdent = (local, module, chunkGraph, runtimeTemplate) => {
 	);
 	const { hashFunction, hashDigest, hashDigestLength, hashSalt, uniqueName } =
 		runtimeTemplate.outputOptions;
-	const hash = createHash(/** @type {Algorithm} */ (hashFunction));
+	const hash = createHash(/** @type {HashFunction} */ (hashFunction));
 
 	if (hashSalt) {
 		hash.update(hashSalt);
@@ -120,10 +121,11 @@ class CssLocalIdentifierDependency extends NullDependency {
 	 */
 	getExports(moduleGraph) {
 		const module = /** @type {CssModule} */ (moduleGraph.getParentModule(this));
-		const convention =
-			/** @type {CssGenerator} */
-			(module.generator).convention;
-		const names = this.getExportsConventionNames(this.name, convention);
+		const generator = /** @type {CssGenerator} */ (module.generator);
+		const names = this.getExportsConventionNames(
+			this.name,
+			/** @type {CssGeneratorExportsConvention} */ (generator.convention)
+		);
 		return {
 			exports: names.map(name => ({
 				name,
@@ -144,12 +146,11 @@ class CssLocalIdentifierDependency extends NullDependency {
 			const module =
 				/** @type {CssModule} */
 				(chunkGraph.moduleGraph.getParentModule(this));
-			const generator =
-				/** @type {CssGenerator} */
-				(module.generator);
+			const generator = /** @type {CssGenerator} */ (module.generator);
 			const names = this.getExportsConventionNames(
 				this.name,
-				generator.convention
+				/** @type {CssGeneratorExportsConvention} */
+				(generator.convention)
 			);
 			this._hashUpdate = `exportsConvention|${JSON.stringify(names)}|localIdentName|${JSON.stringify(generator.localIdentName)}`;
 		}
@@ -214,10 +215,12 @@ CssLocalIdentifierDependency.Template = class CssLocalIdentifierDependencyTempla
 		const { module: m, moduleGraph, runtime, cssData } = templateContext;
 		const dep = /** @type {CssLocalIdentifierDependency} */ (dependency);
 		const module = /** @type {CssModule} */ (m);
-		const convention =
-			/** @type {CssGenerator} */
-			(module.generator).convention;
-		const names = dep.getExportsConventionNames(dep.name, convention);
+		const generator = /** @type {CssGenerator} */ (module.generator);
+		const names = dep.getExportsConventionNames(
+			dep.name,
+			/** @type {CssGeneratorExportsConvention} */
+			(generator.convention)
+		);
 		const usedNames =
 			/** @type {(string)[]} */
 			(
@@ -237,7 +240,7 @@ CssLocalIdentifierDependency.Template = class CssLocalIdentifierDependencyTempla
 		source.replace(dep.range[0], dep.range[1] - 1, identifier);
 
 		for (const used of usedNames.concat(names)) {
-			cssData.exports.set(used, identifier);
+			cssData.exports.set(used, getCssParser().unescapeIdentifier(identifier));
 		}
 	}
 };

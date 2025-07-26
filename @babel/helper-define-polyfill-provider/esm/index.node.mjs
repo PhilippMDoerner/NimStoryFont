@@ -18,20 +18,28 @@ function intersection(a, b) {
 function has$1(object, key) {
   return Object.prototype.hasOwnProperty.call(object, key);
 }
-function getType(target) {
-  return Object.prototype.toString.call(target).slice(8, -1);
+function resolve$1(path, resolved = new Set()) {
+  if (resolved.has(path)) return;
+  resolved.add(path);
+  if (path.isVariableDeclarator()) {
+    if (path.get("id").isIdentifier()) {
+      return resolve$1(path.get("init"), resolved);
+    }
+  } else if (path.isReferencedIdentifier()) {
+    const binding = path.scope.getBinding(path.node.name);
+    if (!binding) return path;
+    if (!binding.constant) return;
+    return resolve$1(binding.path, resolved);
+  }
+  return path;
 }
 function resolveId(path) {
   if (path.isIdentifier() && !path.scope.hasBinding(path.node.name, /* noGlobals */true)) {
     return path.node.name;
   }
-  if (path.isPure()) {
-    const {
-      deopt
-    } = path.evaluate();
-    if (deopt && deopt.isIdentifier()) {
-      return deopt.node.name;
-    }
+  const resolved = resolve$1(path);
+  if (resolved != null && resolved.isIdentifier()) {
+    return resolved.node.name;
   }
 }
 function resolveKey(path, computed = false) {
@@ -79,26 +87,43 @@ function resolveSource(obj) {
       placement: "static"
     };
   }
-  if (obj.isRegExpLiteral()) {
-    return {
-      id: "RegExp",
-      placement: "prototype"
-    };
-  } else if (obj.isFunction()) {
-    return {
-      id: "Function",
-      placement: "prototype"
-    };
-  } else if (obj.isPure()) {
-    const {
-      value
-    } = obj.evaluate();
-    if (value !== undefined) {
+  const path = resolve$1(obj);
+  switch (path == null ? void 0 : path.type) {
+    case "RegExpLiteral":
       return {
-        id: getType(value),
+        id: "RegExp",
         placement: "prototype"
       };
-    }
+    case "FunctionExpression":
+      return {
+        id: "Function",
+        placement: "prototype"
+      };
+    case "StringLiteral":
+      return {
+        id: "String",
+        placement: "prototype"
+      };
+    case "NumberLiteral":
+      return {
+        id: "Number",
+        placement: "prototype"
+      };
+    case "BooleanLiteral":
+      return {
+        id: "Boolean",
+        placement: "prototype"
+      };
+    case "ObjectExpression":
+      return {
+        id: "Object",
+        placement: "prototype"
+      };
+    case "ArrayExpression":
+      return {
+        id: "Array",
+        placement: "prototype"
+      };
   }
   return {
     id: null,
@@ -232,7 +257,7 @@ class ImportsCachedInjector {
         index: newIndex
       });
     } else {
-      const [newPath] = programPath.unshiftContainer("body", node);
+      const [newPath] = programPath.unshiftContainer("body", [node]);
       this._lastImports.set(programPath, [{
         path: newPath,
         index: newIndex
@@ -336,11 +361,12 @@ function isRemoved(path) {
     var _path$parentPath$node;
     if (!((_path$parentPath$node = path.parentPath.node) != null && (_path$parentPath$node = _path$parentPath$node[path.listKey]) != null && _path$parentPath$node.includes(path.node))) return true;
   } else {
-    if (path.parentPath.node[path.key] !== path.node) return true;
+    var _path$parentPath$node2;
+    if (((_path$parentPath$node2 = path.parentPath.node) == null ? void 0 : _path$parentPath$node2[path.key]) !== path.node) return true;
   }
   return isRemoved(path.parentPath);
 }
-var usage = (callProvider => {
+var usage = callProvider => {
   function property(object, key, placement, path) {
     return callProvider({
       kind: "property",
@@ -451,9 +477,9 @@ var usage = (callProvider => {
       }, path);
     }
   };
-});
+};
 
-var entry = (callProvider => ({
+var entry = callProvider => ({
   ImportDeclaration(path) {
     const source = getImportSource(path);
     if (!source) return;
@@ -472,7 +498,7 @@ var entry = (callProvider => ({
       }, bodyPath);
     });
   }
-}));
+});
 
 const nativeRequireResolve = parseFloat(process.versions.node) >= 8.9;
 const require = createRequire(import /*::(_)*/.meta.url); // eslint-disable-line
@@ -801,11 +827,11 @@ function definePolyfillProvider(factory) {
           providers: new Set(),
           missingDeps: new Set()
         };
-        (_provider$pre = provider.pre) == null ? void 0 : _provider$pre.apply(this, arguments);
+        (_provider$pre = provider.pre) == null || _provider$pre.apply(this, arguments);
       },
       post() {
         var _provider$post;
-        (_provider$post = provider.post) == null ? void 0 : _provider$post.apply(this, arguments);
+        (_provider$post = provider.post) == null || _provider$post.apply(this, arguments);
         if (missingDependencies !== false) {
           if (missingDependencies.log === "per-file") {
             logMissing(debugLog.missingDeps);
@@ -850,5 +876,5 @@ function isEmpty(obj) {
   return Object.keys(obj).length === 0;
 }
 
-export default definePolyfillProvider;
+export { definePolyfillProvider as default };
 //# sourceMappingURL=index.node.mjs.map

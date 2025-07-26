@@ -1,13 +1,7 @@
 'use strict';
 
 var index = require('../keyboard/index.js');
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var setSelectionRange = require('../event/selection/setSelectionRange.js');
 
 async function type(element, text, { skipClick = this.config.skipClick, skipAutoClose = this.config.skipAutoClose, initialSelectionStart, initialSelectionEnd } = {}) {
@@ -18,7 +12,7 @@ async function type(element, text, { skipClick = this.config.skipClick, skipAuto
         await this.click(element);
     }
     if (initialSelectionStart !== undefined) {
-        setSelectionRange.setSelectionRange(element, initialSelectionStart, initialSelectionEnd !== null && initialSelectionEnd !== void 0 ? initialSelectionEnd : initialSelectionStart);
+        setSelectionRange.setSelectionRange(element, initialSelectionStart, initialSelectionEnd !== null && initialSelectionEnd !== undefined ? initialSelectionEnd : initialSelectionStart);
     }
     await this.keyboard(text);
     if (!skipAutoClose) {

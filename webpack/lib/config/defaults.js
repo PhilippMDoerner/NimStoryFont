@@ -47,6 +47,7 @@ const {
 /** @typedef {import("../../declarations/WebpackOptions").GeneratorOptionsByModuleTypeKnown} GeneratorOptionsByModuleTypeKnown */
 /** @typedef {import("../../declarations/WebpackOptions").InfrastructureLogging} InfrastructureLogging */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
+/** @typedef {import("../../declarations/WebpackOptions").JsonGeneratorOptions} JsonGeneratorOptions */
 /** @typedef {import("../../declarations/WebpackOptions").Library} Library */
 /** @typedef {import("../../declarations/WebpackOptions").LibraryName} LibraryName */
 /** @typedef {import("../../declarations/WebpackOptions").LibraryOptions} LibraryOptions */
@@ -78,6 +79,10 @@ const {
 
 const NODE_MODULES_REGEXP = /[\\/]node_modules[\\/]/i;
 const DEFAULT_CACHE_NAME = "default";
+const DEFAULTS = {
+	// TODO webpack 6 - use xxhash64
+	HASH_FUNCTION: "md4"
+};
 
 /**
  * Sets a constant default value when undefined
@@ -100,7 +105,7 @@ const D = (obj, prop, value) => {
  * @template {keyof T} P
  * @param {T} obj an object
  * @param {P} prop a property of this object
- * @param {function(): T[P]} factory a default value factory for the property
+ * @param {() => T[P]} factory a default value factory for the property
  * @returns {void}
  */
 const F = (obj, prop, factory) => {
@@ -118,7 +123,7 @@ const F = (obj, prop, factory) => {
  * @template {keyof T} P
  * @param {T} obj an object
  * @param {P} prop a property of this object
- * @param {function(): T[P]} factory a default value factory for the property
+ * @param {() => T[P]} factory a default value factory for the property
  * @returns {void}
  */
 const A = (obj, prop, factory) => {
@@ -161,7 +166,7 @@ const applyWebpackOptionsBaseDefaults = options => {
 
 /**
  * @param {WebpackOptionsNormalized} options options to be modified
- * @param {number} [compilerIndex] index of compiler
+ * @param {number=} compilerIndex index of compiler
  * @returns {ResolvedOptions} Resolved options after apply defaults
  */
 const applyWebpackOptionsDefaults = (options, compilerIndex) => {
@@ -220,6 +225,7 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 		mode: mode || "production",
 		development,
 		cacheUnaffected: options.experiments.cacheUnaffected,
+		futureDefaults,
 		compilerIndex
 	});
 	const cache = Boolean(options.cache);
@@ -261,8 +267,9 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 			(options.experiments.css),
 		futureDefaults,
 		isNode: targetProperties && targetProperties.node === true,
-		uniqueName: options.output.uniqueName,
-		targetProperties
+		uniqueName: /** @type {string} */ (options.output.uniqueName),
+		targetProperties,
+		mode: options.mode
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -396,14 +403,15 @@ const applyExperimentsDefaults = (
  * @param {object} options options
  * @param {string} options.name name
  * @param {Mode} options.mode mode
+ * @param {boolean} options.futureDefaults is future defaults enabled
  * @param {boolean} options.development is development mode
- * @param {number} [options.compilerIndex] index of compiler
+ * @param {number=} options.compilerIndex index of compiler
  * @param {Experiments["cacheUnaffected"]} options.cacheUnaffected the cacheUnaffected experiment is enabled
  * @returns {void}
  */
 const applyCacheDefaults = (
 	cache,
-	{ name, mode, development, cacheUnaffected, compilerIndex }
+	{ name, mode, development, cacheUnaffected, compilerIndex, futureDefaults }
 ) => {
 	if (cache === false) return;
 	switch (cache.type) {
@@ -446,7 +454,7 @@ const applyCacheDefaults = (
 					/** @type {NonNullable<FileCacheOptions["name"]>} */ (cache.name)
 				)
 			);
-			D(cache, "hashAlgorithm", "md4");
+			D(cache, "hashAlgorithm", futureDefaults ? "xxhash64" : "md4");
 			D(cache, "store", "pack");
 			D(cache, "compression", false);
 			D(cache, "profile", false);
@@ -581,6 +589,14 @@ const applyJavascriptParserOptionsDefaults = (
 };
 
 /**
+ * @param {JsonGeneratorOptions} generatorOptions generator options
+ * @returns {void}
+ */
+const applyJsonGeneratorOptionsDefaults = generatorOptions => {
+	D(generatorOptions, "JSONParse", true);
+};
+
+/**
  * @param {CssGeneratorOptions} generatorOptions generator options
  * @param {object} options options
  * @param {TargetProperties | false} options.targetProperties target properties
@@ -609,6 +625,7 @@ const applyCssGeneratorOptionsDefaults = (
  * @param {string} options.uniqueName the unique name
  * @param {boolean} options.isNode is node target platform
  * @param {TargetProperties | false} options.targetProperties target properties
+ * @param {Mode | undefined} options.mode mode
  * @returns {void}
  */
 const applyModuleDefaults = (
@@ -621,7 +638,8 @@ const applyModuleDefaults = (
 		futureDefaults,
 		isNode,
 		uniqueName,
-		targetProperties
+		targetProperties,
+		mode
 	}
 ) => {
 	if (cache) {
@@ -630,11 +648,14 @@ const applyModuleDefaults = (
 			"unsafeCache",
 			/**
 			 * @param {Module} module module
-			 * @returns {boolean | null | string} true, if we want to cache the module
+			 * @returns {boolean} true, if we want to cache the module
 			 */
 			module => {
 				const name = module.nameForCondition();
-				return name && NODE_MODULES_REGEXP.test(name);
+				if (!name) {
+					return false;
+				}
+				return NODE_MODULES_REGEXP.test(name);
 			}
 		);
 	} else {
@@ -643,19 +664,19 @@ const applyModuleDefaults = (
 
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
 	F(
-		/** @type {NonNullable<ParserOptionsByModuleTypeKnown["asset"]>} */
+		/** @type {NonNullable<ParserOptionsByModuleTypeKnown[ASSET_MODULE_TYPE]>} */
 		(module.parser[ASSET_MODULE_TYPE]),
 		"dataUrlCondition",
 		() => ({})
 	);
 	if (
 		typeof (
-			/** @type {NonNullable<ParserOptionsByModuleTypeKnown["asset"]>} */
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[ASSET_MODULE_TYPE]>} */
 			(module.parser[ASSET_MODULE_TYPE]).dataUrlCondition
 		) === "object"
 	) {
 		D(
-			/** @type {NonNullable<ParserOptionsByModuleTypeKnown["asset"]>} */
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[ASSET_MODULE_TYPE]>} */
 			(module.parser[ASSET_MODULE_TYPE]).dataUrlCondition,
 			"maxSize",
 			8096
@@ -663,6 +684,13 @@ const applyModuleDefaults = (
 	}
 
 	F(module.parser, "javascript", () => ({}));
+	F(module.parser, JSON_MODULE_TYPE, () => ({}));
+	D(
+		/** @type {NonNullable<ParserOptionsByModuleTypeKnown[JSON_MODULE_TYPE]>} */
+		(module.parser[JSON_MODULE_TYPE]),
+		"exportsDepth",
+		mode === "development" ? 1 : Infinity
+	);
 
 	applyJavascriptParserOptionsDefaults(
 		/** @type {NonNullable<ParserOptionsByModuleTypeKnown["javascript"]>} */
@@ -673,17 +701,38 @@ const applyModuleDefaults = (
 		}
 	);
 
+	F(module.generator, "json", () => ({}));
+	applyJsonGeneratorOptionsDefaults(
+		/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown["json"]>} */
+		(module.generator.json)
+	);
+
 	if (css) {
 		F(module.parser, CSS_MODULE_TYPE, () => ({}));
 
-		D(module.parser[CSS_MODULE_TYPE], "import", true);
-		D(module.parser[CSS_MODULE_TYPE], "url", true);
-		D(module.parser[CSS_MODULE_TYPE], "namedExports", true);
+		D(
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
+			(module.parser[CSS_MODULE_TYPE]),
+			"import",
+			true
+		);
+		D(
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
+			(module.parser[CSS_MODULE_TYPE]),
+			"url",
+			true
+		);
+		D(
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
+			(module.parser[CSS_MODULE_TYPE]),
+			"namedExports",
+			true
+		);
 
 		F(module.generator, CSS_MODULE_TYPE, () => ({}));
 
 		applyCssGeneratorOptionsDefaults(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown["css"]>} */
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
 			(module.generator[CSS_MODULE_TYPE]),
 			{ targetProperties }
 		);
@@ -692,24 +741,46 @@ const applyModuleDefaults = (
 			uniqueName.length > 0 ? "[uniqueName]-[id]-[local]" : "[id]-[local]";
 
 		F(module.generator, CSS_MODULE_TYPE_AUTO, () => ({}));
-		D(module.generator[CSS_MODULE_TYPE_AUTO], "localIdentName", localIdentName);
-		D(module.generator[CSS_MODULE_TYPE_AUTO], "exportsConvention", "as-is");
+		D(
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]>} */
+			(module.generator[CSS_MODULE_TYPE_AUTO]),
+			"localIdentName",
+			localIdentName
+		);
+		D(
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]>} */
+			(module.generator[CSS_MODULE_TYPE_AUTO]),
+			"exportsConvention",
+			"as-is"
+		);
 
 		F(module.generator, CSS_MODULE_TYPE_MODULE, () => ({}));
 		D(
-			module.generator[CSS_MODULE_TYPE_MODULE],
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
+			(module.generator[CSS_MODULE_TYPE_MODULE]),
 			"localIdentName",
 			localIdentName
 		);
-		D(module.generator[CSS_MODULE_TYPE_MODULE], "exportsConvention", "as-is");
+		D(
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
+			(module.generator[CSS_MODULE_TYPE_MODULE]),
+			"exportsConvention",
+			"as-is"
+		);
 
 		F(module.generator, CSS_MODULE_TYPE_GLOBAL, () => ({}));
 		D(
-			module.generator[CSS_MODULE_TYPE_GLOBAL],
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+			(module.generator[CSS_MODULE_TYPE_GLOBAL]),
 			"localIdentName",
 			localIdentName
 		);
-		D(module.generator[CSS_MODULE_TYPE_GLOBAL], "exportsConvention", "as-is");
+		D(
+			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+			(module.generator[CSS_MODULE_TYPE_GLOBAL]),
+			"exportsConvention",
+			"as-is"
+		);
 	}
 
 	A(module, "defaultRules", () => {
@@ -1075,7 +1146,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	D(output, "compareBeforeEmit", true);
-	D(output, "charset", true);
+	D(output, "charset", !futureDefaults);
 	const uniqueNameId = Template.toIdentifier(
 		/** @type {NonNullable<Output["uniqueName"]>} */ (output.uniqueName)
 	);
@@ -1216,7 +1287,14 @@ const applyOutputDefaults = (
 	);
 	D(output, "workerPublicPath", "");
 	D(output, "chunkLoadTimeout", 120000);
-	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
+	F(output, "hashFunction", () => {
+		if (futureDefaults) {
+			DEFAULTS.HASH_FUNCTION = "xxhash64";
+			return "xxhash64";
+		}
+
+		return "md4";
+	});
 	D(output, "hashDigest", "hex");
 	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
 	D(output, "strictModuleErrorHandling", false);
@@ -1235,7 +1313,7 @@ const applyOutputDefaults = (
 	}
 
 	/**
-	 * @param {function(EntryDescription): void} fn iterator
+	 * @param {(entryDescription: EntryDescription) => void} fn iterator
 	 * @returns {void}
 	 */
 	const forEachEntry = fn => {
@@ -1477,7 +1555,7 @@ const applyOptimizationDefaults = (
 							passes: 2
 						}
 					}
-				}).apply(compiler);
+				}).apply(/** @type {EXPECTED_ANY} */ (compiler));
 			}
 		}
 	]);
@@ -1554,14 +1632,14 @@ const getResolveDefaults = ({
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
 
-	/** @type {function(): ResolveOptions} */
+	/** @type {() => ResolveOptions} */
 	const cjsDeps = () => ({
 		aliasFields: browserField ? ["browser"] : [],
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
 		conditionNames: ["require", "module", "..."],
 		extensions: [...jsExtensions]
 	});
-	/** @type {function(): ResolveOptions} */
+	/** @type {() => ResolveOptions} */
 	const esmDeps = () => ({
 		aliasFields: browserField ? ["browser"] : [],
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
@@ -1610,7 +1688,8 @@ const getResolveDefaults = ({
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
-		resolveOptions.byDependency["css-import"] = {
+		/** @type {NonNullable<ResolveOptions["byDependency"]>} */
+		(resolveOptions.byDependency)["css-import"] = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,
 			// you should always specify the full URL for styles
@@ -1651,8 +1730,8 @@ const getResolveLoaderDefaults = ({ cache }) => {
 const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
-		/** @type {any} */ (infrastructureLogging.stream).isTTY &&
-		process.env.TERM !== "dumb";
+		/** @type {NonNullable<InfrastructureLogging["stream"]>} */
+		(infrastructureLogging.stream).isTTY && process.env.TERM !== "dumb";
 	D(infrastructureLogging, "level", "info");
 	D(infrastructureLogging, "debug", false);
 	D(infrastructureLogging, "colors", tty);
@@ -1662,3 +1741,4 @@ const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 module.exports.applyWebpackOptionsBaseDefaults =
 	applyWebpackOptionsBaseDefaults;
 module.exports.applyWebpackOptionsDefaults = applyWebpackOptionsDefaults;
+module.exports.DEFAULTS = DEFAULTS;

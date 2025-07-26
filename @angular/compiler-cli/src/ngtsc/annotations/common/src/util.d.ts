@@ -26,7 +26,24 @@ export declare function toR3Reference(origin: ts.Node, ref: Reference, context: 
 export declare function isAngularCore(decorator: Decorator): decorator is Decorator & {
     import: Import;
 };
-export declare function isAngularCoreReference(reference: Reference, symbolName: string): boolean;
+/**
+ * This function is used for verifying that a given reference is declared
+ * inside `@angular/core` and corresponds to the given symbol name.
+ *
+ * In some cases, due to the compiler face duplicating many symbols as
+ * an independent bridge between core and the compiler, the dts bundler may
+ * decide to alias declarations in the `.d.ts`, to avoid conflicts.
+ *
+ * e.g.
+ *
+ * ```
+ * declare enum ViewEncapsulation {} // from the facade
+ * declare enum ViewEncapsulation$1 {} // the real one exported to users.
+ * ```
+ *
+ * This function accounts for such potential re-namings.
+ */
+export declare function isAngularCoreReferenceWithPotentialAliasing(reference: Reference, symbolName: string, isCore: boolean): boolean;
 export declare function findAngularDecorator(decorators: Decorator[], name: string, isCore: boolean): Decorator | undefined;
 export declare function isAngularDecorator(decorator: Decorator, name: string, isCore: boolean): boolean;
 export declare function getAngularDecorators(decorators: Decorator[], names: readonly string[], isCore: boolean): Decorator[];
@@ -55,7 +72,7 @@ export declare function tryUnwrapForwardRef(node: ts.Expression, reflector: Refl
  * @param args the arguments to the invocation of the forwardRef expression
  * @returns an unwrapped argument if `ref` pointed to forwardRef, or null otherwise
  */
-export declare const forwardRefResolver: ForeignFunctionResolver;
+export declare function createForwardRefResolver(isCore: boolean): ForeignFunctionResolver;
 /**
  * Combines an array of resolver functions into a one.
  * @param resolvers Resolvers to be combined.

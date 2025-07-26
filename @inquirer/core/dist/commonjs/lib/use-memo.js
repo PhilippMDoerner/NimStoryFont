@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useMemo = useMemo;
-const hook_engine_js_1 = require("./hook-engine.js");
+const hook_engine_ts_1 = require("./hook-engine.js");
 function useMemo(fn, dependencies) {
-    return (0, hook_engine_js_1.withPointer)((pointer) => {
+    return (0, hook_engine_ts_1.withPointer)((pointer) => {
         const prev = pointer.get();
         if (!prev ||
             prev.dependencies.length !== dependencies.length ||

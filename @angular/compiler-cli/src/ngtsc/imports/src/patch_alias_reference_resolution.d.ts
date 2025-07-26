@@ -50,11 +50,16 @@ export type AliasImportDeclaration = ts.ImportSpecifier | ts.NamespaceImport | t
  * that have been referenced in a value-position by the transform, such the installed patch can
  * ensure that those import declarations are not elided.
  *
+ * If `null` is returned then the transform operates in an isolated context, i.e. using the
+ * `ts.transform` API. In such scenario there is no information whether an alias declaration
+ * is referenced, so all alias declarations are naturally preserved and explicitly registering
+ * an alias declaration as used isn't necessary.
+ *
  * See below. Note that this uses sourcegraph as the TypeScript checker file doesn't display on
  * Github.
  * https://sourcegraph.com/github.com/microsoft/TypeScript@3eaa7c65f6f076a08a5f7f1946fd0df7c7430259/-/blob/src/compiler/checker.ts#L31219-31257
  */
-export declare function loadIsReferencedAliasDeclarationPatch(context: ts.TransformationContext): Set<ts.Declaration>;
+export declare function loadIsReferencedAliasDeclarationPatch(context: ts.TransformationContext): Set<ts.Declaration> | null;
 /**
  * Gets whether a given node corresponds to an import alias declaration. Alias
  * declarations can be import specifiers, namespace imports or import clauses

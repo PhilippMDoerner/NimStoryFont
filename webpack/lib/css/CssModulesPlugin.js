@@ -23,6 +23,7 @@ const {
 	CSS_MODULE_TYPE_MODULE,
 	CSS_MODULE_TYPE_AUTO
 } = require("../ModuleTypeConstants");
+const NormalModule = require("../NormalModule");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const SelfModuleFactory = require("../SelfModuleFactory");
 const Template = require("../Template");
@@ -36,16 +37,18 @@ const CssSelfLocalIdentifierDependency = require("../dependencies/CssSelfLocalId
 const CssUrlDependency = require("../dependencies/CssUrlDependency");
 const StaticExportsDependency = require("../dependencies/StaticExportsDependency");
 const JavascriptModulesPlugin = require("../javascript/JavascriptModulesPlugin");
-const { compareModulesByIdentifier } = require("../util/comparators");
+const { compareModulesByIdOrIdentifier } = require("../util/comparators");
 const createSchemaValidation = require("../util/create-schema-validation");
 const createHash = require("../util/createHash");
 const { getUndoPath } = require("../util/identifier");
 const memoize = require("../util/memoize");
 const nonNumericOnlyHash = require("../util/nonNumericOnlyHash");
+const removeBOM = require("../util/removeBOM");
 const CssGenerator = require("./CssGenerator");
 const CssParser = require("./CssParser");
 
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../../declarations/WebpackOptions").OutputNormalized} OutputOptions */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
@@ -54,10 +57,10 @@ const CssParser = require("./CssParser");
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../CssModule").Inheritance} Inheritance */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Template").RuntimeTemplate} RuntimeTemplate */
 /** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
 /** @typedef {import("../util/Hash")} Hash */
-/** @typedef {import("../util/createHash").Algorithm} Algorithm */
 /** @typedef {import("../util/memoize")} Memoize */
 
 /**
@@ -92,7 +95,7 @@ const getCssLoadingRuntimeModule = memoize(() =>
 
 /**
  * @param {string} name name
- * @returns {{oneOf: [{$ref: string}], definitions: *}} schema
+ * @returns {{ oneOf: [{ $ref: string }], definitions: import("../../schemas/WebpackOptions.json")["definitions"] }} schema
  */
 const getSchema = name => {
 	const { definitions } = require("../../schemas/WebpackOptions.json");
@@ -298,7 +301,10 @@ class CssModulesPlugin {
 						.tap(PLUGIN_NAME, generatorOptions => {
 							validateGeneratorOptions[type](generatorOptions);
 
-							return new CssGenerator(generatorOptions);
+							return new CssGenerator(
+								generatorOptions,
+								compilation.moduleGraph
+							);
 						});
 					normalModuleFactory.hooks.createModuleClass
 						.for(type)
@@ -360,19 +366,36 @@ class CssModulesPlugin {
 
 							return new CssModule(createData);
 						});
+
+					NormalModule.getCompilationHooks(compilation).processResult.tap(
+						PLUGIN_NAME,
+						(result, module) => {
+							if (module.type === type) {
+								const [source, ...rest] = result;
+
+								return [removeBOM(source), ...rest];
+							}
+
+							return result;
+						}
+					);
 				}
 
 				JavascriptModulesPlugin.getCompilationHooks(
 					compilation
 				).renderModuleContent.tap(PLUGIN_NAME, (source, module) => {
 					if (module instanceof CssModule && module.hot) {
-						const exports = module.buildInfo.cssData.exports;
+						const cssData = /** @type {BuildInfo} */ (module.buildInfo).cssData;
+						if (!cssData) {
+							return source;
+						}
+						const exports = cssData.exports;
 						const stringifiedExports = JSON.stringify(
 							JSON.stringify(
 								Array.from(exports).reduce((obj, [key, value]) => {
 									obj[key] = value;
 									return obj;
-								}, {})
+								}, /** @type {Record<string, string>} */ ({}))
 							)
 						);
 
@@ -390,6 +413,8 @@ class CssModulesPlugin {
 
 						return new ConcatSource(source, "\n", new RawSource(hmrCode));
 					}
+
+					return source;
 				});
 				const orderedCssModulesPerChunk = new WeakMap();
 				compilation.hooks.afterCodeGeneration.tap(PLUGIN_NAME, () => {
@@ -419,7 +444,7 @@ class CssModulesPlugin {
 							hashFunction
 						}
 					} = compilation;
-					const hash = createHash(/** @type {Algorithm} */ (hashFunction));
+					const hash = createHash(/** @type {HashFunction} */ (hashFunction));
 					if (hashSalt) hash.update(hashSalt);
 					hooks.chunkHash.call(chunk, hash, {
 						chunkGraph,
@@ -475,7 +500,9 @@ class CssModulesPlugin {
 										chunk,
 										chunkGraph,
 										codeGenerationResults,
-										uniqueName: compilation.outputOptions.uniqueName,
+										uniqueName:
+											/** @type {string} */
+											(compilation.outputOptions.uniqueName),
 										undoPath,
 										modules,
 										runtimeTemplate
@@ -598,6 +625,10 @@ class CssModulesPlugin {
 		if (modulesByChunkGroup.length === 1)
 			return modulesByChunkGroup[0].list.reverse();
 
+		const boundCompareModulesByIdOrIdentifier = compareModulesByIdOrIdentifier(
+			compilation.chunkGraph
+		);
+
 		/**
 		 * @param {{ list: Module[] }} a a
 		 * @param {{ list: Module[] }} b b
@@ -608,7 +639,10 @@ class CssModulesPlugin {
 				return b.length === 0 ? 0 : 1;
 			}
 			if (b.length === 0) return -1;
-			return compareModulesByIdentifier(a[a.length - 1], b[b.length - 1]);
+			return boundCompareModulesByIdOrIdentifier(
+				a[a.length - 1],
+				b[b.length - 1]
+			);
 		};
 
 		modulesByChunkGroup.sort(compareModuleLists);
@@ -690,7 +724,7 @@ class CssModulesPlugin {
 					chunkGraph.getOrderedChunkModulesIterableBySourceType(
 						chunk,
 						"css-import",
-						compareModulesByIdentifier
+						compareModulesByIdOrIdentifier(chunkGraph)
 					)
 				),
 				compilation
@@ -702,7 +736,7 @@ class CssModulesPlugin {
 					chunkGraph.getOrderedChunkModulesIterableBySourceType(
 						chunk,
 						"css",
-						compareModulesByIdentifier
+						compareModulesByIdOrIdentifier(chunkGraph)
 					)
 				),
 				compilation
@@ -711,7 +745,7 @@ class CssModulesPlugin {
 	}
 
 	/**
-	 * @param {CssModule}  module css module
+	 * @param {CssModule} module css module
 	 * @param {ChunkRenderContext} renderContext options object
 	 * @param {CompilationHooks} hooks hooks
 	 * @returns {Source} css module source

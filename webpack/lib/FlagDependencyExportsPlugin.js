@@ -14,6 +14,7 @@ const Queue = require("./util/Queue");
 /** @typedef {import("./Dependency").ExportSpec} ExportSpec */
 /** @typedef {import("./Dependency").ExportsSpec} ExportsSpec */
 /** @typedef {import("./ExportsInfo")} ExportsInfo */
+/** @typedef {import("./ExportsInfo").RestoreProvidedData} RestoreProvidedData */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 
@@ -368,7 +369,8 @@ class FlagDependencyExportsPlugin {
 								(module, callback) => {
 									if (
 										typeof (
-											/** @type {BuildInfo} */ (module.buildInfo).hash
+											/** @type {BuildInfo} */
+											(module.buildInfo).hash
 										) !== "string"
 									) {
 										// not cacheable
@@ -400,7 +402,7 @@ class FlagDependencyExportsPlugin {
 				}
 			);
 
-			/** @type {WeakMap<Module, any>} */
+			/** @type {WeakMap<Module, RestoreProvidedData>} */
 			const providedExportsCache = new WeakMap();
 			compilation.hooks.rebuildModule.tap(PLUGIN_NAME, module => {
 				providedExportsCache.set(
@@ -409,9 +411,10 @@ class FlagDependencyExportsPlugin {
 				);
 			});
 			compilation.hooks.finishRebuildingModule.tap(PLUGIN_NAME, module => {
-				moduleGraph
-					.getExportsInfo(module)
-					.restoreProvided(providedExportsCache.get(module));
+				moduleGraph.getExportsInfo(module).restoreProvided(
+					/** @type {RestoreProvidedData} */
+					(providedExportsCache.get(module))
+				);
 			});
 		});
 	}

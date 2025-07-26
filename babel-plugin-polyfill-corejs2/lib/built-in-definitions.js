@@ -3,7 +3,7 @@
 exports.__esModule = true;
 exports.StaticProperties = exports.InstanceProperties = exports.CommonIterators = exports.BuiltIns = void 0;
 var _corejs2BuiltIns = _interopRequireDefault(require("@babel/compat-data/corejs2-built-ins"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const define = (name, pure, global = [], meta) => {
   return {
     name,
@@ -18,10 +18,9 @@ const pureAndGlobal = (pure, global, minRuntimeVersion = null) => define(global[
 const globalOnly = global => define(global[0], null, global);
 const pureOnly = (pure, name) => define(name, pure, []);
 const ArrayNatureIterators = ["es6.object.to-string", "es6.array.iterator", "web.dom.iterable"];
-const CommonIterators = ["es6.string.iterator", ...ArrayNatureIterators];
-exports.CommonIterators = CommonIterators;
+const CommonIterators = exports.CommonIterators = ["es6.string.iterator", ...ArrayNatureIterators];
 const PromiseDependencies = ["es6.object.to-string", "es6.promise"];
-const BuiltIns = {
+const BuiltIns = exports.BuiltIns = {
   DataView: globalOnly(["es6.typed.data-view"]),
   Float32Array: globalOnly(["es6.typed.float32-array"]),
   Float64Array: globalOnly(["es6.typed.float64-array"]),
@@ -45,8 +44,7 @@ const BuiltIns = {
   parseFloat: pureOnly("parse-float", "es6.parse-float"),
   parseInt: pureOnly("parse-int", "es6.parse-int")
 };
-exports.BuiltIns = BuiltIns;
-const InstanceProperties = {
+const InstanceProperties = exports.InstanceProperties = {
   __defineGetter__: globalOnly(["es7.object.define-getter"]),
   __defineSetter__: globalOnly(["es7.object.define-setter"]),
   __lookupGetter__: globalOnly(["es7.object.lookup-getter"]),
@@ -108,11 +106,10 @@ const InstanceProperties = {
 };
 
 // This isn't present in older @babel/compat-data versions
-exports.InstanceProperties = InstanceProperties;
 if ("es6.array.slice" in _corejs2BuiltIns.default) {
   InstanceProperties.slice = globalOnly(["es6.array.slice"]);
 }
-const StaticProperties = {
+const StaticProperties = exports.StaticProperties = {
   Array: {
     from: pureAndGlobal("array/from", ["es6.symbol", "es6.array.from", ...CommonIterators]),
     isArray: pureAndGlobal("array/is-array", ["es6.array.is-array"]),
@@ -220,4 +217,3 @@ const StaticProperties = {
     unscopables: pureOnly("symbol/unscopables", "es6.symbol")
   }
 };
-exports.StaticProperties = StaticProperties;

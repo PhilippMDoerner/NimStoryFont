@@ -9,7 +9,7 @@ function wait () {
 test('transferable objects must be transferred', async ({ equal }) => {
   const pool = new Piscina({
     filename: resolve(__dirname, 'fixtures/send-buffer-then-get-length.js'),
-    useAtomics: false
+    atomics: 'disabled'
   });
   await pool.run({}, { name: 'send' });
   await wait();
@@ -17,10 +17,15 @@ test('transferable objects must be transferred', async ({ equal }) => {
   equal(after, 0);
 });
 
-test('objects that implement transferable must be transferred', async ({ equal }) => {
+test('objects that implement transferable must be transferred', async ({
+  equal
+}) => {
   const pool = new Piscina({
-    filename: resolve(__dirname, 'fixtures/send-transferrable-then-get-length.js'),
-    useAtomics: false
+    filename: resolve(
+      __dirname,
+      'fixtures/send-transferrable-then-get-length.js'
+    ),
+    atomics: 'disabled'
   });
   await pool.run({}, { name: 'send' });
   await wait();

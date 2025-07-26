@@ -1,1 +1,0 @@
-import '/home/runner/work/NimStoryFont/NimStoryFont/frontend/node_modules/@storybook/addon-interactions/dist/manager.js';

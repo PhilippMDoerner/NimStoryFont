@@ -7,7 +7,7 @@ exports.default = void 0;
 var _path = _interopRequireDefault(require("path"));
 var _options = _interopRequireDefault(require("./options.json"));
 var _utils = require("./utils");
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 async function lessLoader(source) {
   const options = this.getOptions(_options.default);
   const callback = this.async();

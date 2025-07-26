@@ -27,14 +27,17 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Chunk").ChunkId} ChunkId */
+/** @typedef {import("../Chunk").ChunkName} ChunkName */
+/** @typedef {import("../ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("../ChunkGroup")} ChunkGroup */
 /** @typedef {import("../ChunkGroup").OriginRecord} OriginRecord */
 /** @typedef {import("../Compilation")} Compilation */
 /** @typedef {import("../Compilation").Asset} Asset */
 /** @typedef {import("../Compilation").AssetInfo} AssetInfo */
+/** @typedef {import("../Compilation").ExcludeModulesType} ExcludeModulesType */
+/** @typedef {import("../Compilation").KnownNormalizedStatsOptions} KnownNormalizedStatsOptions */
 /** @typedef {import("../Compilation").NormalizedStatsOptions} NormalizedStatsOptions */
 /** @typedef {import("../Compiler")} Compiler */
-/** @typedef {import("../ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("../Module")} Module */
@@ -42,23 +45,26 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../ModuleProfile")} ModuleProfile */
 /** @typedef {import("../RequestShortener")} RequestShortener */
-/** @typedef {import("../WebpackError")} WebpackError */
 /** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
+/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("./StatsFactory")} StatsFactory */
+/** @typedef {import("./StatsFactory").StatsFactoryContext} StatsFactoryContext */
+
 /**
  * @template T
  * @typedef {import("../util/comparators").Comparator<T>} Comparator<T>
  */
-/** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+
 /**
  * @template T, R
  * @typedef {import("../util/smartGrouping").GroupConfig<T, R>} GroupConfig
  */
-/** @typedef {import("./StatsFactory")} StatsFactory */
-/** @typedef {import("./StatsFactory").StatsFactoryContext} StatsFactoryContext */
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsCompilation} StatsCompilation */
+
+/** @typedef {KnownStatsCompilation & Record<string, EXPECTED_ANY>} StatsCompilation */
 /**
  * @typedef {object} KnownStatsCompilation
- * @property {any=} env
+ * @property {Record<string, EXPECTED_ANY>=} env
  * @property {string=} name
  * @property {string=} hash
  * @property {string=} version
@@ -81,9 +87,11 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {number=} warningsCount
  * @property {StatsCompilation[]=} children
  * @property {Record<string, StatsLogging>=} logging
+ * @property {number=} filteredWarningDetailsCount
+ * @property {number=} filteredErrorDetailsCount
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsLogging} StatsLogging */
+/** @typedef {KnownStatsLogging & Record<string, EXPECTED_ANY>} StatsLogging */
 /**
  * @typedef {object} KnownStatsLogging
  * @property {StatsLoggingEntry[]} entries
@@ -91,18 +99,21 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {boolean} debug
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsLoggingEntry} StatsLoggingEntry */
+/** @typedef {KnownStatsLoggingEntry & Record<string, EXPECTED_ANY>} StatsLoggingEntry */
 /**
  * @typedef {object} KnownStatsLoggingEntry
  * @property {string} type
  * @property {string=} message
  * @property {string[]=} trace
  * @property {StatsLoggingEntry[]=} children
- * @property {any[]=} args
+ * @property {EXPECTED_ANY[]=} args
  * @property {number=} time
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsAsset} StatsAsset */
+/** @typedef {KnownStatsAsset & Record<string, EXPECTED_ANY>} StatsAsset */
+/** @typedef {ChunkId} KnownStatsAssetChunk */
+/** @typedef {ChunkName} KnownStatsAssetChunkName */
+/** @typedef {string} KnownStatsAssetChunkIdHint */
 /**
  * @typedef {object} KnownStatsAsset
  * @property {string} type
@@ -113,17 +124,17 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {boolean} comparedForEmit
  * @property {boolean} cached
  * @property {StatsAsset[]=} related
- * @property {(string|number)[]=} chunkNames
- * @property {(string|number)[]=} chunkIdHints
- * @property {(string|number)[]=} chunks
- * @property {(string|number)[]=} auxiliaryChunkNames
- * @property {(string|number)[]=} auxiliaryChunks
- * @property {(string|number)[]=} auxiliaryChunkIdHints
+ * @property {KnownStatsAssetChunk[]=} chunks
+ * @property {KnownStatsAssetChunkName[]=} chunkNames
+ * @property {KnownStatsAssetChunkIdHint[]=} chunkIdHints
+ * @property {KnownStatsAssetChunk[]=} auxiliaryChunks
+ * @property {KnownStatsAssetChunkName[]=} auxiliaryChunkNames
+ * @property {KnownStatsAssetChunkIdHint[]=} auxiliaryChunkIdHints
  * @property {number=} filteredRelated
  * @property {boolean=} isOverSizeLimit
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsChunkGroup} StatsChunkGroup */
+/** @typedef {KnownStatsChunkGroup & Record<string, EXPECTED_ANY>} StatsChunkGroup */
 /**
  * @typedef {object} KnownStatsChunkGroup
  * @property {(string | null)=} name
@@ -139,7 +150,8 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {boolean=} isOverSizeLimit
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsModule} StatsModule */
+/** @typedef {Module[]} ModuleIssuerPath */
+/** @typedef {KnownStatsModule & Record<string, EXPECTED_ANY>} StatsModule */
 /**
  * @typedef {object} KnownStatsModule
  * @property {string=} type
@@ -168,7 +180,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {boolean=} dependent
  * @property {(string | null)=} issuer
  * @property {(string | null)=} issuerName
- * @property {StatsModuleIssuer[]=} issuerPath
+ * @property {StatsModuleIssuer[] | null=} issuerPath
  * @property {boolean=} failed
  * @property {number=} errors
  * @property {number=} warnings
@@ -183,7 +195,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {ReturnType<Source["source"]>=} source
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsProfile} StatsProfile */
+/** @typedef {KnownStatsProfile & Record<string, EXPECTED_ANY>} StatsProfile */
 /**
  * @typedef {object} KnownStatsProfile
  * @property {number} total
@@ -198,7 +210,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {number} dependencies
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsModuleIssuer} StatsModuleIssuer */
+/** @typedef {KnownStatsModuleIssuer & Record<string, EXPECTED_ANY>} StatsModuleIssuer */
 /**
  * @typedef {object} KnownStatsModuleIssuer
  * @property {string} identifier
@@ -207,7 +219,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {StatsProfile} profile
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsModuleReason} StatsModuleReason */
+/** @typedef {KnownStatsModuleReason & Record<string, EXPECTED_ANY>} StatsModuleReason */
 /**
  * @typedef {object} KnownStatsModuleReason
  * @property {string | null} moduleIdentifier
@@ -224,7 +236,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {(string | number | null)=} resolvedModuleId
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsChunk} StatsChunk */
+/** @typedef {KnownStatsChunk & Record<string, EXPECTED_ANY>} StatsChunk */
 /**
  * @typedef {object} KnownStatsChunk
  * @property {boolean} rendered
@@ -240,7 +252,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {string[]} files
  * @property {string[]} auxiliaryFiles
  * @property {string} hash
- * @property {Record<string, (string|number)[]>} childrenByOrder
+ * @property {Record<string, ChunkId[]>} childrenByOrder
  * @property {(string|number)=} id
  * @property {(string|number)[]=} siblings
  * @property {(string|number)[]=} parents
@@ -250,7 +262,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {StatsChunkOrigin[]=} origins
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsChunkOrigin} StatsChunkOrigin */
+/** @typedef {KnownStatsChunkOrigin & Record<string, EXPECTED_ANY>} StatsChunkOrigin */
 /**
  * @typedef {object} KnownStatsChunkOrigin
  * @property {string} module
@@ -261,7 +273,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {(string | number)=} moduleId
  */
 
-/** @typedef { Record<string, EXPECTED_ANY> & KnownStatsModuleTraceItem} StatsModuleTraceItem */
+/** @typedef {KnownStatsModuleTraceItem & Record<string, EXPECTED_ANY>} StatsModuleTraceItem */
 /**
  * @typedef {object} KnownStatsModuleTraceItem
  * @property {string=} originIdentifier
@@ -273,13 +285,13 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {(string|number)=} moduleId
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsModuleTraceDependency} StatsModuleTraceDependency */
+/** @typedef {KnownStatsModuleTraceDependency & Record<string, EXPECTED_ANY>} StatsModuleTraceDependency */
 /**
  * @typedef {object} KnownStatsModuleTraceDependency
  * @property {string=} loc
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & KnownStatsError} StatsError */
+/** @typedef {KnownStatsError & Record<string, EXPECTED_ANY>} StatsError */
 /**
  * @typedef {object} KnownStatsError
  * @property {string} message
@@ -293,8 +305,11 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {ChunkId=} chunkId
  * @property {string|number=} moduleId
  * @property {StatsModuleTraceItem[]=} moduleTrace
- * @property {any=} details
+ * @property {string=} details
  * @property {string=} stack
+ * @property {KnownStatsError=} cause
+ * @property {KnownStatsError[]=} errors
+ * @property {string=} compilerPath
  */
 
 /** @typedef {Asset & { type: string, related: PreprocessedAsset[] | undefined }} PreprocessedAsset */
@@ -305,12 +320,15 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @typedef {Record<string, (object: O, data: T, context: StatsFactoryContext, options: NormalizedStatsOptions, factory: StatsFactory) => void>} ExtractorsByOption
  */
 
+/** @typedef {{ name: string, chunkGroup: ChunkGroup }} ChunkGroupInfoWithName */
+/** @typedef {{ origin: Module, module: Module }} ModuleTrace */
+
 /**
  * @typedef {object} SimpleExtractors
  * @property {ExtractorsByOption<Compilation, StatsCompilation>} compilation
  * @property {ExtractorsByOption<PreprocessedAsset, StatsAsset>} asset
  * @property {ExtractorsByOption<PreprocessedAsset, StatsAsset>} asset$visible
- * @property {ExtractorsByOption<{ name: string, chunkGroup: ChunkGroup }, StatsChunkGroup>} chunkGroup
+ * @property {ExtractorsByOption<ChunkGroupInfoWithName, StatsChunkGroup>} chunkGroup
  * @property {ExtractorsByOption<Module, StatsModule>} module
  * @property {ExtractorsByOption<Module, StatsModule>} module$visible
  * @property {ExtractorsByOption<Module, StatsModuleIssuer>} moduleIssuer
@@ -320,7 +338,8 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {ExtractorsByOption<OriginRecord, StatsChunkOrigin>} chunkOrigin
  * @property {ExtractorsByOption<WebpackError, StatsError>} error
  * @property {ExtractorsByOption<WebpackError, StatsError>} warning
- * @property {ExtractorsByOption<{ origin: Module, module: Module }, StatsModuleTraceItem>} moduleTraceItem
+ * @property {ExtractorsByOption<WebpackError, StatsError>} cause
+ * @property {ExtractorsByOption<ModuleTrace, StatsModuleTraceItem>} moduleTraceItem
  * @property {ExtractorsByOption<Dependency, StatsModuleTraceDependency>} moduleTraceDependency
  */
 
@@ -328,7 +347,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @template T
  * @template I
  * @param {Iterable<T>} items items to select from
- * @param {function(T): Iterable<I>} selector selector function to select values from item
+ * @param {(item: T) => Iterable<I>} selector selector function to select values from item
  * @returns {I[]} array of values
  */
 const uniqueArray = (items, selector) => {
@@ -346,7 +365,7 @@ const uniqueArray = (items, selector) => {
  * @template T
  * @template I
  * @param {Iterable<T>} items items to select from
- * @param {function(T): Iterable<I>} selector selector function to select values from item
+ * @param {(item: T) => Iterable<I>} selector selector function to select values from item
  * @param {Comparator<I>} comparator comparator function
  * @returns {I[]} array of values
  */
@@ -374,8 +393,9 @@ const mapObject = (obj, fn) => {
 };
 
 /**
+ * @template T
  * @param {Compilation} compilation the compilation
- * @param {function(Compilation, string): any[]} getItems get items
+ * @param {(compilation: Compilation, name: string) => T[]} getItems get items
  * @returns {number} total number
  */
 const countWithChildren = (compilation, getItems) => {
@@ -388,53 +408,75 @@ const countWithChildren = (compilation, getItems) => {
 	return count;
 };
 
-/** @type {ExtractorsByOption<WebpackError | string, StatsError>} */
+/** @typedef {Error & { cause?: unknown }} ErrorWithCause */
+/** @typedef {Error & { errors: EXPECTED_ANY[] }} AggregateError */
+
+/** @type {ExtractorsByOption<string | ErrorWithCause | AggregateError | WebpackError, StatsError>} */
 const EXTRACT_ERROR = {
 	_: (object, error, context, { requestShortener }) => {
 		// TODO webpack 6 disallow strings in the errors/warnings list
 		if (typeof error === "string") {
 			object.message = error;
 		} else {
-			if (error.chunk) {
-				object.chunkName = error.chunk.name;
-				object.chunkEntry = error.chunk.hasRuntime();
-				object.chunkInitial = error.chunk.canBeInitial();
+			if (/** @type {WebpackError} */ (error).chunk) {
+				const chunk = /** @type {WebpackError} */ (error).chunk;
+				object.chunkName =
+					/** @type {string | undefined} */
+					(chunk.name);
+				object.chunkEntry = chunk.hasRuntime();
+				object.chunkInitial = chunk.canBeInitial();
 			}
-			if (error.file) {
-				object.file = error.file;
+
+			if (/** @type {WebpackError} */ (error).file) {
+				object.file = /** @type {WebpackError} */ (error).file;
 			}
-			if (error.module) {
-				object.moduleIdentifier = error.module.identifier();
-				object.moduleName = error.module.readableIdentifier(requestShortener);
+
+			if (/** @type {WebpackError} */ (error).module) {
+				object.moduleIdentifier =
+					/** @type {WebpackError} */
+					(error).module.identifier();
+				object.moduleName =
+					/** @type {WebpackError} */
+					(error).module.readableIdentifier(requestShortener);
 			}
-			if (error.loc) {
-				object.loc = formatLocation(error.loc);
+
+			if (/** @type {WebpackError} */ (error).loc) {
+				object.loc = formatLocation(/** @type {WebpackError} */ (error).loc);
 			}
+
 			object.message = error.message;
 		}
 	},
 	ids: (object, error, { compilation: { chunkGraph } }) => {
 		if (typeof error !== "string") {
-			if (error.chunk) {
-				object.chunkId = /** @type {ChunkId} */ (error.chunk.id);
+			if (/** @type {WebpackError} */ (error).chunk) {
+				object.chunkId = /** @type {ChunkId} */ (
+					/** @type {WebpackError} */
+					(error).chunk.id
+				);
 			}
-			if (error.module) {
+
+			if (/** @type {WebpackError} */ (error).module) {
 				object.moduleId =
 					/** @type {ModuleId} */
-					(chunkGraph.getModuleId(error.module));
+					(chunkGraph.getModuleId(/** @type {WebpackError} */ (error).module));
 			}
 		}
 	},
 	moduleTrace: (object, error, context, options, factory) => {
-		if (typeof error !== "string" && error.module) {
+		if (
+			typeof error !== "string" &&
+			/** @type {WebpackError} */ (error).module
+		) {
 			const {
 				type,
 				compilation: { moduleGraph }
 			} = context;
 			/** @type {Set<Module>} */
 			const visitedModules = new Set();
+			/** @type {ModuleTrace[]} */
 			const moduleTrace = [];
-			let current = error.module;
+			let current = /** @type {WebpackError} */ (error).module;
 			while (current) {
 				if (visitedModules.has(current)) break; // circular (technically impossible, but how knows)
 				visitedModules.add(current);
@@ -461,12 +503,43 @@ const EXTRACT_ERROR = {
 			(errorDetails === true ||
 				(type.endsWith(".error") && cachedGetErrors(compilation).length < 3))
 		) {
-			object.details = error.details;
+			object.details = /** @type {WebpackError} */ (error).details;
 		}
 	},
 	errorStack: (object, error) => {
 		if (typeof error !== "string") {
 			object.stack = error.stack;
+		}
+	},
+	errorCause: (object, error, context, options, factory) => {
+		if (
+			typeof error !== "string" &&
+			/** @type {ErrorWithCause} */ (error).cause
+		) {
+			const rawCause = /** @type {ErrorWithCause} */ (error).cause;
+			/** @type {Error} */
+			const cause =
+				typeof rawCause === "string"
+					? /** @type {Error} */ ({ message: rawCause })
+					: /** @type {Error} */ (rawCause);
+			const { type } = context;
+
+			object.cause = factory.create(`${type}.cause`, cause, context);
+		}
+	},
+	errorErrors: (object, error, context, options, factory) => {
+		if (
+			typeof error !== "string" &&
+			/** @type {AggregateError} */
+			(error).errors
+		) {
+			const { type } = context;
+			object.errors = factory.create(
+				`${type}.errors`,
+				/** @type {Error[]} */
+				(/** @type {AggregateError} */ (error).errors),
+				context
+			);
 		}
 	}
 };
@@ -788,6 +861,7 @@ const SIMPLE_EXTRACTORS = {
 			factory
 		) => {
 			const { type } = context;
+			/** @type {ChunkGroupInfoWithName[]} */
 			const array = Array.from(compilation.entrypoints, ([key, value]) => ({
 				name: key,
 				chunkGroup: value
@@ -904,15 +978,16 @@ const SIMPLE_EXTRACTORS = {
 			object.warningsCount = countWithChildren(compilation, (c, childType) => {
 				if (
 					!warningsFilter &&
-					/** @type {((warning: StatsError, textValue: string) => boolean)[]} */
+					/** @type {KnownNormalizedStatsOptions["warningsFilter"]} */
 					(warningsFilter).length === 0
 				)
-					return cachedGetWarnings(c);
+					// Type is wrong, because we don't need the real value for counting
+					return /** @type {EXPECTED_ANY[]} */ (cachedGetWarnings(c));
 				return factory
 					.create(`${type}${childType}.warnings`, cachedGetWarnings(c), context)
 					.filter(
 						/**
-						 * @param {TODO} warning warning
+						 * @param {StatsError} warning warning
 						 * @returns {boolean} result
 						 */
 						warning => {
@@ -1161,7 +1236,6 @@ const SIMPLE_EXTRACTORS = {
 				cached: !built && !codeGenerated
 			};
 			Object.assign(object, statsModule);
-
 			if (built || codeGenerated || options.cachedModules) {
 				Object.assign(
 					object,
@@ -1175,7 +1249,7 @@ const SIMPLE_EXTRACTORS = {
 			const { type, rootModules } = context;
 			const compilation = /** @type {Compilation} */ (context.compilation);
 			const { moduleGraph } = compilation;
-			/** @type {Module[]} */
+			/** @type {ModuleIssuerPath} */
 			const path = [];
 			const issuer = moduleGraph.getIssuer(module);
 			let current = issuer;
@@ -1213,7 +1287,8 @@ const SIMPLE_EXTRACTORS = {
 				issuerName: issuer && issuer.readableIdentifier(requestShortener),
 				issuerPath:
 					issuer &&
-					factory.create(`${type.slice(0, -8)}.issuerPath`, path, context),
+					/** @type {StatsModuleIssuer[] | undefined} */
+					(factory.create(`${type.slice(0, -8)}.issuerPath`, path, context)),
 				failed: errorsCount > 0,
 				errors: errorsCount,
 				warnings: warningsCount
@@ -1498,6 +1573,7 @@ const SIMPLE_EXTRACTORS = {
 			} = context;
 			/** @type {Set<string>} */
 			const originsKeySet = new Set();
+			/** @type {OriginRecord[]} */
 			const origins = [];
 			for (const g of chunk.groupsIterable) {
 				origins.push(...g.origins);
@@ -1537,6 +1613,7 @@ const SIMPLE_EXTRACTORS = {
 	},
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
+	cause: EXTRACT_ERROR,
 	moduleTraceItem: {
 		_: (object, { origin, module }, context, { requestShortener }, factory) => {
 			const {
@@ -1554,7 +1631,8 @@ const SIMPLE_EXTRACTORS = {
 				.map(c => c.dependency);
 			object.dependencies = factory.create(
 				`${type}.dependencies`,
-				Array.from(new Set(dependencies)),
+				/** @type {Dependency[]} */
+				(Array.from(new Set(dependencies))),
 				context
 			);
 		},
@@ -1574,7 +1652,7 @@ const SIMPLE_EXTRACTORS = {
 	}
 };
 
-/** @type {Record<string, Record<string, (thing: any, context: StatsFactoryContext, options: NormalizedStatsOptions) => boolean | undefined>>} */
+/** @type {Record<string, Record<string, (thing: ModuleGraphConnection, context: StatsFactoryContext, options: NormalizedStatsOptions, idx: number, i: number) => boolean | undefined>>} */
 const FILTER = {
 	"module.reasons": {
 		"!orphanModules": (reason, { compilation: { chunkGraph } }) => {
@@ -1588,7 +1666,7 @@ const FILTER = {
 	}
 };
 
-/** @type {Record<string, Record<string, (thing: KnownStatsError, context: StatsFactoryContext, options: NormalizedStatsOptions) => boolean | undefined>>} */
+/** @type {Record<string, Record<string, (thing: KnownStatsError, context: StatsFactoryContext, options: NormalizedStatsOptions, idx: number, i: number) => boolean | undefined>>} */
 const FILTER_RESULTS = {
 	"compilation.warnings": {
 		warningsFilter: util.deprecate(
@@ -1604,39 +1682,18 @@ const FILTER_RESULTS = {
 	}
 };
 
-/** @type {Record<string, (comparators: Function[], context: StatsFactoryContext) => void>} */
+/** @type {Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext) => void>} */
 const MODULES_SORTER = {
 	_: (comparators, { compilation: { moduleGraph } }) => {
 		comparators.push(
-			compareSelect(
-				/**
-				 * @param {Module} m module
-				 * @returns {number | null} depth
-				 */
-				m => moduleGraph.getDepth(m),
-				compareNumbers
-			),
-			compareSelect(
-				/**
-				 * @param {Module} m module
-				 * @returns {number | null} index
-				 */
-				m => moduleGraph.getPreOrderIndex(m),
-				compareNumbers
-			),
-			compareSelect(
-				/**
-				 * @param {Module} m module
-				 * @returns {string} identifier
-				 */
-				m => m.identifier(),
-				compareIds
-			)
+			compareSelect(m => moduleGraph.getDepth(m), compareNumbers),
+			compareSelect(m => moduleGraph.getPreOrderIndex(m), compareNumbers),
+			compareSelect(m => m.identifier(), compareIds)
 		);
 	}
 };
 
-/** @type {Record<string, Record<string, (comparators: Function[], context: StatsFactoryContext) => void>>} */
+/** @type {Record<string, Record<string, (comparators: Comparator<TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>>} */
 const SORTERS = {
 	"compilation.chunks": {
 		_: comparators => {
@@ -1690,7 +1747,7 @@ const SORTERS = {
 
 /**
  * @template T
- * @typedef {T & { children: Children<T>[] | undefined, filteredChildren?: number }} Children
+ * @typedef {T & { children?: Children<T>[] | undefined, filteredChildren?: number }} Children
  */
 
 /**
@@ -1852,7 +1909,7 @@ const spaceLimited = (
 						// So it should always end up being smaller
 						const headerSize = group.filteredChildren ? 2 : 1;
 						const limited = spaceLimited(
-							/** @type {Children<T>} */ (group.children),
+							/** @type {Children<T>[]} */ (group.children),
 							maxGroupSize -
 								// we should use ceil to always feet in max
 								Math.ceil(oversize / groups.length) -
@@ -1924,7 +1981,9 @@ const errorsSpaceLimit = (errors, max) => {
 				const error = errors[i++];
 				result.push({
 					...error,
-					details: error.details.split("\n").slice(0, -overLimit).join("\n"),
+					details:
+						/** @type {string} */
+						(error.details).split("\n").slice(0, -overLimit).join("\n"),
 					filteredDetails: overLimit
 				});
 				filtered = errors.length - i;
@@ -2060,6 +2119,7 @@ const ASSETS_GROUPERS = {
 					const pathMatch =
 						groupAssetsByPath && GROUP_PATH_REGEXP.exec(asset.name);
 					const path = pathMatch ? pathMatch[1].split(/[/\\]/) : [];
+					/** @type {string[]} */
 					const keys = [];
 					if (groupAssetsByPath) {
 						keys.push(".");
@@ -2150,7 +2210,7 @@ const ASSETS_GROUPERS = {
 
 /** @typedef {Record<string, (groupConfigs: GroupConfig<KnownStatsModule, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} ModulesGroupers */
 
-/** @type {function("module" | "chunk" | "root-of-chunk" | "nested"): ModulesGroupers} */
+/** @type {(type: ExcludeModulesType) => ModulesGroupers} */
 const MODULES_GROUPERS = type => ({
 	_: (groupConfigs, context, options) => {
 		/**
@@ -2312,7 +2372,7 @@ const MODULES_GROUPERS = type => ({
 	}
 });
 
-/** @typedef {Record<string, (groupConfigs: import("../util/smartGrouping").GroupConfig<KnownStatsModuleReason, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} ModuleReasonsGroupers */
+/** @typedef {Record<string, (groupConfigs: GroupConfig<KnownStatsModuleReason, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} ModuleReasonsGroupers */
 
 /** @type {ModuleReasonsGroupers} */
 const MODULE_REASONS_GROUPERS = {
@@ -2366,15 +2426,15 @@ const sortOrderRegular = field => {
 
 /**
  * @template T
- * @param {string} field field name
- * @returns {function(T, T): 0 | 1 | -1} comparators
+ * @param {string | false} field field name
+ * @returns {(a: T, b: T) => 0 | 1 | -1} comparators
  */
 const sortByField = field => {
 	if (!field) {
 		/**
-		 * @param {any} a first
-		 * @param {any} b second
-		 * @returns {-1|0|1} zero
+		 * @param {T} a first
+		 * @param {T} b second
+		 * @returns {-1 | 0 | 1} zero
 		 */
 		const noSort = (a, b) => 0;
 		return noSort;
@@ -2395,7 +2455,7 @@ const sortByField = field => {
 	return sortFn;
 };
 
-/** @type {Record<string, (comparators: Comparator<TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} */
+/** @type {Record<string, (comparators: Comparator<Asset>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} */
 const ASSET_SORTERS = {
 	assetsSort: (comparators, context, { assetsSort }) => {
 		comparators.push(sortByField(assetsSort));
@@ -2432,9 +2492,10 @@ const RESULT_SORTERS = {
 };
 
 /**
- * @param {Record<string, Record<string, Function>>} config the config see above
+ * @template T
+ * @param {Record<string, Record<string, T>>} config the config see above
  * @param {NormalizedStatsOptions} options stats options
- * @param {function(string, Function): void} fn handler function called for every active line in config
+ * @param {(hookFor: string, fn: T) => void} fn handler function called for every active line in config
  * @returns {void}
  */
 const iterateConfig = (config, options, fn) => {
@@ -2467,6 +2528,8 @@ const ITEM_NAMES = {
 	"compilation.namedChunkGroups[]": "chunkGroup",
 	"compilation.errors[]": "error",
 	"compilation.warnings[]": "warning",
+	"error.errors[]": "error",
+	"warning.errors[]": "error",
 	"chunk.modules[]": "module",
 	"chunk.rootModules[]": "module",
 	"chunk.origins[]": "chunkOrigin",
@@ -2508,6 +2571,8 @@ const MERGER = {
 	"compilation.namedChunkGroups": mergeToObject
 };
 
+const PLUGIN_NAME = "DefaultStatsFactoryPlugin";
+
 class DefaultStatsFactoryPlugin {
 	/**
 	 * Apply the plugin
@@ -2515,72 +2580,80 @@ class DefaultStatsFactoryPlugin {
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			compilation.hooks.statsFactory.tap(
-				"DefaultStatsFactoryPlugin",
+				PLUGIN_NAME,
 				/**
 				 * @param {StatsFactory} stats stats factory
 				 * @param {NormalizedStatsOptions} options stats options
 				 */
 				(stats, options) => {
-					iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
-						stats.hooks.extract
-							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (obj, data, ctx) =>
-								fn(obj, data, ctx, options, stats)
-							);
-					});
+					iterateConfig(
+						/** @type {TODO} */
+						(SIMPLE_EXTRACTORS),
+						options,
+						(hookFor, fn) => {
+							stats.hooks.extract
+								.for(hookFor)
+								.tap(PLUGIN_NAME, (obj, data, ctx) =>
+									fn(obj, data, ctx, options, stats)
+								);
+						}
+					);
 					iterateConfig(FILTER, options, (hookFor, fn) => {
 						stats.hooks.filter
 							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+							.tap(PLUGIN_NAME, (item, ctx, idx, i) =>
 								fn(item, ctx, options, idx, i)
 							);
 					});
 					iterateConfig(FILTER_RESULTS, options, (hookFor, fn) => {
 						stats.hooks.filterResults
 							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+							.tap(PLUGIN_NAME, (item, ctx, idx, i) =>
 								fn(item, ctx, options, idx, i)
 							);
 					});
 					iterateConfig(SORTERS, options, (hookFor, fn) => {
 						stats.hooks.sort
 							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (comparators, ctx) =>
+							.tap(PLUGIN_NAME, (comparators, ctx) =>
 								fn(comparators, ctx, options)
 							);
 					});
 					iterateConfig(RESULT_SORTERS, options, (hookFor, fn) => {
 						stats.hooks.sortResults
 							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (comparators, ctx) =>
+							.tap(PLUGIN_NAME, (comparators, ctx) =>
 								fn(comparators, ctx, options)
 							);
 					});
-					iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
-						stats.hooks.groupResults
-							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (groupConfigs, ctx) =>
-								fn(groupConfigs, ctx, options)
-							);
-					});
+					iterateConfig(
+						/** @type {TODO} */
+						(RESULT_GROUPERS),
+						options,
+						(hookFor, fn) => {
+							stats.hooks.groupResults
+								.for(hookFor)
+								.tap(PLUGIN_NAME, (groupConfigs, ctx) =>
+									fn(groupConfigs, ctx, options)
+								);
+						}
+					);
 					for (const key of Object.keys(ITEM_NAMES)) {
 						const itemName = ITEM_NAMES[key];
-						stats.hooks.getItemName
-							.for(key)
-							.tap("DefaultStatsFactoryPlugin", () => itemName);
+						stats.hooks.getItemName.for(key).tap(PLUGIN_NAME, () => itemName);
 					}
 					for (const key of Object.keys(MERGER)) {
 						const merger = MERGER[key];
-						stats.hooks.merge.for(key).tap("DefaultStatsFactoryPlugin", merger);
+						stats.hooks.merge.for(key).tap(PLUGIN_NAME, merger);
 					}
 					if (options.children) {
 						if (Array.isArray(options.children)) {
 							stats.hooks.getItemFactory
 								.for("compilation.children[].compilation")
 								.tap(
-									"DefaultStatsFactoryPlugin",
+									PLUGIN_NAME,
 									/**
 									 * @param {Compilation} comp compilation
 									 * @param {StatsFactoryContext} options options
@@ -2603,7 +2676,7 @@ class DefaultStatsFactoryPlugin {
 							);
 							stats.hooks.getItemFactory
 								.for("compilation.children[].compilation")
-								.tap("DefaultStatsFactoryPlugin", () => childFactory);
+								.tap(PLUGIN_NAME, () => childFactory);
 						}
 					}
 				}

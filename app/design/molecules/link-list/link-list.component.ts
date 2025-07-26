@@ -1,4 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { Params, RouterLink, UrlTree } from '@angular/router';
 import { HeadingDirective } from 'src/app/_directives/heading.directive';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
@@ -30,6 +35,7 @@ export type CreateKind =
     ButtonLinkComponent,
     ContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LinkListComponent {
   heading = input.required<string>();

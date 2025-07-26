@@ -7,7 +7,7 @@ exports.breakLines = breakLines;
 exports.readlineWidth = readlineWidth;
 const cli_width_1 = __importDefault(require("cli-width"));
 const wrap_ansi_1 = __importDefault(require("wrap-ansi"));
-const hook_engine_js_1 = require("./hook-engine.js");
+const hook_engine_ts_1 = require("./hook-engine.js");
 /**
  * Force line returns at specific width. This function is ANSI code friendly and it'll
  * ignore invisible codes during width calculation.
@@ -28,5 +28,5 @@ function breakLines(content, width) {
  * @returns {number}
  */
 function readlineWidth() {
-    return (0, cli_width_1.default)({ defaultWidth: 80, output: (0, hook_engine_js_1.readline)().output });
+    return (0, cli_width_1.default)({ defaultWidth: 80, output: (0, hook_engine_ts_1.readline)().output });
 }

@@ -126,7 +126,7 @@ function convertFunctionParams(path, ignoreFunctionLength, shouldTransformParam,
     arrowPath.node.async = async;
     node.generator = false;
     node.async = false;
-    if (async) {
+    if (async && !generator) {
       path2.node.body = _core.template.statement.ast`{
         try {
           ${path2.node.body.body}

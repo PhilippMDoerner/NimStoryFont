@@ -1,5 +1,10 @@
 import { AnimationEvent } from '@angular/animations';
-import { Component, HostListener, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  inject,
+} from '@angular/core';
 import { AuthStore } from 'src/app/auth.store';
 import { CampaignOverviewComponent } from 'src/app/design//templates/campaign-overview/campaign-overview.component';
 import { slideInOut } from 'src/app/design/animations/slideInOut';
@@ -16,6 +21,7 @@ import { GlobalStore } from 'src/app/global.store';
   },
   animations: [slideInOut],
   imports: [CampaignOverviewComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignOverviewPageComponent {
   public readonly authStore = inject(AuthStore);

@@ -16,6 +16,14 @@ export declare const eventMap: {
             readonly composed: true;
         };
     };
+    readonly blur: {
+        readonly EventType: "FocusEvent";
+        readonly defaultInit: {
+            readonly bubbles: false;
+            readonly cancelable: false;
+            readonly composed: true;
+        };
+    };
     readonly click: {
         readonly EventType: "PointerEvent";
         readonly defaultInit: {
@@ -60,6 +68,30 @@ export declare const eventMap: {
         readonly defaultInit: {
             readonly bubbles: true;
             readonly cancelable: true;
+            readonly composed: true;
+        };
+    };
+    readonly focus: {
+        readonly EventType: "FocusEvent";
+        readonly defaultInit: {
+            readonly bubbles: false;
+            readonly cancelable: false;
+            readonly composed: true;
+        };
+    };
+    readonly focusin: {
+        readonly EventType: "FocusEvent";
+        readonly defaultInit: {
+            readonly bubbles: true;
+            readonly cancelable: false;
+            readonly composed: true;
+        };
+    };
+    readonly focusout: {
+        readonly EventType: "FocusEvent";
+        readonly defaultInit: {
+            readonly bubbles: true;
+            readonly cancelable: false;
             readonly composed: true;
         };
     };

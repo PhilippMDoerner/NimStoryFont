@@ -1,11 +1,12 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-import { NoopAnimationPlayer, AUTO_STYLE } from '@angular/animations';
-import { ɵvalidateStyleProperty, ɵcamelCaseToDashCase, ɵvalidateWebAnimatableStyleProperty, ɵcontainsElement, ɵgetParentElement, ɵinvokeQuery, ɵnormalizeKeyframes, ɵallowPreviousPlayerStylesMerge } from '@angular/animations/browser';
+import { validateStyleProperty, camelCaseToDashCase, validateWebAnimatableStyleProperty, containsElement, getParentElement, invokeQuery, normalizeKeyframes$1 as normalizeKeyframes, allowPreviousPlayerStylesMerge } from '../util-CPU6TNml.mjs';
+import { NoopAnimationPlayer, AUTO_STYLE } from '../private_export-B_vy_9K7.mjs';
+import '@angular/core';
 
 /**
  * @publicApi
@@ -13,20 +14,20 @@ import { ɵvalidateStyleProperty, ɵcamelCaseToDashCase, ɵvalidateWebAnimatable
 class MockAnimationDriver {
     static log = [];
     validateStyleProperty(prop) {
-        return ɵvalidateStyleProperty(prop);
+        return validateStyleProperty(prop);
     }
     validateAnimatableStyleProperty(prop) {
-        const cssProp = ɵcamelCaseToDashCase(prop);
-        return ɵvalidateWebAnimatableStyleProperty(cssProp);
+        const cssProp = camelCaseToDashCase(prop);
+        return validateWebAnimatableStyleProperty(cssProp);
     }
     containsElement(elm1, elm2) {
-        return ɵcontainsElement(elm1, elm2);
+        return containsElement(elm1, elm2);
     }
     getParentElement(element) {
-        return ɵgetParentElement(element);
+        return getParentElement(element);
     }
     query(element, selector, multi) {
-        return ɵinvokeQuery(element, selector, multi);
+        return invokeQuery(element, selector, multi);
     }
     computeStyle(element, prop, defaultValue) {
         return defaultValue || '';
@@ -61,8 +62,8 @@ class MockAnimationPlayer extends NoopAnimationPlayer {
         this.delay = delay;
         this.easing = easing;
         this.previousPlayers = previousPlayers;
-        this._keyframes = ɵnormalizeKeyframes(keyframes);
-        if (ɵallowPreviousPlayerStylesMerge(duration, delay)) {
+        this._keyframes = normalizeKeyframes(keyframes);
+        if (allowPreviousPlayerStylesMerge(duration, delay)) {
             previousPlayers.forEach((player) => {
                 if (player instanceof MockAnimationPlayer) {
                     const styles = player.currentSnapshot;
@@ -120,18 +121,6 @@ class MockAnimationPlayer extends NoopAnimationPlayer {
         this.currentSnapshot = captures;
     }
 }
-
-/**
- * @module
- * @description
- * Entry point for all public APIs of this package.
- */
-
-// This file is not used to build this module. It is only used during editing
-
-/**
- * Generated bundle index. Do not edit.
- */
 
 export { MockAnimationDriver, MockAnimationPlayer };
 //# sourceMappingURL=testing.mjs.map

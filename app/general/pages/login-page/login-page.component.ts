@@ -1,5 +1,10 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, DestroyRef, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyModule } from '@ngx-formly/core';
@@ -18,6 +23,7 @@ import { LoginPageStore } from './login-page.store';
   styleUrls: ['./login-page.component.scss'],
   imports: [LoginComponent, AsyncPipe, FormlyModule],
   providers: [LoginPageStore],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPageComponent {
   public readonly authStore = inject(AuthStore);

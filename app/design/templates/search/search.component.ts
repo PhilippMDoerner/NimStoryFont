@@ -1,4 +1,11 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { OverviewItem } from 'src/app/_models/overview';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { SidebarOption } from '../../molecules';
@@ -25,6 +32,7 @@ import { SearchHitComponent } from '../../organisms/search-hit/search-hit.compon
     SearchFieldComponent,
     AsyncPipe,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchComponent {
   isOnline$ = inject(OnlineService).online$;

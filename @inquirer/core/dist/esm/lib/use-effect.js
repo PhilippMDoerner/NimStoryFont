@@ -1,4 +1,4 @@
-import { withPointer, effectScheduler } from './hook-engine.js';
+import { withPointer, effectScheduler } from "./hook-engine.js";
 export function useEffect(cb, depArray) {
     withPointer((pointer) => {
         const oldDeps = pointer.get();

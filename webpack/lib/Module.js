@@ -24,9 +24,11 @@ const makeSerializable = require("./util/makeSerializable");
 /** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
 /** @typedef {import("./Compilation")} Compilation */
 /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
+/** @typedef {import("./Compilation").UnsafeCacheData} UnsafeCacheData */
 /** @typedef {import("./ConcatenationScope")} ConcatenationScope */
 /** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./Dependency").UpdateHashContext} UpdateHashContext */
+/** @typedef {import("./DependencyTemplate").CssData} CssData */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./ExportsInfo").UsageStateType} UsageStateType */
 /** @typedef {import("./FileSystemInfo")} FileSystemInfo */
@@ -41,10 +43,19 @@ const makeSerializable = require("./util/makeSerializable");
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./util/Hash")} Hash */
-/** @template T @typedef {import("./util/LazySet")<T>} LazySet<T> */
-/** @template T @typedef {import("./util/SortableSet")<T>} SortableSet<T> */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
+/** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
+
+/**
+ * @template T
+ * @typedef {import("./util/LazySet")<T>} LazySet<T>
+ */
+
+/**
+ * @template T
+ * @typedef {import("./util/SortableSet")<T>} SortableSet<T>
+ */
 
 /**
  * @typedef {object} SourceContext
@@ -84,7 +95,7 @@ const makeSerializable = require("./util/makeSerializable");
 /**
  * @typedef {object} CodeGenerationResult
  * @property {Map<string, Source>} sources the resulting sources for all source types
- * @property {Map<string, any>=} data the resulting data for all source types
+ * @property {Map<string, TODO>=} data the resulting data for all source types
  * @property {ReadOnlyRuntimeRequirements | null} runtimeRequirements the runtime requirements
  * @property {string=} hash a hash of the code generation result (will be automatically calculated from sources and runtimeRequirements if not provided)
  */
@@ -92,36 +103,43 @@ const makeSerializable = require("./util/makeSerializable");
 /**
  * @typedef {object} LibIdentOptions
  * @property {string} context absolute context path to which lib ident is relative to
- * @property {object=} associatedObjectForCache object for caching
+ * @property {AssociatedObjectForCache=} associatedObjectForCache object for caching
  */
 
 /**
  * @typedef {object} KnownBuildMeta
- * @property {string=} moduleArgument
- * @property {string=} exportsArgument
- * @property {boolean=} strict
- * @property {string=} moduleConcatenationBailout
  * @property {("default" | "namespace" | "flagged" | "dynamic")=} exportsType
  * @property {(false | "redirect" | "redirect-warn")=} defaultObject
  * @property {boolean=} strictHarmonyModule
  * @property {boolean=} async
  * @property {boolean=} sideEffectFree
  * @property {Record<string, string>=} exportsFinalName
+ * @property {boolean=} isCSSModule
  */
 
 /**
  * @typedef {object} KnownBuildInfo
  * @property {boolean=} cacheable
  * @property {boolean=} parsed
- * @property {LazySet<string>=} fileDependencies
- * @property {LazySet<string>=} contextDependencies
- * @property {LazySet<string>=} missingDependencies
- * @property {LazySet<string>=} buildDependencies
- * @property {ValueCacheVersions=} valueDependencies
- * @property {TODO=} hash
- * @property {Record<string, Source>=} assets
- * @property {Map<string, AssetInfo | undefined>=} assetsInfo
- * @property {(Snapshot | null)=} snapshot
+ * @property {boolean=} strict
+ * @property {string=} moduleArgument using in AMD
+ * @property {string=} exportsArgument using in AMD
+ * @property {string=} moduleConcatenationBailout using in CommonJs
+ * @property {boolean=} needCreateRequire using in APIPlugin
+ * @property {string=} resourceIntegrity using in HttpUriPlugin
+ * @property {LazySet<string>=} fileDependencies using in NormalModule
+ * @property {LazySet<string>=} contextDependencies using in NormalModule
+ * @property {LazySet<string>=} missingDependencies using in NormalModule
+ * @property {LazySet<string>=} buildDependencies using in NormalModule
+ * @property {ValueCacheVersions=} valueDependencies using in NormalModule
+ * @property {Record<string, Source>=} assets using in NormalModule
+ * @property {string=} hash using in NormalModule
+ * @property {(Snapshot | null)=} snapshot using in ContextModule
+ * @property {string=} fullContentHash for assets modules
+ * @property {string=} filename for assets modules
+ * @property {Map<string, AssetInfo | undefined>=} assetsInfo for assets modules
+ * @property {boolean=} dataUrl for assets modules
+ * @property {CssData=} cssData for css modules
  */
 
 /** @typedef {Map<string, string | Set<string>>} ValueCacheVersions */
@@ -133,15 +151,17 @@ const makeSerializable = require("./util/makeSerializable");
  * @property {ValueCacheVersions} valueCacheVersions
  */
 
-/** @typedef {KnownBuildMeta & Record<string, any>} BuildMeta */
-/** @typedef {KnownBuildInfo & Record<string, any>} BuildInfo */
+/** @typedef {(err?: WebpackError | null, needBuild?: boolean) => void} NeedBuildCallback */
+
+/** @typedef {(err?: WebpackError) => void} BuildCallback */
+
+/** @typedef {KnownBuildMeta & Record<string, EXPECTED_ANY>} BuildMeta */
+/** @typedef {KnownBuildInfo & Record<string, EXPECTED_ANY>} BuildInfo */
 
 /**
  * @typedef {object} FactoryMeta
  * @property {boolean=} sideEffectFree
  */
-
-/** @typedef {{ factoryMeta: FactoryMeta | undefined, resolveOptions: ResolveOptions | undefined }} UnsafeCacheData */
 
 const EMPTY_RESOLVE_OPTIONS = {};
 
@@ -201,6 +221,7 @@ class Module extends DependenciesBlock {
 		this.useSimpleSourceMap = false;
 
 		// Is in hot context, i.e. HotModuleReplacementPlugin.js enabled
+		// TODO do we need hot here?
 		/** @type {boolean} */
 		this.hot = false;
 		// Info from Build
@@ -778,7 +799,7 @@ class Module extends DependenciesBlock {
 
 	/**
 	 * @param {NeedBuildContext} context context info
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function, returns true, if the module needs a rebuild
+	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
 	 */
 	needBuild(context, callback) {
@@ -861,7 +882,7 @@ class Module extends DependenciesBlock {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
@@ -1030,7 +1051,7 @@ class Module extends DependenciesBlock {
 
 	/**
 	 * restore unsafe cache data
-	 * @param {object} unsafeCacheData data from getUnsafeCacheData
+	 * @param {UnsafeCacheData} unsafeCacheData data from getUnsafeCacheData
 	 * @param {NormalModuleFactory} normalModuleFactory the normal module factory handling the unsafe caching
 	 */
 	_restoreFromUnsafeCache(unsafeCacheData, normalModuleFactory) {
@@ -1122,9 +1143,11 @@ class Module extends DependenciesBlock {
 makeSerializable(Module, "webpack/lib/Module");
 
 // TODO remove in webpack 6
-// eslint-disable-next-line no-warning-comments
-// @ts-ignore https://github.com/microsoft/TypeScript/issues/42919
 Object.defineProperty(Module.prototype, "hasEqualsChunks", {
+	/**
+	 * @deprecated
+	 * @returns {EXPECTED_ANY} throw an error
+	 */
 	get() {
 		throw new Error(
 			"Module.hasEqualsChunks was renamed (use hasEqualChunks instead)"
@@ -1133,9 +1156,11 @@ Object.defineProperty(Module.prototype, "hasEqualsChunks", {
 });
 
 // TODO remove in webpack 6
-// eslint-disable-next-line no-warning-comments
-// @ts-ignore https://github.com/microsoft/TypeScript/issues/42919
 Object.defineProperty(Module.prototype, "isUsed", {
+	/**
+	 * @deprecated
+	 * @returns {EXPECTED_ANY} throw an error
+	 */
 	get() {
 		throw new Error(
 			"Module.isUsed was renamed (use getUsedName, isExportUsed or isModuleUsed instead)"
@@ -1145,10 +1170,14 @@ Object.defineProperty(Module.prototype, "isUsed", {
 
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "errors", {
+	/**
+	 * @deprecated
+	 * @returns {WebpackError[]} errors
+	 */
 	get: util.deprecate(
 		/**
 		 * @this {Module}
-		 * @returns {WebpackError[]} array
+		 * @returns {WebpackError[]} errors
 		 */
 		function () {
 			if (this._errors === undefined) {
@@ -1163,10 +1192,14 @@ Object.defineProperty(Module.prototype, "errors", {
 
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "warnings", {
+	/**
+	 * @deprecated
+	 * @returns {WebpackError[]} warnings
+	 */
 	get: util.deprecate(
 		/**
 		 * @this {Module}
-		 * @returns {WebpackError[]} array
+		 * @returns {WebpackError[]} warnings
 		 */
 		function () {
 			if (this._warnings === undefined) {
@@ -1180,14 +1213,19 @@ Object.defineProperty(Module.prototype, "warnings", {
 });
 
 // TODO remove in webpack 6
-// eslint-disable-next-line no-warning-comments
-// @ts-ignore https://github.com/microsoft/TypeScript/issues/42919
 Object.defineProperty(Module.prototype, "used", {
+	/**
+	 * @deprecated
+	 * @returns {EXPECTED_ANY} throw an error
+	 */
 	get() {
 		throw new Error(
 			"Module.used was refactored (use ModuleGraph.getUsedExports instead)"
 		);
 	},
+	/**
+	 * @param {EXPECTED_ANY} value value
+	 */
 	set(value) {
 		throw new Error(
 			"Module.used was refactored (use ModuleGraph.setUsedExports instead)"

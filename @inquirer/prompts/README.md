@@ -15,6 +15,16 @@ Give it a try in your own terminal!
 npx @inquirer/demo@latest
 ```
 
+# Special Thanks
+
+<div align="center" markdown="1">
+
+[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
+
+### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
+
+</div>
+
 # Installation
 
 <table>
@@ -192,7 +202,7 @@ const allowEmail = await confirm(
 
 ## Canceling prompt
 
-This can preferably be done with either an `AbortController` or `AbortSignal`.
+This can be done with either an `AbortController` or `AbortSignal`.
 
 ```js
 // Example 1: using built-in AbortSignal utilities
@@ -202,7 +212,7 @@ const answer = await confirm({ ... }, { signal: AbortSignal.timeout(5000) });
 ```
 
 ```js
-// Example 1: implementing custom cancellation logic
+// Example 2: implementing custom cancellation with an AbortController
 import { confirm } from '@inquirer/prompts';
 
 const controller = new AbortController();
@@ -211,18 +221,6 @@ setTimeout(() => {
 }, 5000);
 
 const answer = await confirm({ ... }, { signal: controller.signal });
-```
-
-Alternatively, all prompt functions are returning a cancelable promise. This special promise type has a `cancel` method that'll cancel and cleanup the prompt.
-
-On calling `cancel`, the answer promise will become rejected.
-
-```js
-import { confirm } from '@inquirer/prompts';
-
-const promise = confirm(...); // Warning: for this pattern to work, `await` cannot be used.
-
-promise.cancel();
 ```
 
 # Recipes
@@ -350,6 +348,27 @@ import { confirm } from '@inquirer/prompts';
 
 const answer = await confirm({ message: await getMessage() });
 ```
+
+## Usage with `npx` within bash scripts
+
+You can use Inquirer prompts directly in the shell via [`npx`](https://docs.npmjs.com/cli/v8/commands/npx), which is useful for quick scripts or `package.json` commands.
+
+A community library, [@inquirer-cli](https://github.com/fishballapp/inquirer-cli), exposes each prompt as a standalone CLI.
+
+For example, to prompt for input:
+
+```bash
+name=$(npx -y @inquirer-cli/input -r "What is your name?")
+echo "Hello, $name!"
+```
+
+Or to create an interactive version bump:
+
+```bash
+$ npm version $(npx -y @inquirer-cli/select -c patch -c minor -c major 'Select Version')
+```
+
+Find out more: [@inquirer-cli](https://github.com/fishballapp/inquirer-cli).
 
 # Community prompts
 

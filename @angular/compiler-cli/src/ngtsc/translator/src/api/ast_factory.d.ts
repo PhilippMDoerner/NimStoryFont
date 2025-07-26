@@ -175,6 +175,17 @@ export interface AstFactory<TStatement, TExpression> {
      */
     createTaggedTemplate(tag: TExpression, template: TemplateLiteral<TExpression>): TExpression;
     /**
+     * Create an untagged template literal
+     *
+     * ```
+     * `str1${expr1}str2${expr2}str3`
+     * ```
+     *
+     * @param template the collection of strings and expressions that constitute an interpolated
+     *     template literal.
+     */
+    createTemplateLiteral(template: TemplateLiteral<TExpression>): TExpression;
+    /**
      * Create a throw statement (e.g. `throw expr;`).
      *
      * @param expression the expression to be thrown.
@@ -186,6 +197,12 @@ export interface AstFactory<TStatement, TExpression> {
      * @param expression the expression whose type we want.
      */
     createTypeOfExpression(expression: TExpression): TExpression;
+    /**
+     * Create an expression that evaluates an expression and returns `undefined`.
+     *
+     * @param expression the expression whose type we want.
+     */
+    createVoidExpression(expression: TExpression): TExpression;
     /**
      * Prefix the `operand` with the given `operator` (e.g. `-expr`).
      *
@@ -221,7 +238,7 @@ export type UnaryOperator = '+' | '-' | '!';
 /**
  * The binary operators supported by the `AstFactory`.
  */
-export type BinaryOperator = '&&' | '>' | '>=' | '&' | '|' | '/' | '==' | '===' | '<' | '<=' | '-' | '%' | '*' | '!=' | '!==' | '||' | '+' | '??';
+export type BinaryOperator = '&&' | '>' | '>=' | '&' | '|' | '/' | '==' | '===' | '<' | '<=' | '-' | '%' | '*' | '**' | '!=' | '!==' | '||' | '+' | '??' | 'in';
 /**
  * The original location of the start or end of a node created by the `AstFactory`.
  */

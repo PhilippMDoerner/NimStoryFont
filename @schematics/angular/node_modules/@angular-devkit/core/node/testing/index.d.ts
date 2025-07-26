@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { Path, virtualFs } from '../../src';
 /**
  * A Sync Scoped Host that creates a temporary directory and scope to it.

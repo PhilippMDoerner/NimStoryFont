@@ -200,7 +200,6 @@ function transform(path, assumptions) {
       callee: maybeWrapped.node
     }) && path.isOptionalMemberExpression()) {
       wrapLast = replacement => {
-        var _baseRef;
         const object = helperSkipTransparentExpressionWrappers.skipTransparentExprWrapperNodes(replacement.object);
         let baseRef;
         if (!assumptions.pureGetters || !isSimpleMemberExpression(object)) {
@@ -209,7 +208,7 @@ function transform(path, assumptions) {
             replacement.object = core.types.assignmentExpression("=", baseRef, object);
           }
         }
-        return core.types.callExpression(core.types.memberExpression(replacement, core.types.identifier("bind")), [core.types.cloneNode((_baseRef = baseRef) != null ? _baseRef : object)]);
+        return core.types.callExpression(core.types.memberExpression(replacement, core.types.identifier("bind")), [core.types.cloneNode(baseRef != null ? baseRef : object)]);
       };
     }
     transformOptionalChain(path, assumptions, path, willPathCastToBoolean(maybeWrapped) ? core.types.booleanLiteral(false) : scope.buildUndefinedNode(), wrapLast);

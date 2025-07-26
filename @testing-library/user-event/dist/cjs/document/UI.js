@@ -61,9 +61,9 @@ function setUISelection(element, { focusOffset: focusOffsetParam, anchorOffset: 
 }
 function getUISelection(element) {
     var _element_selectionStart, _element_selectionEnd, _element_UISelection;
-    const sel = (_element_UISelection = element[UISelection]) !== null && _element_UISelection !== void 0 ? _element_UISelection : {
-        anchorOffset: (_element_selectionStart = element.selectionStart) !== null && _element_selectionStart !== void 0 ? _element_selectionStart : 0,
-        focusOffset: (_element_selectionEnd = element.selectionEnd) !== null && _element_selectionEnd !== void 0 ? _element_selectionEnd : 0
+    const sel = (_element_UISelection = element[UISelection]) !== null && _element_UISelection !== undefined ? _element_UISelection : {
+        anchorOffset: (_element_selectionStart = element.selectionStart) !== null && _element_selectionStart !== undefined ? _element_selectionStart : 0,
+        focusOffset: (_element_selectionEnd = element.selectionEnd) !== null && _element_selectionEnd !== undefined ? _element_selectionEnd : 0
     };
     return {
         ...sel,

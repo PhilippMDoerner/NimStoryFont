@@ -9,7 +9,7 @@ import { AST, LiteralPrimitive, PropertyRead, PropertyWrite, SafePropertyRead, T
 import ts from 'typescript';
 import { AbsoluteFsPath } from '../../file_system';
 import { GlobalCompletion, TcbLocation } from '../api';
-import { TemplateData } from './context';
+import { TypeCheckData } from './context';
 /**
  * Powers autocompletion for a specific component.
  *
@@ -28,7 +28,7 @@ export declare class CompletionEngine {
      */
     private templateContextCache;
     private expressionCompletionCache;
-    constructor(tcb: ts.Node, data: TemplateData, tcbPath: AbsoluteFsPath, tcbIsShim: boolean);
+    constructor(tcb: ts.Node, data: TypeCheckData, tcbPath: AbsoluteFsPath, tcbIsShim: boolean);
     /**
      * Get global completions within the given template context and AST node.
      *

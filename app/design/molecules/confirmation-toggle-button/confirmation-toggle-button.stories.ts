@@ -1,5 +1,5 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, moduleMetadata, StoryFn } from '@storybook/angular';
 import { ConfirmationToggleButtonComponent } from './confirmation-toggle-button.component';
 

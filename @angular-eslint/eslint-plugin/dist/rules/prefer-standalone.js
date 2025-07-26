@@ -4,18 +4,20 @@ exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'prefer-standalone';
+const RECOMMENDED_GUIDE_URL = 'https://angular.dev/reference/migrations/standalone';
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
     meta: {
         type: 'suggestion',
         docs: {
-            description: `Ensures Components, Directives and Pipes do not opt out of standalone`,
+            description: `Ensures Components, Directives and Pipes do not opt out of standalone.`,
             recommended: 'recommended',
         },
-        fixable: 'code',
+        hasSuggestions: true,
         schema: [],
         messages: {
-            preferStandalone: `Components, Directives and Pipes should not opt out of standalone`,
+            preferStandalone: `Components, Directives and Pipes should not opt out of standalone. Following this guide is highly recommended: ${RECOMMENDED_GUIDE_URL}`,
+            removeStandaloneFalse: `Quickly remove 'standalone: false'. NOTE - Following this guide is highly recommended: ${RECOMMENDED_GUIDE_URL}`,
         },
     },
     defaultOptions: [],
@@ -34,17 +36,22 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                 node: standalone.parent,
                 messageId: 'preferStandalone',
                 data: { type },
-                fix: (fixer) => {
-                    // Remove the standalone property altogether if it was set to false
-                    const tokenAfter = context.sourceCode.getTokenAfter(standalone.parent);
-                    // Remove the trailing comma, if present
-                    const removeStart = standalone.parent.range[0];
-                    let removeEnd = standalone.parent.range[1];
-                    if (tokenAfter && tokenAfter.value === ',') {
-                        removeEnd = tokenAfter.range[1];
-                    }
-                    return fixer.removeRange([removeStart, removeEnd]);
-                },
+                suggest: [
+                    {
+                        messageId: 'removeStandaloneFalse',
+                        fix: (fixer) => {
+                            // Remove the standalone property altogether if it was set to false
+                            const tokenAfter = context.sourceCode.getTokenAfter(standalone.parent);
+                            // Remove the trailing comma, if present
+                            const removeStart = standalone.parent.range[0];
+                            let removeEnd = standalone.parent.range[1];
+                            if (tokenAfter && tokenAfter.value === ',') {
+                                removeEnd = tokenAfter.range[1];
+                            }
+                            return fixer.removeRange([removeStart, removeEnd]);
+                        },
+                    },
+                ],
             });
         };
         return {

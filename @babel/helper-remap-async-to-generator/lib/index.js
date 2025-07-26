@@ -47,15 +47,19 @@ function _default(path, helpers, noNewArrows, ignoreFunctionLength) {
     const {
       parentPath
     } = path;
-    if (parentPath.isMemberExpression() && isIdentifier(parentPath.node.property, {
-      name: "bind"
-    })) {
-      const {
-        parentPath: bindCall
-      } = parentPath;
-      return bindCall.isCallExpression() && bindCall.node.arguments.length === 1 && isThisExpression(bindCall.node.arguments[0]) && bindCall.parentPath.isCallExpression({
-        callee: bindCall.node
-      });
+    if (parentPath.isMemberExpression()) {
+      if (isIdentifier(parentPath.node.property, {
+        name: "bind"
+      })) {
+        const {
+          parentPath: bindCall
+        } = parentPath;
+        return (bindCall.isCallExpression() && bindCall.node.arguments.length === 1 && isThisExpression(bindCall.node.arguments[0]) && bindCall.parentPath.isCallExpression({
+            callee: bindCall.node
+          })
+        );
+      }
+      return true;
     }
     return false;
   }

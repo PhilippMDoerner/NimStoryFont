@@ -1,7 +1,2 @@
-import ESM_COMPAT_Module1 from 'node:module';
-import 'node:url';
-import 'node:path';
-import { deprecate } from '@storybook/core/node-logger';
-
-ESM_COMPAT_Module1.createRequire(import.meta.url);
-deprecate("Exports from @storybook/cli are removed. Please import from @storybook/core-common instead.");
+// src/index.ts
+console.log("This file should remain unused until we have figured out the best API");

@@ -13,7 +13,7 @@ class LevelTransformLogger extends logger_1.Logger {
     name;
     parent;
     levelTransform;
-    constructor(name, parent = null, levelTransform) {
+    constructor(name, parent, levelTransform) {
         super(name, parent);
         this.name = name;
         this.parent = parent;
@@ -38,7 +38,7 @@ class LevelCapLogger extends LevelTransformLogger {
         error: { debug: 'debug', info: 'info', warn: 'warn', error: 'error', fatal: 'error' },
         fatal: { debug: 'debug', info: 'info', warn: 'warn', error: 'error', fatal: 'fatal' },
     };
-    constructor(name, parent = null, levelCap) {
+    constructor(name, parent, levelCap) {
         super(name, parent, (level) => {
             return (LevelCapLogger.levelMap[levelCap][level] || level);
         });

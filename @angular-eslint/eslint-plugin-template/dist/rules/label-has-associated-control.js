@@ -70,10 +70,12 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             ...DEFAULT_CONTROL_COMPONENTS,
             ...(controlComponents ?? []),
         ]);
-        const allLabelComponents = [
-            ...DEFAULT_LABEL_COMPONENTS,
-            ...(labelComponents ?? []),
-        ];
+        const labelMap = new Map(DEFAULT_LABEL_COMPONENTS.map((comp) => [comp.selector, comp]));
+        // Add custom components, overriding defaults with same selector
+        if (labelComponents) {
+            labelComponents.forEach((comp) => labelMap.set(comp.selector, comp));
+        }
+        const allLabelComponents = Array.from(labelMap.values());
         let inputItems = [];
         let labelItems = [];
         return {

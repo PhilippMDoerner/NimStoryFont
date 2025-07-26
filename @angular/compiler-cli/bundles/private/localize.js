@@ -5,16 +5,16 @@
 import {
   ConsoleLogger,
   LogLevel
-} from "../chunk-GBKXY6BH.js";
+} from "../chunk-H5Y7P5GQ.js";
 import {
   SourceFile,
   SourceFileLoader
-} from "../chunk-5UDS2TPQ.js";
+} from "../chunk-NVYT6OPE.js";
 import {
+  InvalidFileSystem,
   LogicalFileSystem,
   LogicalProjectPath,
   NgtscCompilerHost,
-  NodeJSFileSystem,
   absoluteFrom,
   absoluteFromSourceFile,
   basename,
@@ -31,10 +31,14 @@ import {
   resolve,
   setFileSystem,
   toRelativeImport
-} from "../chunk-STORTTKY.js";
+} from "../chunk-3AHGFMNS.js";
+import {
+  NodeJSFileSystem
+} from "../chunk-U5SKOFKE.js";
 import "../chunk-KPQ72R34.js";
 export {
   ConsoleLogger,
+  InvalidFileSystem,
   LogLevel,
   LogicalFileSystem,
   LogicalProjectPath,

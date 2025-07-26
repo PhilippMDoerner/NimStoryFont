@@ -1,6 +1,6 @@
 {
   "name": "@inquirer/confirm",
-  "version": "5.1.1",
+  "version": "5.1.10",
   "description": "Inquirer confirm prompt",
   "keywords": [
     "answer",
@@ -74,13 +74,12 @@
     "tsc": "tshy"
   },
   "dependencies": {
-    "@inquirer/core": "^10.1.2",
-    "@inquirer/type": "^3.0.2"
+    "@inquirer/core": "^10.1.11",
+    "@inquirer/type": "^3.0.6"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.17.2",
-    "@inquirer/testing": "^2.1.39",
-    "@repo/tsconfig": "workspace:*",
+    "@arethetypeswrong/cli": "^0.17.4",
+    "@inquirer/testing": "^2.1.46",
     "tshy": "^3.0.2"
   },
   "engines": {
@@ -101,5 +100,10 @@
   "peerDependencies": {
     "@types/node": ">=18"
   },
-  "gitHead": "7613d7474f1f17a18019b89f208f46be10c5b02f"
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    }
+  },
+  "gitHead": "50bac82683b9a8d8e06ec87972894d56b2883bcd"
 }

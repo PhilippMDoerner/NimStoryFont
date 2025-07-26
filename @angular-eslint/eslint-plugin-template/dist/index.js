@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -51,12 +61,15 @@ const no_duplicate_attributes_1 = __importStar(require("./rules/no-duplicate-att
 const no_inline_styles_1 = __importStar(require("./rules/no-inline-styles"));
 const no_interpolation_in_attributes_1 = __importStar(require("./rules/no-interpolation-in-attributes"));
 const no_negated_async_1 = __importStar(require("./rules/no-negated-async"));
+const no_nested_tags_1 = __importStar(require("./rules/no-nested-tags"));
 const no_positive_tabindex_1 = __importStar(require("./rules/no-positive-tabindex"));
 const prefer_ngsrc_1 = __importStar(require("./rules/prefer-ngsrc"));
+const prefer_at_empty_1 = __importStar(require("./rules/prefer-at-empty"));
 const prefer_contextual_for_variables_1 = __importStar(require("./rules/prefer-contextual-for-variables"));
 const prefer_control_flow_1 = __importStar(require("./rules/prefer-control-flow"));
 const prefer_self_closing_tags_1 = __importStar(require("./rules/prefer-self-closing-tags"));
 const prefer_static_string_properties_1 = __importStar(require("./rules/prefer-static-string-properties"));
+const prefer_template_literal_1 = __importStar(require("./rules/prefer-template-literal"));
 const role_has_required_aria_1 = __importStar(require("./rules/role-has-required-aria"));
 const table_scope_1 = __importStar(require("./rules/table-scope"));
 const use_track_by_function_1 = __importStar(require("./rules/use-track-by-function"));
@@ -88,15 +101,18 @@ module.exports = {
         [no_call_expression_1.RULE_NAME]: no_call_expression_1.default,
         [no_distracting_elements_1.RULE_NAME]: no_distracting_elements_1.default,
         [no_duplicate_attributes_1.RULE_NAME]: no_duplicate_attributes_1.default,
+        [no_nested_tags_1.RULE_NAME]: no_nested_tags_1.default,
         [no_inline_styles_1.RULE_NAME]: no_inline_styles_1.default,
         [no_interpolation_in_attributes_1.RULE_NAME]: no_interpolation_in_attributes_1.default,
         [no_negated_async_1.RULE_NAME]: no_negated_async_1.default,
         [no_positive_tabindex_1.RULE_NAME]: no_positive_tabindex_1.default,
+        [prefer_at_empty_1.RULE_NAME]: prefer_at_empty_1.default,
         [prefer_contextual_for_variables_1.RULE_NAME]: prefer_contextual_for_variables_1.default,
         [prefer_control_flow_1.RULE_NAME]: prefer_control_flow_1.default,
         [prefer_self_closing_tags_1.RULE_NAME]: prefer_self_closing_tags_1.default,
         [prefer_static_string_properties_1.RULE_NAME]: prefer_static_string_properties_1.default,
         [prefer_ngsrc_1.RULE_NAME]: prefer_ngsrc_1.default,
+        [prefer_template_literal_1.RULE_NAME]: prefer_template_literal_1.default,
         [role_has_required_aria_1.RULE_NAME]: role_has_required_aria_1.default,
         [table_scope_1.RULE_NAME]: table_scope_1.default,
         [use_track_by_function_1.RULE_NAME]: use_track_by_function_1.default,

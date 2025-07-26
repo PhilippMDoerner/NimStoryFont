@@ -1,5 +1,10 @@
-import { NgClass, NgOptimizedImage } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { NgClass } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 type ColumnCount = 1 | 2 | 3;
@@ -16,10 +21,11 @@ export interface ImageGridEntry {
   selector: 'app-image-grid',
   templateUrl: './image-grid.component.html',
   styleUrls: ['./image-grid.component.scss'],
-  imports: [NgClass, NgOptimizedImage, RouterLink],
+  imports: [NgClass, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageGridComponent {
-  EMPTY_IMAGE_URL = '';
+  EMPTY_IMAGE_URL = 'assets/general_overview.webp';
 
   entries = input.required<ImageGridEntry[]>();
 

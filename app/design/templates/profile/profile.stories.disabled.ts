@@ -1,10 +1,10 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { User } from 'src/app/_models/user';
 import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
 import { TokenMockService } from 'src/app/_services/utils/token.mock.service';
 import { TokenService } from 'src/app/_services/utils/token.service';
+import { action } from 'storybook/actions';
 import { CampaignMembership } from '../_models/campaign-membership';
 import { ProfileComponent } from './profile.component';
 

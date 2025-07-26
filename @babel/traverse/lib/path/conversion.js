@@ -160,8 +160,7 @@ function hoistFunctionEnvironment(fnPath, noNewArrows = true, allowInsertArrow =
   let arrowParent;
   let thisEnvFn = fnPath.findParent(p => {
     if (p.isArrowFunctionExpression()) {
-      var _arrowParent;
-      (_arrowParent = arrowParent) != null ? _arrowParent : arrowParent = p;
+      arrowParent != null ? arrowParent : arrowParent = p;
       return false;
     }
     return p.isFunction() || p.isProgram() || p.isClassProperty({
@@ -571,13 +570,17 @@ function ensureFunctionName(supportUnicodeId) {
   }
   if (!state.needsRename) {
     this.node.id = id;
-    scope.getProgramParent().references[id.name] = true;
+    {
+      scope.getProgramParent().references[id.name] = true;
+    }
     return this;
   }
   if (scope.hasBinding(id.name) && !scope.hasGlobal(id.name)) {
     scope.rename(id.name);
     this.node.id = id;
-    scope.getProgramParent().references[id.name] = true;
+    {
+      scope.getProgramParent().references[id.name] = true;
+    }
     return this;
   }
   if (!isFunction(this.node)) return null;

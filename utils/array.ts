@@ -14,10 +14,13 @@ export const sortByProp = <T>(
   list: T[],
   prop: keyof T,
   sortDirection: 'asc' | 'desc' = 'asc',
+  caseSensitive = false,
 ): T[] => {
   const newList = [...list];
   newList.sort((a, b) => {
-    const sortValue = a[prop] > b[prop] ? 1 : -1;
+    const valueA = caseSensitive ? a[prop] : `${a[prop]}`.toLowerCase();
+    const valueB = caseSensitive ? b[prop] : `${b[prop]}`.toLowerCase();
+    const sortValue = valueA > valueB ? 1 : -1;
     return sortDirection === 'desc' ? -1 * sortValue : sortValue;
   });
   return newList;
@@ -28,8 +31,11 @@ export const sortBy = <T>(
   b: T,
   prop: keyof T,
   sortDirection: 'asc' | 'desc' = 'asc',
+  caseSensitive = false,
 ): 1 | -1 => {
-  const sortValue = a[prop] > b[prop] ? 1 : -1;
+  const valueA = caseSensitive ? a[prop] : `${a[prop]}`.toLowerCase();
+  const valueB = caseSensitive ? b[prop] : `${b[prop]}`.toLowerCase();
+  const sortValue = valueA > valueB ? 1 : -1;
   return sortDirection === 'desc' ? ((-1 * sortValue) as 1 | -1) : sortValue;
 };
 

@@ -18,6 +18,7 @@ const latest_versions_1 = require("../utility/latest-versions");
 const ng_ast_utils_1 = require("../utility/ng-ast-utils");
 const paths_1 = require("../utility/paths");
 const project_targets_1 = require("../utility/project-targets");
+const app_component_1 = require("../utility/standalone/app_component");
 const util_1 = require("../utility/standalone/util");
 const workspace_1 = require("../utility/workspace");
 const workspace_models_1 = require("../utility/workspace-models");
@@ -88,18 +89,12 @@ function updateConfigFileApplicationBuilder(options) {
         }
         buildTarget.options ??= {};
         buildTarget.options['server'] = node_path_1.posix.join(project.sourceRoot ?? node_path_1.posix.join(project.root, 'src'), serverMainEntryName);
-        if (options.serverRouting) {
-            buildTarget.options['outputMode'] = 'static';
-        }
+        buildTarget.options['outputMode'] = 'static';
     });
 }
 function updateTsConfigFile(tsConfigPath) {
     return (host) => {
         const json = new json_file_1.JSONFile(host, tsConfigPath);
-        const filesPath = ['files'];
-        const files = new Set(json.get(filesPath) ?? []);
-        files.add('src/' + serverMainEntryName);
-        json.modify(filesPath, [...files]);
         const typePath = ['compilerOptions', 'types'];
         const types = new Set(json.get(typePath) ?? []);
         types.add('node');
@@ -140,10 +135,9 @@ function default_1(options) {
         if (!clientBuildTarget) {
             throw (0, project_targets_1.targetBuildNotFoundError)();
         }
-        const isUsingApplicationBuilder = clientBuildTarget.builder === workspace_models_1.Builders.Application ||
-            clientBuildTarget.builder === workspace_models_1.Builders.BuildApplication;
+        const usingApplicationBuilder = (0, project_targets_1.isUsingApplicationBuilder)(clientProject);
         if (clientProject.targets.has('server') ||
-            (isUsingApplicationBuilder && clientBuildTarget.options?.server !== undefined)) {
+            (usingApplicationBuilder && clientBuildTarget.options?.server !== undefined)) {
             // Server has already been added.
             return;
         }
@@ -151,15 +145,24 @@ function default_1(options) {
         const browserEntryPoint = await (0, util_1.getMainFilePath)(host, options.project);
         const isStandalone = (0, ng_ast_utils_1.isStandaloneApp)(host, browserEntryPoint);
         const sourceRoot = clientProject.sourceRoot ?? (0, core_1.join)((0, core_1.normalize)(clientProject.root), 'src');
-        let filesUrl = `./files/${isUsingApplicationBuilder ? 'application-builder/' : 'server-builder/'}`;
+        let filesUrl = `./files/${usingApplicationBuilder ? 'application-builder/' : 'server-builder/'}`;
         filesUrl += isStandalone ? 'standalone-src' : 'ngmodule-src';
+        const { componentName, componentImportPathInSameFile, moduleName, moduleImportPathInSameFile } = (0, app_component_1.resolveBootstrappedComponentData)(host, browserEntryPoint) || {
+            componentName: 'App',
+            componentImportPathInSameFile: './app/app',
+            moduleName: 'AppModule',
+            moduleImportPathInSameFile: './app/app.module',
+        };
         const templateSource = (0, schematics_1.apply)((0, schematics_1.url)(filesUrl), [
-            options.serverRouting
-                ? (0, schematics_1.noop)()
-                : (0, schematics_1.filter)((path) => !path.endsWith('app.routes.server.ts.template')),
             (0, schematics_1.applyTemplates)({
                 ...schematics_1.strings,
                 ...options,
+                appComponentName: componentName,
+                appComponentPath: componentImportPathInSameFile,
+                appModuleName: moduleName,
+                appModulePath: moduleImportPathInSameFile === null
+                    ? null
+                    : `./${node_path_1.posix.basename(moduleImportPathInSameFile)}`,
             }),
             (0, schematics_1.move)(sourceRoot),
         ]);
@@ -168,7 +171,7 @@ function default_1(options) {
         const tsConfigDirectory = (0, core_1.dirname)(clientTsConfig);
         return (0, schematics_1.chain)([
             (0, schematics_1.mergeWith)(templateSource),
-            ...(isUsingApplicationBuilder
+            ...(usingApplicationBuilder
                 ? [
                     updateConfigFileApplicationBuilder(options),
                     updateTsConfigFile(clientBuildOptions.tsConfig),

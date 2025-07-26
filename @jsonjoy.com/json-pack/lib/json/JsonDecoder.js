@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JsonDecoder = void 0;
+exports.JsonDecoder = exports.readKey = void 0;
 const decodeUtf8_1 = require("@jsonjoy.com/util/lib/buffers/utf8/decodeUtf8");
 const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
 const fromBase64Bin_1 = require("@jsonjoy.com/base64/lib/fromBase64Bin");
@@ -98,7 +98,7 @@ const isUndefined = (u8, x) => u8[x++] === 0x61 &&
     u8[x++] === 0x3d &&
     u8[x++] === 0x22;
 const fromCharCode = String.fromCharCode;
-const readShortUtf8StrAndUnescape = (reader) => {
+const readKey = (reader) => {
     const buf = reader.uint8;
     const len = buf.length;
     const points = [];
@@ -179,6 +179,7 @@ const readShortUtf8StrAndUnescape = (reader) => {
     reader.x = x;
     return fromCharCode.apply(String, points);
 };
+exports.readKey = readKey;
 class JsonDecoder {
     constructor() {
         this.reader = new Reader_1.Reader();
@@ -549,16 +550,19 @@ class JsonDecoder {
             throw new Error('Invalid JSON');
         const arr = [];
         const uint8 = reader.uint8;
+        let first = true;
         while (true) {
             this.skipWhitespace();
             const char = uint8[reader.x];
             if (char === 0x5d)
                 return reader.x++, arr;
-            if (char === 0x2c) {
+            if (char === 0x2c)
                 reader.x++;
-                continue;
-            }
+            else if (!first)
+                throw new Error('Invalid JSON');
+            this.skipWhitespace();
             arr.push(this.readAny());
+            first = false;
         }
     }
     readObj() {
@@ -567,19 +571,21 @@ class JsonDecoder {
             throw new Error('Invalid JSON');
         const obj = {};
         const uint8 = reader.uint8;
+        let first = true;
         while (true) {
             this.skipWhitespace();
             let char = uint8[reader.x];
             if (char === 0x7d)
                 return reader.x++, obj;
-            if (char === 0x2c) {
+            if (char === 0x2c)
                 reader.x++;
-                continue;
-            }
+            else if (!first)
+                throw new Error('Invalid JSON');
+            this.skipWhitespace();
             char = uint8[reader.x++];
             if (char !== 0x22)
                 throw new Error('Invalid JSON');
-            const key = readShortUtf8StrAndUnescape(reader);
+            const key = (0, exports.readKey)(reader);
             if (key === '__proto__')
                 throw new Error('Invalid JSON');
             this.skipWhitespace();
@@ -587,6 +593,7 @@ class JsonDecoder {
                 throw new Error('Invalid JSON');
             this.skipWhitespace();
             obj[key] = this.readAny();
+            first = false;
         }
     }
 }

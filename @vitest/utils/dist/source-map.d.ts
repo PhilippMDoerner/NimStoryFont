@@ -60,6 +60,21 @@ type SourceNeedle = {
     column: number;
     bias?: Bias;
 };
+type EachMapping = {
+    generatedLine: number;
+    generatedColumn: number;
+    source: null;
+    originalLine: null;
+    originalColumn: null;
+    name: null;
+} | {
+    generatedLine: number;
+    generatedColumn: number;
+    source: string | null;
+    originalLine: number;
+    originalColumn: number;
+    name: string | null;
+};
 declare abstract class SourceMap {
     version: SourceMapV3['version'];
     file: SourceMapV3['file'];
@@ -100,18 +115,25 @@ declare function originalPositionFor(map: TraceMap, needle: Needle): OriginalMap
  * Finds the generated line/column position of the provided source/line/column source position.
  */
 declare function generatedPositionFor(map: TraceMap, needle: SourceNeedle): GeneratedMapping | InvalidGeneratedMapping;
+/**
+ * Iterates each mapping in generated position order.
+ */
+declare function eachMapping(map: TraceMap, cb: (mapping: EachMapping) => void): void;
 
 interface StackTraceParserOptions {
-    ignoreStackEntries?: (RegExp | string)[];
-    getSourceMap?: (file: string) => unknown;
-    getFileName?: (id: string) => string;
-    frameFilter?: (error: ErrorWithDiff, frame: ParsedStack) => boolean | void;
+	ignoreStackEntries?: (RegExp | string)[];
+	getSourceMap?: (file: string) => unknown;
+	getUrlId?: (id: string) => string;
+	frameFilter?: (error: ErrorWithDiff, frame: ParsedStack) => boolean | void;
 }
 declare function parseSingleFFOrSafariStack(raw: string): ParsedStack | null;
 declare function parseSingleStack(raw: string): ParsedStack | null;
+// Based on https://github.com/stacktracejs/error-stack-parser
+// Credit to stacktracejs
 declare function parseSingleV8Stack(raw: string): ParsedStack | null;
 declare function createStackString(stacks: ParsedStack[]): string;
 declare function parseStacktrace(stack: string, options?: StackTraceParserOptions): ParsedStack[];
 declare function parseErrorStacktrace(e: ErrorWithDiff, options?: StackTraceParserOptions): ParsedStack[];
 
-export { type SourceMapInput, type StackTraceParserOptions, TraceMap, createStackString, generatedPositionFor, originalPositionFor, parseErrorStacktrace, parseSingleFFOrSafariStack, parseSingleStack, parseSingleV8Stack, parseStacktrace };
+export { TraceMap, createStackString, eachMapping, generatedPositionFor, originalPositionFor, parseErrorStacktrace, parseSingleFFOrSafariStack, parseSingleStack, parseSingleV8Stack, parseStacktrace };
+export type { EachMapping, SourceMapInput, StackTraceParserOptions };

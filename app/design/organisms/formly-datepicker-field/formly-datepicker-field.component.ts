@@ -1,4 +1,4 @@
-import { Component, Injectable } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injectable } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import {
   NgbCalendar,
@@ -85,6 +85,7 @@ export class CustomDateParserFormatter extends NgbDateParserFormatter {
     NgbDatepickerModule,
     IconComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormlyDatepickerFieldComponent extends FieldType<FieldTypeConfig> {
   constructor(

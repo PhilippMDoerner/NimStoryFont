@@ -10,6 +10,7 @@ const SortableSet = require("./util/SortableSet");
 const makeSerializable = require("./util/makeSerializable");
 const { forEachRuntime } = require("./util/runtime");
 
+/** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./Dependency").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
@@ -33,7 +34,22 @@ const RETURNS_TRUE = () => true;
 
 const CIRCULAR = Symbol("circular target");
 
+/**
+ * @typedef {object} RestoreProvidedDataExports
+ * @property {ExportInfoName} name
+ * @property {ExportInfo["provided"]} provided
+ * @property {ExportInfo["canMangleProvide"]} canMangleProvide
+ * @property {ExportInfo["terminalBinding"]} terminalBinding
+ * @property {RestoreProvidedData | undefined} exportsInfo
+ */
+
 class RestoreProvidedData {
+	/**
+	 * @param {RestoreProvidedDataExports[]} exports exports
+	 * @param {ExportInfo["provided"]} otherProvided other provided
+	 * @param {ExportInfo["canMangleProvide"]} otherCanMangleProvide other can mangle provide
+	 * @param {ExportInfo["terminalBinding"]} otherTerminalBinding other terminal binding
+	 */
 	constructor(
 		exports,
 		otherProvided,
@@ -71,14 +87,14 @@ makeSerializable(
 	"RestoreProvidedData"
 );
 
-/** @typedef {Map<string, ExportInfo>} Exports */
+/** @typedef {Map<ExportInfoName, ExportInfo>} Exports */
 /** @typedef {string | string[] | false} UsedName */
 
 class ExportsInfo {
 	constructor() {
 		/** @type {Exports} */
 		this._exports = new Map();
-		this._otherExportsInfo = new ExportInfo(null);
+		this._otherExportsInfo = new ExportInfo(/** @type {TODO} */ (null));
 		this._sideEffectsOnlyInfo = new ExportInfo("*side effects only*");
 		this._exportsAreOrdered = false;
 		/** @type {ExportsInfo=} */
@@ -124,6 +140,7 @@ class ExportsInfo {
 			this._sortExports();
 		}
 		if (this._redirectTo !== undefined) {
+			/** @type {Exports} */
 			const map = new Map(
 				Array.from(this._redirectTo.orderedExports, item => [item.name, item])
 			);
@@ -153,6 +170,7 @@ class ExportsInfo {
 	 */
 	_sortExportsMap(exports) {
 		if (exports.size > 1) {
+			/** @type {string[]} */
 			const namesInOrder = [];
 			for (const entry of exports.values()) {
 				namesInOrder.push(entry.name);
@@ -222,7 +240,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string} name export name
+	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
 	getOwnExportInfo(name) {
@@ -235,7 +253,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string} name export name
+	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
 	getExportInfo(name) {
@@ -250,7 +268,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string} name export name
+	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
 	getReadOnlyExportInfo(name) {
@@ -262,7 +280,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string[]} name export name
+	 * @param {ExportInfoName[]} name export name
 	 * @returns {ExportInfo | undefined} export info for this name
 	 */
 	getReadOnlyExportInfoRecursive(name) {
@@ -273,7 +291,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string[]=} name the export name
+	 * @param {ExportInfoName[]=} name the export name
 	 * @returns {ExportsInfo | undefined} the nested exports info
 	 */
 	getNestedExportsInfo(name) {
@@ -288,7 +306,7 @@ class ExportsInfo {
 	/**
 	 * @param {boolean=} canMangle true, if exports can still be mangled (defaults to false)
 	 * @param {Set<string>=} excludeExports list of unaffected exports
-	 * @param {any=} targetKey use this as key for the target
+	 * @param {Dependency=} targetKey use this as key for the target
 	 * @param {ModuleGraphConnection=} targetModule set this module as target
 	 * @param {number=} priority priority
 	 * @returns {boolean} true, if this call changed something
@@ -320,7 +338,8 @@ class ExportsInfo {
 			if (targetKey) {
 				exportInfo.setTarget(
 					targetKey,
-					/** @type {ModuleGraphConnection} */ (targetModule),
+					/** @type {ModuleGraphConnection} */
+					(targetModule),
 					[exportInfo.name],
 					-1
 				);
@@ -545,6 +564,7 @@ class ExportsInfo {
 					return true;
 			}
 		}
+		/** @type {string[]} */
 		const array = [];
 		if (!this._exportsAreOrdered) this._sortExports();
 		for (const exportInfo of this._exports.values()) {
@@ -597,7 +617,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string | string[]} name the name of the export
+	 * @param {ExportInfoName | ExportInfoName[]} name the name of the export
 	 * @returns {boolean | undefined | null} if the export is provided
 	 */
 	isExportProvided(name) {
@@ -658,7 +678,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string | string[]} name export name
+	 * @param {ExportInfoName | ExportInfoName[]} name export name
 	 * @param {RuntimeSpec} runtime check usage for this runtime only
 	 * @returns {UsageStateType} usage status
 	 */
@@ -676,7 +696,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {string | string[]} name the export name
+	 * @param {ExportInfoName | ExportInfoName[]} name the export name
 	 * @param {RuntimeSpec} runtime check usage for this runtime only
 	 * @returns {UsedName} the used name
 	 */
@@ -691,7 +711,7 @@ class ExportsInfo {
 			const x = info.getUsedName(name[0], runtime);
 			if (x === false) return false;
 			const arr =
-				/** @type {string[]} */
+				/** @type {ExportInfoName[]} */
 				(x === name[0] && name.length === 1 ? name : [x]);
 			if (name.length === 1) {
 				return arr;
@@ -748,6 +768,7 @@ class ExportsInfo {
 		const otherProvided = this._otherExportsInfo.provided;
 		const otherCanMangleProvide = this._otherExportsInfo.canMangleProvide;
 		const otherTerminalBinding = this._otherExportsInfo.terminalBinding;
+		/** @type {RestoreProvidedDataExports[]} */
 		const exports = [];
 		for (const exportInfo of this.orderedExports) {
 			if (
@@ -777,7 +798,7 @@ class ExportsInfo {
 	}
 
 	/**
-	 * @param {{ otherProvided: any, otherCanMangleProvide: any, otherTerminalBinding: any, exports: any }} data data
+	 * @param {RestoreProvidedData} data data
 	 */
 	restoreProvided({
 		otherProvided,
@@ -809,21 +830,35 @@ class ExportsInfo {
 	}
 }
 
+/** @typedef {Map<string, RuntimeUsageStateType>} UsedInRuntime */
+
 /** @typedef {{ module: Module, export: string[] }} TargetItemWithoutConnection */
-/** @typedef {{ module: Module, connection: ModuleGraphConnection, export: string[] | undefined }} TargetItem */
-/** @typedef {Map<any, { connection: ModuleGraphConnection | null, export: string[], priority: number }>} Target */
+
+/** @typedef {{ module: Module, connection: ModuleGraphConnection, export: string[] | undefined }} TargetItemWithConnection */
+
+/** @typedef {(target: TargetItemWithConnection) => boolean} ResolveTargetFilter */
+
+/** @typedef {(module: Module) => boolean} ValidTargetModuleFilter */
+
+/** @typedef {{ connection: ModuleGraphConnection, export: string[], priority: number }} TargetItem */
+
+/** @typedef {Map<Dependency | undefined, TargetItem>} Target */
+
+/** @typedef {string} ExportInfoName */
+/** @typedef {string | null} ExportInfoUsedName */
+/** @typedef {boolean | null} ExportInfoProvided */
 
 class ExportInfo {
 	/**
-	 * @param {string} name the original name of the export
+	 * @param {ExportInfoName} name the original name of the export
 	 * @param {ExportInfo=} initFrom init values from this ExportInfo
 	 */
 	constructor(name, initFrom) {
-		/** @type {string} */
+		/** @type {ExportInfoName} */
 		this.name = name;
 		/**
 		 * @private
-		 * @type {string | null}
+		 * @type {ExportInfoUsedName}
 		 */
 		this._usedName = initFrom ? initFrom._usedName : null;
 		/**
@@ -833,7 +868,7 @@ class ExportInfo {
 		this._globalUsed = initFrom ? initFrom._globalUsed : undefined;
 		/**
 		 * @private
-		 * @type {Map<string, RuntimeUsageStateType>}
+		 * @type {UsedInRuntime | undefined}
 		 */
 		this._usedInRuntime =
 			initFrom && initFrom._usedInRuntime
@@ -851,7 +886,7 @@ class ExportInfo {
 		 * false: it is not provided
 		 * null: only the runtime knows if it is provided
 		 * undefined: it was not determined if it is provided
-		 * @type {boolean | null | undefined}
+		 * @type {ExportInfoProvided | undefined}
 		 */
 		this.provided = initFrom ? initFrom.provided : undefined;
 		/**
@@ -896,7 +931,7 @@ class ExportInfo {
 	// TODO webpack 5 remove
 	/**
 	 * @private
-	 * @param {*} v v
+	 * @param {EXPECTED_ANY} v v
 	 */
 	set used(v) {
 		throw new Error("REMOVED");
@@ -911,7 +946,7 @@ class ExportInfo {
 	// TODO webpack 5 remove
 	/**
 	 * @private
-	 * @param {*} v v
+	 * @param {EXPECTED_ANY} v v
 	 */
 	set usedName(v) {
 		throw new Error("REMOVED");
@@ -996,7 +1031,7 @@ class ExportInfo {
 	}
 
 	/**
-	 * @param {function(UsageStateType): boolean} condition compare with old value
+	 * @param {(condition: UsageStateType) => boolean} condition compare with old value
 	 * @param {UsageStateType} newValue set when condition is true
 	 * @param {RuntimeSpec} runtime only apply to this runtime
 	 * @returns {boolean} true when something has changed
@@ -1015,7 +1050,8 @@ class ExportInfo {
 			if (newValue !== UsageState.Unused && condition(UsageState.Unused)) {
 				this._usedInRuntime = new Map();
 				forEachRuntime(runtime, runtime =>
-					this._usedInRuntime.set(/** @type {string} */ (runtime), newValue)
+					/** @type {UsedInRuntime} */
+					(this._usedInRuntime).set(/** @type {string} */ (runtime), newValue)
 				);
 				return true;
 			}
@@ -1023,15 +1059,18 @@ class ExportInfo {
 			let changed = false;
 			forEachRuntime(runtime, _runtime => {
 				const runtime = /** @type {string} */ (_runtime);
+				const usedInRuntime =
+					/** @type {UsedInRuntime} */
+					(this._usedInRuntime);
 				let oldValue =
 					/** @type {UsageStateType} */
-					(this._usedInRuntime.get(runtime));
+					(usedInRuntime.get(runtime));
 				if (oldValue === undefined) oldValue = UsageState.Unused;
 				if (newValue !== oldValue && condition(oldValue)) {
 					if (newValue === UsageState.Unused) {
-						this._usedInRuntime.delete(runtime);
+						usedInRuntime.delete(runtime);
 					} else {
-						this._usedInRuntime.set(runtime, newValue);
+						usedInRuntime.set(runtime, newValue);
 					}
 					changed = true;
 				}
@@ -1059,7 +1098,8 @@ class ExportInfo {
 			if (newValue !== UsageState.Unused) {
 				this._usedInRuntime = new Map();
 				forEachRuntime(runtime, runtime =>
-					this._usedInRuntime.set(/** @type {string} */ (runtime), newValue)
+					/** @type {UsedInRuntime} */
+					(this._usedInRuntime).set(/** @type {string} */ (runtime), newValue)
 				);
 				return true;
 			}
@@ -1067,15 +1107,18 @@ class ExportInfo {
 			let changed = false;
 			forEachRuntime(runtime, _runtime => {
 				const runtime = /** @type {string} */ (_runtime);
+				const usedInRuntime =
+					/** @type {UsedInRuntime} */
+					(this._usedInRuntime);
 				let oldValue =
 					/** @type {UsageStateType} */
-					(this._usedInRuntime.get(runtime));
+					(usedInRuntime.get(runtime));
 				if (oldValue === undefined) oldValue = UsageState.Unused;
 				if (newValue !== oldValue) {
 					if (newValue === UsageState.Unused) {
-						this._usedInRuntime.delete(runtime);
+						usedInRuntime.delete(runtime);
 					} else {
-						this._usedInRuntime.set(runtime, newValue);
+						usedInRuntime.set(runtime, newValue);
 					}
 					changed = true;
 				}
@@ -1089,7 +1132,7 @@ class ExportInfo {
 	}
 
 	/**
-	 * @param {any} key the key
+	 * @param {Dependency} key the key
 	 * @returns {boolean} true, if something has changed
 	 */
 	unsetTarget(key) {
@@ -1102,7 +1145,7 @@ class ExportInfo {
 	}
 
 	/**
-	 * @param {any} key the key
+	 * @param {Dependency} key the key
 	 * @param {ModuleGraphConnection} connection the target module if a single one
 	 * @param {(string[] | null)=} exportName the exported name
 	 * @param {number=} priority priority
@@ -1203,7 +1246,8 @@ class ExportInfo {
 				} else if (
 					runtime !== undefined &&
 					Array.from(runtime).every(
-						runtime => !this._usedInRuntime.has(runtime)
+						runtime =>
+							!(/** @type {UsedInRuntime} */ (this._usedInRuntime).has(runtime))
 					)
 				) {
 					return false;
@@ -1232,7 +1276,7 @@ class ExportInfo {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(TargetItem): boolean} resolveTargetFilter filter function to further resolve target
+	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
 	 * @returns {ExportInfo | ExportsInfo | undefined} the terminal binding export(s) info if known
 	 */
 	getTerminalBinding(moduleGraph, resolveTargetFilter = RETURNS_TRUE) {
@@ -1262,6 +1306,7 @@ class ExportInfo {
 		if (maxPriority === minPriority) return (this._maxTarget = this._target);
 
 		// This is an edge case
+		/** @type {Target} */
 		const map = new Map();
 		for (const [key, value] of /** @type {Target} */ (this._target)) {
 			if (maxPriority === value.priority) {
@@ -1274,7 +1319,7 @@ class ExportInfo {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(Module): boolean} validTargetModuleFilter a valid target module
+	 * @param {ValidTargetModuleFilter} validTargetModuleFilter a valid target module
 	 * @returns {TargetItemWithoutConnection | null | undefined | false} the target, undefined when there is no target, false when no target is valid
 	 */
 	findTarget(moduleGraph, validTargetModuleFilter) {
@@ -1283,7 +1328,7 @@ class ExportInfo {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(Module): boolean} validTargetModuleFilter a valid target module
+	 * @param {ValidTargetModuleFilter} validTargetModuleFilter a valid target module
 	 * @param {Set<ExportInfo>} alreadyVisited set of already visited export info to avoid circular references
 	 * @returns {TargetItemWithoutConnection | null | undefined | false} the target, undefined when there is no target, false when no target is valid
 	 */
@@ -1324,8 +1369,8 @@ class ExportInfo {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(TargetItem): boolean} resolveTargetFilter filter function to further resolve target
-	 * @returns {TargetItem | undefined} the target
+	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
+	 * @returns {TargetItemWithConnection | undefined} the target
 	 */
 	getTarget(moduleGraph, resolveTargetFilter = RETURNS_TRUE) {
 		const result = this._getTarget(moduleGraph, resolveTargetFilter, undefined);
@@ -1335,15 +1380,15 @@ class ExportInfo {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(TargetItem): boolean} resolveTargetFilter filter function to further resolve target
+	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
 	 * @param {Set<ExportInfo> | undefined} alreadyVisited set of already visited export info to avoid circular references
-	 * @returns {TargetItem | CIRCULAR | undefined} the target
+	 * @returns {TargetItemWithConnection | CIRCULAR | undefined} the target
 	 */
 	_getTarget(moduleGraph, resolveTargetFilter, alreadyVisited) {
 		/**
-		 * @param {TargetItem | null} inputTarget unresolved target
+		 * @param {TargetItem | undefined | null} inputTarget unresolved target
 		 * @param {Set<ExportInfo>} alreadyVisited set of already visited export info to avoid circular references
-		 * @returns {TargetItem | CIRCULAR | null} resolved target
+		 * @returns {TargetItemWithConnection | CIRCULAR | null} resolved target
 		 */
 		const resolveTarget = (inputTarget, alreadyVisited) => {
 			if (!inputTarget) return null;
@@ -1354,7 +1399,7 @@ class ExportInfo {
 					export: undefined
 				};
 			}
-			/** @type {TargetItem} */
+			/** @type {TargetItemWithConnection} */
 			let target = {
 				module: inputTarget.connection.module,
 				connection: inputTarget.connection,
@@ -1365,7 +1410,7 @@ class ExportInfo {
 			for (;;) {
 				const exportsInfo = moduleGraph.getExportsInfo(target.module);
 				const exportInfo = exportsInfo.getExportInfo(
-					/** @type {NonNullable<TargetItem["export"]>} */
+					/** @type {NonNullable<TargetItemWithConnection["export"]>} */
 					(target.export)[0]
 				);
 				if (!exportInfo) return target;
@@ -1378,7 +1423,7 @@ class ExportInfo {
 				if (newTarget === CIRCULAR) return CIRCULAR;
 				if (!newTarget) return target;
 				if (
-					/** @type {NonNullable<TargetItem["export"]>} */
+					/** @type {NonNullable<TargetItemWithConnection["export"]>} */
 					(target.export).length === 1
 				) {
 					target = newTarget;
@@ -1389,10 +1434,10 @@ class ExportInfo {
 						connection: newTarget.connection,
 						export: newTarget.export
 							? newTarget.export.concat(
-									/** @type {NonNullable<TargetItem["export"]>} */
+									/** @type {NonNullable<TargetItemWithConnection["export"]>} */
 									(target.export).slice(1)
 								)
-							: /** @type {NonNullable<TargetItem["export"]>} */
+							: /** @type {NonNullable<TargetItemWithConnection["export"]>} */
 								(target.export).slice(1)
 					};
 				}
@@ -1433,17 +1478,20 @@ class ExportInfo {
 	/**
 	 * Move the target forward as long resolveTargetFilter is fulfilled
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {function(TargetItem): boolean} resolveTargetFilter filter function to further resolve target
-	 * @param {function(TargetItem): ModuleGraphConnection=} updateOriginalConnection updates the original connection instead of using the target connection
-	 * @returns {TargetItem | undefined} the resolved target when moved
+	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
+	 * @param {(target: TargetItemWithConnection) => ModuleGraphConnection=} updateOriginalConnection updates the original connection instead of using the target connection
+	 * @returns {TargetItemWithConnection | undefined} the resolved target when moved
 	 */
 	moveTarget(moduleGraph, resolveTargetFilter, updateOriginalConnection) {
 		const target = this._getTarget(moduleGraph, resolveTargetFilter, undefined);
 		if (target === CIRCULAR) return;
 		if (!target) return;
 		const originalTarget =
-			/** @type {Target} */
-			(this._getMaxTarget()).values().next().value;
+			/** @type {TargetItem} */
+			(
+				/** @type {Target} */
+				(this._getMaxTarget()).values().next().value
+			);
 		if (
 			originalTarget.connection === target.connection &&
 			originalTarget.export === target.export
@@ -1457,7 +1505,9 @@ class ExportInfo {
 			connection: updateOriginalConnection
 				? updateOriginalConnection(target)
 				: target.connection,
-			export: /** @type {NonNullable<TargetItem["export"]>} */ (target.export),
+			export: /** @type {NonNullable<TargetItemWithConnection["export"]>} */ (
+				target.export
+			),
 			priority: 0
 		});
 		return target;
@@ -1622,3 +1672,4 @@ class ExportInfo {
 module.exports = ExportsInfo;
 module.exports.ExportInfo = ExportInfo;
 module.exports.UsageState = UsageState;
+module.exports.RestoreProvidedData = RestoreProvidedData;

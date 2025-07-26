@@ -9,7 +9,7 @@ import ts from 'typescript';
 import { Reference } from '../../../imports';
 import { PartialEvaluator, ResolvedValue } from '../../../partial_evaluator';
 import { ClassDeclaration, Decorator } from '../../../reflection';
-export declare function resolveEnumValue(evaluator: PartialEvaluator, metadata: Map<string, ts.Expression>, field: string, enumSymbolName: string): number | null;
+export declare function resolveEnumValue(evaluator: PartialEvaluator, metadata: Map<string, ts.Expression>, field: string, enumSymbolName: string, isCore: boolean): number | null;
 /**
  * Resolves a EncapsulationEnum expression locally on best effort without having to calculate the
  * reference. This suites local compilation mode where each file is compiled individually.

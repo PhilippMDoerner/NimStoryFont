@@ -1,14 +1,16 @@
 @let campaign = globalStore.currentCampaign();
 @if (campaign) {
-  <div class="mobile">
-    <app-mobile-header
-      [canShowSidebar]="canShowSidebar()"
-      [title]="mobileHeaderTitle()"
-      [currentCampaignIconUrl]="campaign.icon"
-      [titleUrl]="homeUrl()"
-      (openSidebar)="openSidebar()"
-    ></app-mobile-header>
-  </div>
+  @defer {
+    <div class="mobile">
+      <app-mobile-header
+        [canShowSidebar]="canShowSidebar()"
+        [title]="mobileHeaderTitle()"
+        [currentCampaignIconUrl]="campaign.icon"
+        [titleUrl]="homeUrl()"
+        (openSidebar)="openSidebar()"
+      ></app-mobile-header>
+    </div>
+  }
 
   @if (canShowSidebar()) {
     <div class="desktop">
@@ -27,8 +29,6 @@
       (click)="scrollToTop()"
       [ngbTooltip]="'Scroll to top'"
       aria-label="Scroll to top"
-      [hotkey]="'t'"
-      (hotkeyPressed)="scrollToTop()"
     >
       <app-icon [icon]="'arrow-up-long'" />
     </button>
@@ -38,6 +38,9 @@
       [id]="contentId()"
       [attr.aria-busy]="isLoading()"
     >
+      <div class="cdk-visually-hidden" #titleContainer [tabIndex]="-1">
+        {{ title() }}
+      </div>
       @if (isLoading()) {
         <div class="page__loading-container" aria-hidden="true">
           <app-spinner class="page__loading-spinner"></app-spinner>
@@ -55,14 +58,16 @@
 </div>
 
 <ng-template #sidebar>
-  <app-sidebar
-    #sidebarElement
-    id="sidebar"
-    class="sidebar"
-    [campaign]="campaign"
-    [hasCampaignAdminPrivileges]="hasCampaignAdminPrivileges()"
-    (logout)="logout.emit()"
-    (closeSidebar)="closeSidebar()"
-    (click)="closeSidebar()"
-  ></app-sidebar>
+  @defer {
+    <app-sidebar
+      #sidebarElement
+      id="sidebar"
+      class="sidebar"
+      [campaign]="campaign"
+      [hasCampaignAdminPrivileges]="hasCampaignAdminPrivileges()"
+      (logout)="logout.emit()"
+      (closeSidebar)="closeSidebar()"
+      (click)="closeSidebar()"
+    />
+  }
 </ng-template>

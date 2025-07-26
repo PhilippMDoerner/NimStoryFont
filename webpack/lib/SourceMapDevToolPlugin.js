@@ -19,6 +19,7 @@ const { makePathsAbsolute } = require("./util/identifier");
 
 /** @typedef {import("webpack-sources").MapOptions} MapOptions */
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../declarations/plugins/SourceMapDevToolPlugin").SourceMapDevToolPluginOptions} SourceMapDevToolPluginOptions */
 /** @typedef {import("./Cache").Etag} Etag */
 /** @typedef {import("./CacheFacade").ItemCacheFacade} ItemCacheFacade */
@@ -29,8 +30,6 @@ const { makePathsAbsolute } = require("./util/identifier");
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./NormalModule").SourceMap} SourceMap */
 /** @typedef {import("./TemplatedPathPlugin").TemplatePath} TemplatePath */
-/** @typedef {import("./util/Hash")} Hash */
-/** @typedef {import("./util/createHash").Algorithm} Algorithm */
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
 
 const validate = createSchemaValidation(
@@ -131,9 +130,11 @@ const getTaskForFile = (
 	};
 };
 
+const PLUGIN_NAME = "SourceMapDevToolPlugin";
+
 class SourceMapDevToolPlugin {
 	/**
-	 * @param {SourceMapDevToolPluginOptions} [options] options object
+	 * @param {SourceMapDevToolPluginOptions=} options options object
 	 * @throws {Error} throws error, if got more than 1 arguments
 	 */
 	constructor(options = {}) {
@@ -146,16 +147,12 @@ class SourceMapDevToolPlugin {
 				? false
 				: // eslint-disable-next-line no-useless-concat
 					options.append || "\n//# source" + "MappingURL=[url]";
-		/** @type {string | Function} */
 		this.moduleFilenameTemplate =
 			options.moduleFilenameTemplate || "webpack://[namespace]/[resourcePath]";
-		/** @type {string | Function} */
 		this.fallbackModuleFilenameTemplate =
 			options.fallbackModuleFilenameTemplate ||
 			"webpack://[namespace]/[resourcePath]?[hash]";
-		/** @type {string} */
 		this.namespace = options.namespace || "";
-		/** @type {SourceMapDevToolPluginOptions} */
 		this.options = options;
 	}
 
@@ -182,24 +179,20 @@ class SourceMapDevToolPlugin {
 			options
 		);
 
-		compiler.hooks.compilation.tap("SourceMapDevToolPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			new SourceMapDevToolModuleOptionsPlugin(options).apply(compilation);
 
 			compilation.hooks.processAssets.tapAsync(
 				{
-					name: "SourceMapDevToolPlugin",
+					name: PLUGIN_NAME,
 					stage: Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING,
 					additionalAssets: true
 				},
 				(assets, callback) => {
 					const chunkGraph = compilation.chunkGraph;
-					const cache = compilation.getCache("SourceMapDevToolPlugin");
+					const cache = compilation.getCache(PLUGIN_NAME);
 					/** @type {Map<string | Module, string>} */
 					const moduleToSourceNameMapping = new Map();
-					/**
-					 * @type {Function}
-					 * @returns {void}
-					 */
 					const reportProgress =
 						ProgressPlugin.getReporter(compilation.compiler) || (() => {});
 
@@ -495,7 +488,7 @@ class SourceMapDevToolPlugin {
 											(
 												usesContentHash &&
 													createHash(
-														/** @type {Algorithm} */
+														/** @type {HashFunction} */
 														(compilation.outputOptions.hashFunction)
 													)
 														.update(sourceMapString)
@@ -560,12 +553,12 @@ class SourceMapDevToolPlugin {
 									} else {
 										if (currentSourceMappingURLComment === false) {
 											throw new Error(
-												"SourceMapDevToolPlugin: append can't be false when no filename is provided"
+												`${PLUGIN_NAME}: append can't be false when no filename is provided`
 											);
 										}
 										if (typeof currentSourceMappingURLComment === "function") {
 											throw new Error(
-												"SourceMapDevToolPlugin: append can't be a function when no filename is provided"
+												`${PLUGIN_NAME}: append can't be a function when no filename is provided`
 											);
 										}
 										/**

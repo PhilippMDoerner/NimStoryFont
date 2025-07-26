@@ -1,0 +1,64 @@
+<app-profile-tab-layout>
+  <h1 class="cdk-visually-hidden">Settings</h1>
+
+  @if ((isMobile$ | async) !== true) {
+    <section [attr.aria-labelledby]="shortcutsSectionLabelId">
+      <h2 [id]="shortcutsSectionLabelId">Shortcuts</h2>
+
+      <div class="shortcut-table">
+        <div class="container">
+          <div class="shortcut-table__row row h4">
+            <div class="col-2">Action</div>
+            <div class="col-2">Shortcut</div>
+            <div class="col-7">Description</div>
+          </div>
+        </div>
+        <app-list
+          class="container shortcut-table__body"
+          [entries]="mappingEntries() ?? []"
+          [listItemClasses]="['row', 'shortcut-table__row']"
+          (entryActivated)="
+            openEditShortcutDialog($event.action, $event.modified)
+          "
+        >
+          <ng-template #entryTemplate let-context>
+            <div class="col-2">
+              <div class="cdk-visually-hidden">Shortcut Action</div>
+              {{ context.data.actionLabel }}
+            </div>
+            <div class="col-2">
+              <div class="cdk-visually-hidden">Shortcut Keys</div>
+
+              {{ context.data.shortcut }}
+              @if (context.data.modified) {
+                <strong class="table__modified-column">*</strong>
+              }
+            </div>
+            <div class="col-7">
+              <div class="cdk-visually-hidden">Shortcut Description</div>
+              {{ context.data.description }}
+            </div>
+
+            <div class="col-1">
+              <div class="cdk-visually-hidden">Actions</div>
+
+              <button
+                btn
+                [kind]="'SECONDARY'"
+                [icon]="'pencil'"
+                [size]="'SMALL'"
+                [tabIndex]="context.isInFocus ? 0 : -1"
+                [attr.aria-label]="
+                  'Edit shortcut for action \'' +
+                  context.data.actionLabel +
+                  '\''
+                "
+                (clicked)="onEditButtonClicked(context.data, $event)"
+              ></button>
+            </div>
+          </ng-template>
+        </app-list>
+      </div>
+    </section>
+  }
+</app-profile-tab-layout>

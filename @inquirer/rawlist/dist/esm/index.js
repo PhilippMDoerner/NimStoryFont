@@ -1,4 +1,4 @@
-import { createPrompt, useMemo, useState, useKeypress, usePrefix, isEnterKey, Separator, makeTheme, } from '@inquirer/core';
+import { createPrompt, useMemo, useState, useKeypress, usePrefix, isEnterKey, Separator, makeTheme, ValidationError, } from '@inquirer/core';
 import colors from 'yoctocolors-cjs';
 const numberRegex = /\d+/;
 function isSelectableChoice(choice) {
@@ -27,23 +27,39 @@ function normalizeChoices(choices) {
         };
     });
 }
+function getSelectedChoice(input, choices) {
+    let selectedChoice;
+    const selectableChoices = choices.filter(isSelectableChoice);
+    if (numberRegex.test(input)) {
+        const answer = Number.parseInt(input, 10) - 1;
+        selectedChoice = selectableChoices[answer];
+    }
+    else {
+        selectedChoice = selectableChoices.find((choice) => choice.key === input);
+    }
+    return selectedChoice
+        ? [selectedChoice, choices.indexOf(selectedChoice)]
+        : [undefined, undefined];
+}
 export default createPrompt((config, done) => {
+    const { loop = true } = config;
     const choices = useMemo(() => normalizeChoices(config.choices), [config.choices]);
     const [status, setStatus] = useState('idle');
     const [value, setValue] = useState('');
     const [errorMsg, setError] = useState();
     const theme = makeTheme(config.theme);
     const prefix = usePrefix({ status, theme });
+    const bounds = useMemo(() => {
+        const first = choices.findIndex(isSelectableChoice);
+        const last = choices.findLastIndex(isSelectableChoice);
+        if (first === -1) {
+            throw new ValidationError('[select prompt] No selectable choices. All choices are disabled.');
+        }
+        return { first, last };
+    }, [choices]);
     useKeypress((key, rl) => {
         if (isEnterKey(key)) {
-            let selectedChoice;
-            if (numberRegex.test(value)) {
-                const answer = Number.parseInt(value, 10) - 1;
-                selectedChoice = choices.filter(isSelectableChoice)[answer];
-            }
-            else {
-                selectedChoice = choices.find((choice) => isSelectableChoice(choice) && choice.key === value);
-            }
+            const [selectedChoice] = getSelectedChoice(value, choices);
             if (isSelectableChoice(selectedChoice)) {
                 setValue(selectedChoice.short);
                 setStatus('done');
@@ -54,6 +70,26 @@ export default createPrompt((config, done) => {
             }
             else {
                 setError(`"${colors.red(value)}" isn't an available option`);
+            }
+        }
+        else if (key.name === 'up' || key.name === 'down') {
+            rl.clearLine(0);
+            const [selectedChoice, active] = getSelectedChoice(value, choices);
+            if (!selectedChoice) {
+                const firstChoice = key.name === 'down'
+                    ? choices.find(isSelectableChoice)
+                    : choices.findLast(isSelectableChoice);
+                setValue(firstChoice.key);
+            }
+            else if (loop ||
+                (key.name === 'up' && active !== bounds.first) ||
+                (key.name === 'down' && active !== bounds.last)) {
+                const offset = key.name === 'up' ? -1 : 1;
+                let next = active;
+                do {
+                    next = (next + offset + choices.length) % choices.length;
+                } while (!isSelectableChoice(choices[next]));
+                setValue(choices[next].key);
             }
         }
         else {

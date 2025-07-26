@@ -119,7 +119,12 @@ var ProcessExtendsVisitor = /** @class */ (function () {
             catch (_) { }
             if (!indices["".concat(extend.index, " ").concat(selector)]) {
                 indices["".concat(extend.index, " ").concat(selector)] = true;
-                logger_1.default.warn("extend '".concat(selector, "' has no matches"));
+                /**
+                 * @todo Shouldn't this be an error? To alert the developer
+                 * that they may have made an error in the selector they are
+                 * targeting?
+                 */
+                logger_1.default.warn("WARNING: extend '".concat(selector, "' has no matches"));
             }
         });
     };

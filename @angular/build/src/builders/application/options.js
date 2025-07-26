@@ -23,6 +23,7 @@ const environment_options_1 = require("../../utils/environment-options");
 const i18n_options_1 = require("../../utils/i18n-options");
 const normalize_cache_1 = require("../../utils/normalize-cache");
 const postcss_configuration_1 = require("../../utils/postcss-configuration");
+const project_metadata_1 = require("../../utils/project-metadata");
 const url_1 = require("../../utils/url");
 const schema_1 = require("./schema");
 /**
@@ -58,8 +59,7 @@ async function normalizeOptions(context, projectName, options, extensions) {
             // ref: https://github.com/nodejs/node/issues/7726
             (0, node_fs_1.realpathSync)(context.workspaceRoot);
     const projectMetadata = await context.getProjectMetadata(projectName);
-    const projectRoot = normalizeDirectoryPath(node_path_1.default.join(workspaceRoot, projectMetadata.root ?? ''));
-    const projectSourceRoot = normalizeDirectoryPath(node_path_1.default.join(workspaceRoot, projectMetadata.sourceRoot ?? 'src'));
+    const { projectRoot, projectSourceRoot } = (0, project_metadata_1.getProjectRootPaths)(workspaceRoot, projectMetadata);
     // Gather persistent caching option and provide a project specific cache location
     const cacheOptions = (0, normalize_cache_1.normalizeCacheOptions)(projectMetadata, workspaceRoot);
     cacheOptions.path = node_path_1.default.join(cacheOptions.path, projectName);
@@ -69,7 +69,7 @@ async function normalizeOptions(context, projectName, options, extensions) {
     if (options.forceI18nFlatOutput) {
         i18nOptions.flatOutput = true;
     }
-    const entryPoints = normalizeEntryPoints(workspaceRoot, options.browser, options.entryPoints);
+    const entryPoints = normalizeEntryPoints(workspaceRoot, projectSourceRoot, options.browser, options.entryPoints);
     const tsconfig = node_path_1.default.join(workspaceRoot, options.tsConfig);
     const optimizationOptions = (0, utils_1.normalizeOptimization)(options.optimization);
     const sourcemapOptions = (0, utils_1.normalizeSourceMaps)(options.sourceMap ?? false);
@@ -132,11 +132,11 @@ async function normalizeOptions(context, projectName, options, extensions) {
         ? undefined
         : await getTailwindConfig(searchDirectories, workspaceRoot, context);
     let serverEntryPoint;
-    if (options.server) {
+    if (typeof options.server === 'string') {
+        if (options.server === '') {
+            throw new Error('The "server" option cannot be an empty string.');
+        }
         serverEntryPoint = node_path_1.default.join(workspaceRoot, options.server);
-    }
-    else if (options.server === '') {
-        throw new Error('The "server" option cannot be an empty string.');
     }
     let prerenderOptions;
     if (options.prerender) {
@@ -163,13 +163,13 @@ async function normalizeOptions(context, projectName, options, extensions) {
             route: 'shell',
         };
     }
-    const outputPath = options.outputPath;
+    const outputPath = options.outputPath ?? node_path_1.default.join(workspaceRoot, 'dist', projectName);
     const outputOptions = {
         browser: 'browser',
         server: 'server',
         media: 'media',
         ...(typeof outputPath === 'string' ? undefined : outputPath),
-        base: normalizeDirectoryPath(node_path_1.default.resolve(workspaceRoot, typeof outputPath === 'string' ? outputPath : outputPath.base)),
+        base: (0, project_metadata_1.normalizeDirectoryPath)(node_path_1.default.resolve(workspaceRoot, typeof outputPath === 'string' ? outputPath : outputPath.base)),
         clean: options.deleteOutputPath ?? true,
         // For app-shell and SSG server files are not required by users.
         // Omit these when SSR is not enabled.
@@ -191,12 +191,18 @@ async function normalizeOptions(context, projectName, options, extensions) {
     let indexHtmlOptions;
     // index can never have a value of `true` but in the schema it's of type `boolean`.
     if (typeof options.index !== 'boolean') {
+        let indexInput;
         let indexOutput;
         // The output file will be created within the configured output path
         if (typeof options.index === 'string') {
-            indexOutput = options.index;
+            indexInput = indexOutput = node_path_1.default.join(workspaceRoot, options.index);
+        }
+        else if (typeof options.index === 'undefined') {
+            indexInput = node_path_1.default.join(projectSourceRoot, 'index.html');
+            indexOutput = 'index.html';
         }
         else {
+            indexInput = node_path_1.default.join(workspaceRoot, options.index.input);
             indexOutput = options.index.output || 'index.html';
         }
         /**
@@ -214,7 +220,7 @@ async function normalizeOptions(context, projectName, options, extensions) {
                 ? exports.INDEX_HTML_CSR
                 : indexBaseName;
         indexHtmlOptions = {
-            input: node_path_1.default.join(workspaceRoot, typeof options.index === 'string' ? options.index : options.index.input),
+            input: indexInput,
             output: indexOutput,
             insertionOrder: [
                 ['polyfills', true],
@@ -236,8 +242,16 @@ async function normalizeOptions(context, projectName, options, extensions) {
             throw new Error('The "index" option cannot be set to false when enabling "ssr", "prerender" or "app-shell".');
         }
     }
+    const autoCsp = options.security?.autoCsp;
+    const security = {
+        autoCsp: autoCsp
+            ? {
+                unsafeEval: autoCsp === true ? false : !!autoCsp.unsafeEval,
+            }
+            : undefined,
+    };
     // Initial options to keep
-    const { allowedCommonJsDependencies, aot = true, baseHref, crossOrigin, externalDependencies, extractLicenses, inlineStyleLanguage = 'css', outExtension, serviceWorker, poll, polyfills, statsJson, outputMode, stylePreprocessorOptions, subresourceIntegrity, verbose, watch, progress = true, externalPackages, namedChunks, budgets, deployUrl, clearScreen, define, partialSSRBuild = false, externalRuntimeStyles, instrumentForCoverage, security, } = options;
+    const { allowedCommonJsDependencies, aot = true, baseHref, crossOrigin, externalDependencies, extractLicenses, inlineStyleLanguage = 'css', outExtension, serviceWorker, poll, polyfills, statsJson, outputMode, stylePreprocessorOptions, subresourceIntegrity, verbose, watch, progress = true, externalPackages, namedChunks, budgets, deployUrl, clearScreen, define, partialSSRBuild = false, externalRuntimeStyles, instrumentForCoverage, } = options;
     // Return all the normalized options
     return {
         advancedOptimizations: !!aot && optimizationOptions.scripts,
@@ -245,7 +259,13 @@ async function normalizeOptions(context, projectName, options, extensions) {
         baseHref,
         cacheOptions,
         crossOrigin,
-        externalDependencies,
+        externalDependencies: normalizeExternals(externalDependencies),
+        externalPackages: typeof externalPackages === 'object'
+            ? {
+                ...externalPackages,
+                exclude: normalizeExternals(externalPackages.exclude),
+            }
+            : externalPackages,
         extractLicenses,
         inlineStyleLanguage,
         jit: !aot,
@@ -253,7 +273,6 @@ async function normalizeOptions(context, projectName, options, extensions) {
         polyfills: polyfills === undefined || Array.isArray(polyfills) ? polyfills : [polyfills],
         poll,
         progress,
-        externalPackages,
         preserveSymlinks,
         stylePreprocessorOptions,
         subresourceIntegrity,
@@ -299,6 +318,8 @@ async function normalizeOptions(context, projectName, options, extensions) {
         security,
         templateUpdates: !!options.templateUpdates,
         incrementalResults: !!options.incrementalResults,
+        customConditions: options.conditions,
+        frameworkVersion: await findFrameworkVersion(projectRoot),
     };
 }
 async function getTailwindConfig(searchDirectories, workspaceRoot, context) {
@@ -334,22 +355,21 @@ async function getTailwindConfig(searchDirectories, workspaceRoot, context) {
  * @param entryPoints Set of entry points to use if provided.
  * @returns An object mapping entry point names to their file paths.
  */
-function normalizeEntryPoints(workspaceRoot, browser, entryPoints = new Set()) {
+function normalizeEntryPoints(workspaceRoot, projectSourceRoot, browser, entryPoints) {
     if (browser === '') {
         throw new Error('`browser` option cannot be an empty string.');
     }
     // `browser` and `entryPoints` are mutually exclusive.
-    if (browser && entryPoints.size > 0) {
+    if (browser && entryPoints) {
         throw new Error('Only one of `browser` or `entryPoints` may be provided.');
     }
-    if (!browser && entryPoints.size === 0) {
-        // Schema should normally reject this case, but programmatic usages of the builder might make this mistake.
-        throw new Error('Either `browser` or at least one `entryPoints` value must be provided.');
-    }
-    // Schema types force `browser` to always be provided, but it may be omitted when the builder is invoked programmatically.
     if (browser) {
         // Use `browser` alone.
         return { 'main': node_path_1.default.join(workspaceRoot, browser) };
+    }
+    else if (!entryPoints) {
+        // Default browser entry if no explicit entry points
+        return { 'main': node_path_1.default.join(projectSourceRoot, 'main.ts') };
     }
     else if (entryPoints instanceof Map) {
         return Object.fromEntries(Array.from(entryPoints.entries(), ([name, entryPoint]) => {
@@ -384,19 +404,6 @@ function normalizeEntryPoints(workspaceRoot, browser, entryPoints = new Set()) {
         }
         return entryPointPaths;
     }
-}
-/**
- * Normalize a directory path string.
- * Currently only removes a trailing slash if present.
- * @param path A path string.
- * @returns A normalized path string.
- */
-function normalizeDirectoryPath(path) {
-    const last = path[path.length - 1];
-    if (last === '/' || last === '\\') {
-        return path.slice(0, -1);
-    }
-    return path;
 }
 function normalizeGlobalEntries(rawEntries, defaultName) {
     if (!rawEntries?.length) {
@@ -438,4 +445,41 @@ function getLocaleBaseHref(baseHref = '', i18n, locale) {
     }
     const baseHrefSuffix = localeData.baseHref ?? localeData.subPath + '/';
     return baseHrefSuffix !== '' ? (0, url_1.urlJoin)(baseHref, baseHrefSuffix) : undefined;
+}
+/**
+ * Normalizes an array of external dependency paths by ensuring that
+ * wildcard patterns (`/*`) are removed from package names.
+ *
+ * This avoids the need to handle this normalization repeatedly in our plugins,
+ * as esbuild already treats `--external:@foo/bar` as implicitly including
+ * `--external:@foo/bar/*`. By standardizing the input, we ensure consistency
+ * and reduce redundant checks across our plugins.
+ *
+ * @param value - An optional array of dependency paths to normalize.
+ * @returns A new array with wildcard patterns removed from package names, or `undefined` if input is `undefined`.
+ */
+function normalizeExternals(value) {
+    if (!value) {
+        return undefined;
+    }
+    return [
+        ...new Set(value.map((d) => 
+        // remove "/*" wildcard in the end if provided string is not path-like
+        d.endsWith('/*') && !/^\.{0,2}\//.test(d) ? d.slice(0, -2) : d)),
+    ];
+}
+async function findFrameworkVersion(projectRoot) {
+    // Create a custom require function for ESM compliance.
+    // NOTE: The trailing slash is significant.
+    const projectResolve = (0, node_module_1.createRequire)(projectRoot + '/').resolve;
+    try {
+        const manifestPath = projectResolve('@angular/core/package.json');
+        const manifestData = await (0, promises_1.readFile)(manifestPath, 'utf-8');
+        const manifestObject = JSON.parse(manifestData);
+        const version = manifestObject.version;
+        return version;
+    }
+    catch {
+        throw new Error('Error: It appears that "@angular/core" is missing as a dependency. Please ensure it is included in your project.');
+    }
 }

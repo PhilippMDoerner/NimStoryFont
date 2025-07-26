@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -21,8 +21,8 @@ require('../native.js');
 require('path');
 require('node:perf_hooks');
 require('node:fs/promises');
-require('fs');
 require('util');
+require('fs');
 require('stream');
 require('os');
 require('./fsevents-importer.js');
@@ -208,10 +208,10 @@ class Task {
                 return path.resolve(output.file || output.dir);
             return undefined;
         });
-        const watchOptions = this.options.watch || {};
-        this.filter = rollup.createFilter(watchOptions.include, watchOptions.exclude);
+        this.watchOptions = this.options.watch || {};
+        this.filter = rollup.createFilter(this.watchOptions.include, this.watchOptions.exclude);
         this.fileWatcher = new FileWatcher(this, {
-            ...watchOptions.chokidar,
+            ...this.watchOptions.chokidar,
             disableGlobbing: true,
             ignoreInitial: true
         });
@@ -231,6 +231,7 @@ class Task {
             }
         }
         this.watcher.invalidate({ event: details.event, id });
+        this.watchOptions.onInvalidate?.(id);
     }
     async run() {
         if (!this.invalidated)

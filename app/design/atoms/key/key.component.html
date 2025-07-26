@@ -1,0 +1,13 @@
+@if (key().ctrlKey) {
+  <span class="key"> Ctrl </span>
+}
+@if (key().altKey) {
+  <span class="key"> Alt </span>
+}
+@if (key().metaKey) {
+  <span class="key"> Meta </span>
+}
+@if (key().shiftKey) {
+  <span class="key"> Shift </span>
+}
+<span class="key"> {{ key().key | titlecase }} </span>

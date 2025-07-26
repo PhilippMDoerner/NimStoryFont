@@ -6,11 +6,12 @@ var helperPluginUtils = require('@babel/helper-plugin-utils');
 var core = require('@babel/core');
 var pluginTransformParameters = require('@babel/plugin-transform-parameters');
 var helperCompilationTargets = require('@babel/helper-compilation-targets');
+var pluginTransformDestructuring = require('@babel/plugin-transform-destructuring');
 
 function shouldStoreRHSInTemporaryVariable(node) {
   if (!node) return false;
   if (node.type === "ArrayPattern") {
-    const nonNullElements = node.elements.filter(element => element !== null);
+    const nonNullElements = node.elements.filter(element => element !== null && element.type !== "VoidPattern");
     if (nonNullElements.length > 1) return true;else return shouldStoreRHSInTemporaryVariable(nonNullElements[0]);
   } else if (node.type === "ObjectPattern") {
     const {
@@ -50,10 +51,6 @@ var compatData = {
   }
 };
 
-const {
-  isAssignmentPattern,
-  isObjectProperty
-} = core.types;
 {
   const node = core.types.identifier("a");
   const property = core.types.objectProperty(core.types.identifier("key"), node);
@@ -81,37 +78,39 @@ var index = helperPluginUtils.declare((api, opts) => {
   function getExtendsHelper(file) {
     return useBuiltIns ? core.types.memberExpression(core.types.identifier("Object"), core.types.identifier("assign")) : file.addHelper("extends");
   }
-  function hasRestElement(path) {
-    let foundRestElement = false;
-    visitRestElements(path, restElement => {
-      foundRestElement = true;
-      restElement.stop();
-    });
-    return foundRestElement;
-  }
-  function hasObjectPatternRestElement(path) {
-    let foundRestElement = false;
-    visitRestElements(path, restElement => {
-      if (restElement.parentPath.isObjectPattern()) {
-        foundRestElement = true;
-        restElement.stop();
-      }
-    });
-    return foundRestElement;
-  }
-  function visitRestElements(path, visitor) {
-    path.traverse({
-      Expression(path) {
-        const {
-          parent,
-          key
-        } = path;
-        if (isAssignmentPattern(parent) && key === "right" || isObjectProperty(parent) && parent.computed && key === "key") {
-          path.skip();
+  function* iterateObjectRestElement(path) {
+    switch (path.type) {
+      case "ArrayPattern":
+        for (const elementPath of path.get("elements")) {
+          if (elementPath.isRestElement()) {
+            yield* iterateObjectRestElement(elementPath.get("argument"));
+          } else {
+            yield* iterateObjectRestElement(elementPath);
+          }
         }
-      },
-      RestElement: visitor
-    });
+        break;
+      case "ObjectPattern":
+        for (const propertyPath of path.get("properties")) {
+          if (propertyPath.isRestElement()) {
+            yield propertyPath;
+          } else {
+            yield* iterateObjectRestElement(propertyPath.get("value"));
+          }
+        }
+        break;
+      case "AssignmentPattern":
+        yield* iterateObjectRestElement(path.get("left"));
+        break;
+    }
+  }
+  function hasObjectRestElement(path) {
+    const objectRestPatternIterator = iterateObjectRestElement(path);
+    return !objectRestPatternIterator.next().done;
+  }
+  function visitObjectRestElements(path, visitor) {
+    for (const restElementPath of iterateObjectRestElement(path)) {
+      visitor(restElementPath);
+    }
   }
   function hasSpread(node) {
     for (const prop of node.properties) {
@@ -215,13 +214,13 @@ var index = helperPluginUtils.declare((api, opts) => {
       replaceRestElement(parentPath, paramPath.get("left"), container);
       return;
     }
-    if (paramPath.isArrayPattern() && hasRestElement(paramPath)) {
+    if (paramPath.isArrayPattern() && hasObjectRestElement(paramPath)) {
       const elements = paramPath.get("elements");
       for (let i = 0; i < elements.length; i++) {
         replaceRestElement(parentPath, elements[i], container);
       }
     }
-    if (paramPath.isObjectPattern() && hasRestElement(paramPath)) {
+    if (paramPath.isObjectPattern() && hasObjectRestElement(paramPath)) {
       const uid = parentPath.scope.generateUidIdentifier("ref");
       const declar = core.types.variableDeclaration("let", [core.types.variableDeclarator(paramPath.node, uid)]);
       if (container) {
@@ -243,7 +242,7 @@ var index = helperPluginUtils.declare((api, opts) => {
         const idsInRestParams = new Set();
         for (let i = 0; i < params.length; ++i) {
           const param = params[i];
-          if (hasRestElement(param)) {
+          if (hasObjectRestElement(param)) {
             paramsWithRestElement.add(i);
             for (const name of Object.keys(param.getBindingIdentifiers())) {
               idsInRestParams.add(name);
@@ -290,10 +289,7 @@ var index = helperPluginUtils.declare((api, opts) => {
         }
         let insertionPath = path;
         const originalPath = path;
-        visitRestElements(path.get("id"), path => {
-          if (!path.parentPath.isObjectPattern()) {
-            return;
-          }
+        visitObjectRestElements(path.get("id"), path => {
           if (shouldStoreRHSInTemporaryVariable(originalPath.node.id) && !core.types.isIdentifier(originalPath.node.init)) {
             const initRef = path.scope.generateUidIdentifierBasedOnNode(originalPath.node.init, "ref");
             originalPath.insertBefore(core.types.variableDeclarator(initRef, originalPath.node.init));
@@ -318,7 +314,7 @@ var index = helperPluginUtils.declare((api, opts) => {
             } = prop;
             ref = core.types.memberExpression(ref, core.types.cloneNode(node.key), node.computed || core.types.isLiteral(node.key));
           });
-          const objectPatternPath = path.findParent(path => path.isObjectPattern());
+          const objectPatternPath = path.parentPath;
           const [impureComputedPropertyDeclarators, argument, callExpression] = createObjectRest(objectPatternPath, file, ref);
           if (pureGetters) {
             removeUnusedExcludedKeys(objectPatternPath);
@@ -336,14 +332,13 @@ var index = helperPluginUtils.declare((api, opts) => {
       ExportNamedDeclaration(path) {
         const declaration = path.get("declaration");
         if (!declaration.isVariableDeclaration()) return;
-        const hasRest = declaration.get("declarations").some(path => hasObjectPatternRestElement(path.get("id")));
+        const hasRest = declaration.get("declarations").some(path => hasObjectRestElement(path.get("id")));
         if (!hasRest) return;
-        const specifiers = [];
-        for (const name of Object.keys(path.getOuterBindingIdentifiers(true))) {
-          specifiers.push(core.types.exportSpecifier(core.types.identifier(name), core.types.identifier(name)));
+        {
+          var _path$splitExportDecl;
+          (_path$splitExportDecl = path.splitExportDeclaration) != null ? _path$splitExportDecl : path.splitExportDeclaration = require("@babel/traverse").NodePath.prototype.splitExportDeclaration;
         }
-        path.replaceWith(declaration.node);
-        path.insertAfter(core.types.exportNamedDeclaration(null, specifiers));
+        path.splitExportDeclaration();
       },
       CatchClause(path) {
         const paramPath = path.get("param");
@@ -351,7 +346,7 @@ var index = helperPluginUtils.declare((api, opts) => {
       },
       AssignmentExpression(path, file) {
         const leftPath = path.get("left");
-        if (leftPath.isObjectPattern() && hasRestElement(leftPath)) {
+        if (leftPath.isObjectPattern() && hasObjectRestElement(leftPath)) {
           const nodes = [];
           const refName = path.scope.generateUidBasedOnNode(path.node.right, "ref");
           nodes.push(core.types.variableDeclaration("var", [core.types.variableDeclarator(core.types.identifier(refName), path.node.right)]));
@@ -373,45 +368,80 @@ var index = helperPluginUtils.declare((api, opts) => {
           scope
         } = path;
         const leftPath = path.get("left");
-        const left = node.left;
-        if (!hasObjectPatternRestElement(leftPath)) {
-          return;
-        }
-        if (!core.types.isVariableDeclaration(left)) {
+        if (!leftPath.isVariableDeclaration()) {
+          if (!hasObjectRestElement(leftPath)) {
+            return;
+          }
           const temp = scope.generateUidIdentifier("ref");
           node.left = core.types.variableDeclaration("var", [core.types.variableDeclarator(temp)]);
           path.ensureBlock();
-          const body = path.node.body;
-          if (body.body.length === 0 && path.isCompletionRecord()) {
-            body.body.unshift(core.types.expressionStatement(scope.buildUndefinedNode()));
+          const statementBody = path.node.body.body;
+          const nodes = [];
+          if (statementBody.length === 0 && path.isCompletionRecord()) {
+            nodes.unshift(core.types.expressionStatement(scope.buildUndefinedNode()));
           }
-          body.body.unshift(core.types.expressionStatement(core.types.assignmentExpression("=", left, core.types.cloneNode(temp))));
+          nodes.unshift(core.types.expressionStatement(core.types.assignmentExpression("=", leftPath.node, core.types.cloneNode(temp))));
+          pluginTransformDestructuring.unshiftForXStatementBody(path, nodes);
+          scope.crawl();
+          return;
         } else {
-          const pattern = left.declarations[0].id;
+          const patternPath = leftPath.get("declarations")[0].get("id");
+          if (!hasObjectRestElement(patternPath)) {
+            return;
+          }
+          const left = leftPath.node;
+          const pattern = patternPath.node;
           const key = scope.generateUidIdentifier("ref");
           node.left = core.types.variableDeclaration(left.kind, [core.types.variableDeclarator(key, null)]);
           path.ensureBlock();
-          const body = node.body;
-          body.body.unshift(core.types.variableDeclaration(node.left.kind, [core.types.variableDeclarator(pattern, core.types.cloneNode(key))]));
+          pluginTransformDestructuring.unshiftForXStatementBody(path, [core.types.variableDeclaration(node.left.kind, [core.types.variableDeclarator(pattern, core.types.cloneNode(key))])]);
+          scope.crawl();
+          return;
         }
       },
       ArrayPattern(path) {
         const objectPatterns = [];
-        visitRestElements(path, path => {
-          if (!path.parentPath.isObjectPattern()) {
-            return;
-          }
+        const {
+          scope
+        } = path;
+        const uidIdentifiers = [];
+        visitObjectRestElements(path, path => {
           const objectPattern = path.parentPath;
-          const uid = path.scope.generateUidIdentifier("ref");
-          objectPatterns.push(core.types.variableDeclarator(objectPattern.node, uid));
+          const uid = scope.generateUidIdentifier("ref");
+          objectPatterns.push({
+            left: objectPattern.node,
+            right: uid
+          });
+          uidIdentifiers.push(uid);
           objectPattern.replaceWith(core.types.cloneNode(uid));
           path.skip();
         });
         if (objectPatterns.length > 0) {
-          const statementPath = path.getStatementParent();
-          const statementNode = statementPath.node;
-          const kind = statementNode.type === "VariableDeclaration" ? statementNode.kind : "var";
-          statementPath.insertAfter(core.types.variableDeclaration(kind, objectPatterns));
+          const patternParentPath = path.findParent(path => !(path.isPattern() || path.isObjectProperty()));
+          const patternParent = patternParentPath.node;
+          switch (patternParent.type) {
+            case "VariableDeclarator":
+              patternParentPath.insertAfter(objectPatterns.map(({
+                left,
+                right
+              }) => core.types.variableDeclarator(left, right)));
+              break;
+            case "AssignmentExpression":
+              {
+                for (const uidIdentifier of uidIdentifiers) {
+                  scope.push({
+                    id: core.types.cloneNode(uidIdentifier)
+                  });
+                }
+                patternParentPath.insertAfter(objectPatterns.map(({
+                  left,
+                  right
+                }) => core.types.assignmentExpression("=", left, right)));
+              }
+              break;
+            default:
+              throw new Error(`Unexpected pattern parent type: ${patternParent.type}`);
+          }
         }
       },
       ObjectExpression(path, file) {
@@ -424,7 +454,7 @@ var index = helperPluginUtils.declare((api, opts) => {
             try {
               helper = file.addHelper("objectSpread2");
             } catch (_unused) {
-              this.file.declarations["objectSpread2"] = null;
+              this.file.declarations.objectSpread2 = null;
               helper = file.addHelper("objectSpread");
             }
           }

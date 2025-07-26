@@ -12,7 +12,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputComponent = exports.ButtonAccent = exports.exportedConstant = void 0;
-/* eslint-disable no-underscore-dangle */
 const core_1 = require("@angular/core");
 exports.exportedConstant = 'An exported constant';
 var ButtonAccent;

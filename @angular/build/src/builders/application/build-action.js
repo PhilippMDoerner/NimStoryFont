@@ -263,8 +263,7 @@ function* emitOutputResults({ outputFiles, assetFiles, errors, warnings, externa
             if (file.path.endsWith('.css')) {
                 hasCssUpdates = true;
             }
-            else if (!/(?:\.m?js|\.map)$/.test(file.path)) {
-                // Updates to non-JS files must signal an update with the dev server
+            else if (!canBackgroundUpdate(file)) {
                 incrementalResult.background = false;
             }
             incrementalResult.files[file.path] = {
@@ -341,4 +340,14 @@ function* emitOutputResults({ outputFiles, assetFiles, errors, warnings, externa
 }
 function isCssFilePath(filePath) {
     return /\.css(?:\.map)?$/i.test(filePath);
+}
+function canBackgroundUpdate(file) {
+    // Files in the output root are not served and do not affect the
+    // application available with the development server.
+    if (file.type === bundler_context_1.BuildOutputFileType.Root) {
+        return true;
+    }
+    // Updates to non-JS files must signal an update with the dev server
+    // except the service worker configuration which is special cased.
+    return /(?:\.m?js|\.map)$/.test(file.path) || file.path === 'ngsw.json';
 }

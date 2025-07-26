@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -11,8 +11,8 @@
 
 const rollup = require('./rollup.js');
 const require$$0$1 = require('path');
-const require$$0$2 = require('fs');
 const require$$2 = require('util');
+const require$$0$2 = require('fs');
 const require$$1 = require('stream');
 const require$$2$1 = require('os');
 const fseventsImporter = require('./fsevents-importer.js');
@@ -1554,7 +1554,7 @@ function requireParse$2 () {
 	      }
 
 	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
-	        const end = rest[1] !== undefined ? '|$' : '';
+	        const end = rest[1] !== void 0 ? '|$' : '';
 
 	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
 	        prior.output = `(?:${prior.output}`;
@@ -3965,7 +3965,7 @@ function requireParse$1 () {
 	      }
 
 	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
-	        const end = rest[1] !== undefined ? '|$' : '';
+	        const end = rest[1] !== void 0 ? '|$' : '';
 
 	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
 	        prior.output = `(?:${prior.output}`;
@@ -5159,7 +5159,7 @@ function requireToRegexRange () {
 	    throw new TypeError('toRegexRange: expected the first argument to be a number');
 	  }
 
-	  if (max === undefined || min === max) {
+	  if (max === void 0 || min === max) {
 	    return String(min);
 	  }
 
@@ -5231,9 +5231,9 @@ function requireToRegexRange () {
 	};
 
 	function collatePatterns(neg, pos, options) {
-	  let onlyNegative = filterPatterns(neg, pos, '-', false);
-	  let onlyPositive = filterPatterns(pos, neg, '', false);
-	  let intersected = filterPatterns(neg, pos, '-?', true);
+	  let onlyNegative = filterPatterns(neg, pos, '-', false) || [];
+	  let onlyPositive = filterPatterns(pos, neg, '', false) || [];
+	  let intersected = filterPatterns(neg, pos, '-?', true) || [];
 	  let subpatterns = onlyNegative.concat(intersected).concat(onlyPositive);
 	  return subpatterns.join('|');
 	}

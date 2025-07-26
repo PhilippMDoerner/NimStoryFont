@@ -32,14 +32,16 @@ const ModuleDependency = require("./ModuleDependency");
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
+/** @typedef {0 | 1 | 2 | 3 | false} ExportPresenceMode */
+
 const ExportPresenceModes = {
-	NONE: /** @type {0} */ (0),
-	WARN: /** @type {1} */ (1),
-	AUTO: /** @type {2} */ (2),
-	ERROR: /** @type {3} */ (3),
+	NONE: /** @type {ExportPresenceMode} */ (0),
+	WARN: /** @type {ExportPresenceMode} */ (1),
+	AUTO: /** @type {ExportPresenceMode} */ (2),
+	ERROR: /** @type {ExportPresenceMode} */ (3),
 	/**
 	 * @param {string | false} str param
-	 * @returns {0 | 1 | 2 | 3} result
+	 * @returns {ExportPresenceMode} result
 	 */
 	fromUserOption(str) {
 		switch (str) {
@@ -89,7 +91,7 @@ class HarmonyImportDependency extends ModuleDependency {
 	 */
 	getImportVar(moduleGraph) {
 		const module = /** @type {Module} */ (moduleGraph.getParentModule(this));
-		const meta = /** @type {TODO} */ (moduleGraph.getMeta(module));
+		const meta = moduleGraph.getMeta(module);
 		let importVarMap = meta.importVarMap;
 		if (!importVarMap) meta.importVarMap = importVarMap = new Map();
 		let importVar = importVarMap.get(

@@ -18,7 +18,7 @@ function isDisabled(element) {
             }
         } else if (isElementType.isElementType(el, 'fieldset')) {
             var _el_querySelector;
-            if (el.hasAttribute('disabled') && !((_el_querySelector = el.querySelector(':scope > legend')) === null || _el_querySelector === void 0 ? void 0 : _el_querySelector.contains(element))) {
+            if (el.hasAttribute('disabled') && !((_el_querySelector = el.querySelector(':scope > legend')) === null || _el_querySelector === undefined ? undefined : _el_querySelector.contains(element))) {
                 return true;
             }
         } else if (el.tagName.includes('-')) {

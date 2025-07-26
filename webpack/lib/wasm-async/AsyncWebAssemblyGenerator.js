@@ -5,6 +5,7 @@
 
 "use strict";
 
+const { RawSource } = require("webpack-sources");
 const Generator = require("../Generator");
 const { WEBASSEMBLY_TYPES } = require("../ModuleSourceTypesConstants");
 
@@ -15,7 +16,7 @@ const { WEBASSEMBLY_TYPES } = require("../ModuleSourceTypesConstants");
 
 /**
  * @typedef {object} AsyncWebAssemblyGeneratorOptions
- * @property {boolean} [mangleImports] mangle imports
+ * @property {boolean=} mangleImports mangle imports
  */
 
 class AsyncWebAssemblyGenerator extends Generator {
@@ -55,6 +56,16 @@ class AsyncWebAssemblyGenerator extends Generator {
 	 */
 	generate(module, generateContext) {
 		return /** @type {Source} */ (module.originalSource());
+	}
+
+	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		return new RawSource(error.message);
 	}
 }
 

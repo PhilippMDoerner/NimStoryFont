@@ -23,6 +23,5 @@ type StorybookConfigFramework = {
 export type StorybookConfig = Omit<StorybookConfigBase, keyof StorybookConfigWebpack | keyof StorybookConfigFramework> & StorybookConfigWebpack & StorybookConfigFramework;
 export interface AngularOptions {
     enableIvy?: boolean;
-    enableNgcc?: boolean;
 }
 export {};

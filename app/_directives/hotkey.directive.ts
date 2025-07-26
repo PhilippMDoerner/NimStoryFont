@@ -6,91 +6,135 @@ import {
   input,
   output,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { filter, map, of, switchMap, tap } from 'rxjs';
-import { capitalize } from 'src/utils/string';
 import {
-  BindableHotkey,
-  HotkeyService,
-  UNBINDABLE_KEYSET,
-} from '../_services/hotkey.service';
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
+import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
+import {
+  combineLatest,
+  EMPTY,
+  filter,
+  map,
+  of,
+  startWith,
+  switchMap,
+  withLatestFrom,
+} from 'rxjs';
+import { debugLog } from 'src/utils/rxjs-operators';
+import { encodeKeyCombination } from '../_functions/keyMapper';
+import { ShortcutAction } from '../_models/hotkey';
+import { HotkeyService, WatchOptions } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
 export type TooltipBehavior = 'OnHotkey' | 'Always' | 'Never';
+type DirectiveWatchOptions = Omit<WatchOptions, 'eventSource'> & {
+  useLocalEventSource?: boolean;
+};
 
 @Directive({
-  selector: '[hotkey]',
+  selector: '[hotkeyAction]',
   providers: [NgbTooltip],
   host: {
-    '[attr.aria-keyshortcuts]': 'shortcutText()',
+    '[attr.aria-keyshortcuts]': 'ariaShortcutText()',
   },
 })
 export class HotkeyDirective {
   private tooltip = inject(NgbTooltip);
   private hotkeyService = inject(HotkeyService);
+  private modalService = inject(NgbModal);
   public element = inject(ElementRef<HTMLElement>);
 
-  hotkey = input.required<string | undefined>();
-  disabledHotkey = input<boolean>(false);
-  hotkeyDescription = input<string>();
-
-  hotkeyPressed = output<{ event: KeyboardEvent; host: HTMLElement }>();
-
-  private shortcutText = computed(() => {
-    const hotkey = this.hotkey();
-    if (!hotkey) return undefined;
-    return `Alt+${capitalize(hotkey)}`;
+  hotkeyAction = input.required<ShortcutAction | undefined>();
+  watchOptions = input<DirectiveWatchOptions>({
+    isModalAction: false,
+    suppressEvent: false,
   });
+  actionDisabled = input<boolean>(false);
+  description = input<string>();
+
+  actionTriggered = output<{ host: HTMLElement }>();
+
+  private watchOptions$ = toObservable(this.watchOptions).pipe(
+    map(
+      (options) =>
+        ({
+          isModalAction: false,
+          suppressEvent: false,
+          eventSource: options.useLocalEventSource
+            ? this.element.nativeElement
+            : undefined, // Use default event source,
+          ...options,
+        }) as WatchOptions,
+    ),
+  );
+  private hotkeyCombination$ = toObservable(this.hotkeyAction).pipe(
+    switchMap((action) => {
+      if (!action) return of(undefined);
+      return this.hotkeyService.getKeySequence(action);
+    }),
+  );
+  ariaShortcutText = toSignal(
+    combineLatest({
+      combo: this.hotkeyCombination$,
+      watchOptions: this.watchOptions$,
+    }).pipe(
+      map(({ combo, watchOptions }) => {
+        if (!combo) return undefined;
+        const comboStr = encodeKeyCombination(combo, true);
+        const isLocalAction = !!watchOptions.eventSource;
+        return `${comboStr}${isLocalAction ? '(Active on focus)' : ''}`;
+      }),
+    ),
+  );
+  private hotkeyCombination = toSignal(this.hotkeyCombination$);
+
   private tooltipText = computed(() => {
-    const hotkey = this.hotkey();
-    if (!hotkey) return undefined;
+    const hotkeyCombo = this.hotkeyCombination();
+    if (!hotkeyCombo) return undefined;
 
-    const hotkeyCombo = `Alt + ${hotkey.toUpperCase()}`;
-    const hotkeyDescription = this.hotkeyDescription();
-    if (!hotkeyDescription) return hotkeyCombo;
+    const comboStr = encodeKeyCombination(hotkeyCombo, true);
 
-    return `${hotkeyCombo}: ${hotkeyDescription}`;
+    const hotkeyDescription = this.description();
+    if (!hotkeyDescription) return comboStr;
+
+    return `${comboStr}: ${hotkeyDescription}`;
   });
 
   constructor() {
     if (inject(ScreenService).isMobile()) return;
 
     this.configureTooltip(this.element);
+    this.keepTooltipInSync();
+    const isDisabled$ = toObservable(this.actionDisabled).pipe(
+      startWith(false),
+    );
 
-    toObservable(this.disabledHotkey)
+    combineLatest({
+      action: toObservable(this.hotkeyAction),
+      watchOptions: this.watchOptions$,
+    })
       .pipe(
-        switchMap((isDisabled) => {
-          if (isDisabled) return of(false);
-
-          return this.hotkeyService.isHotkeyModifierPressed$ ?? of(false);
-        }),
-        takeUntilDestroyed(),
-      )
-      .subscribe((showTooltip) => this.syncTooltipOpenState(showTooltip));
-
-    toObservable(this.hotkey)
-      .pipe(
-        map((key) => this.checkKey(key)),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        switchMap((key: BindableHotkey<any> | undefined) =>
-          this.hotkeyService.watch(key).pipe(
-            filter(() => !this.disabledHotkey()),
-            tap((event) =>
-              this.hotkeyPressed.emit({
-                event,
-                host: this.element.nativeElement,
-              }),
-            ),
-          ),
+        switchMap(({ action, watchOptions }) =>
+          action ? this.hotkeyService.watchAction(action, watchOptions) : EMPTY,
         ),
+        withLatestFrom(isDisabled$, this.watchOptions$),
+        filter(([, isDisabled, watchOptions]) => {
+          if (isDisabled) return false;
+          const hasOpenModals = this.modalService.hasOpenModals();
+          const canSeeActionInOpenModal =
+            hasOpenModals && !!watchOptions.isModalAction;
+          return !hasOpenModals || canSeeActionInOpenModal;
+        }),
+        debugLog('Emitting Hotkey'),
         takeUntilDestroyed(),
       )
-      .subscribe();
-
-    toObservable(this.tooltipText)
-      .pipe(takeUntilDestroyed())
-      .subscribe((tooltipText) => (this.tooltip.ngbTooltip = tooltipText));
+      .subscribe(() =>
+        this.actionTriggered.emit({
+          host: this.element.nativeElement,
+        }),
+      );
   }
 
   private configureTooltip(element: ElementRef<HTMLElement>) {
@@ -107,15 +151,25 @@ export class HotkeyDirective {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private checkKey(key: string | undefined): BindableHotkey<any> | undefined {
-    if (!key) return undefined;
+  private keepTooltipInSync() {
+    combineLatest({
+      action: toObservable(this.hotkeyAction),
+      watchOptions: this.watchOptions$,
+      isDisabled: toObservable(this.actionDisabled),
+    })
+      .pipe(
+        switchMap(({ action, watchOptions, isDisabled }) => {
+          if (isDisabled || !action) return of(false);
+          return this.hotkeyService.hasVisibleTooltip(
+            watchOptions.isModalAction,
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((showTooltip) => this.syncTooltipOpenState(showTooltip));
 
-    const canBindHotkey = !UNBINDABLE_KEYSET.has(key);
-    if (!canBindHotkey) {
-      throw new Error(`Tried to bind unbindable hotkey ${key}`);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return key as BindableHotkey<any>;
+    toObservable(this.tooltipText)
+      .pipe(takeUntilDestroyed())
+      .subscribe((tooltipText) => (this.tooltip.ngbTooltip = tooltipText));
   }
 }

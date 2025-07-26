@@ -7,8 +7,8 @@
         [text]="'Add Session'"
         [icon]="'plus'"
         (clicked)="addSession()"
-        [hotkey]="'c'"
-        (hotkeyPressed)="addSession()"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="addSession()"
       ></button>
     </div>
   }
@@ -40,7 +40,11 @@
       </div>
     }
 
-    <app-focus-list [entries]="sessionCards()" #focusListComponent>
+    <app-focus-list
+      [entries]="sessionCards()"
+      [listLabel]="'Sessions'"
+      #focusListComponent
+    >
       <ng-template
         #itemTemplate
         let-focusEntry

@@ -7,10 +7,15 @@
 
 const { SyncHook } = require("tapable");
 
+/** @typedef {import("../../declarations/WebpackOptions").Falsy} Falsy */
+/** @typedef {import("../../declarations/WebpackOptions").RuleSetLoaderOptions} RuleSetLoaderOptions */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
-/** @typedef {import("../../declarations/WebpackOptions").RuleSetRules} RuleSetRules */
 
-/** @typedef {function(string | EffectData): boolean} RuleConditionFunction */
+/** @typedef {(Falsy | RuleSetRule)[]} RuleSetRules */
+
+/**
+ * @typedef {(value: EffectData[keyof EffectData]) => boolean} RuleConditionFunction
+ */
 
 /**
  * @typedef {object} RuleCondition
@@ -26,13 +31,25 @@ const { SyncHook } = require("tapable");
  */
 
 /**
- * @typedef {Record<string, TODO>} EffectData
+ * @typedef {object} EffectData
+ * @property {string=} resource
+ * @property {string=} realResource
+ * @property {string=} resourceQuery
+ * @property {string=} resourceFragment
+ * @property {string=} scheme
+ * @property {ImportAttributes=} assertions
+ * @property {string=} mimetype
+ * @property {string} dependency
+ * @property {Record<string, EXPECTED_ANY>=} descriptionData
+ * @property {string=} compiler
+ * @property {string} issuer
+ * @property {string} issuerLayer
  */
 
 /**
  * @typedef {object} CompiledRule
  * @property {RuleCondition[]} conditions
- * @property {(Effect|function(EffectData): Effect[])[]} effects
+ * @property {(Effect | ((effectData: EffectData) => Effect[]))[]} effects
  * @property {CompiledRule[]=} rules
  * @property {CompiledRule[]=} oneOf
  */
@@ -40,16 +57,24 @@ const { SyncHook } = require("tapable");
 /**
  * @typedef {object} Effect
  * @property {string} type
- * @property {any} value
+ * @property {TODO} value
  */
+
+/** @typedef {Map<string, RuleSetLoaderOptions>} References */
 
 /**
  * @typedef {object} RuleSet
- * @property {Map<string, any>} references map of references in the rule set (may grow over time)
- * @property {function(EffectData): Effect[]} exec execute the rule set
+ * @property {References} references map of references in the rule set (may grow over time)
+ * @property {(effectData: EffectData) => Effect[]} exec execute the rule set
  */
 
-/** @typedef {{ apply: (function(RuleSetCompiler): void) }} RuleSetPlugin */
+/**
+ * @template T
+ * @template {T[keyof T]} V
+ * @typedef {({ [P in keyof Required<T>]: Required<T>[P] extends V ? P : never })[keyof T]} KeysOfTypes
+ */
+
+/** @typedef {{ apply: (ruleSetCompiler: RuleSetCompiler) => void }} RuleSetPlugin */
 
 class RuleSetCompiler {
 	/**
@@ -57,7 +82,7 @@ class RuleSetCompiler {
 	 */
 	constructor(plugins) {
 		this.hooks = Object.freeze({
-			/** @type {SyncHook<[string, RuleSetRule, Set<string>, CompiledRule, Map<string | undefined, any>]>} */
+			/** @type {SyncHook<[string, RuleSetRule, Set<string>, CompiledRule, References]>} */
 			rule: new SyncHook([
 				"path",
 				"rule",
@@ -74,7 +99,7 @@ class RuleSetCompiler {
 	}
 
 	/**
-	 * @param {TODO[]} ruleSet raw user provided rules
+	 * @param {RuleSetRules} ruleSet raw user provided rules
 	 * @returns {RuleSet} compiled RuleSet
 	 */
 	compile(ruleSet) {
@@ -91,7 +116,7 @@ class RuleSetCompiler {
 			for (const condition of rule.conditions) {
 				const p = condition.property;
 				if (Array.isArray(p)) {
-					/** @type {EffectData | string | undefined} */
+					/** @type {EffectData | EffectData[keyof EffectData] | undefined} */
 					let current = data;
 					for (const subProperty of p) {
 						if (
@@ -99,7 +124,7 @@ class RuleSetCompiler {
 							typeof current === "object" &&
 							Object.prototype.hasOwnProperty.call(current, subProperty)
 						) {
-							current = current[subProperty];
+							current = current[/** @type {keyof EffectData} */ (subProperty)];
 						} else {
 							current = undefined;
 							break;
@@ -110,7 +135,7 @@ class RuleSetCompiler {
 						continue;
 					}
 				} else if (p in data) {
-					const value = data[p];
+					const value = data[/** @type {keyof EffectData} */ (p)];
 					if (value !== undefined) {
 						if (!condition.fn(value)) return false;
 						continue;
@@ -161,7 +186,7 @@ class RuleSetCompiler {
 	/**
 	 * @param {string} path current path
 	 * @param {RuleSetRules} rules the raw rules provided by user
-	 * @param {Map<string, any>} refs references
+	 * @param {References} refs references
 	 * @returns {CompiledRule[]} rules
 	 */
 	compileRules(path, rules, refs) {
@@ -179,7 +204,7 @@ class RuleSetCompiler {
 	/**
 	 * @param {string} path current path
 	 * @param {RuleSetRule} rule the raw rule provided by user
-	 * @param {Map<string, any>} refs references
+	 * @param {References} refs references
 	 * @returns {CompiledRule} normalized and compiled rule for processing
 	 */
 	compileRule(path, rule, refs) {
@@ -228,7 +253,7 @@ class RuleSetCompiler {
 
 	/**
 	 * @param {string} path current path
-	 * @param {any} condition user provided condition value
+	 * @param {RuleSetLoaderOptions} condition user provided condition value
 	 * @returns {Condition} compiled condition
 	 */
 	compileCondition(path, condition) {
@@ -255,7 +280,7 @@ class RuleSetCompiler {
 			try {
 				return {
 					matchWhenEmpty: condition(""),
-					fn: condition
+					fn: /** @type {RuleConditionFunction} */ (condition)
 				};
 			} catch (_err) {
 				throw this.error(
@@ -386,7 +411,7 @@ class RuleSetCompiler {
 
 	/**
 	 * @param {string} path current path
-	 * @param {any} value value at the error location
+	 * @param {EXPECTED_ANY} value value at the error location
 	 * @param {string} message message explaining the problem
 	 * @returns {Error} an error object
 	 */

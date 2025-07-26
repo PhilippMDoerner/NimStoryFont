@@ -11,6 +11,7 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 const UnsupportedFeatureWarning = require("../UnsupportedFeatureWarning");
 const WebpackError = require("../WebpackError");
 const BasicEvaluatedExpression = require("../javascript/BasicEvaluatedExpression");
+const { VariableInfo } = require("../javascript/JavascriptParser");
 const {
 	evaluateToIdentifier,
 	evaluateToString,
@@ -201,9 +202,9 @@ class CommonJsImportsParserPlugin {
 		const requireAsExpressionHandler = expr => {
 			const dep = new CommonJsRequireContextDependency(
 				{
-					request: options.unknownContextRequest,
-					recursive: options.unknownContextRecursive,
-					regExp: options.unknownContextRegExp,
+					request: /** @type {string} */ (options.unknownContextRequest),
+					recursive: /** @type {boolean} */ (options.unknownContextRecursive),
+					regExp: /** @type {RegExp} */ (options.unknownContextRegExp),
 					mode: "sync"
 				},
 				/** @type {Range} */ (expr.range),
@@ -464,6 +465,36 @@ class CommonJsImportsParserPlugin {
 		 * @returns {boolean | void} true when handled
 		 */
 		const processResolve = (expr, weak) => {
+			if (!weak && options.commonjsMagicComments) {
+				const { options: requireOptions, errors: commentErrors } =
+					parser.parseCommentOptions(/** @type {Range} */ (expr.range));
+
+				if (commentErrors) {
+					for (const e of commentErrors) {
+						const { comment } = e;
+						parser.state.module.addWarning(
+							new CommentCompilationWarning(
+								`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
+								/** @type {DependencyLocation} */ (comment.loc)
+							)
+						);
+					}
+				}
+				if (requireOptions && requireOptions.webpackIgnore !== undefined) {
+					if (typeof requireOptions.webpackIgnore !== "boolean") {
+						parser.state.module.addWarning(
+							new UnsupportedFeatureWarning(
+								`\`webpackIgnore\` expected a boolean, but received: ${requireOptions.webpackIgnore}.`,
+								/** @type {DependencyLocation} */ (expr.loc)
+							)
+						);
+					} else if (requireOptions.webpackIgnore) {
+						// Do not instrument `require()` if `webpackIgnore` is `true`
+						return true;
+					}
+				}
+			}
+
 			if (expr.arguments.length !== 1) return;
 			const param = parser.evaluateExpression(expr.arguments[0]);
 			if (param.isConditional()) {
@@ -699,11 +730,11 @@ class CommonJsImportsParserPlugin {
 					declarator.init.callee.type !== "Identifier"
 				)
 					return;
-				const variableInfo =
-					/** @type {TODO} */
-					(parser.getVariableInfo(declarator.init.callee.name));
+				const variableInfo = parser.getVariableInfo(
+					declarator.init.callee.name
+				);
 				if (
-					variableInfo &&
+					variableInfo instanceof VariableInfo &&
 					variableInfo.tagInfo &&
 					variableInfo.tagInfo.tag === createRequireSpecifierTag
 				) {

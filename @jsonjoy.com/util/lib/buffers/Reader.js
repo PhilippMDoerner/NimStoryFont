@@ -13,8 +13,11 @@ class Reader {
         this.uint8 = uint8;
         this.view = new DataView(uint8.buffer, uint8.byteOffset, uint8.length);
     }
-    peak() {
+    peek() {
         return this.view.getUint8(this.x);
+    }
+    peak() {
+        return this.peek();
     }
     skip(length) {
         this.x += length;

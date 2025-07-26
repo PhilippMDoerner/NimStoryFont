@@ -4,6 +4,7 @@ export declare class Reader implements IReader, IReaderResettable {
     view: DataView;
     x: number;
     reset(uint8: Uint8Array): void;
+    peek(): number;
     peak(): number;
     skip(length: number): void;
     buf(size: number): Uint8Array;

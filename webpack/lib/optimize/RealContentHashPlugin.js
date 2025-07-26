@@ -38,7 +38,7 @@ const addToList = (itemOrItems, list) => {
 /**
  * @template T
  * @param {T[]} input list
- * @param {function(T): Buffer} fn map function
+ * @param {(item: T) => Buffer} fn map function
  * @returns {Buffer[]} buffers without duplicates
  */
 const mapAndDeduplicateBuffers = (input, fn) => {
@@ -107,6 +107,14 @@ const toCachedSource = source => {
 /** @type {WeakMap<Compilation, CompilationHooks>} */
 const compilationHooksMap = new WeakMap();
 
+/**
+ * @typedef {object} RealContentHashPluginOptions
+ * @property {string | Hash} hashFunction the hash function to use
+ * @property {string=} hashDigest the hash digest to use
+ */
+
+const PLUGIN_NAME = "RealContentHashPlugin";
+
 class RealContentHashPlugin {
 	/**
 	 * @param {Compilation} compilation the compilation
@@ -129,9 +137,7 @@ class RealContentHashPlugin {
 	}
 
 	/**
-	 * @param {object} options options object
-	 * @param {string | Hash} options.hashFunction the hash function to use
-	 * @param {string} options.hashDigest the hash digest to use
+	 * @param {RealContentHashPluginOptions} options options
 	 */
 	constructor({ hashFunction, hashDigest }) {
 		this._hashFunction = hashFunction;
@@ -144,7 +150,7 @@ class RealContentHashPlugin {
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap("RealContentHashPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			const cacheAnalyse = compilation.getCache(
 				"RealContentHashPlugin|analyse"
 			);
@@ -154,7 +160,7 @@ class RealContentHashPlugin {
 			const hooks = RealContentHashPlugin.getCompilationHooks(compilation);
 			compilation.hooks.processAssets.tapPromise(
 				{
-					name: "RealContentHashPlugin",
+					name: PLUGIN_NAME,
 					stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
 				},
 				async () => {

@@ -1,8 +1,8 @@
-var ApiLevel;
-(function(ApiLevel) {
+var ApiLevel = /*#__PURE__*/ function(ApiLevel) {
     ApiLevel[ApiLevel["Trigger"] = 2] = "Trigger";
     ApiLevel[ApiLevel["Call"] = 1] = "Call";
-})(ApiLevel || (ApiLevel = {}));
+    return ApiLevel;
+}({});
 function setLevelRef(instance, level) {
     instance.levelRefs[level] = {};
 }

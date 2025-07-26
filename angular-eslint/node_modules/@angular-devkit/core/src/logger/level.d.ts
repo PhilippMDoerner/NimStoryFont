@@ -11,7 +11,7 @@ export declare class LevelTransformLogger extends Logger {
     readonly name: string;
     readonly parent: Logger | null;
     readonly levelTransform: (level: LogLevel) => LogLevel;
-    constructor(name: string, parent: (Logger | null) | undefined, levelTransform: (level: LogLevel) => LogLevel);
+    constructor(name: string, parent: Logger | null, levelTransform: (level: LogLevel) => LogLevel);
     log(level: LogLevel, message: string, metadata?: JsonObject): void;
     createChild(name: string): Logger;
 }
@@ -24,5 +24,5 @@ export declare class LevelCapLogger extends LevelTransformLogger {
             [level: string]: string;
         };
     };
-    constructor(name: string, parent: (Logger | null) | undefined, levelCap: LogLevel);
+    constructor(name: string, parent: Logger | null, levelCap: LogLevel);
 }

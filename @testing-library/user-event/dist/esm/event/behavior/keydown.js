@@ -1,16 +1,11 @@
 import { getUIValue, setUISelection } from '../../document/UI.js';
 import { getValueOrTextContent } from '../../document/getValueOrTextContent.js';
-import '../../utils/click/isClickableInput.js';
+import { isElementType } from '../../utils/misc/isElementType.js';
 import '../../utils/dataTransfer/Clipboard.js';
 import { isContentEditable } from '../../utils/edit/isContentEditable.js';
 import { isEditable } from '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
-import { isElementType } from '../../utils/misc/isElementType.js';
 import { getTabDestination } from '../../utils/focus/getTabDestination.js';
 import { hasOwnSelection } from '../../utils/focus/selection.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { focusElement } from '../focus.js';
 import { input } from '../input.js';
 import { moveSelection } from '../selection/moveSelection.js';
@@ -22,14 +17,14 @@ import { behavior } from './registry.js';
 behavior.keydown = (event, target, instance)=>{
     var _keydownBehavior_event_key;
     var _keydownBehavior_event_key1;
-    return (_keydownBehavior_event_key1 = (_keydownBehavior_event_key = keydownBehavior[event.key]) === null || _keydownBehavior_event_key === void 0 ? void 0 : _keydownBehavior_event_key.call(keydownBehavior, event, target, instance)) !== null && _keydownBehavior_event_key1 !== void 0 ? _keydownBehavior_event_key1 : combinationBehavior(event, target, instance);
+    return (_keydownBehavior_event_key1 = (_keydownBehavior_event_key = keydownBehavior[event.key]) === null || _keydownBehavior_event_key === undefined ? undefined : _keydownBehavior_event_key.call(keydownBehavior, event, target, instance)) !== null && _keydownBehavior_event_key1 !== undefined ? _keydownBehavior_event_key1 : combinationBehavior(event, target, instance);
 };
 const keydownBehavior = {
     ArrowDown: (event, target, instance)=>{
         /* istanbul ignore else */ if (isElementType(target, 'input', {
             type: 'radio'
         })) {
-            return ()=>walkRadio(instance, target, -1);
+            return ()=>walkRadio(instance, target, 1);
         }
     },
     ArrowLeft: (event, target, instance)=>{
@@ -52,7 +47,7 @@ const keydownBehavior = {
         /* istanbul ignore else */ if (isElementType(target, 'input', {
             type: 'radio'
         })) {
-            return ()=>walkRadio(instance, target, 1);
+            return ()=>walkRadio(instance, target, -1);
         }
     },
     Backspace: (event, target, instance)=>{
@@ -77,7 +72,7 @@ const keydownBehavior = {
             return ()=>{
                 var _getValueOrTextContent;
                 var _getValueOrTextContent_length;
-                const newPos = (_getValueOrTextContent_length = (_getValueOrTextContent = getValueOrTextContent(target)) === null || _getValueOrTextContent === void 0 ? void 0 : _getValueOrTextContent.length) !== null && _getValueOrTextContent_length !== void 0 ? _getValueOrTextContent_length : /* istanbul ignore next */ 0;
+                const newPos = (_getValueOrTextContent_length = (_getValueOrTextContent = getValueOrTextContent(target)) === null || _getValueOrTextContent === undefined ? undefined : _getValueOrTextContent.length) !== null && _getValueOrTextContent_length !== undefined ? _getValueOrTextContent_length : /* istanbul ignore next */ 0;
                 setSelectionRange(target, newPos, newPos);
             };
         }

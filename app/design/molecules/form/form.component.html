@@ -36,9 +36,9 @@
         [icon]="'times'"
         [text]="'Cancel'"
         (clicked)="onCancel()"
-        [hotkey]="'q'"
-        [disabledHotkey]="disabledHotkeys()"
-        (hotkeyPressed)="onCancel()"
+        [hotkeyAction]="'cancel'"
+        [actionDisabled]="disabledHotkeys()"
+        (actionTriggered)="onCancel()"
       ></button>
     </div>
   }

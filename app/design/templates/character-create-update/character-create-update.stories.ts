@@ -1,5 +1,5 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { dummyCharacter } from 'src/app/_services/article/character-service.mock';
 import { FormlyProvider } from 'src/app/_services/formly/formly-service.mock';

@@ -1,7 +1,7 @@
 import type { InquirerReadline } from '@inquirer/type';
 export declare function withHooks<T>(rl: InquirerReadline, cb: (cycle: (render: () => void) => void) => T): T;
 export declare function readline(): InquirerReadline;
-export declare function withUpdates<R, T extends (...args: any[]) => R>(fn: T): (...args: Parameters<T>) => R;
+export declare function withUpdates<Args extends unknown[], R>(fn: (...args: Args) => R): (...args: Args) => R;
 type SetPointer<Value> = {
     get(): Value;
     set(value: Value): void;

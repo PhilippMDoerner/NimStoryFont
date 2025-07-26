@@ -18,6 +18,7 @@ interface SessionAuddioOverviewPageState {}
 const initialState: SessionAuddioOverviewPageState = {};
 
 export const SessionAudioOverviewPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed(() => {
     const globalStore = inject(GlobalStore);

@@ -2,9 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withMethods } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { MethodsDictionary } from '@ngrx/signals/src/signal-store-models';
 import { Observable, pipe, switchMap, tap } from 'rxjs';
 import {
+  MethodsDictionary,
   Request,
   RequestMap,
   RequestState,

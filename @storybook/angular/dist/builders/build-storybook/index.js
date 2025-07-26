@@ -13,7 +13,10 @@ const run_compodoc_1 = require("../utils/run-compodoc");
 (0, telemetry_1.addToGlobalContext)('cliVersion', common_1.versions.storybook);
 const commandBuilder = (options, context) => {
     const builder = (0, rxjs_1.from)(setup(options, context)).pipe((0, operators_1.switchMap)(({ tsConfig }) => {
-        const docTSConfig = (0, find_up_1.sync)('tsconfig.doc.json', { cwd: options.configDir });
+        const docTSConfig = (0, find_up_1.findUpSync)('tsconfig.doc.json', {
+            cwd: options.configDir,
+            stopAt: (0, common_1.getProjectRoot)(),
+        });
         const runCompodoc$ = options.compodoc
             ? (0, run_compodoc_1.runCompodoc)({ compodocArgs: options.compodocArgs, tsconfig: docTSConfig ?? tsConfig }, context).pipe((0, operators_1.mapTo)({ tsConfig }))
             : (0, rxjs_1.of)({});
@@ -67,7 +70,7 @@ async function setup(options, context) {
     }
     return {
         tsConfig: options.tsConfig ??
-            (0, find_up_1.sync)('tsconfig.json', { cwd: options.configDir }) ??
+            (0, find_up_1.findUpSync)('tsconfig.json', { cwd: options.configDir, stopAt: (0, common_1.getProjectRoot)() }) ??
             browserOptions.tsConfig,
     };
 }

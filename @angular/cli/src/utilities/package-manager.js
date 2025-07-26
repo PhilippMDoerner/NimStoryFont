@@ -43,10 +43,10 @@ var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PackageManagerUtils = void 0;
 const core_1 = require("@angular-devkit/core");
-const child_process_1 = require("child_process");
-const fs_1 = require("fs");
-const os_1 = require("os");
-const path_1 = require("path");
+const node_child_process_1 = require("node:child_process");
+const node_fs_1 = require("node:fs");
+const node_os_1 = require("node:os");
+const node_path_1 = require("node:path");
 const workspace_schema_1 = require("../../lib/config/workspace-schema");
 const config_1 = require("./config");
 const memoize_1 = require("./memoize");
@@ -95,11 +95,11 @@ let PackageManagerUtils = (() => {
         }
         /** Install a single package temporary. */
         async installTemp(packageName, extraArgs) {
-            const tempPath = await fs_1.promises.mkdtemp((0, path_1.join)((0, fs_1.realpathSync)((0, os_1.tmpdir)()), 'angular-cli-packages-'));
+            const tempPath = await node_fs_1.promises.mkdtemp((0, node_path_1.join)((0, node_fs_1.realpathSync)((0, node_os_1.tmpdir)()), 'angular-cli-packages-'));
             // clean up temp directory on process exit
             process.on('exit', () => {
                 try {
-                    (0, fs_1.rmSync)(tempPath, { recursive: true, maxRetries: 3 });
+                    (0, node_fs_1.rmSync)(tempPath, { recursive: true, maxRetries: 3 });
                 }
                 catch { }
             });
@@ -111,7 +111,7 @@ let PackageManagerUtils = (() => {
             // npm WARN .ng-temp-packages-84Qi7y No license field.
             // While we can use `npm init -y` we will end up needing to update the 'package.json' anyways
             // because of missing fields.
-            await fs_1.promises.writeFile((0, path_1.join)(tempPath, 'package.json'), JSON.stringify({
+            await node_fs_1.promises.writeFile((0, node_path_1.join)(tempPath, 'package.json'), JSON.stringify({
                 name: 'temp-cli-install',
                 description: 'temp-cli-install',
                 repository: 'temp-cli-install',
@@ -119,7 +119,7 @@ let PackageManagerUtils = (() => {
             }));
             // setup prefix/global modules path
             const packageManagerArgs = this.getArguments();
-            const tempNodeModules = (0, path_1.join)(tempPath, 'node_modules');
+            const tempNodeModules = (0, node_path_1.join)(tempPath, 'node_modules');
             // Yarn will not append 'node_modules' to the path
             const prefixPath = this.name === workspace_schema_1.PackageManager.Yarn ? tempNodeModules : tempPath;
             const installArgs = [
@@ -171,7 +171,7 @@ let PackageManagerUtils = (() => {
             const { cwd = process.cwd(), silent = false } = options;
             return new Promise((resolve) => {
                 const bufferedOutput = [];
-                const childProcess = (0, child_process_1.spawn)(this.name, args, {
+                const childProcess = (0, node_child_process_1.spawn)(this.name, args, {
                     // Always pipe stderr to allow for failures to be reported
                     stdio: silent ? ['ignore', 'ignore', 'pipe'] : 'pipe',
                     shell: true,
@@ -191,7 +191,7 @@ let PackageManagerUtils = (() => {
         }
         getVersion(name) {
             try {
-                return (0, child_process_1.execSync)(`${name} --version`, {
+                return (0, node_child_process_1.execSync)(`${name} --version`, {
                     encoding: 'utf8',
                     stdio: ['ignore', 'pipe', 'ignore'],
                     env: {
@@ -276,7 +276,7 @@ let PackageManagerUtils = (() => {
                     lockfileName = 'package-lock.json';
                     break;
             }
-            return (0, fs_1.existsSync)((0, path_1.join)(this.context.root, lockfileName));
+            return (0, node_fs_1.existsSync)((0, node_path_1.join)(this.context.root, lockfileName));
         }
         getConfiguredPackageManager() {
             const getPackageManager = (source) => {

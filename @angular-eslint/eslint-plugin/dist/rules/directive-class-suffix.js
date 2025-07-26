@@ -4,7 +4,6 @@ exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'directive-class-suffix';
-const STYLE_GUIDE_LINK = 'https://angular.dev/style-guide#style-02-03';
 const DEFAULT_SUFFIXES = ['Directive'];
 const VALIDATOR_SUFFIX = 'Validator';
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
@@ -12,8 +11,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     meta: {
         type: 'suggestion',
         docs: {
-            description: `Classes decorated with @Directive must have suffix "Directive" (or custom) in their name. See more at ${STYLE_GUIDE_LINK}`,
-            recommended: 'recommended',
+            description: `Classes decorated with @Directive must have suffix "Directive" (or custom) in their name. Note: As of v20, this is no longer recommended by the Angular Team.`,
         },
         schema: [
             {
@@ -30,7 +28,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             },
         ],
         messages: {
-            directiveClassSuffix: `Directive class names should end with one of these suffixes: {{suffixes}} (${STYLE_GUIDE_LINK})`,
+            directiveClassSuffix: `Directive class names should end with one of these suffixes: {{suffixes}}`,
         },
     },
     defaultOptions: [{ suffixes: DEFAULT_SUFFIXES }],

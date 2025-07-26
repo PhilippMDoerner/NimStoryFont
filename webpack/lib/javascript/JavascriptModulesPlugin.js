@@ -26,11 +26,12 @@ const {
 	JAVASCRIPT_MODULE_TYPE_ESM,
 	WEBPACK_MODULE_TYPE_RUNTIME
 } = require("../ModuleTypeConstants");
+const NormalModule = require("../NormalModule");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const Template = require("../Template");
 const { last, someInIterable } = require("../util/IterableHelpers");
 const StringXor = require("../util/StringXor");
-const { compareModulesByIdentifier } = require("../util/comparators");
+const { compareModulesByIdOrIdentifier } = require("../util/comparators");
 const {
 	getPathInAst,
 	getAllReferences,
@@ -41,6 +42,7 @@ const {
 } = require("../util/concatenate");
 const createHash = require("../util/createHash");
 const nonNumericOnlyHash = require("../util/nonNumericOnlyHash");
+const removeBOM = require("../util/removeBOM");
 const { intersectRuntime } = require("../util/runtime");
 const JavascriptGenerator = require("./JavascriptGenerator");
 const JavascriptParser = require("./JavascriptParser");
@@ -48,13 +50,15 @@ const JavascriptParser = require("./JavascriptParser");
 /** @typedef {import("eslint-scope").Reference} Reference */
 /** @typedef {import("eslint-scope").Scope} Scope */
 /** @typedef {import("eslint-scope").Variable} Variable */
+/** @typedef {import("estree").Program} Program */
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../../declarations/WebpackOptions").Output} OutputOptions */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../CodeGenerationResults")} CodeGenerationResults */
 /** @typedef {import("../Compilation").ChunkHashContext} ChunkHashContext */
-/** @typedef {import("../Compilation").ModuleObject} ModuleObject */
+/** @typedef {import("../Compilation").ExecuteModuleObject} ExecuteModuleObject */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("../Entrypoint")} Entrypoint */
@@ -66,7 +70,6 @@ const JavascriptParser = require("./JavascriptParser");
 /** @typedef {import("../WebpackError")} WebpackError */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
 /** @typedef {import("../util/Hash")} Hash */
-/** @typedef {import("../util/createHash").Algorithm} Algorithm */
 
 /**
  * @param {Chunk} chunk a chunk
@@ -248,7 +251,7 @@ class JavascriptModulesPlugin {
 
 	constructor(options = {}) {
 		this.options = options;
-		/** @type {WeakMap<Source, TODO>} */
+		/** @type {WeakMap<Source, { source: Source, needModule:boolean, needExports: boolean, needRequire: boolean, needThisAsExports: boolean, needStrict: boolean | undefined }>} */
 		this._moduleFactoryCache = new WeakMap();
 	}
 
@@ -262,24 +265,45 @@ class JavascriptModulesPlugin {
 			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				const hooks = JavascriptModulesPlugin.getCompilationHooks(compilation);
-				normalModuleFactory.hooks.createParser
-					.for(JAVASCRIPT_MODULE_TYPE_AUTO)
-					.tap(PLUGIN_NAME, options => new JavascriptParser("auto"));
-				normalModuleFactory.hooks.createParser
-					.for(JAVASCRIPT_MODULE_TYPE_DYNAMIC)
-					.tap(PLUGIN_NAME, options => new JavascriptParser("script"));
-				normalModuleFactory.hooks.createParser
-					.for(JAVASCRIPT_MODULE_TYPE_ESM)
-					.tap(PLUGIN_NAME, options => new JavascriptParser("module"));
-				normalModuleFactory.hooks.createGenerator
-					.for(JAVASCRIPT_MODULE_TYPE_AUTO)
-					.tap(PLUGIN_NAME, () => new JavascriptGenerator());
-				normalModuleFactory.hooks.createGenerator
-					.for(JAVASCRIPT_MODULE_TYPE_DYNAMIC)
-					.tap(PLUGIN_NAME, () => new JavascriptGenerator());
-				normalModuleFactory.hooks.createGenerator
-					.for(JAVASCRIPT_MODULE_TYPE_ESM)
-					.tap(PLUGIN_NAME, () => new JavascriptGenerator());
+
+				for (const type of [
+					JAVASCRIPT_MODULE_TYPE_AUTO,
+					JAVASCRIPT_MODULE_TYPE_DYNAMIC,
+					JAVASCRIPT_MODULE_TYPE_ESM
+				]) {
+					normalModuleFactory.hooks.createParser
+						.for(type)
+						.tap(PLUGIN_NAME, _options => {
+							switch (type) {
+								case JAVASCRIPT_MODULE_TYPE_AUTO: {
+									return new JavascriptParser("auto");
+								}
+								case JAVASCRIPT_MODULE_TYPE_DYNAMIC: {
+									return new JavascriptParser("script");
+								}
+								case JAVASCRIPT_MODULE_TYPE_ESM: {
+									return new JavascriptParser("module");
+								}
+							}
+						});
+					normalModuleFactory.hooks.createGenerator
+						.for(type)
+						.tap(PLUGIN_NAME, () => new JavascriptGenerator());
+
+					NormalModule.getCompilationHooks(compilation).processResult.tap(
+						PLUGIN_NAME,
+						(result, module) => {
+							if (module.type === type) {
+								const [source, ...rest] = result;
+
+								return [removeBOM(source), ...rest];
+							}
+
+							return result;
+						}
+					);
+				}
+
 				compilation.hooks.renderManifest.tap(PLUGIN_NAME, (result, options) => {
 					const {
 						hash,
@@ -405,7 +429,7 @@ class JavascriptModulesPlugin {
 							hashFunction
 						}
 					} = compilation;
-					const hash = createHash(/** @type {Algorithm} */ (hashFunction));
+					const hash = createHash(/** @type {HashFunction} */ (hashFunction));
 					if (hashSalt) hash.update(hashSalt);
 					if (chunk.hasRuntime()) {
 						this.updateHashWithBootstrap(
@@ -487,7 +511,7 @@ class JavascriptModulesPlugin {
 					);
 
 					const moduleObject =
-						/** @type {ModuleObject} */
+						/** @type {ExecuteModuleObject} */
 						(options.moduleObject);
 
 					try {
@@ -678,7 +702,7 @@ class JavascriptModulesPlugin {
 		const modules = chunkGraph.getOrderedChunkModulesIterableBySourceType(
 			chunk,
 			"javascript",
-			compareModulesByIdentifier
+			compareModulesByIdOrIdentifier(chunkGraph)
 		);
 		const allModules = modules ? Array.from(modules) : [];
 		let strictHeader;
@@ -757,7 +781,7 @@ class JavascriptModulesPlugin {
 			chunkGraph.getOrderedChunkModulesIterableBySourceType(
 				chunk,
 				"javascript",
-				compareModulesByIdentifier
+				compareModulesByIdOrIdentifier(chunkGraph)
 			) || []
 		);
 
@@ -977,7 +1001,7 @@ class JavascriptModulesPlugin {
 			const lastEntryModule =
 				/** @type {Module} */
 				(last(chunkGraph.getChunkEntryModulesIterable(chunk)));
-			/** @type {function(string[], string): Source} */
+			/** @type {(content: string[], name: string) => Source} */
 			const toSource = useSourceMap
 				? (content, name) =>
 						new OriginalSource(Template.asString(content), name)
@@ -1506,7 +1530,7 @@ class JavascriptModulesPlugin {
 		const renamedInlinedModules = new Map();
 		const { runtimeTemplate } = renderContext;
 
-		/** @typedef {{ source: Source, module: Module, ast: any, variables: Set<Variable>, through: Set<Reference>, usedInNonInlined: Set<Variable>, moduleScope: Scope }} Info */
+		/** @typedef {{ source: Source, module: Module, ast: Program, variables: Set<Variable>, through: Set<Reference>, usedInNonInlined: Set<Variable>, moduleScope: Scope }} Info */
 		/** @type {Map<Module, Info>} */
 		const inlinedModulesToInfo = new Map();
 		/** @type {Set<string>} */
@@ -1583,12 +1607,6 @@ class JavascriptModulesPlugin {
 			}
 
 			for (const variable of info.variables) {
-				allUsedNames.add(variable.name);
-				const references = getAllReferences(variable);
-				const allIdentifiers = new Set(
-					references.map(r => r.identifier).concat(variable.identifiers)
-				);
-
 				const usedNamesInScopeInfo = new Map();
 				const ignoredScopes = new Set();
 
@@ -1601,6 +1619,9 @@ class JavascriptModulesPlugin {
 
 				if (allUsedNames.has(name) || usedNames.has(name)) {
 					const references = getAllReferences(variable);
+					const allIdentifiers = new Set(
+						references.map(r => r.identifier).concat(variable.identifiers)
+					);
 					for (const ref of references) {
 						addScopeSymbols(
 							ref.from,
@@ -1635,9 +1656,8 @@ class JavascriptModulesPlugin {
 						}
 						source.replace(r[0], r[1] - 1, newName);
 					}
-				} else {
-					allUsedNames.add(name);
 				}
+				allUsedNames.add(name);
 			}
 
 			renamedInlinedModules.set(m, source);

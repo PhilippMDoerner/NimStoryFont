@@ -1,6 +1,6 @@
 /* eslint @typescript-eslint/no-explicit-any: ["off"] */
 import { AsyncLocalStorage, AsyncResource } from 'node:async_hooks';
-import { HookError, ValidationError } from './errors.js';
+import { HookError, ValidationError } from "./errors.js";
 const hookStorage = new AsyncLocalStorage();
 function createStore(rl) {
     const store = {

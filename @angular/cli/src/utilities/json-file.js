@@ -10,8 +10,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JSONFile = void 0;
 exports.readAndParseJson = readAndParseJson;
 exports.parseJson = parseJson;
-const fs_1 = require("fs");
 const jsonc_parser_1 = require("jsonc-parser");
+const node_fs_1 = require("node:fs");
 const eol_1 = require("./eol");
 /** @internal */
 class JSONFile {
@@ -20,7 +20,7 @@ class JSONFile {
     eol;
     constructor(path) {
         this.path = path;
-        const buffer = (0, fs_1.readFileSync)(this.path);
+        const buffer = (0, node_fs_1.readFileSync)(this.path);
         if (buffer) {
             this.content = buffer.toString();
         }
@@ -82,14 +82,14 @@ class JSONFile {
         return true;
     }
     save() {
-        (0, fs_1.writeFileSync)(this.path, this.content);
+        (0, node_fs_1.writeFileSync)(this.path, this.content);
     }
 }
 exports.JSONFile = JSONFile;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function readAndParseJson(path) {
     const errors = [];
-    const content = (0, jsonc_parser_1.parse)((0, fs_1.readFileSync)(path, 'utf-8'), errors, { allowTrailingComma: true });
+    const content = (0, jsonc_parser_1.parse)((0, node_fs_1.readFileSync)(path, 'utf-8'), errors, { allowTrailingComma: true });
     if (errors.length) {
         formatError(path, errors);
     }

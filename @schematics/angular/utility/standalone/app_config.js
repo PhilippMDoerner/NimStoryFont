@@ -11,7 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findAppConfig = findAppConfig;
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const typescript_1 = __importDefault(require("../../third_party/github.com/Microsoft/TypeScript/lib/typescript"));
 const util_1 = require("./util");
 /**
@@ -58,7 +58,7 @@ function resolveAppConfigFromIdentifier(identifier, tree, bootstapFilePath) {
             // Look for a variable with the imported name in the file. Note that ideally we would use
             // the type checker to resolve this, but we can't because these utilities are set up to
             // operate on individual files, not the entire program.
-            const filePath = (0, path_1.join)((0, path_1.dirname)(bootstapFilePath), node.moduleSpecifier.text + '.ts');
+            const filePath = (0, node_path_1.join)((0, node_path_1.dirname)(bootstapFilePath), node.moduleSpecifier.text + '.ts');
             const importedSourceFile = (0, util_1.getSourceFile)(tree, filePath);
             const resolvedVariable = findAppConfigFromVariableName(importedSourceFile, (specifier.propertyName || specifier.name).text);
             if (resolvedVariable) {

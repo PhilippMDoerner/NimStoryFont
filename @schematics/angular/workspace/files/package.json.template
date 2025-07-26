@@ -10,17 +10,14 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "<%= latestVersions.Angular %>",
     "@angular/common": "<%= latestVersions.Angular %>",
     "@angular/compiler": "<%= latestVersions.Angular %>",
     "@angular/core": "<%= latestVersions.Angular %>",
     "@angular/forms": "<%= latestVersions.Angular %>",
     "@angular/platform-browser": "<%= latestVersions.Angular %>",
-    "@angular/platform-browser-dynamic": "<%= latestVersions.Angular %>",
     "@angular/router": "<%= latestVersions.Angular %>",
     "rxjs": "<%= latestVersions['rxjs'] %>",
-    "tslib": "<%= latestVersions['tslib'] %>",
-    "zone.js": "<%= latestVersions['zone.js'] %>"
+    "tslib": "<%= latestVersions['tslib'] %>"
   },
   "devDependencies": {
     "@angular/cli": "<%= '^' + version %>",

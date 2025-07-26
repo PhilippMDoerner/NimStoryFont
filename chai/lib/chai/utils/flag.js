@@ -15,16 +15,17 @@
  *     utils.flag(this, 'foo', 'bar'); // setter
  *     utils.flag(this, 'foo'); // getter, returns `bar`
  *
- * @param {object} obj object constructed Assertion
+ * @template {{__flags?: {[key: PropertyKey]: unknown}}} T
+ * @param {T} obj object constructed Assertion
  * @param {string} key
- * @param {unknown} value (optional)
+ * @param {unknown} [value]
  * @namespace Utils
  * @name flag
  * @returns {unknown | undefined}
  * @private
  */
 export function flag(obj, key, value) {
-  var flags = obj.__flags || (obj.__flags = Object.create(null));
+  let flags = obj.__flags || (obj.__flags = Object.create(null));
   if (arguments.length === 3) {
     flags[key] = value;
   } else {

@@ -65,7 +65,11 @@ export class QuestCreateUpdatePageComponent {
       key: 'giver',
       label: 'Quest Giver',
       getOptions: () => this.questGivers$,
-      initialOption$: of(this.store.questGivers()?.find(char => char.pk === this.userModel().giver) ?? null),
+      initialOption$: of(
+        this.store
+          .questGivers()
+          ?.find((char) => char.pk === this.userModel().giver) ?? null,
+      ),
       formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name',
       optionValueProp: 'pk',
@@ -74,10 +78,15 @@ export class QuestCreateUpdatePageComponent {
       key: 'taker',
       label: 'Quest Taker',
       getOptions: () => this.questTakers$,
-      initialOption$: of(this.store.questTakers()?.find(char => char.pk === this.userModel().taker) ?? null),
+      initialOption$: of(
+        this.store
+          .questTakers()
+          ?.find((char) => char.pk === this.userModel().taker) ?? null,
+      ),
       formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name',
       optionValueProp: 'pk',
+      required: false,
     }),
     this.formlyService.buildOverviewSelectConfig({
       key: 'start_session',

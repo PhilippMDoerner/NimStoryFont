@@ -1,4 +1,4 @@
-import { withPointer } from './hook-engine.js';
+import { withPointer } from "./hook-engine.js";
 export function useMemo(fn, dependencies) {
     return withPointer((pointer) => {
         const prev = pointer.get();

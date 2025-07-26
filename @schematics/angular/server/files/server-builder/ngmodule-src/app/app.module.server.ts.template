@@ -1,14 +1,14 @@
 import { NgModule } from '@angular/core';
 import { ServerModule } from '@angular/platform-server';
 
-import { AppModule } from './app.module';
-import { AppComponent } from './app.component';
+import { <%= appModuleName %> } from '<%= appModulePath %>';
+import { <%= appComponentName %> } from '<%= appComponentPath %>';
 
 @NgModule({
   imports: [
-    AppModule,
+    <%= appModuleName %>,
     ServerModule,
   ],
-  bootstrap: [AppComponent],
+  bootstrap: [<%= appComponentName %>],
 })
 export class AppServerModule {}

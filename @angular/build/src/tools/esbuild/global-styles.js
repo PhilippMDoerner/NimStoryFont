@@ -35,6 +35,7 @@ function createGlobalStylesBundleOptions(options, target, initial) {
             optimization: !!optimizationOptions.styles.minify,
             inlineFonts: !!optimizationOptions.fonts.inline,
             sourcemap: !!sourcemapOptions.styles && (sourcemapOptions.hidden ? 'external' : true),
+            sourcesContent: sourcemapOptions.sourcesContent,
             preserveSymlinks,
             target,
             externalDependencies,

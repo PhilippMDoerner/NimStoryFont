@@ -32,7 +32,15 @@
  * @property {ConcatenationScope=} concatenationScope when in concatenated module, information about other concatenated modules
  * @property {CodeGenerationResults=} codeGenerationResults code generation results of other modules (need to have a codeGenerationDependency to use that)
  * @property {string} type which kind of code should be generated
- * @property {function(): Map<string, any>=} getData get access to the code generation data
+ * @property {() => Map<string, TODO>=} getData get access to the code generation data
+ */
+
+/**
+ * @callback GenerateErrorFn
+ * @param {Error} error the error
+ * @param {NormalModule} module module for which the code should be generated
+ * @param {GenerateContext} generateContext context for generate
+ * @returns {Source | null} generated code
  */
 
 /**
@@ -108,6 +116,24 @@ class Generator {
 	}
 }
 
+/**
+ * @this {ByTypeGenerator}
+ * @type {GenerateErrorFn}
+ */
+function generateError(error, module, generateContext) {
+	const type = generateContext.type;
+	const generator =
+		/** @type {Generator & { generateError?: GenerateErrorFn }} */
+		(this.map[type]);
+	if (!generator) {
+		throw new Error(`Generator.byType: no generator specified for ${type}`);
+	}
+	if (typeof generator.generateError === "undefined") {
+		return null;
+	}
+	return generator.generateError(error, module, generateContext);
+}
+
 class ByTypeGenerator extends Generator {
 	/**
 	 * @param {Record<string, Generator>} map map of types
@@ -116,6 +142,8 @@ class ByTypeGenerator extends Generator {
 		super();
 		this.map = map;
 		this._types = new Set(Object.keys(map));
+		/** @type {GenerateErrorFn | undefined} */
+		this.generateError = generateError.bind(this);
 	}
 
 	/**

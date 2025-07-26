@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+.page {
+  &__tabs {
+    margin-bottom: var(--spacer-4);
+  }
+}

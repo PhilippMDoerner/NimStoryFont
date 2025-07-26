@@ -45,10 +45,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tools_1 = require("@angular-devkit/schematics/tools");
 const listr2_1 = require("listr2");
-const module_1 = require("module");
 const node_assert_1 = __importDefault(require("node:assert"));
+const node_module_1 = require("node:module");
+const node_path_1 = require("node:path");
 const npm_package_arg_1 = __importDefault(require("npm-package-arg"));
-const path_1 = require("path");
 const semver_1 = require("semver");
 const workspace_schema_1 = require("../../../lib/config/workspace-schema");
 const schematics_command_module_1 = require("../../command-builder/schematics-command-module");
@@ -72,10 +72,10 @@ const packageVersionExclusions = {
 class AddCommandModule extends schematics_command_module_1.SchematicsCommandModule {
     command = 'add <collection>';
     describe = 'Adds support for an external library to your project.';
-    longDescriptionPath = (0, path_1.join)(__dirname, 'long-description.md');
+    longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     allowPrivateSchematics = true;
     schematicName = 'ng-add';
-    rootRequire = (0, module_1.createRequire)(this.context.root + '/');
+    rootRequire = (0, node_module_1.createRequire)(this.context.root + '/');
     async builder(argv) {
         const localYargs = (await super.builder(argv))
             .positional('collection', {
@@ -99,7 +99,10 @@ class AddCommandModule extends schematics_command_module_1.SchematicsCommandModu
             // Possibly in the future update the logic to use the following syntax:
             // `ng add @angular/localize -- --package-options`.
             .strict(false);
-        const collectionName = await this.getCollectionName();
+        const collectionName = this.getCollectionName();
+        if (!collectionName) {
+            return localYargs;
+        }
         const workflow = this.getOrCreateWorkflowForBuilder(collectionName);
         try {
             const collection = workflow.engine.createCollection(collectionName);
@@ -282,13 +285,13 @@ class AddCommandModule extends schematics_command_module_1.SchematicsCommandModu
                         // Temporary packages are located in a different directory
                         // Hence we need to resolve them using the temp path
                         const { success, tempNodeModules } = await packageManager.installTemp(context.packageIdentifier.toString(), registry ? [`--registry="${registry}"`] : undefined);
-                        const tempRequire = (0, module_1.createRequire)(tempNodeModules + '/');
+                        const tempRequire = (0, node_module_1.createRequire)(tempNodeModules + '/');
                         (0, node_assert_1.default)(context.collectionName, 'Collection name should always be available');
-                        const resolvedCollectionPath = tempRequire.resolve((0, path_1.join)(context.collectionName, 'package.json'));
+                        const resolvedCollectionPath = tempRequire.resolve((0, node_path_1.join)(context.collectionName, 'package.json'));
                         if (!success) {
                             throw new CommandError('Unable to install package');
                         }
-                        context.collectionName = (0, path_1.dirname)(resolvedCollectionPath);
+                        context.collectionName = (0, node_path_1.dirname)(resolvedCollectionPath);
                     }
                     else {
                         const success = await packageManager.install(context.packageIdentifier.toString(), context.savePackage, registry ? [`--registry="${registry}"`] : undefined, undefined);
@@ -336,13 +339,18 @@ class AddCommandModule extends schematics_command_module_1.SchematicsCommandModu
         }
         return false;
     }
-    async getCollectionName() {
-        let [, collectionName] = this.context.args.positional;
+    getCollectionName() {
+        const [, collectionName] = this.context.args.positional;
+        if (!collectionName) {
+            return undefined;
+        }
         // The CLI argument may specify also a version, like `ng add @my/lib@13.0.0`,
-        // but here we need only the name of the package, like `@my/lib`
+        // but here we need only the name of the package, like `@my/lib`.
         try {
-            const packageIdentifier = (0, npm_package_arg_1.default)(collectionName);
-            collectionName = packageIdentifier.name ?? collectionName;
+            const packageName = (0, npm_package_arg_1.default)(collectionName).name;
+            if (packageName) {
+                return packageName;
+            }
         }
         catch (e) {
             (0, error_1.assertIsError)(e);
@@ -352,7 +360,7 @@ class AddCommandModule extends schematics_command_module_1.SchematicsCommandModu
     }
     isPackageInstalled(name) {
         try {
-            this.rootRequire.resolve((0, path_1.join)(name, 'package.json'));
+            this.rootRequire.resolve((0, node_path_1.join)(name, 'package.json'));
             return true;
         }
         catch (e) {
@@ -392,12 +400,12 @@ class AddCommandModule extends schematics_command_module_1.SchematicsCommandModu
         const { logger, root } = this.context;
         let installedPackage;
         try {
-            installedPackage = this.rootRequire.resolve((0, path_1.join)(name, 'package.json'));
+            installedPackage = this.rootRequire.resolve((0, node_path_1.join)(name, 'package.json'));
         }
         catch { }
         if (installedPackage) {
             try {
-                const installed = await (0, package_metadata_1.fetchPackageManifest)((0, path_1.dirname)(installedPackage), logger);
+                const installed = await (0, package_metadata_1.fetchPackageManifest)((0, node_path_1.dirname)(installedPackage), logger);
                 return installed.version;
             }
             catch { }

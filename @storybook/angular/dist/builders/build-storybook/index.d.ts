@@ -1,5 +1,5 @@
 import { CLIOptions } from 'storybook/internal/types';
-import { BuilderOutput } from '@angular-devkit/architect';
+import { BuilderOutput, Builder as DevkitBuilder } from '@angular-devkit/architect';
 import { StylePreprocessorOptions } from '@angular-devkit/build-angular';
 import { AssetPattern, SourceMapUnion, StyleElement } from '@angular-devkit/build-angular/src/builders/browser/schema';
 import { JsonObject } from '@angular-devkit/core';
@@ -21,19 +21,5 @@ export type StorybookBuilderOptions = JsonObject & {
 export type StorybookBuilderOutput = JsonObject & BuilderOutput & {
     [key: string]: any;
 };
-declare const _default: import("@angular-devkit/architect").Builder<JsonObject & {
-    browserTarget?: string | null;
-    tsConfig?: string;
-    test: boolean;
-    docs: boolean;
-    compodoc: boolean;
-    compodocArgs: string[];
-    enableProdMode?: boolean;
-    styles?: StyleElement[];
-    stylePreprocessorOptions?: StylePreprocessorOptions;
-    preserveSymlinks?: boolean;
-    assets?: AssetPattern[];
-    sourceMap?: SourceMapUnion;
-    experimentalZoneless?: boolean;
-} & Pick<CLIOptions, "statsJson" | "outputDir" | "configDir" | "loglevel" | "quiet" | "test" | "webpackStatsJson" | "disableTelemetry" | "debugWebpack" | "previewUrl">>;
+declare const _default: DevkitBuilder<StorybookBuilderOptions & JsonObject>;
 export default _default;

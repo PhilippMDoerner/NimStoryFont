@@ -1,10 +1,5 @@
-import '../utils/click/isClickableInput.js';
 import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
 import { readNextDescriptor } from '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
-import '../options.js';
 
 function parseKeyDef(pointerMap, keys) {
     const defs = [];

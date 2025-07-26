@@ -50,12 +50,12 @@ class AsyncQueueEntry {
 
 /**
  * @template T, K
- * @typedef {function(T): K} getKey
+ * @typedef {(item: T) => K} getKey
  */
 
 /**
  * @template T, R
- * @typedef {function(T, Callback<R>): void} Processor
+ * @typedef {(item: T, callback: Callback<R>) => void} Processor
  */
 
 /**
@@ -69,7 +69,7 @@ class AsyncQueue {
 	 * @param {string=} options.name name of the queue
 	 * @param {number=} options.parallelism how many items should be processed at once
 	 * @param {string=} options.context context of execution
-	 * @param {AsyncQueue<any, any, any>=} options.parent parent queue, which will have priority over this queue and with shared parallelism
+	 * @param {AsyncQueue<EXPECTED_ANY, EXPECTED_ANY, EXPECTED_ANY>=} options.parent parent queue, which will have priority over this queue and with shared parallelism
 	 * @param {getKey<T, K>=} options.getKey extract key from item
 	 * @param {Processor<T, R>} options.processor async function to process items
 	 */
@@ -85,13 +85,13 @@ class AsyncQueue {
 		this._entries = new Map();
 		/** @type {ArrayQueue<AsyncQueueEntry<T, K, R>>} */
 		this._queued = new ArrayQueue();
-		/** @type {AsyncQueue<any, any, any>[] | undefined} */
+		/** @type {AsyncQueue<T, K, R>[] | undefined} */
 		this._children = undefined;
 		this._activeTasks = 0;
 		this._willEnsureProcessing = false;
 		this._needProcessing = false;
 		this._stopped = false;
-		/** @type {AsyncQueue<any, any, any>} */
+		/** @type {AsyncQueue<T, K, R>} */
 		this._root = parent ? parent._root : this;
 		if (parent) {
 			if (this._root._children === undefined) {

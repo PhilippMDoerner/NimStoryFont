@@ -13,7 +13,7 @@ export declare function tsCastToAny(expr: ts.Expression): ts.Expression;
  * Thanks to narrowing of `document.createElement()`, this expression will have its type inferred
  * based on the tag name, including for custom elements that have appropriate .d.ts definitions.
  */
-export declare function tsCreateElement(tagName: string): ts.Expression;
+export declare function tsCreateElement(...tagNames: string[]): ts.Expression;
 /**
  * Create a `ts.VariableStatement` which declares a variable without explicit initialization.
  *

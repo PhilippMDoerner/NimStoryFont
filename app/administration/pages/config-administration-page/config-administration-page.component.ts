@@ -1,4 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { NodeLinkTypeRaw } from 'src/app/_models/graph';
 import { MapMarkerType } from 'src/app/_models/mapMarkerType';
 import { PlayerClass } from 'src/app/_models/playerclass';
@@ -17,6 +22,7 @@ import { ConfigAdministrationPageStore } from './config-administration-page.stor
   styleUrls: ['./config-administration-page.component.scss'],
   providers: [ConfigAdministrationPageStore],
   imports: [ConfigTablesComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfigAdministrationPageComponent {
   readonly store = inject(ConfigAdministrationPageStore);

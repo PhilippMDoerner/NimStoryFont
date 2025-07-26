@@ -36,8 +36,10 @@ export declare class TypeScriptAstFactory implements AstFactory<ts.Statement, ts
     createPropertyAccess: (expression: ts.Expression, name: string | ts.MemberName) => ts.PropertyAccessExpression;
     createReturnStatement(expression: ts.Expression | null): ts.Statement;
     createTaggedTemplate(tag: ts.Expression, template: TemplateLiteral<ts.Expression>): ts.Expression;
+    createTemplateLiteral(template: TemplateLiteral<ts.Expression>): ts.TemplateLiteral;
     createThrowStatement: (expression: ts.Expression) => ts.ThrowStatement;
     createTypeOfExpression: (expression: ts.Expression) => ts.TypeOfExpression;
+    createVoidExpression: (expression: ts.Expression) => ts.VoidExpression;
     createUnaryExpression(operator: UnaryOperator, operand: ts.Expression): ts.Expression;
     createVariableDeclaration(variableName: string, initializer: ts.Expression | null, type: VariableDeclarationType): ts.Statement;
     setSourceMapRange<T extends ts.Node>(node: T, sourceMapRange: SourceMapRange | null): T;

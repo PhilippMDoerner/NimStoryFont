@@ -1,4 +1,4 @@
-declare const S: unique symbol;
+declare const SYMBOL_STATE: unique symbol;
 
 interface GetState {
     <A extends any[], R>(spy: SpyInternalImpl<A, R>): SpyInternalImplState<A, R>;
@@ -11,10 +11,10 @@ type ReturnOk<R> = ['ok', R];
 type ResultFn<R> = ReturnError | ReturnOk<R>;
 interface SpyInternal<A extends any[] = any[], R = any> {
     (this: any, ...args: A): R;
-    [S]: SpyInternalState<A, R>;
+    [SYMBOL_STATE]: SpyInternalState<A, R>;
 }
 interface SpyInternalImpl<A extends any[] = any[], R = any> extends SpyInternal<A, R> {
-    [S]: SpyInternalImplState<A, R>;
+    [SYMBOL_STATE]: SpyInternalImplState<A, R>;
 }
 interface SpyInternalState<A extends any[] = any[], R = any> {
     called: boolean;
@@ -32,6 +32,7 @@ interface SpyInternalImplState<A extends any[] = any[], R = any> extends SpyInte
     restore(): void;
 }
 interface Spy<A extends any[] = any[], R = any> extends SpyInternalState<A, R> {
+    (this: any, ...args: A): R;
     returns: R[];
     length: number;
     nextError(error: any): this;

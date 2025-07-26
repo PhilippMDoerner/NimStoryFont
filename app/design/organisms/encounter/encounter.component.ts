@@ -112,26 +112,28 @@ export class EncounterComponent implements OnInit {
   contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
+      const isEditingMetadata =
+        this.cardState() === 'UPDATE' || this.cardState() === 'OUTDATEDUPDATE';
       menuItems.push({
         kind: 'BUTTON',
-        label: 'Edit Metadata',
+        label: isEditingMetadata ? 'Cancel Edit' : 'Edit Metadata',
         actionName: 'edit-metadata',
-        active:
-          this.cardState() === 'UPDATE' ||
-          this.cardState() === 'OUTDATEDUPDATE',
-        hotkey: this.isInFocus() ? 'e' : undefined,
-        icon: 'file-pen',
+        active: isEditingMetadata,
+        hotkeyAction: this.isInFocus() ? 'update' : undefined,
+        icon: isEditingMetadata ? 'times' : 'file-pen',
       });
+
+      const isEditingDescription =
+        this.cardState() === 'DISPLAY' &&
+        (this.textFieldState() === 'UPDATE' ||
+          this.textFieldState() === 'OUTDATED_UPDATE');
       menuItems.push({
         kind: 'BUTTON',
-        label: 'Edit Description',
+        label: isEditingDescription ? 'Cancel Edit' : 'Edit Description',
         actionName: 'edit-description',
-        active:
-          this.cardState() === 'DISPLAY' &&
-          (this.textFieldState() === 'UPDATE' ||
-            this.textFieldState() === 'OUTDATED_UPDATE'),
-        hotkey: this.isInFocus() ? 'w' : undefined,
-        icon: 'pencil',
+        active: isEditingDescription,
+        hotkeyAction: this.isInFocus() ? 'description-update' : undefined,
+        icon: isEditingDescription ? 'times' : 'pencil',
       });
     }
 
@@ -139,12 +141,12 @@ export class EncounterComponent implements OnInit {
       menuItems.push({
         kind: 'CONFIRM',
         actionName: 'delete',
-        label: `Delete ${this.encounter()?.title}`,
-        hotkey: this.isInFocus() ? 'd' : undefined,
+        label: `Delete`,
+        hotkeyAction: this.isInFocus() ? 'delete' : undefined,
         icon: 'trash',
         modal: {
           ...DEFAULT_DELETE_MODAL_DATA,
-          heading: `Delete ${this.encounter()?.title}`,
+          heading: `Delete encounter "${this.encounter()?.title}"?`,
           body: `Are you sure you want to delete this encounter?`,
         },
       });

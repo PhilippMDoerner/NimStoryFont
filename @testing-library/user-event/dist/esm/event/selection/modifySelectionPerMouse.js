@@ -1,11 +1,5 @@
 import { setUISelection } from '../../document/UI.js';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { resolveCaretPosition } from './resolveCaretPosition.js';
 
 function modifySelectionPerMouseMove(selectionRange, { document, target, node, offset }) {
@@ -36,8 +30,8 @@ function modifySelectionPerMouseMove(selectionRange, { document, target, node, o
             range.setEnd(selectionFocus.node, selectionFocus.offset);
         }
         const selection = document.getSelection();
-        selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
-        selection === null || selection === void 0 ? void 0 : selection.addRange(range.cloneRange());
+        selection === null || selection === undefined ? undefined : selection.removeAllRanges();
+        selection === null || selection === undefined ? undefined : selection.addRange(range.cloneRange());
     }
 }
 

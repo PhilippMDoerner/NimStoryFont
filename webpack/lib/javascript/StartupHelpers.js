@@ -88,6 +88,9 @@ module.exports.generateEntryStartup = (
 	let currentModuleIds;
 
 	for (const [module, entrypoint] of entries) {
+		if (!chunkGraph.getModuleSourceTypes(module).has("javascript")) {
+			continue;
+		}
 		const runtimeChunk =
 			/** @type {Entrypoint} */
 			(entrypoint).getRuntimeChunk();
@@ -162,7 +165,7 @@ module.exports.updateHashForEntryStartup = (
 /**
  * @param {Chunk} chunk the chunk
  * @param {ChunkGraph} chunkGraph the chunk graph
- * @param {function(Chunk, ChunkGraph): boolean} filterFn filter function
+ * @param {(chunk: Chunk, chunkGraph: ChunkGraph) => boolean} filterFn filter function
  * @returns {Set<number | string>} initially fulfilled chunk ids
  */
 module.exports.getInitialChunkIds = (chunk, chunkGraph, filterFn) => {

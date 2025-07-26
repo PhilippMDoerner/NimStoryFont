@@ -1,13 +1,7 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var getWindow = require('../utils/misc/getWindow.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var UI = require('./UI.js');
 
 const TrackChanges = Symbol('Track programmatic changes for React workaround');
@@ -32,7 +26,7 @@ function startTrackValue(element) {
 }
 function trackOrSetValue(element, v) {
     var _element_TrackChanges_tracked, _element_TrackChanges;
-    (_element_TrackChanges = element[TrackChanges]) === null || _element_TrackChanges === void 0 ? void 0 : (_element_TrackChanges_tracked = _element_TrackChanges.tracked) === null || _element_TrackChanges_tracked === void 0 ? void 0 : _element_TrackChanges_tracked.push(v);
+    (_element_TrackChanges = element[TrackChanges]) === null || _element_TrackChanges === undefined ? undefined : (_element_TrackChanges_tracked = _element_TrackChanges.tracked) === null || _element_TrackChanges_tracked === undefined ? undefined : _element_TrackChanges_tracked.push(v);
     if (!element[TrackChanges]) {
         UI.setUIValueClean(element);
         UI.setUISelection(element, {
@@ -44,7 +38,7 @@ function commitValueAfterInput(element, cursorOffset) {
     var _changes_tracked;
     const changes = element[TrackChanges];
     element[TrackChanges] = undefined;
-    if (!(changes === null || changes === void 0 ? void 0 : (_changes_tracked = changes.tracked) === null || _changes_tracked === void 0 ? void 0 : _changes_tracked.length)) {
+    if (!(changes === null || changes === undefined ? undefined : (_changes_tracked = changes.tracked) === null || _changes_tracked === undefined ? undefined : _changes_tracked.length)) {
         return;
     }
     const isJustReactStateUpdate = changes.tracked.length === 2 && changes.tracked[0] === changes.previousValue && changes.tracked[1] === element.value;

@@ -10,32 +10,13 @@ import { Path, PathFragment } from '../path';
 import { FileBuffer, Host, HostCapabilities, HostWatchEvent, HostWatchEventType, HostWatchOptions, Stats } from './interface';
 export interface SimpleMemoryHostStats {
     readonly content: FileBuffer | null;
+    inspect(): string;
 }
 export declare class SimpleMemoryHost implements Host<{}> {
     protected _cache: Map<Path, Stats<SimpleMemoryHostStats>>;
     private _watchers;
-    protected _newDirStats(): {
-        inspect(): string;
-        isFile(): boolean;
-        isDirectory(): boolean;
-        size: number;
-        atime: Date;
-        ctime: Date;
-        mtime: Date;
-        birthtime: Date;
-        content: null;
-    };
-    protected _newFileStats(content: FileBuffer, oldStats?: Stats<SimpleMemoryHostStats>): {
-        inspect(): string;
-        isFile(): boolean;
-        isDirectory(): boolean;
-        size: number;
-        atime: Date;
-        ctime: Date;
-        mtime: Date;
-        birthtime: Date;
-        content: ArrayBuffer;
-    };
+    protected _newDirStats(): Stats<SimpleMemoryHostStats>;
+    protected _newFileStats(content: FileBuffer, oldStats?: Stats<SimpleMemoryHostStats>): Stats<SimpleMemoryHostStats>;
     constructor();
     protected _toAbsolute(path: Path): Path;
     protected _updateWatchers(path: Path, type: HostWatchEventType): void;

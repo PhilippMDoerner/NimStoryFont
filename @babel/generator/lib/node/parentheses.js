@@ -19,10 +19,14 @@ exports.OptionalIndexedAccessType = OptionalIndexedAccessType;
 exports.OptionalCallExpression = exports.OptionalMemberExpression = OptionalMemberExpression;
 exports.SequenceExpression = SequenceExpression;
 exports.TSSatisfiesExpression = exports.TSAsExpression = TSAsExpression;
+exports.TSConditionalType = TSConditionalType;
+exports.TSConstructorType = exports.TSFunctionType = TSFunctionType;
 exports.TSInferType = TSInferType;
 exports.TSInstantiationExpression = TSInstantiationExpression;
+exports.TSIntersectionType = TSIntersectionType;
 exports.UnaryLike = exports.TSTypeAssertion = UnaryLike;
-exports.TSIntersectionType = exports.TSUnionType = TSUnionType;
+exports.TSTypeOperator = TSTypeOperator;
+exports.TSUnionType = TSUnionType;
 exports.IntersectionTypeAnnotation = exports.UnionTypeAnnotation = UnionTypeAnnotation;
 exports.UpdateExpression = UpdateExpression;
 exports.AwaitExpression = exports.YieldExpression = YieldExpression;
@@ -116,20 +120,53 @@ function TSAsExpression(node, parent) {
   }
   return Binary(node, parent);
 }
+function TSConditionalType(node, parent) {
+  const parentType = parent.type;
+  if (parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSOptionalType" || parentType === "TSTypeOperator" || parentType === "TSTypeParameter") {
+    return true;
+  }
+  if ((parentType === "TSIntersectionType" || parentType === "TSUnionType") && parent.types[0] === node) {
+    return true;
+  }
+  if (parentType === "TSConditionalType" && (parent.checkType === node || parent.extendsType === node)) {
+    return true;
+  }
+  return false;
+}
 function TSUnionType(node, parent) {
   const parentType = parent.type;
-  return parentType === "TSArrayType" || parentType === "TSOptionalType" || parentType === "TSIntersectionType" || parentType === "TSRestType";
+  return parentType === "TSIntersectionType" || parentType === "TSTypeOperator" || parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSOptionalType";
+}
+function TSIntersectionType(node, parent) {
+  const parentType = parent.type;
+  return parentType === "TSTypeOperator" || parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSOptionalType";
 }
 function TSInferType(node, parent) {
   const parentType = parent.type;
-  return parentType === "TSArrayType" || parentType === "TSOptionalType";
+  if (parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSOptionalType") {
+    return true;
+  }
+  if (node.typeParameter.constraint) {
+    if ((parentType === "TSIntersectionType" || parentType === "TSUnionType") && parent.types[0] === node) {
+      return true;
+    }
+  }
+  return false;
+}
+function TSTypeOperator(node, parent) {
+  const parentType = parent.type;
+  return parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSOptionalType";
 }
 function TSInstantiationExpression(node, parent) {
   const parentType = parent.type;
   return (parentType === "CallExpression" || parentType === "OptionalCallExpression" || parentType === "NewExpression" || parentType === "TSInstantiationExpression") && !!parent.typeParameters;
 }
-function BinaryExpression(node, parent, tokenContext, inForStatementInit) {
-  return node.operator === "in" && inForStatementInit;
+function TSFunctionType(node, parent) {
+  const parentType = parent.type;
+  return parentType === "TSIntersectionType" || parentType === "TSUnionType" || parentType === "TSTypeOperator" || parentType === "TSOptionalType" || parentType === "TSArrayType" || parentType === "TSIndexedAccessType" && parent.objectType === node || parentType === "TSConditionalType" && (parent.checkType === node || parent.extendsType === node);
+}
+function BinaryExpression(node, parent, tokenContext) {
+  return node.operator === "in" && Boolean(tokenContext & _index.TokenContext.forInOrInitHeadAccumulate);
 }
 function SequenceExpression(node, parent) {
   const parentType = parent.type;
@@ -190,7 +227,7 @@ function LogicalExpression(node, parent) {
       return parent.operator !== "??";
   }
 }
-function Identifier(node, parent, tokenContext, _inForInit, getRawIdentifier) {
+function Identifier(node, parent, tokenContext, getRawIdentifier) {
   var _node$extra;
   const parentType = parent.type;
   if ((_node$extra = node.extra) != null && _node$extra.parenthesized && parentType === "AssignmentExpression" && parent.left === node) {
@@ -211,7 +248,7 @@ function Identifier(node, parent, tokenContext, _inForInit, getRawIdentifier) {
       computed: true,
       optional: false
     });
-    if (isFollowedByBracket && tokenContext & (_index.TokenContext.expressionStatement | _index.TokenContext.forHead | _index.TokenContext.forInHead)) {
+    if (isFollowedByBracket && tokenContext & (_index.TokenContext.expressionStatement | _index.TokenContext.forInitHead | _index.TokenContext.forInHead)) {
       return true;
     }
     return Boolean(tokenContext & _index.TokenContext.forOfHead);

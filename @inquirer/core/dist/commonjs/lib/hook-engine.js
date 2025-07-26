@@ -8,7 +8,7 @@ exports.withUpdates = withUpdates;
 exports.withPointer = withPointer;
 exports.handleChange = handleChange;
 const node_async_hooks_1 = require("node:async_hooks");
-const errors_js_1 = require("./errors.js");
+const errors_ts_1 = require("./errors.js");
 const hookStorage = new node_async_hooks_1.AsyncLocalStorage();
 function createStore(rl) {
     const store = {
@@ -39,7 +39,7 @@ function withHooks(rl, cb) {
 function getStore() {
     const store = hookStorage.getStore();
     if (!store) {
-        throw new errors_js_1.HookError('[Inquirer] Hook functions can only be called from within a prompt');
+        throw new errors_ts_1.HookError('[Inquirer] Hook functions can only be called from within a prompt');
     }
     return store;
 }
@@ -91,7 +91,7 @@ exports.effectScheduler = {
             store.hooksCleanup[index]?.();
             const cleanFn = cb(readline());
             if (cleanFn != null && typeof cleanFn !== 'function') {
-                throw new errors_js_1.ValidationError('useEffect return value must be a cleanup function or nothing.');
+                throw new errors_ts_1.ValidationError('useEffect return value must be a cleanup function or nothing.');
             }
             store.hooksCleanup[index] = cleanFn;
         });

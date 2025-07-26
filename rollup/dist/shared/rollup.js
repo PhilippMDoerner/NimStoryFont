@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -17,7 +17,7 @@ const native_js = require('../native.js');
 const node_perf_hooks = require('node:perf_hooks');
 const promises = require('node:fs/promises');
 
-var version = "4.30.1";
+var version = "4.40.2";
 
 function ensureArray$1(items) {
     if (Array.isArray(items)) {
@@ -215,7 +215,7 @@ function generateAssetFileName(name, names, source, originalFileName, originalFi
         : outputOptions.assetFileNames, 'output.assetFileNames', {
         ext: () => path.extname(emittedName).slice(1),
         extname: () => path.extname(emittedName),
-        hash: size => sourceHash.slice(0, Math.max(0, size || DEFAULT_HASH_SIZE)),
+        hash: size => sourceHash.slice(0, Math.min(Math.max(0, size || DEFAULT_HASH_SIZE), MAX_HASH_SIZE)),
         name: () => emittedName.slice(0, Math.max(0, emittedName.length - path.extname(emittedName).length))
     }), bundle);
 }
@@ -909,6 +909,2272 @@ function getPluginContext(plugin, pluginCache, graph, options, fileEmitter, exis
     };
 }
 
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+function getAugmentedNamespace(n) {
+  if (Object.prototype.hasOwnProperty.call(n, '__esModule')) return n;
+  var f = n.default;
+	if (typeof f == "function") {
+		var a = function a () {
+			if (this instanceof a) {
+        return Reflect.construct(f, arguments, this.constructor);
+			}
+			return f.apply(this, arguments);
+		};
+		a.prototype = f.prototype;
+  } else a = {};
+  Object.defineProperty(a, '__esModule', {value: true});
+	Object.keys(n).forEach(function (k) {
+		var d = Object.getOwnPropertyDescriptor(n, k);
+		Object.defineProperty(a, k, d.get ? d : {
+			enumerable: true,
+			get: function () {
+				return n[k];
+			}
+		});
+	});
+	return a;
+}
+
+var utils = {};
+
+var constants;
+var hasRequiredConstants;
+
+function requireConstants () {
+	if (hasRequiredConstants) return constants;
+	hasRequiredConstants = 1;
+
+	const WIN_SLASH = '\\\\/';
+	const WIN_NO_SLASH = `[^${WIN_SLASH}]`;
+
+	/**
+	 * Posix glob regex
+	 */
+
+	const DOT_LITERAL = '\\.';
+	const PLUS_LITERAL = '\\+';
+	const QMARK_LITERAL = '\\?';
+	const SLASH_LITERAL = '\\/';
+	const ONE_CHAR = '(?=.)';
+	const QMARK = '[^/]';
+	const END_ANCHOR = `(?:${SLASH_LITERAL}|$)`;
+	const START_ANCHOR = `(?:^|${SLASH_LITERAL})`;
+	const DOTS_SLASH = `${DOT_LITERAL}{1,2}${END_ANCHOR}`;
+	const NO_DOT = `(?!${DOT_LITERAL})`;
+	const NO_DOTS = `(?!${START_ANCHOR}${DOTS_SLASH})`;
+	const NO_DOT_SLASH = `(?!${DOT_LITERAL}{0,1}${END_ANCHOR})`;
+	const NO_DOTS_SLASH = `(?!${DOTS_SLASH})`;
+	const QMARK_NO_DOT = `[^.${SLASH_LITERAL}]`;
+	const STAR = `${QMARK}*?`;
+	const SEP = '/';
+
+	const POSIX_CHARS = {
+	  DOT_LITERAL,
+	  PLUS_LITERAL,
+	  QMARK_LITERAL,
+	  SLASH_LITERAL,
+	  ONE_CHAR,
+	  QMARK,
+	  END_ANCHOR,
+	  DOTS_SLASH,
+	  NO_DOT,
+	  NO_DOTS,
+	  NO_DOT_SLASH,
+	  NO_DOTS_SLASH,
+	  QMARK_NO_DOT,
+	  STAR,
+	  START_ANCHOR,
+	  SEP
+	};
+
+	/**
+	 * Windows glob regex
+	 */
+
+	const WINDOWS_CHARS = {
+	  ...POSIX_CHARS,
+
+	  SLASH_LITERAL: `[${WIN_SLASH}]`,
+	  QMARK: WIN_NO_SLASH,
+	  STAR: `${WIN_NO_SLASH}*?`,
+	  DOTS_SLASH: `${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$)`,
+	  NO_DOT: `(?!${DOT_LITERAL})`,
+	  NO_DOTS: `(?!(?:^|[${WIN_SLASH}])${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$))`,
+	  NO_DOT_SLASH: `(?!${DOT_LITERAL}{0,1}(?:[${WIN_SLASH}]|$))`,
+	  NO_DOTS_SLASH: `(?!${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$))`,
+	  QMARK_NO_DOT: `[^.${WIN_SLASH}]`,
+	  START_ANCHOR: `(?:^|[${WIN_SLASH}])`,
+	  END_ANCHOR: `(?:[${WIN_SLASH}]|$)`,
+	  SEP: '\\'
+	};
+
+	/**
+	 * POSIX Bracket Regex
+	 */
+
+	const POSIX_REGEX_SOURCE = {
+	  alnum: 'a-zA-Z0-9',
+	  alpha: 'a-zA-Z',
+	  ascii: '\\x00-\\x7F',
+	  blank: ' \\t',
+	  cntrl: '\\x00-\\x1F\\x7F',
+	  digit: '0-9',
+	  graph: '\\x21-\\x7E',
+	  lower: 'a-z',
+	  print: '\\x20-\\x7E ',
+	  punct: '\\-!"#$%&\'()\\*+,./:;<=>?@[\\]^_`{|}~',
+	  space: ' \\t\\r\\n\\v\\f',
+	  upper: 'A-Z',
+	  word: 'A-Za-z0-9_',
+	  xdigit: 'A-Fa-f0-9'
+	};
+
+	constants = {
+	  MAX_LENGTH: 1024 * 64,
+	  POSIX_REGEX_SOURCE,
+
+	  // regular expressions
+	  REGEX_BACKSLASH: /\\(?![*+?^${}(|)[\]])/g,
+	  REGEX_NON_SPECIAL_CHARS: /^[^@![\].,$*+?^{}()|\\/]+/,
+	  REGEX_SPECIAL_CHARS: /[-*+?.^${}(|)[\]]/,
+	  REGEX_SPECIAL_CHARS_BACKREF: /(\\?)((\W)(\3*))/g,
+	  REGEX_SPECIAL_CHARS_GLOBAL: /([-*+?.^${}(|)[\]])/g,
+	  REGEX_REMOVE_BACKSLASH: /(?:\[.*?[^\\]\]|\\(?=.))/g,
+
+	  // Replace globs with equivalent patterns to reduce parsing time.
+	  REPLACEMENTS: {
+	    '***': '*',
+	    '**/**': '**',
+	    '**/**/**': '**'
+	  },
+
+	  // Digits
+	  CHAR_0: 48, /* 0 */
+	  CHAR_9: 57, /* 9 */
+
+	  // Alphabet chars.
+	  CHAR_UPPERCASE_A: 65, /* A */
+	  CHAR_LOWERCASE_A: 97, /* a */
+	  CHAR_UPPERCASE_Z: 90, /* Z */
+	  CHAR_LOWERCASE_Z: 122, /* z */
+
+	  CHAR_LEFT_PARENTHESES: 40, /* ( */
+	  CHAR_RIGHT_PARENTHESES: 41, /* ) */
+
+	  CHAR_ASTERISK: 42, /* * */
+
+	  // Non-alphabetic chars.
+	  CHAR_AMPERSAND: 38, /* & */
+	  CHAR_AT: 64, /* @ */
+	  CHAR_BACKWARD_SLASH: 92, /* \ */
+	  CHAR_CARRIAGE_RETURN: 13, /* \r */
+	  CHAR_CIRCUMFLEX_ACCENT: 94, /* ^ */
+	  CHAR_COLON: 58, /* : */
+	  CHAR_COMMA: 44, /* , */
+	  CHAR_DOT: 46, /* . */
+	  CHAR_DOUBLE_QUOTE: 34, /* " */
+	  CHAR_EQUAL: 61, /* = */
+	  CHAR_EXCLAMATION_MARK: 33, /* ! */
+	  CHAR_FORM_FEED: 12, /* \f */
+	  CHAR_FORWARD_SLASH: 47, /* / */
+	  CHAR_GRAVE_ACCENT: 96, /* ` */
+	  CHAR_HASH: 35, /* # */
+	  CHAR_HYPHEN_MINUS: 45, /* - */
+	  CHAR_LEFT_ANGLE_BRACKET: 60, /* < */
+	  CHAR_LEFT_CURLY_BRACE: 123, /* { */
+	  CHAR_LEFT_SQUARE_BRACKET: 91, /* [ */
+	  CHAR_LINE_FEED: 10, /* \n */
+	  CHAR_NO_BREAK_SPACE: 160, /* \u00A0 */
+	  CHAR_PERCENT: 37, /* % */
+	  CHAR_PLUS: 43, /* + */
+	  CHAR_QUESTION_MARK: 63, /* ? */
+	  CHAR_RIGHT_ANGLE_BRACKET: 62, /* > */
+	  CHAR_RIGHT_CURLY_BRACE: 125, /* } */
+	  CHAR_RIGHT_SQUARE_BRACKET: 93, /* ] */
+	  CHAR_SEMICOLON: 59, /* ; */
+	  CHAR_SINGLE_QUOTE: 39, /* ' */
+	  CHAR_SPACE: 32, /*   */
+	  CHAR_TAB: 9, /* \t */
+	  CHAR_UNDERSCORE: 95, /* _ */
+	  CHAR_VERTICAL_LINE: 124, /* | */
+	  CHAR_ZERO_WIDTH_NOBREAK_SPACE: 65279, /* \uFEFF */
+
+	  /**
+	   * Create EXTGLOB_CHARS
+	   */
+
+	  extglobChars(chars) {
+	    return {
+	      '!': { type: 'negate', open: '(?:(?!(?:', close: `))${chars.STAR})` },
+	      '?': { type: 'qmark', open: '(?:', close: ')?' },
+	      '+': { type: 'plus', open: '(?:', close: ')+' },
+	      '*': { type: 'star', open: '(?:', close: ')*' },
+	      '@': { type: 'at', open: '(?:', close: ')' }
+	    };
+	  },
+
+	  /**
+	   * Create GLOB_CHARS
+	   */
+
+	  globChars(win32) {
+	    return win32 === true ? WINDOWS_CHARS : POSIX_CHARS;
+	  }
+	};
+	return constants;
+}
+
+/*global navigator*/
+
+var hasRequiredUtils;
+
+function requireUtils () {
+	if (hasRequiredUtils) return utils;
+	hasRequiredUtils = 1;
+	(function (exports) {
+
+		const {
+		  REGEX_BACKSLASH,
+		  REGEX_REMOVE_BACKSLASH,
+		  REGEX_SPECIAL_CHARS,
+		  REGEX_SPECIAL_CHARS_GLOBAL
+		} = /*@__PURE__*/ requireConstants();
+
+		exports.isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
+		exports.hasRegexChars = str => REGEX_SPECIAL_CHARS.test(str);
+		exports.isRegexChar = str => str.length === 1 && exports.hasRegexChars(str);
+		exports.escapeRegex = str => str.replace(REGEX_SPECIAL_CHARS_GLOBAL, '\\$1');
+		exports.toPosixSlashes = str => str.replace(REGEX_BACKSLASH, '/');
+
+		exports.isWindows = () => {
+		  if (typeof navigator !== 'undefined' && navigator.platform) {
+		    const platform = navigator.platform.toLowerCase();
+		    return platform === 'win32' || platform === 'windows';
+		  }
+
+		  if (typeof process !== 'undefined' && process.platform) {
+		    return process.platform === 'win32';
+		  }
+
+		  return false;
+		};
+
+		exports.removeBackslashes = str => {
+		  return str.replace(REGEX_REMOVE_BACKSLASH, match => {
+		    return match === '\\' ? '' : match;
+		  });
+		};
+
+		exports.escapeLast = (input, char, lastIdx) => {
+		  const idx = input.lastIndexOf(char, lastIdx);
+		  if (idx === -1) return input;
+		  if (input[idx - 1] === '\\') return exports.escapeLast(input, char, idx - 1);
+		  return `${input.slice(0, idx)}\\${input.slice(idx)}`;
+		};
+
+		exports.removePrefix = (input, state = {}) => {
+		  let output = input;
+		  if (output.startsWith('./')) {
+		    output = output.slice(2);
+		    state.prefix = './';
+		  }
+		  return output;
+		};
+
+		exports.wrapOutput = (input, state = {}, options = {}) => {
+		  const prepend = options.contains ? '' : '^';
+		  const append = options.contains ? '' : '$';
+
+		  let output = `${prepend}(?:${input})${append}`;
+		  if (state.negated === true) {
+		    output = `(?:^(?!${output}).*$)`;
+		  }
+		  return output;
+		};
+
+		exports.basename = (path, { windows } = {}) => {
+		  const segs = path.split(windows ? /[\\/]/ : '/');
+		  const last = segs[segs.length - 1];
+
+		  if (last === '') {
+		    return segs[segs.length - 2];
+		  }
+
+		  return last;
+		}; 
+	} (utils));
+	return utils;
+}
+
+var scan_1;
+var hasRequiredScan;
+
+function requireScan () {
+	if (hasRequiredScan) return scan_1;
+	hasRequiredScan = 1;
+
+	const utils = /*@__PURE__*/ requireUtils();
+	const {
+	  CHAR_ASTERISK,             /* * */
+	  CHAR_AT,                   /* @ */
+	  CHAR_BACKWARD_SLASH,       /* \ */
+	  CHAR_COMMA,                /* , */
+	  CHAR_DOT,                  /* . */
+	  CHAR_EXCLAMATION_MARK,     /* ! */
+	  CHAR_FORWARD_SLASH,        /* / */
+	  CHAR_LEFT_CURLY_BRACE,     /* { */
+	  CHAR_LEFT_PARENTHESES,     /* ( */
+	  CHAR_LEFT_SQUARE_BRACKET,  /* [ */
+	  CHAR_PLUS,                 /* + */
+	  CHAR_QUESTION_MARK,        /* ? */
+	  CHAR_RIGHT_CURLY_BRACE,    /* } */
+	  CHAR_RIGHT_PARENTHESES,    /* ) */
+	  CHAR_RIGHT_SQUARE_BRACKET  /* ] */
+	} = /*@__PURE__*/ requireConstants();
+
+	const isPathSeparator = code => {
+	  return code === CHAR_FORWARD_SLASH || code === CHAR_BACKWARD_SLASH;
+	};
+
+	const depth = token => {
+	  if (token.isPrefix !== true) {
+	    token.depth = token.isGlobstar ? Infinity : 1;
+	  }
+	};
+
+	/**
+	 * Quickly scans a glob pattern and returns an object with a handful of
+	 * useful properties, like `isGlob`, `path` (the leading non-glob, if it exists),
+	 * `glob` (the actual pattern), `negated` (true if the path starts with `!` but not
+	 * with `!(`) and `negatedExtglob` (true if the path starts with `!(`).
+	 *
+	 * ```js
+	 * const pm = require('picomatch');
+	 * console.log(pm.scan('foo/bar/*.js'));
+	 * { isGlob: true, input: 'foo/bar/*.js', base: 'foo/bar', glob: '*.js' }
+	 * ```
+	 * @param {String} `str`
+	 * @param {Object} `options`
+	 * @return {Object} Returns an object with tokens and regex source string.
+	 * @api public
+	 */
+
+	const scan = (input, options) => {
+	  const opts = options || {};
+
+	  const length = input.length - 1;
+	  const scanToEnd = opts.parts === true || opts.scanToEnd === true;
+	  const slashes = [];
+	  const tokens = [];
+	  const parts = [];
+
+	  let str = input;
+	  let index = -1;
+	  let start = 0;
+	  let lastIndex = 0;
+	  let isBrace = false;
+	  let isBracket = false;
+	  let isGlob = false;
+	  let isExtglob = false;
+	  let isGlobstar = false;
+	  let braceEscaped = false;
+	  let backslashes = false;
+	  let negated = false;
+	  let negatedExtglob = false;
+	  let finished = false;
+	  let braces = 0;
+	  let prev;
+	  let code;
+	  let token = { value: '', depth: 0, isGlob: false };
+
+	  const eos = () => index >= length;
+	  const peek = () => str.charCodeAt(index + 1);
+	  const advance = () => {
+	    prev = code;
+	    return str.charCodeAt(++index);
+	  };
+
+	  while (index < length) {
+	    code = advance();
+	    let next;
+
+	    if (code === CHAR_BACKWARD_SLASH) {
+	      backslashes = token.backslashes = true;
+	      code = advance();
+
+	      if (code === CHAR_LEFT_CURLY_BRACE) {
+	        braceEscaped = true;
+	      }
+	      continue;
+	    }
+
+	    if (braceEscaped === true || code === CHAR_LEFT_CURLY_BRACE) {
+	      braces++;
+
+	      while (eos() !== true && (code = advance())) {
+	        if (code === CHAR_BACKWARD_SLASH) {
+	          backslashes = token.backslashes = true;
+	          advance();
+	          continue;
+	        }
+
+	        if (code === CHAR_LEFT_CURLY_BRACE) {
+	          braces++;
+	          continue;
+	        }
+
+	        if (braceEscaped !== true && code === CHAR_DOT && (code = advance()) === CHAR_DOT) {
+	          isBrace = token.isBrace = true;
+	          isGlob = token.isGlob = true;
+	          finished = true;
+
+	          if (scanToEnd === true) {
+	            continue;
+	          }
+
+	          break;
+	        }
+
+	        if (braceEscaped !== true && code === CHAR_COMMA) {
+	          isBrace = token.isBrace = true;
+	          isGlob = token.isGlob = true;
+	          finished = true;
+
+	          if (scanToEnd === true) {
+	            continue;
+	          }
+
+	          break;
+	        }
+
+	        if (code === CHAR_RIGHT_CURLY_BRACE) {
+	          braces--;
+
+	          if (braces === 0) {
+	            braceEscaped = false;
+	            isBrace = token.isBrace = true;
+	            finished = true;
+	            break;
+	          }
+	        }
+	      }
+
+	      if (scanToEnd === true) {
+	        continue;
+	      }
+
+	      break;
+	    }
+
+	    if (code === CHAR_FORWARD_SLASH) {
+	      slashes.push(index);
+	      tokens.push(token);
+	      token = { value: '', depth: 0, isGlob: false };
+
+	      if (finished === true) continue;
+	      if (prev === CHAR_DOT && index === (start + 1)) {
+	        start += 2;
+	        continue;
+	      }
+
+	      lastIndex = index + 1;
+	      continue;
+	    }
+
+	    if (opts.noext !== true) {
+	      const isExtglobChar = code === CHAR_PLUS
+	        || code === CHAR_AT
+	        || code === CHAR_ASTERISK
+	        || code === CHAR_QUESTION_MARK
+	        || code === CHAR_EXCLAMATION_MARK;
+
+	      if (isExtglobChar === true && peek() === CHAR_LEFT_PARENTHESES) {
+	        isGlob = token.isGlob = true;
+	        isExtglob = token.isExtglob = true;
+	        finished = true;
+	        if (code === CHAR_EXCLAMATION_MARK && index === start) {
+	          negatedExtglob = true;
+	        }
+
+	        if (scanToEnd === true) {
+	          while (eos() !== true && (code = advance())) {
+	            if (code === CHAR_BACKWARD_SLASH) {
+	              backslashes = token.backslashes = true;
+	              code = advance();
+	              continue;
+	            }
+
+	            if (code === CHAR_RIGHT_PARENTHESES) {
+	              isGlob = token.isGlob = true;
+	              finished = true;
+	              break;
+	            }
+	          }
+	          continue;
+	        }
+	        break;
+	      }
+	    }
+
+	    if (code === CHAR_ASTERISK) {
+	      if (prev === CHAR_ASTERISK) isGlobstar = token.isGlobstar = true;
+	      isGlob = token.isGlob = true;
+	      finished = true;
+
+	      if (scanToEnd === true) {
+	        continue;
+	      }
+	      break;
+	    }
+
+	    if (code === CHAR_QUESTION_MARK) {
+	      isGlob = token.isGlob = true;
+	      finished = true;
+
+	      if (scanToEnd === true) {
+	        continue;
+	      }
+	      break;
+	    }
+
+	    if (code === CHAR_LEFT_SQUARE_BRACKET) {
+	      while (eos() !== true && (next = advance())) {
+	        if (next === CHAR_BACKWARD_SLASH) {
+	          backslashes = token.backslashes = true;
+	          advance();
+	          continue;
+	        }
+
+	        if (next === CHAR_RIGHT_SQUARE_BRACKET) {
+	          isBracket = token.isBracket = true;
+	          isGlob = token.isGlob = true;
+	          finished = true;
+	          break;
+	        }
+	      }
+
+	      if (scanToEnd === true) {
+	        continue;
+	      }
+
+	      break;
+	    }
+
+	    if (opts.nonegate !== true && code === CHAR_EXCLAMATION_MARK && index === start) {
+	      negated = token.negated = true;
+	      start++;
+	      continue;
+	    }
+
+	    if (opts.noparen !== true && code === CHAR_LEFT_PARENTHESES) {
+	      isGlob = token.isGlob = true;
+
+	      if (scanToEnd === true) {
+	        while (eos() !== true && (code = advance())) {
+	          if (code === CHAR_LEFT_PARENTHESES) {
+	            backslashes = token.backslashes = true;
+	            code = advance();
+	            continue;
+	          }
+
+	          if (code === CHAR_RIGHT_PARENTHESES) {
+	            finished = true;
+	            break;
+	          }
+	        }
+	        continue;
+	      }
+	      break;
+	    }
+
+	    if (isGlob === true) {
+	      finished = true;
+
+	      if (scanToEnd === true) {
+	        continue;
+	      }
+
+	      break;
+	    }
+	  }
+
+	  if (opts.noext === true) {
+	    isExtglob = false;
+	    isGlob = false;
+	  }
+
+	  let base = str;
+	  let prefix = '';
+	  let glob = '';
+
+	  if (start > 0) {
+	    prefix = str.slice(0, start);
+	    str = str.slice(start);
+	    lastIndex -= start;
+	  }
+
+	  if (base && isGlob === true && lastIndex > 0) {
+	    base = str.slice(0, lastIndex);
+	    glob = str.slice(lastIndex);
+	  } else if (isGlob === true) {
+	    base = '';
+	    glob = str;
+	  } else {
+	    base = str;
+	  }
+
+	  if (base && base !== '' && base !== '/' && base !== str) {
+	    if (isPathSeparator(base.charCodeAt(base.length - 1))) {
+	      base = base.slice(0, -1);
+	    }
+	  }
+
+	  if (opts.unescape === true) {
+	    if (glob) glob = utils.removeBackslashes(glob);
+
+	    if (base && backslashes === true) {
+	      base = utils.removeBackslashes(base);
+	    }
+	  }
+
+	  const state = {
+	    prefix,
+	    input,
+	    start,
+	    base,
+	    glob,
+	    isBrace,
+	    isBracket,
+	    isGlob,
+	    isExtglob,
+	    isGlobstar,
+	    negated,
+	    negatedExtglob
+	  };
+
+	  if (opts.tokens === true) {
+	    state.maxDepth = 0;
+	    if (!isPathSeparator(code)) {
+	      tokens.push(token);
+	    }
+	    state.tokens = tokens;
+	  }
+
+	  if (opts.parts === true || opts.tokens === true) {
+	    let prevIndex;
+
+	    for (let idx = 0; idx < slashes.length; idx++) {
+	      const n = prevIndex ? prevIndex + 1 : start;
+	      const i = slashes[idx];
+	      const value = input.slice(n, i);
+	      if (opts.tokens) {
+	        if (idx === 0 && start !== 0) {
+	          tokens[idx].isPrefix = true;
+	          tokens[idx].value = prefix;
+	        } else {
+	          tokens[idx].value = value;
+	        }
+	        depth(tokens[idx]);
+	        state.maxDepth += tokens[idx].depth;
+	      }
+	      if (idx !== 0 || value !== '') {
+	        parts.push(value);
+	      }
+	      prevIndex = i;
+	    }
+
+	    if (prevIndex && prevIndex + 1 < input.length) {
+	      const value = input.slice(prevIndex + 1);
+	      parts.push(value);
+
+	      if (opts.tokens) {
+	        tokens[tokens.length - 1].value = value;
+	        depth(tokens[tokens.length - 1]);
+	        state.maxDepth += tokens[tokens.length - 1].depth;
+	      }
+	    }
+
+	    state.slashes = slashes;
+	    state.parts = parts;
+	  }
+
+	  return state;
+	};
+
+	scan_1 = scan;
+	return scan_1;
+}
+
+var parse_1;
+var hasRequiredParse;
+
+function requireParse () {
+	if (hasRequiredParse) return parse_1;
+	hasRequiredParse = 1;
+
+	const constants = /*@__PURE__*/ requireConstants();
+	const utils = /*@__PURE__*/ requireUtils();
+
+	/**
+	 * Constants
+	 */
+
+	const {
+	  MAX_LENGTH,
+	  POSIX_REGEX_SOURCE,
+	  REGEX_NON_SPECIAL_CHARS,
+	  REGEX_SPECIAL_CHARS_BACKREF,
+	  REPLACEMENTS
+	} = constants;
+
+	/**
+	 * Helpers
+	 */
+
+	const expandRange = (args, options) => {
+	  if (typeof options.expandRange === 'function') {
+	    return options.expandRange(...args, options);
+	  }
+
+	  args.sort();
+	  const value = `[${args.join('-')}]`;
+
+	  return value;
+	};
+
+	/**
+	 * Create the message for a syntax error
+	 */
+
+	const syntaxError = (type, char) => {
+	  return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
+	};
+
+	/**
+	 * Parse the given input string.
+	 * @param {String} input
+	 * @param {Object} options
+	 * @return {Object}
+	 */
+
+	const parse = (input, options) => {
+	  if (typeof input !== 'string') {
+	    throw new TypeError('Expected a string');
+	  }
+
+	  input = REPLACEMENTS[input] || input;
+
+	  const opts = { ...options };
+	  const max = typeof opts.maxLength === 'number' ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
+
+	  let len = input.length;
+	  if (len > max) {
+	    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`);
+	  }
+
+	  const bos = { type: 'bos', value: '', output: opts.prepend || '' };
+	  const tokens = [bos];
+
+	  const capture = opts.capture ? '' : '?:';
+
+	  // create constants based on platform, for windows or posix
+	  const PLATFORM_CHARS = constants.globChars(opts.windows);
+	  const EXTGLOB_CHARS = constants.extglobChars(PLATFORM_CHARS);
+
+	  const {
+	    DOT_LITERAL,
+	    PLUS_LITERAL,
+	    SLASH_LITERAL,
+	    ONE_CHAR,
+	    DOTS_SLASH,
+	    NO_DOT,
+	    NO_DOT_SLASH,
+	    NO_DOTS_SLASH,
+	    QMARK,
+	    QMARK_NO_DOT,
+	    STAR,
+	    START_ANCHOR
+	  } = PLATFORM_CHARS;
+
+	  const globstar = opts => {
+	    return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
+	  };
+
+	  const nodot = opts.dot ? '' : NO_DOT;
+	  const qmarkNoDot = opts.dot ? QMARK : QMARK_NO_DOT;
+	  let star = opts.bash === true ? globstar(opts) : STAR;
+
+	  if (opts.capture) {
+	    star = `(${star})`;
+	  }
+
+	  // minimatch options support
+	  if (typeof opts.noext === 'boolean') {
+	    opts.noextglob = opts.noext;
+	  }
+
+	  const state = {
+	    input,
+	    index: -1,
+	    start: 0,
+	    dot: opts.dot === true,
+	    consumed: '',
+	    output: '',
+	    prefix: '',
+	    backtrack: false,
+	    negated: false,
+	    brackets: 0,
+	    braces: 0,
+	    parens: 0,
+	    quotes: 0,
+	    globstar: false,
+	    tokens
+	  };
+
+	  input = utils.removePrefix(input, state);
+	  len = input.length;
+
+	  const extglobs = [];
+	  const braces = [];
+	  const stack = [];
+	  let prev = bos;
+	  let value;
+
+	  /**
+	   * Tokenizing helpers
+	   */
+
+	  const eos = () => state.index === len - 1;
+	  const peek = state.peek = (n = 1) => input[state.index + n];
+	  const advance = state.advance = () => input[++state.index] || '';
+	  const remaining = () => input.slice(state.index + 1);
+	  const consume = (value = '', num = 0) => {
+	    state.consumed += value;
+	    state.index += num;
+	  };
+
+	  const append = token => {
+	    state.output += token.output != null ? token.output : token.value;
+	    consume(token.value);
+	  };
+
+	  const negate = () => {
+	    let count = 1;
+
+	    while (peek() === '!' && (peek(2) !== '(' || peek(3) === '?')) {
+	      advance();
+	      state.start++;
+	      count++;
+	    }
+
+	    if (count % 2 === 0) {
+	      return false;
+	    }
+
+	    state.negated = true;
+	    state.start++;
+	    return true;
+	  };
+
+	  const increment = type => {
+	    state[type]++;
+	    stack.push(type);
+	  };
+
+	  const decrement = type => {
+	    state[type]--;
+	    stack.pop();
+	  };
+
+	  /**
+	   * Push tokens onto the tokens array. This helper speeds up
+	   * tokenizing by 1) helping us avoid backtracking as much as possible,
+	   * and 2) helping us avoid creating extra tokens when consecutive
+	   * characters are plain text. This improves performance and simplifies
+	   * lookbehinds.
+	   */
+
+	  const push = tok => {
+	    if (prev.type === 'globstar') {
+	      const isBrace = state.braces > 0 && (tok.type === 'comma' || tok.type === 'brace');
+	      const isExtglob = tok.extglob === true || (extglobs.length && (tok.type === 'pipe' || tok.type === 'paren'));
+
+	      if (tok.type !== 'slash' && tok.type !== 'paren' && !isBrace && !isExtglob) {
+	        state.output = state.output.slice(0, -prev.output.length);
+	        prev.type = 'star';
+	        prev.value = '*';
+	        prev.output = star;
+	        state.output += prev.output;
+	      }
+	    }
+
+	    if (extglobs.length && tok.type !== 'paren') {
+	      extglobs[extglobs.length - 1].inner += tok.value;
+	    }
+
+	    if (tok.value || tok.output) append(tok);
+	    if (prev && prev.type === 'text' && tok.type === 'text') {
+	      prev.output = (prev.output || prev.value) + tok.value;
+	      prev.value += tok.value;
+	      return;
+	    }
+
+	    tok.prev = prev;
+	    tokens.push(tok);
+	    prev = tok;
+	  };
+
+	  const extglobOpen = (type, value) => {
+	    const token = { ...EXTGLOB_CHARS[value], conditions: 1, inner: '' };
+
+	    token.prev = prev;
+	    token.parens = state.parens;
+	    token.output = state.output;
+	    const output = (opts.capture ? '(' : '') + token.open;
+
+	    increment('parens');
+	    push({ type, value, output: state.output ? '' : ONE_CHAR });
+	    push({ type: 'paren', extglob: true, value: advance(), output });
+	    extglobs.push(token);
+	  };
+
+	  const extglobClose = token => {
+	    let output = token.close + (opts.capture ? ')' : '');
+	    let rest;
+
+	    if (token.type === 'negate') {
+	      let extglobStar = star;
+
+	      if (token.inner && token.inner.length > 1 && token.inner.includes('/')) {
+	        extglobStar = globstar(opts);
+	      }
+
+	      if (extglobStar !== star || eos() || /^\)+$/.test(remaining())) {
+	        output = token.close = `)$))${extglobStar}`;
+	      }
+
+	      if (token.inner.includes('*') && (rest = remaining()) && /^\.[^\\/.]+$/.test(rest)) {
+	        // Any non-magical string (`.ts`) or even nested expression (`.{ts,tsx}`) can follow after the closing parenthesis.
+	        // In this case, we need to parse the string and use it in the output of the original pattern.
+	        // Suitable patterns: `/!(*.d).ts`, `/!(*.d).{ts,tsx}`, `**/!(*-dbg).@(js)`.
+	        //
+	        // Disabling the `fastpaths` option due to a problem with parsing strings as `.ts` in the pattern like `**/!(*.d).ts`.
+	        const expression = parse(rest, { ...options, fastpaths: false }).output;
+
+	        output = token.close = `)${expression})${extglobStar})`;
+	      }
+
+	      if (token.prev.type === 'bos') {
+	        state.negatedExtglob = true;
+	      }
+	    }
+
+	    push({ type: 'paren', extglob: true, value, output });
+	    decrement('parens');
+	  };
+
+	  /**
+	   * Fast paths
+	   */
+
+	  if (opts.fastpaths !== false && !/(^[*!]|[/()[\]{}"])/.test(input)) {
+	    let backslashes = false;
+
+	    let output = input.replace(REGEX_SPECIAL_CHARS_BACKREF, (m, esc, chars, first, rest, index) => {
+	      if (first === '\\') {
+	        backslashes = true;
+	        return m;
+	      }
+
+	      if (first === '?') {
+	        if (esc) {
+	          return esc + first + (rest ? QMARK.repeat(rest.length) : '');
+	        }
+	        if (index === 0) {
+	          return qmarkNoDot + (rest ? QMARK.repeat(rest.length) : '');
+	        }
+	        return QMARK.repeat(chars.length);
+	      }
+
+	      if (first === '.') {
+	        return DOT_LITERAL.repeat(chars.length);
+	      }
+
+	      if (first === '*') {
+	        if (esc) {
+	          return esc + first + (rest ? star : '');
+	        }
+	        return star;
+	      }
+	      return esc ? m : `\\${m}`;
+	    });
+
+	    if (backslashes === true) {
+	      if (opts.unescape === true) {
+	        output = output.replace(/\\/g, '');
+	      } else {
+	        output = output.replace(/\\+/g, m => {
+	          return m.length % 2 === 0 ? '\\\\' : (m ? '\\' : '');
+	        });
+	      }
+	    }
+
+	    if (output === input && opts.contains === true) {
+	      state.output = input;
+	      return state;
+	    }
+
+	    state.output = utils.wrapOutput(output, state, options);
+	    return state;
+	  }
+
+	  /**
+	   * Tokenize input until we reach end-of-string
+	   */
+
+	  while (!eos()) {
+	    value = advance();
+
+	    if (value === '\u0000') {
+	      continue;
+	    }
+
+	    /**
+	     * Escaped characters
+	     */
+
+	    if (value === '\\') {
+	      const next = peek();
+
+	      if (next === '/' && opts.bash !== true) {
+	        continue;
+	      }
+
+	      if (next === '.' || next === ';') {
+	        continue;
+	      }
+
+	      if (!next) {
+	        value += '\\';
+	        push({ type: 'text', value });
+	        continue;
+	      }
+
+	      // collapse slashes to reduce potential for exploits
+	      const match = /^\\+/.exec(remaining());
+	      let slashes = 0;
+
+	      if (match && match[0].length > 2) {
+	        slashes = match[0].length;
+	        state.index += slashes;
+	        if (slashes % 2 !== 0) {
+	          value += '\\';
+	        }
+	      }
+
+	      if (opts.unescape === true) {
+	        value = advance();
+	      } else {
+	        value += advance();
+	      }
+
+	      if (state.brackets === 0) {
+	        push({ type: 'text', value });
+	        continue;
+	      }
+	    }
+
+	    /**
+	     * If we're inside a regex character class, continue
+	     * until we reach the closing bracket.
+	     */
+
+	    if (state.brackets > 0 && (value !== ']' || prev.value === '[' || prev.value === '[^')) {
+	      if (opts.posix !== false && value === ':') {
+	        const inner = prev.value.slice(1);
+	        if (inner.includes('[')) {
+	          prev.posix = true;
+
+	          if (inner.includes(':')) {
+	            const idx = prev.value.lastIndexOf('[');
+	            const pre = prev.value.slice(0, idx);
+	            const rest = prev.value.slice(idx + 2);
+	            const posix = POSIX_REGEX_SOURCE[rest];
+	            if (posix) {
+	              prev.value = pre + posix;
+	              state.backtrack = true;
+	              advance();
+
+	              if (!bos.output && tokens.indexOf(prev) === 1) {
+	                bos.output = ONE_CHAR;
+	              }
+	              continue;
+	            }
+	          }
+	        }
+	      }
+
+	      if ((value === '[' && peek() !== ':') || (value === '-' && peek() === ']')) {
+	        value = `\\${value}`;
+	      }
+
+	      if (value === ']' && (prev.value === '[' || prev.value === '[^')) {
+	        value = `\\${value}`;
+	      }
+
+	      if (opts.posix === true && value === '!' && prev.value === '[') {
+	        value = '^';
+	      }
+
+	      prev.value += value;
+	      append({ value });
+	      continue;
+	    }
+
+	    /**
+	     * If we're inside a quoted string, continue
+	     * until we reach the closing double quote.
+	     */
+
+	    if (state.quotes === 1 && value !== '"') {
+	      value = utils.escapeRegex(value);
+	      prev.value += value;
+	      append({ value });
+	      continue;
+	    }
+
+	    /**
+	     * Double quotes
+	     */
+
+	    if (value === '"') {
+	      state.quotes = state.quotes === 1 ? 0 : 1;
+	      if (opts.keepQuotes === true) {
+	        push({ type: 'text', value });
+	      }
+	      continue;
+	    }
+
+	    /**
+	     * Parentheses
+	     */
+
+	    if (value === '(') {
+	      increment('parens');
+	      push({ type: 'paren', value });
+	      continue;
+	    }
+
+	    if (value === ')') {
+	      if (state.parens === 0 && opts.strictBrackets === true) {
+	        throw new SyntaxError(syntaxError('opening', '('));
+	      }
+
+	      const extglob = extglobs[extglobs.length - 1];
+	      if (extglob && state.parens === extglob.parens + 1) {
+	        extglobClose(extglobs.pop());
+	        continue;
+	      }
+
+	      push({ type: 'paren', value, output: state.parens ? ')' : '\\)' });
+	      decrement('parens');
+	      continue;
+	    }
+
+	    /**
+	     * Square brackets
+	     */
+
+	    if (value === '[') {
+	      if (opts.nobracket === true || !remaining().includes(']')) {
+	        if (opts.nobracket !== true && opts.strictBrackets === true) {
+	          throw new SyntaxError(syntaxError('closing', ']'));
+	        }
+
+	        value = `\\${value}`;
+	      } else {
+	        increment('brackets');
+	      }
+
+	      push({ type: 'bracket', value });
+	      continue;
+	    }
+
+	    if (value === ']') {
+	      if (opts.nobracket === true || (prev && prev.type === 'bracket' && prev.value.length === 1)) {
+	        push({ type: 'text', value, output: `\\${value}` });
+	        continue;
+	      }
+
+	      if (state.brackets === 0) {
+	        if (opts.strictBrackets === true) {
+	          throw new SyntaxError(syntaxError('opening', '['));
+	        }
+
+	        push({ type: 'text', value, output: `\\${value}` });
+	        continue;
+	      }
+
+	      decrement('brackets');
+
+	      const prevValue = prev.value.slice(1);
+	      if (prev.posix !== true && prevValue[0] === '^' && !prevValue.includes('/')) {
+	        value = `/${value}`;
+	      }
+
+	      prev.value += value;
+	      append({ value });
+
+	      // when literal brackets are explicitly disabled
+	      // assume we should match with a regex character class
+	      if (opts.literalBrackets === false || utils.hasRegexChars(prevValue)) {
+	        continue;
+	      }
+
+	      const escaped = utils.escapeRegex(prev.value);
+	      state.output = state.output.slice(0, -prev.value.length);
+
+	      // when literal brackets are explicitly enabled
+	      // assume we should escape the brackets to match literal characters
+	      if (opts.literalBrackets === true) {
+	        state.output += escaped;
+	        prev.value = escaped;
+	        continue;
+	      }
+
+	      // when the user specifies nothing, try to match both
+	      prev.value = `(${capture}${escaped}|${prev.value})`;
+	      state.output += prev.value;
+	      continue;
+	    }
+
+	    /**
+	     * Braces
+	     */
+
+	    if (value === '{' && opts.nobrace !== true) {
+	      increment('braces');
+
+	      const open = {
+	        type: 'brace',
+	        value,
+	        output: '(',
+	        outputIndex: state.output.length,
+	        tokensIndex: state.tokens.length
+	      };
+
+	      braces.push(open);
+	      push(open);
+	      continue;
+	    }
+
+	    if (value === '}') {
+	      const brace = braces[braces.length - 1];
+
+	      if (opts.nobrace === true || !brace) {
+	        push({ type: 'text', value, output: value });
+	        continue;
+	      }
+
+	      let output = ')';
+
+	      if (brace.dots === true) {
+	        const arr = tokens.slice();
+	        const range = [];
+
+	        for (let i = arr.length - 1; i >= 0; i--) {
+	          tokens.pop();
+	          if (arr[i].type === 'brace') {
+	            break;
+	          }
+	          if (arr[i].type !== 'dots') {
+	            range.unshift(arr[i].value);
+	          }
+	        }
+
+	        output = expandRange(range, opts);
+	        state.backtrack = true;
+	      }
+
+	      if (brace.comma !== true && brace.dots !== true) {
+	        const out = state.output.slice(0, brace.outputIndex);
+	        const toks = state.tokens.slice(brace.tokensIndex);
+	        brace.value = brace.output = '\\{';
+	        value = output = '\\}';
+	        state.output = out;
+	        for (const t of toks) {
+	          state.output += (t.output || t.value);
+	        }
+	      }
+
+	      push({ type: 'brace', value, output });
+	      decrement('braces');
+	      braces.pop();
+	      continue;
+	    }
+
+	    /**
+	     * Pipes
+	     */
+
+	    if (value === '|') {
+	      if (extglobs.length > 0) {
+	        extglobs[extglobs.length - 1].conditions++;
+	      }
+	      push({ type: 'text', value });
+	      continue;
+	    }
+
+	    /**
+	     * Commas
+	     */
+
+	    if (value === ',') {
+	      let output = value;
+
+	      const brace = braces[braces.length - 1];
+	      if (brace && stack[stack.length - 1] === 'braces') {
+	        brace.comma = true;
+	        output = '|';
+	      }
+
+	      push({ type: 'comma', value, output });
+	      continue;
+	    }
+
+	    /**
+	     * Slashes
+	     */
+
+	    if (value === '/') {
+	      // if the beginning of the glob is "./", advance the start
+	      // to the current index, and don't add the "./" characters
+	      // to the state. This greatly simplifies lookbehinds when
+	      // checking for BOS characters like "!" and "." (not "./")
+	      if (prev.type === 'dot' && state.index === state.start + 1) {
+	        state.start = state.index + 1;
+	        state.consumed = '';
+	        state.output = '';
+	        tokens.pop();
+	        prev = bos; // reset "prev" to the first token
+	        continue;
+	      }
+
+	      push({ type: 'slash', value, output: SLASH_LITERAL });
+	      continue;
+	    }
+
+	    /**
+	     * Dots
+	     */
+
+	    if (value === '.') {
+	      if (state.braces > 0 && prev.type === 'dot') {
+	        if (prev.value === '.') prev.output = DOT_LITERAL;
+	        const brace = braces[braces.length - 1];
+	        prev.type = 'dots';
+	        prev.output += value;
+	        prev.value += value;
+	        brace.dots = true;
+	        continue;
+	      }
+
+	      if ((state.braces + state.parens) === 0 && prev.type !== 'bos' && prev.type !== 'slash') {
+	        push({ type: 'text', value, output: DOT_LITERAL });
+	        continue;
+	      }
+
+	      push({ type: 'dot', value, output: DOT_LITERAL });
+	      continue;
+	    }
+
+	    /**
+	     * Question marks
+	     */
+
+	    if (value === '?') {
+	      const isGroup = prev && prev.value === '(';
+	      if (!isGroup && opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
+	        extglobOpen('qmark', value);
+	        continue;
+	      }
+
+	      if (prev && prev.type === 'paren') {
+	        const next = peek();
+	        let output = value;
+
+	        if ((prev.value === '(' && !/[!=<:]/.test(next)) || (next === '<' && !/<([!=]|\w+>)/.test(remaining()))) {
+	          output = `\\${value}`;
+	        }
+
+	        push({ type: 'text', value, output });
+	        continue;
+	      }
+
+	      if (opts.dot !== true && (prev.type === 'slash' || prev.type === 'bos')) {
+	        push({ type: 'qmark', value, output: QMARK_NO_DOT });
+	        continue;
+	      }
+
+	      push({ type: 'qmark', value, output: QMARK });
+	      continue;
+	    }
+
+	    /**
+	     * Exclamation
+	     */
+
+	    if (value === '!') {
+	      if (opts.noextglob !== true && peek() === '(') {
+	        if (peek(2) !== '?' || !/[!=<:]/.test(peek(3))) {
+	          extglobOpen('negate', value);
+	          continue;
+	        }
+	      }
+
+	      if (opts.nonegate !== true && state.index === 0) {
+	        negate();
+	        continue;
+	      }
+	    }
+
+	    /**
+	     * Plus
+	     */
+
+	    if (value === '+') {
+	      if (opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
+	        extglobOpen('plus', value);
+	        continue;
+	      }
+
+	      if ((prev && prev.value === '(') || opts.regex === false) {
+	        push({ type: 'plus', value, output: PLUS_LITERAL });
+	        continue;
+	      }
+
+	      if ((prev && (prev.type === 'bracket' || prev.type === 'paren' || prev.type === 'brace')) || state.parens > 0) {
+	        push({ type: 'plus', value });
+	        continue;
+	      }
+
+	      push({ type: 'plus', value: PLUS_LITERAL });
+	      continue;
+	    }
+
+	    /**
+	     * Plain text
+	     */
+
+	    if (value === '@') {
+	      if (opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
+	        push({ type: 'at', extglob: true, value, output: '' });
+	        continue;
+	      }
+
+	      push({ type: 'text', value });
+	      continue;
+	    }
+
+	    /**
+	     * Plain text
+	     */
+
+	    if (value !== '*') {
+	      if (value === '$' || value === '^') {
+	        value = `\\${value}`;
+	      }
+
+	      const match = REGEX_NON_SPECIAL_CHARS.exec(remaining());
+	      if (match) {
+	        value += match[0];
+	        state.index += match[0].length;
+	      }
+
+	      push({ type: 'text', value });
+	      continue;
+	    }
+
+	    /**
+	     * Stars
+	     */
+
+	    if (prev && (prev.type === 'globstar' || prev.star === true)) {
+	      prev.type = 'star';
+	      prev.star = true;
+	      prev.value += value;
+	      prev.output = star;
+	      state.backtrack = true;
+	      state.globstar = true;
+	      consume(value);
+	      continue;
+	    }
+
+	    let rest = remaining();
+	    if (opts.noextglob !== true && /^\([^?]/.test(rest)) {
+	      extglobOpen('star', value);
+	      continue;
+	    }
+
+	    if (prev.type === 'star') {
+	      if (opts.noglobstar === true) {
+	        consume(value);
+	        continue;
+	      }
+
+	      const prior = prev.prev;
+	      const before = prior.prev;
+	      const isStart = prior.type === 'slash' || prior.type === 'bos';
+	      const afterStar = before && (before.type === 'star' || before.type === 'globstar');
+
+	      if (opts.bash === true && (!isStart || (rest[0] && rest[0] !== '/'))) {
+	        push({ type: 'star', value, output: '' });
+	        continue;
+	      }
+
+	      const isBrace = state.braces > 0 && (prior.type === 'comma' || prior.type === 'brace');
+	      const isExtglob = extglobs.length && (prior.type === 'pipe' || prior.type === 'paren');
+	      if (!isStart && prior.type !== 'paren' && !isBrace && !isExtglob) {
+	        push({ type: 'star', value, output: '' });
+	        continue;
+	      }
+
+	      // strip consecutive `/**/`
+	      while (rest.slice(0, 3) === '/**') {
+	        const after = input[state.index + 4];
+	        if (after && after !== '/') {
+	          break;
+	        }
+	        rest = rest.slice(3);
+	        consume('/**', 3);
+	      }
+
+	      if (prior.type === 'bos' && eos()) {
+	        prev.type = 'globstar';
+	        prev.value += value;
+	        prev.output = globstar(opts);
+	        state.output = prev.output;
+	        state.globstar = true;
+	        consume(value);
+	        continue;
+	      }
+
+	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && !afterStar && eos()) {
+	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
+	        prior.output = `(?:${prior.output}`;
+
+	        prev.type = 'globstar';
+	        prev.output = globstar(opts) + (opts.strictSlashes ? ')' : '|$)');
+	        prev.value += value;
+	        state.globstar = true;
+	        state.output += prior.output + prev.output;
+	        consume(value);
+	        continue;
+	      }
+
+	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
+	        const end = rest[1] !== void 0 ? '|$' : '';
+
+	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
+	        prior.output = `(?:${prior.output}`;
+
+	        prev.type = 'globstar';
+	        prev.output = `${globstar(opts)}${SLASH_LITERAL}|${SLASH_LITERAL}${end})`;
+	        prev.value += value;
+
+	        state.output += prior.output + prev.output;
+	        state.globstar = true;
+
+	        consume(value + advance());
+
+	        push({ type: 'slash', value: '/', output: '' });
+	        continue;
+	      }
+
+	      if (prior.type === 'bos' && rest[0] === '/') {
+	        prev.type = 'globstar';
+	        prev.value += value;
+	        prev.output = `(?:^|${SLASH_LITERAL}|${globstar(opts)}${SLASH_LITERAL})`;
+	        state.output = prev.output;
+	        state.globstar = true;
+	        consume(value + advance());
+	        push({ type: 'slash', value: '/', output: '' });
+	        continue;
+	      }
+
+	      // remove single star from output
+	      state.output = state.output.slice(0, -prev.output.length);
+
+	      // reset previous token to globstar
+	      prev.type = 'globstar';
+	      prev.output = globstar(opts);
+	      prev.value += value;
+
+	      // reset output with globstar
+	      state.output += prev.output;
+	      state.globstar = true;
+	      consume(value);
+	      continue;
+	    }
+
+	    const token = { type: 'star', value, output: star };
+
+	    if (opts.bash === true) {
+	      token.output = '.*?';
+	      if (prev.type === 'bos' || prev.type === 'slash') {
+	        token.output = nodot + token.output;
+	      }
+	      push(token);
+	      continue;
+	    }
+
+	    if (prev && (prev.type === 'bracket' || prev.type === 'paren') && opts.regex === true) {
+	      token.output = value;
+	      push(token);
+	      continue;
+	    }
+
+	    if (state.index === state.start || prev.type === 'slash' || prev.type === 'dot') {
+	      if (prev.type === 'dot') {
+	        state.output += NO_DOT_SLASH;
+	        prev.output += NO_DOT_SLASH;
+
+	      } else if (opts.dot === true) {
+	        state.output += NO_DOTS_SLASH;
+	        prev.output += NO_DOTS_SLASH;
+
+	      } else {
+	        state.output += nodot;
+	        prev.output += nodot;
+	      }
+
+	      if (peek() !== '*') {
+	        state.output += ONE_CHAR;
+	        prev.output += ONE_CHAR;
+	      }
+	    }
+
+	    push(token);
+	  }
+
+	  while (state.brackets > 0) {
+	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', ']'));
+	    state.output = utils.escapeLast(state.output, '[');
+	    decrement('brackets');
+	  }
+
+	  while (state.parens > 0) {
+	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', ')'));
+	    state.output = utils.escapeLast(state.output, '(');
+	    decrement('parens');
+	  }
+
+	  while (state.braces > 0) {
+	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', '}'));
+	    state.output = utils.escapeLast(state.output, '{');
+	    decrement('braces');
+	  }
+
+	  if (opts.strictSlashes !== true && (prev.type === 'star' || prev.type === 'bracket')) {
+	    push({ type: 'maybe_slash', value: '', output: `${SLASH_LITERAL}?` });
+	  }
+
+	  // rebuild the output if we had to backtrack at any point
+	  if (state.backtrack === true) {
+	    state.output = '';
+
+	    for (const token of state.tokens) {
+	      state.output += token.output != null ? token.output : token.value;
+
+	      if (token.suffix) {
+	        state.output += token.suffix;
+	      }
+	    }
+	  }
+
+	  return state;
+	};
+
+	/**
+	 * Fast paths for creating regular expressions for common glob patterns.
+	 * This can significantly speed up processing and has very little downside
+	 * impact when none of the fast paths match.
+	 */
+
+	parse.fastpaths = (input, options) => {
+	  const opts = { ...options };
+	  const max = typeof opts.maxLength === 'number' ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
+	  const len = input.length;
+	  if (len > max) {
+	    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`);
+	  }
+
+	  input = REPLACEMENTS[input] || input;
+
+	  // create constants based on platform, for windows or posix
+	  const {
+	    DOT_LITERAL,
+	    SLASH_LITERAL,
+	    ONE_CHAR,
+	    DOTS_SLASH,
+	    NO_DOT,
+	    NO_DOTS,
+	    NO_DOTS_SLASH,
+	    STAR,
+	    START_ANCHOR
+	  } = constants.globChars(opts.windows);
+
+	  const nodot = opts.dot ? NO_DOTS : NO_DOT;
+	  const slashDot = opts.dot ? NO_DOTS_SLASH : NO_DOT;
+	  const capture = opts.capture ? '' : '?:';
+	  const state = { negated: false, prefix: '' };
+	  let star = opts.bash === true ? '.*?' : STAR;
+
+	  if (opts.capture) {
+	    star = `(${star})`;
+	  }
+
+	  const globstar = opts => {
+	    if (opts.noglobstar === true) return star;
+	    return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
+	  };
+
+	  const create = str => {
+	    switch (str) {
+	      case '*':
+	        return `${nodot}${ONE_CHAR}${star}`;
+
+	      case '.*':
+	        return `${DOT_LITERAL}${ONE_CHAR}${star}`;
+
+	      case '*.*':
+	        return `${nodot}${star}${DOT_LITERAL}${ONE_CHAR}${star}`;
+
+	      case '*/*':
+	        return `${nodot}${star}${SLASH_LITERAL}${ONE_CHAR}${slashDot}${star}`;
+
+	      case '**':
+	        return nodot + globstar(opts);
+
+	      case '**/*':
+	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${slashDot}${ONE_CHAR}${star}`;
+
+	      case '**/*.*':
+	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${slashDot}${star}${DOT_LITERAL}${ONE_CHAR}${star}`;
+
+	      case '**/.*':
+	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${DOT_LITERAL}${ONE_CHAR}${star}`;
+
+	      default: {
+	        const match = /^(.*?)\.(\w+)$/.exec(str);
+	        if (!match) return;
+
+	        const source = create(match[1]);
+	        if (!source) return;
+
+	        return source + DOT_LITERAL + match[2];
+	      }
+	    }
+	  };
+
+	  const output = utils.removePrefix(input, state);
+	  let source = create(output);
+
+	  if (source && opts.strictSlashes !== true) {
+	    source += `${SLASH_LITERAL}?`;
+	  }
+
+	  return source;
+	};
+
+	parse_1 = parse;
+	return parse_1;
+}
+
+var picomatch_1$1;
+var hasRequiredPicomatch$1;
+
+function requirePicomatch$1 () {
+	if (hasRequiredPicomatch$1) return picomatch_1$1;
+	hasRequiredPicomatch$1 = 1;
+
+	const scan = /*@__PURE__*/ requireScan();
+	const parse = /*@__PURE__*/ requireParse();
+	const utils = /*@__PURE__*/ requireUtils();
+	const constants = /*@__PURE__*/ requireConstants();
+	const isObject = val => val && typeof val === 'object' && !Array.isArray(val);
+
+	/**
+	 * Creates a matcher function from one or more glob patterns. The
+	 * returned function takes a string to match as its first argument,
+	 * and returns true if the string is a match. The returned matcher
+	 * function also takes a boolean as the second argument that, when true,
+	 * returns an object with additional information.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch(glob[, options]);
+	 *
+	 * const isMatch = picomatch('*.!(*a)');
+	 * console.log(isMatch('a.a')); //=> false
+	 * console.log(isMatch('a.b')); //=> true
+	 * ```
+	 * @name picomatch
+	 * @param {String|Array} `globs` One or more glob patterns.
+	 * @param {Object=} `options`
+	 * @return {Function=} Returns a matcher function.
+	 * @api public
+	 */
+
+	const picomatch = (glob, options, returnState = false) => {
+	  if (Array.isArray(glob)) {
+	    const fns = glob.map(input => picomatch(input, options, returnState));
+	    const arrayMatcher = str => {
+	      for (const isMatch of fns) {
+	        const state = isMatch(str);
+	        if (state) return state;
+	      }
+	      return false;
+	    };
+	    return arrayMatcher;
+	  }
+
+	  const isState = isObject(glob) && glob.tokens && glob.input;
+
+	  if (glob === '' || (typeof glob !== 'string' && !isState)) {
+	    throw new TypeError('Expected pattern to be a non-empty string');
+	  }
+
+	  const opts = options || {};
+	  const posix = opts.windows;
+	  const regex = isState
+	    ? picomatch.compileRe(glob, options)
+	    : picomatch.makeRe(glob, options, false, true);
+
+	  const state = regex.state;
+	  delete regex.state;
+
+	  let isIgnored = () => false;
+	  if (opts.ignore) {
+	    const ignoreOpts = { ...options, ignore: null, onMatch: null, onResult: null };
+	    isIgnored = picomatch(opts.ignore, ignoreOpts, returnState);
+	  }
+
+	  const matcher = (input, returnObject = false) => {
+	    const { isMatch, match, output } = picomatch.test(input, regex, options, { glob, posix });
+	    const result = { glob, state, regex, posix, input, output, match, isMatch };
+
+	    if (typeof opts.onResult === 'function') {
+	      opts.onResult(result);
+	    }
+
+	    if (isMatch === false) {
+	      result.isMatch = false;
+	      return returnObject ? result : false;
+	    }
+
+	    if (isIgnored(input)) {
+	      if (typeof opts.onIgnore === 'function') {
+	        opts.onIgnore(result);
+	      }
+	      result.isMatch = false;
+	      return returnObject ? result : false;
+	    }
+
+	    if (typeof opts.onMatch === 'function') {
+	      opts.onMatch(result);
+	    }
+	    return returnObject ? result : true;
+	  };
+
+	  if (returnState) {
+	    matcher.state = state;
+	  }
+
+	  return matcher;
+	};
+
+	/**
+	 * Test `input` with the given `regex`. This is used by the main
+	 * `picomatch()` function to test the input string.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch.test(input, regex[, options]);
+	 *
+	 * console.log(picomatch.test('foo/bar', /^(?:([^/]*?)\/([^/]*?))$/));
+	 * // { isMatch: true, match: [ 'foo/', 'foo', 'bar' ], output: 'foo/bar' }
+	 * ```
+	 * @param {String} `input` String to test.
+	 * @param {RegExp} `regex`
+	 * @return {Object} Returns an object with matching info.
+	 * @api public
+	 */
+
+	picomatch.test = (input, regex, options, { glob, posix } = {}) => {
+	  if (typeof input !== 'string') {
+	    throw new TypeError('Expected input to be a string');
+	  }
+
+	  if (input === '') {
+	    return { isMatch: false, output: '' };
+	  }
+
+	  const opts = options || {};
+	  const format = opts.format || (posix ? utils.toPosixSlashes : null);
+	  let match = input === glob;
+	  let output = (match && format) ? format(input) : input;
+
+	  if (match === false) {
+	    output = format ? format(input) : input;
+	    match = output === glob;
+	  }
+
+	  if (match === false || opts.capture === true) {
+	    if (opts.matchBase === true || opts.basename === true) {
+	      match = picomatch.matchBase(input, regex, options, posix);
+	    } else {
+	      match = regex.exec(output);
+	    }
+	  }
+
+	  return { isMatch: Boolean(match), match, output };
+	};
+
+	/**
+	 * Match the basename of a filepath.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch.matchBase(input, glob[, options]);
+	 * console.log(picomatch.matchBase('foo/bar.js', '*.js'); // true
+	 * ```
+	 * @param {String} `input` String to test.
+	 * @param {RegExp|String} `glob` Glob pattern or regex created by [.makeRe](#makeRe).
+	 * @return {Boolean}
+	 * @api public
+	 */
+
+	picomatch.matchBase = (input, glob, options) => {
+	  const regex = glob instanceof RegExp ? glob : picomatch.makeRe(glob, options);
+	  return regex.test(utils.basename(input));
+	};
+
+	/**
+	 * Returns true if **any** of the given glob `patterns` match the specified `string`.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch.isMatch(string, patterns[, options]);
+	 *
+	 * console.log(picomatch.isMatch('a.a', ['b.*', '*.a'])); //=> true
+	 * console.log(picomatch.isMatch('a.a', 'b.*')); //=> false
+	 * ```
+	 * @param {String|Array} str The string to test.
+	 * @param {String|Array} patterns One or more glob patterns to use for matching.
+	 * @param {Object} [options] See available [options](#options).
+	 * @return {Boolean} Returns true if any patterns match `str`
+	 * @api public
+	 */
+
+	picomatch.isMatch = (str, patterns, options) => picomatch(patterns, options)(str);
+
+	/**
+	 * Parse a glob pattern to create the source string for a regular
+	 * expression.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * const result = picomatch.parse(pattern[, options]);
+	 * ```
+	 * @param {String} `pattern`
+	 * @param {Object} `options`
+	 * @return {Object} Returns an object with useful properties and output to be used as a regex source string.
+	 * @api public
+	 */
+
+	picomatch.parse = (pattern, options) => {
+	  if (Array.isArray(pattern)) return pattern.map(p => picomatch.parse(p, options));
+	  return parse(pattern, { ...options, fastpaths: false });
+	};
+
+	/**
+	 * Scan a glob pattern to separate the pattern into segments.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch.scan(input[, options]);
+	 *
+	 * const result = picomatch.scan('!./foo/*.js');
+	 * console.log(result);
+	 * { prefix: '!./',
+	 *   input: '!./foo/*.js',
+	 *   start: 3,
+	 *   base: 'foo',
+	 *   glob: '*.js',
+	 *   isBrace: false,
+	 *   isBracket: false,
+	 *   isGlob: true,
+	 *   isExtglob: false,
+	 *   isGlobstar: false,
+	 *   negated: true }
+	 * ```
+	 * @param {String} `input` Glob pattern to scan.
+	 * @param {Object} `options`
+	 * @return {Object} Returns an object with
+	 * @api public
+	 */
+
+	picomatch.scan = (input, options) => scan(input, options);
+
+	/**
+	 * Compile a regular expression from the `state` object returned by the
+	 * [parse()](#parse) method.
+	 *
+	 * @param {Object} `state`
+	 * @param {Object} `options`
+	 * @param {Boolean} `returnOutput` Intended for implementors, this argument allows you to return the raw output from the parser.
+	 * @param {Boolean} `returnState` Adds the state to a `state` property on the returned regex. Useful for implementors and debugging.
+	 * @return {RegExp}
+	 * @api public
+	 */
+
+	picomatch.compileRe = (state, options, returnOutput = false, returnState = false) => {
+	  if (returnOutput === true) {
+	    return state.output;
+	  }
+
+	  const opts = options || {};
+	  const prepend = opts.contains ? '' : '^';
+	  const append = opts.contains ? '' : '$';
+
+	  let source = `${prepend}(?:${state.output})${append}`;
+	  if (state && state.negated === true) {
+	    source = `^(?!${source}).*$`;
+	  }
+
+	  const regex = picomatch.toRegex(source, options);
+	  if (returnState === true) {
+	    regex.state = state;
+	  }
+
+	  return regex;
+	};
+
+	/**
+	 * Create a regular expression from a parsed glob pattern.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * const state = picomatch.parse('*.js');
+	 * // picomatch.compileRe(state[, options]);
+	 *
+	 * console.log(picomatch.compileRe(state));
+	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
+	 * ```
+	 * @param {String} `state` The object returned from the `.parse` method.
+	 * @param {Object} `options`
+	 * @param {Boolean} `returnOutput` Implementors may use this argument to return the compiled output, instead of a regular expression. This is not exposed on the options to prevent end-users from mutating the result.
+	 * @param {Boolean} `returnState` Implementors may use this argument to return the state from the parsed glob with the returned regular expression.
+	 * @return {RegExp} Returns a regex created from the given pattern.
+	 * @api public
+	 */
+
+	picomatch.makeRe = (input, options = {}, returnOutput = false, returnState = false) => {
+	  if (!input || typeof input !== 'string') {
+	    throw new TypeError('Expected a non-empty string');
+	  }
+
+	  let parsed = { negated: false, fastpaths: true };
+
+	  if (options.fastpaths !== false && (input[0] === '.' || input[0] === '*')) {
+	    parsed.output = parse.fastpaths(input, options);
+	  }
+
+	  if (!parsed.output) {
+	    parsed = parse(input, options);
+	  }
+
+	  return picomatch.compileRe(parsed, options, returnOutput, returnState);
+	};
+
+	/**
+	 * Create a regular expression from the given regex source string.
+	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * // picomatch.toRegex(source[, options]);
+	 *
+	 * const { output } = picomatch.parse('*.js');
+	 * console.log(picomatch.toRegex(output));
+	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
+	 * ```
+	 * @param {String} `source` Regular expression source string.
+	 * @param {Object} `options`
+	 * @return {RegExp}
+	 * @api public
+	 */
+
+	picomatch.toRegex = (source, options) => {
+	  try {
+	    const opts = options || {};
+	    return new RegExp(source, opts.flags || (opts.nocase ? 'i' : ''));
+	  } catch (err) {
+	    if (options && options.debug === true) throw err;
+	    return /$^/;
+	  }
+	};
+
+	/**
+	 * Picomatch constants.
+	 * @return {Object}
+	 */
+
+	picomatch.constants = constants;
+
+	/**
+	 * Expose "picomatch"
+	 */
+
+	picomatch_1$1 = picomatch;
+	return picomatch_1$1;
+}
+
+var picomatch_1;
+var hasRequiredPicomatch;
+
+function requirePicomatch () {
+	if (hasRequiredPicomatch) return picomatch_1;
+	hasRequiredPicomatch = 1;
+
+	const pico = /*@__PURE__*/ requirePicomatch$1();
+	const utils = /*@__PURE__*/ requireUtils();
+
+	function picomatch(glob, options, returnState = false) {
+	  // default to os.platform()
+	  if (options && (options.windows === null || options.windows === undefined)) {
+	    // don't mutate the original options object
+	    options = { ...options, windows: utils.isWindows() };
+	  }
+
+	  return pico(glob, options, returnState);
+	}
+
+	Object.assign(picomatch, pico);
+	picomatch_1 = picomatch;
+	return picomatch_1;
+}
+
+var picomatchExports = /*@__PURE__*/ requirePicomatch();
+const pm = /*@__PURE__*/getDefaultExportFromCjs(picomatchExports);
+
+function getMatcherString$1(glob, cwd) {
+    if (glob.startsWith('**') || parseAst_js.isAbsolute(glob)) {
+        return parseAst_js.normalize(glob);
+    }
+    const resolved = path.resolve(cwd, glob);
+    return parseAst_js.normalize(resolved);
+}
+function patternToIdFilter(pattern) {
+    if (pattern instanceof RegExp) {
+        return (id) => {
+            const normalizedId = parseAst_js.normalize(id);
+            const result = pattern.test(normalizedId);
+            pattern.lastIndex = 0;
+            return result;
+        };
+    }
+    const cwd = process.cwd();
+    const glob = getMatcherString$1(pattern, cwd);
+    const matcher = pm(glob, { dot: true });
+    return (id) => {
+        const normalizedId = parseAst_js.normalize(id);
+        return matcher(normalizedId);
+    };
+}
+function patternToCodeFilter(pattern) {
+    if (pattern instanceof RegExp) {
+        return (code) => {
+            const result = pattern.test(code);
+            pattern.lastIndex = 0;
+            return result;
+        };
+    }
+    return (code) => code.includes(pattern);
+}
+function createFilter$1(exclude, include) {
+    if (!exclude && !include) {
+        return;
+    }
+    return input => {
+        if (exclude?.some(filter => filter(input))) {
+            return false;
+        }
+        if (include?.some(filter => filter(input))) {
+            return true;
+        }
+        return !(include && include.length > 0);
+    };
+}
+function normalizeFilter(filter) {
+    if (typeof filter === 'string' || filter instanceof RegExp) {
+        return {
+            include: [filter]
+        };
+    }
+    if (Array.isArray(filter)) {
+        return {
+            include: filter
+        };
+    }
+    return {
+        exclude: filter.exclude ? ensureArray$1(filter.exclude) : undefined,
+        include: filter.include ? ensureArray$1(filter.include) : undefined
+    };
+}
+function createIdFilter(filter) {
+    if (!filter)
+        return;
+    const { exclude, include } = normalizeFilter(filter);
+    const excludeFilter = exclude?.map(patternToIdFilter);
+    const includeFilter = include?.map(patternToIdFilter);
+    return createFilter$1(excludeFilter, includeFilter);
+}
+function createCodeFilter(filter) {
+    if (!filter)
+        return;
+    const { exclude, include } = normalizeFilter(filter);
+    const excludeFilter = exclude?.map(patternToCodeFilter);
+    const includeFilter = include?.map(patternToCodeFilter);
+    return createFilter$1(excludeFilter, includeFilter);
+}
+function createFilterForId(filter) {
+    const filterFunction = createIdFilter(filter);
+    return filterFunction ? id => !!filterFunction(id) : undefined;
+}
+function createFilterForTransform(idFilter, codeFilter) {
+    if (!idFilter && !codeFilter)
+        return;
+    const idFilterFunction = createIdFilter(idFilter);
+    const codeFilterFunction = createCodeFilter(codeFilter);
+    return (id, code) => {
+        let fallback = true;
+        if (idFilterFunction) {
+            fallback &&= idFilterFunction(id);
+        }
+        if (!fallback) {
+            return false;
+        }
+        if (codeFilterFunction) {
+            fallback &&= codeFilterFunction(code);
+        }
+        return fallback;
+    };
+}
+
 // This will make sure no input hook is omitted
 const inputHookNames = {
     buildEnd: 1,
@@ -933,6 +3199,10 @@ class PluginDriver {
         this.pluginCache = pluginCache;
         this.sortedPlugins = new Map();
         this.unfulfilledActions = new Set();
+        this.compiledPluginFilters = {
+            idOnlyFilter: new WeakMap(),
+            transformFilter: new WeakMap()
+        };
         this.fileEmitter = new FileEmitter(graph, options, basePluginDriver && basePluginDriver.fileEmitter);
         this.emitFile = this.fileEmitter.emitFile.bind(this.fileEmitter);
         this.getFileName = this.fileEmitter.getFileName.bind(this.fileEmitter);
@@ -1059,6 +3329,24 @@ class PluginDriver {
         // We always filter for plugins that support the hook before running it
         const hook = plugin[hookName];
         const handler = typeof hook === 'object' ? hook.handler : hook;
+        if (typeof hook === 'object' && 'filter' in hook && hook.filter) {
+            if (hookName === 'transform') {
+                const filter = hook.filter;
+                const hookParameters = parameters;
+                const compiledFilter = getOrCreate(this.compiledPluginFilters.transformFilter, filter, () => createFilterForTransform(filter.id, filter.code));
+                if (compiledFilter && !compiledFilter(hookParameters[1], hookParameters[0])) {
+                    return Promise.resolve();
+                }
+            }
+            else if (hookName === 'resolveId' || hookName === 'load') {
+                const filter = hook.filter;
+                const hookParameters = parameters;
+                const compiledFilter = getOrCreate(this.compiledPluginFilters.idOnlyFilter, filter, () => createFilterForId(filter.id));
+                if (compiledFilter && !compiledFilter(hookParameters[0])) {
+                    return Promise.resolve();
+                }
+            }
+        }
         let context = this.pluginContexts.get(plugin);
         if (replaceContext) {
             context = replaceContext(context, plugin);
@@ -1379,35 +3667,6 @@ async function mergeOutputOptions(config, overrides, log) {
     };
     warnUnknownOptions(config, Object.keys(outputOptions), 'output options', log);
     return outputOptions;
-}
-
-function getDefaultExportFromCjs (x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
-}
-
-function getAugmentedNamespace(n) {
-  if (n.__esModule) return n;
-  var f = n.default;
-	if (typeof f == "function") {
-		var a = function a () {
-			if (this instanceof a) {
-        return Reflect.construct(f, arguments, this.constructor);
-			}
-			return f.apply(this, arguments);
-		};
-		a.prototype = f.prototype;
-  } else a = {};
-  Object.defineProperty(a, '__esModule', {value: true});
-	Object.keys(n).forEach(function (k) {
-		var d = Object.getOwnPropertyDescriptor(n, k);
-		Object.defineProperty(a, k, d.get ? d : {
-			enumerable: true,
-			get: function () {
-				return n[k];
-			}
-		});
-	});
-	return a;
 }
 
 var picocolors = {exports: {}};
@@ -3491,6 +5750,160 @@ function renderSystemExportSequenceBeforeExpression(exportedVariable, expression
     }
 }
 
+const UnknownKey = Symbol('Unknown Key');
+const UnknownNonAccessorKey = Symbol('Unknown Non-Accessor Key');
+const UnknownInteger = Symbol('Unknown Integer');
+const SymbolToStringTag = Symbol('Symbol.toStringTag');
+const EMPTY_PATH = [];
+const UNKNOWN_PATH = [UnknownKey];
+// For deoptimizations, this means we are modifying an unknown property but did
+// not lose track of the object or are creating a setter/getter;
+// For assignment effects it means we do not check for setter/getter effects
+// but only if something is mutated that is included, which is relevant for
+// Object.defineProperty
+const UNKNOWN_NON_ACCESSOR_PATH = [UnknownNonAccessorKey];
+const UNKNOWN_INTEGER_PATH = [UnknownInteger];
+const EntitiesKey = Symbol('Entities');
+class EntityPathTracker {
+    constructor() {
+        this.entityPaths = Object.create(null, {
+            [EntitiesKey]: { value: new Set() }
+        });
+    }
+    trackEntityAtPathAndGetIfTracked(path, entity) {
+        const trackedEntities = this.getEntities(path);
+        if (trackedEntities.has(entity))
+            return true;
+        trackedEntities.add(entity);
+        return false;
+    }
+    withTrackedEntityAtPath(path, entity, onUntracked, returnIfTracked) {
+        const trackedEntities = this.getEntities(path);
+        if (trackedEntities.has(entity))
+            return returnIfTracked;
+        trackedEntities.add(entity);
+        const result = onUntracked();
+        trackedEntities.delete(entity);
+        return result;
+    }
+    getEntities(path) {
+        let currentPaths = this.entityPaths;
+        for (const pathSegment of path) {
+            currentPaths = currentPaths[pathSegment] ||= Object.create(null, {
+                [EntitiesKey]: { value: new Set() }
+            });
+        }
+        return currentPaths[EntitiesKey];
+    }
+}
+const SHARED_RECURSION_TRACKER = new EntityPathTracker();
+class DiscriminatedPathTracker {
+    constructor() {
+        this.entityPaths = Object.create(null, {
+            [EntitiesKey]: { value: new Map() }
+        });
+    }
+    trackEntityAtPathAndGetIfTracked(path, discriminator, entity) {
+        let currentPaths = this.entityPaths;
+        for (const pathSegment of path) {
+            currentPaths = currentPaths[pathSegment] ||= Object.create(null, {
+                [EntitiesKey]: { value: new Map() }
+            });
+        }
+        const trackedEntities = getOrCreate(currentPaths[EntitiesKey], discriminator, (getNewSet));
+        if (trackedEntities.has(entity))
+            return true;
+        trackedEntities.add(entity);
+        return false;
+    }
+}
+const UNKNOWN_INCLUDED_PATH = Object.freeze({ [UnknownKey]: parseAst_js.EMPTY_OBJECT });
+class IncludedFullPathTracker {
+    constructor() {
+        this.includedPaths = null;
+    }
+    includePathAndGetIfIncluded(path) {
+        let included = true;
+        let parent = this;
+        let parentSegment = 'includedPaths';
+        let currentPaths = (this.includedPaths ||=
+            ((included = false), Object.create(null)));
+        for (const pathSegment of path) {
+            // This means from here, all paths are included
+            if (currentPaths[UnknownKey]) {
+                return true;
+            }
+            // Including UnknownKey automatically includes all nested paths.
+            // From above, we know that UnknownKey is not included yet.
+            if (typeof pathSegment === 'symbol') {
+                // Hopefully, this saves some memory over just setting
+                // currentPaths[UnknownKey] = EMPTY_OBJECT
+                parent[parentSegment] = UNKNOWN_INCLUDED_PATH;
+                return false;
+            }
+            parent = currentPaths;
+            parentSegment = pathSegment;
+            currentPaths = currentPaths[pathSegment] ||= ((included = false), Object.create(null));
+        }
+        return included;
+    }
+}
+const UNKNOWN_INCLUDED_TOP_LEVEL_PATH = Object.freeze({
+    [UnknownKey]: true
+});
+class IncludedTopLevelPathTracker {
+    constructor() {
+        this.includedPaths = null;
+    }
+    includePathAndGetIfIncluded(path) {
+        let included = true;
+        const includedPaths = (this.includedPaths ||=
+            ((included = false), Object.create(null)));
+        if (includedPaths[UnknownKey]) {
+            return true;
+        }
+        const [firstPathSegment, secondPathSegment] = path;
+        if (!firstPathSegment) {
+            return included;
+        }
+        if (typeof firstPathSegment === 'symbol') {
+            this.includedPaths = UNKNOWN_INCLUDED_TOP_LEVEL_PATH;
+            return false;
+        }
+        if (secondPathSegment) {
+            if (includedPaths[firstPathSegment] === UnknownKey) {
+                return true;
+            }
+            includedPaths[firstPathSegment] = UnknownKey;
+            return false;
+        }
+        if (includedPaths[firstPathSegment]) {
+            return true;
+        }
+        includedPaths[firstPathSegment] = true;
+        return false;
+    }
+    includeAllPaths(entity, context, basePath) {
+        const { includedPaths } = this;
+        if (includedPaths) {
+            if (includedPaths[UnknownKey]) {
+                entity.includePath([...basePath, UnknownKey], context);
+            }
+            else {
+                const inclusionEntries = Object.entries(includedPaths);
+                if (inclusionEntries.length === 0) {
+                    entity.includePath(basePath, context);
+                }
+                else {
+                    for (const [key, value] of inclusionEntries) {
+                        entity.includePath(value === UnknownKey ? [...basePath, key, UnknownKey] : [...basePath, key], context);
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** @import { Node } from 'estree' */
 
 /**
@@ -3543,85 +5956,34 @@ function is_reference(node, parent) {
 	}
 }
 
-const PureFunctionKey = Symbol('PureFunction');
-const getPureFunctions = ({ treeshake }) => {
-    const pureFunctions = Object.create(null);
-    for (const functionName of treeshake ? treeshake.manualPureFunctions : []) {
-        let currentFunctions = pureFunctions;
-        for (const pathSegment of functionName.split('.')) {
-            currentFunctions = currentFunctions[pathSegment] ||= Object.create(null);
-        }
-        currentFunctions[PureFunctionKey] = true;
-    }
-    return pureFunctions;
-};
-
-const UnknownKey = Symbol('Unknown Key');
-const UnknownNonAccessorKey = Symbol('Unknown Non-Accessor Key');
-const UnknownInteger = Symbol('Unknown Integer');
-const SymbolToStringTag = Symbol('Symbol.toStringTag');
-const EMPTY_PATH = [];
-const UNKNOWN_PATH = [UnknownKey];
-// For deoptimizations, this means we are modifying an unknown property but did
-// not lose track of the object or are creating a setter/getter;
-// For assignment effects it means we do not check for setter/getter effects
-// but only if something is mutated that is included, which is relevant for
-// Object.defineProperty
-const UNKNOWN_NON_ACCESSOR_PATH = [UnknownNonAccessorKey];
-const UNKNOWN_INTEGER_PATH = [UnknownInteger];
-const EntitiesKey = Symbol('Entities');
-class PathTracker {
-    constructor() {
-        this.entityPaths = Object.create(null, {
-            [EntitiesKey]: { value: new Set() }
-        });
-    }
-    trackEntityAtPathAndGetIfTracked(path, entity) {
-        const trackedEntities = this.getEntities(path);
-        if (trackedEntities.has(entity))
-            return true;
-        trackedEntities.add(entity);
-        return false;
-    }
-    withTrackedEntityAtPath(path, entity, onUntracked, returnIfTracked) {
-        const trackedEntities = this.getEntities(path);
-        if (trackedEntities.has(entity))
-            return returnIfTracked;
-        trackedEntities.add(entity);
-        const result = onUntracked();
-        trackedEntities.delete(entity);
-        return result;
-    }
-    getEntities(path) {
-        let currentPaths = this.entityPaths;
-        for (const pathSegment of path) {
-            currentPaths = currentPaths[pathSegment] =
-                currentPaths[pathSegment] ||
-                    Object.create(null, { [EntitiesKey]: { value: new Set() } });
-        }
-        return currentPaths[EntitiesKey];
-    }
+function createInclusionContext() {
+    return {
+        brokenFlow: false,
+        hasBreak: false,
+        hasContinue: false,
+        includedCallArguments: new Set(),
+        includedLabels: new Set()
+    };
 }
-const SHARED_RECURSION_TRACKER = new PathTracker();
-class DiscriminatedPathTracker {
-    constructor() {
-        this.entityPaths = Object.create(null, {
-            [EntitiesKey]: { value: new Map() }
-        });
-    }
-    trackEntityAtPathAndGetIfTracked(path, discriminator, entity) {
-        let currentPaths = this.entityPaths;
-        for (const pathSegment of path) {
-            currentPaths = currentPaths[pathSegment] =
-                currentPaths[pathSegment] ||
-                    Object.create(null, { [EntitiesKey]: { value: new Map() } });
-        }
-        const trackedEntities = getOrCreate(currentPaths[EntitiesKey], discriminator, (getNewSet));
-        if (trackedEntities.has(entity))
-            return true;
-        trackedEntities.add(entity);
-        return false;
-    }
+function createHasEffectsContext() {
+    return {
+        accessed: new EntityPathTracker(),
+        assigned: new EntityPathTracker(),
+        brokenFlow: false,
+        called: new DiscriminatedPathTracker(),
+        hasBreak: false,
+        hasContinue: false,
+        ignore: {
+            breaks: false,
+            continues: false,
+            labels: new Set(),
+            returnYield: false,
+            this: false
+        },
+        includedLabels: new Set(),
+        instantiated: new DiscriminatedPathTracker(),
+        replacedVariableInits: new Map()
+    };
 }
 
 function isFlagSet(flags, flag) {
@@ -3662,13 +6024,23 @@ class ExpressionEntity {
     hasEffectsOnInteractionAtPath(_path, _interaction, _context) {
         return true;
     }
-    include(_context, _includeChildrenRecursively, _options) {
+    include(context, _includeChildrenRecursively, _options) {
+        if (!this.included)
+            this.includeNode(context);
+    }
+    includeNode(_context) {
         this.included = true;
     }
-    includeCallArguments(context, parameters) {
-        for (const argument of parameters) {
-            argument.include(context, false);
-        }
+    includePath(_path, context) {
+        if (!this.included)
+            this.includeNode(context);
+    }
+    /* We are both including and including an unknown path here as the former
+     * ensures that nested nodes are included while the latter ensures that all
+     * paths of the expression are included.
+     * */
+    includeCallArguments(interaction, context) {
+        includeInteraction(interaction, context);
     }
     shouldBeIncluded(_context) {
         return true;
@@ -3683,6 +6055,18 @@ const UNKNOWN_RETURN_EXPRESSION = [
 const deoptimizeInteraction = (interaction) => {
     for (const argument of interaction.args) {
         argument?.deoptimizePath(UNKNOWN_PATH);
+    }
+};
+const includeInteraction = ({ args }, context) => {
+    // We do not re-include the "this" argument as we expect this is already
+    // re-included at the call site
+    args[0]?.includePath(UNKNOWN_PATH, context);
+    for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex++) {
+        const argument = args[argumentIndex];
+        if (argument) {
+            argument.includePath(UNKNOWN_PATH, context);
+            argument.include(context, false);
+        }
     }
 };
 
@@ -3704,6 +6088,19 @@ const NODE_INTERACTION_UNKNOWN_CALL = {
     args: [null],
     type: INTERACTION_CALLED,
     withNew: false
+};
+
+const PureFunctionKey = Symbol('PureFunction');
+const getPureFunctions = ({ treeshake }) => {
+    const pureFunctions = Object.create(null);
+    for (const functionName of treeshake ? treeshake.manualPureFunctions : []) {
+        let currentFunctions = pureFunctions;
+        for (const pathSegment of functionName.split('.')) {
+            currentFunctions = currentFunctions[pathSegment] ||= Object.create(null);
+        }
+        currentFunctions[PureFunctionKey] = true;
+    }
+    return pureFunctions;
 };
 
 class Variable extends ExpressionEntity {
@@ -3782,9 +6179,9 @@ class Variable extends ExpressionEntity {
      * has not been included previously. Once a variable is included, it should
      * take care all its declarations are included.
      */
-    include() {
+    includePath(path, context) {
         this.included = true;
-        this.renderedLikeHoisted?.include();
+        this.renderedLikeHoisted?.includePath(path, context);
     }
     /**
      * Links the rendered name of this variable to another variable and includes
@@ -3816,8 +6213,8 @@ class ExternalVariable extends Variable {
     hasEffectsOnInteractionAtPath(path, { type }) {
         return type !== INTERACTION_ACCESSED || path.length > (this.isNamespace ? 1 : 0);
     }
-    include() {
-        super.include();
+    includePath(path, context) {
+        super.includePath(path, context);
         this.module.used = true;
     }
 }
@@ -4116,36 +6513,6 @@ const childNodeKeys = {
     YieldExpression: ['argument']
 };
 
-function createInclusionContext() {
-    return {
-        brokenFlow: false,
-        hasBreak: false,
-        hasContinue: false,
-        includedCallArguments: new Set(),
-        includedLabels: new Set()
-    };
-}
-function createHasEffectsContext() {
-    return {
-        accessed: new PathTracker(),
-        assigned: new PathTracker(),
-        brokenFlow: false,
-        called: new DiscriminatedPathTracker(),
-        hasBreak: false,
-        hasContinue: false,
-        ignore: {
-            breaks: false,
-            continues: false,
-            labels: new Set(),
-            returnYield: false,
-            this: false
-        },
-        includedLabels: new Set(),
-        instantiated: new DiscriminatedPathTracker(),
-        replacedVariableInits: new Map()
-    };
-}
-
 const INCLUDE_PARAMETERS = 'variables';
 const IS_SKIPPED_CHAIN = Symbol('IS_SKIPPED_CHAIN');
 class NodeBase extends ExpressionEntity {
@@ -4215,9 +6582,8 @@ class NodeBase extends ExpressionEntity {
             this.hasEffectsOnInteractionAtPath(EMPTY_PATH, this.assignmentInteraction, context));
     }
     include(context, includeChildrenRecursively, _options) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         for (const key of childNodeKeys[this.type]) {
             const value = this[key];
             if (value === null)
@@ -4229,6 +6595,24 @@ class NodeBase extends ExpressionEntity {
             }
             else {
                 value.include(context, includeChildrenRecursively);
+            }
+        }
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        for (const key of childNodeKeys[this.type]) {
+            const value = this[key];
+            if (value === null)
+                continue;
+            if (Array.isArray(value)) {
+                for (const child of value) {
+                    child?.includePath(UNKNOWN_PATH, context);
+                }
+            }
+            else {
+                value.includePath(UNKNOWN_PATH, context);
             }
         }
     }
@@ -4335,6 +6719,17 @@ class NodeBase extends ExpressionEntity {
 function createChildNodeKeysForNode(esTreeNode) {
     return Object.keys(esTreeNode).filter(key => typeof esTreeNode[key] === 'object' && key.charCodeAt(0) !== 95 /* _ */);
 }
+function onlyIncludeSelf() {
+    this.included = true;
+    if (!this.deoptimized)
+        this.applyDeoptimizations();
+}
+function onlyIncludeSelfNoDeoptimize() {
+    this.included = true;
+}
+function doNotDeoptimize() {
+    this.deoptimized = true;
+}
 
 function isObjectExpressionNode(node) {
     return node instanceof NodeBase && node.type === parseAst_js.ObjectExpression;
@@ -4347,8 +6742,8 @@ function assembleMemberDescriptions(memberDescriptions, inheritedDescriptions = 
     return Object.create(inheritedDescriptions, memberDescriptions);
 }
 const UNDEFINED_EXPRESSION = new (class UndefinedExpression extends ExpressionEntity {
-    getLiteralValueAtPath() {
-        return undefined;
+    getLiteralValueAtPath(path) {
+        return path.length > 0 ? UnknownValue : undefined;
     }
 })();
 const returnsUnknown = {
@@ -4545,31 +6940,6 @@ function getMemberReturnExpressionWhenCalled(members, memberName) {
     return [members[memberName].returns, false];
 }
 
-class SpreadElement extends NodeBase {
-    deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
-        if (path.length > 0) {
-            this.argument.deoptimizeArgumentsOnInteractionAtPath(interaction, UNKNOWN_PATH, recursionTracker);
-        }
-    }
-    hasEffects(context) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        const { propertyReadSideEffects } = this.scope.context.options
-            .treeshake;
-        return (this.argument.hasEffects(context) ||
-            (propertyReadSideEffects &&
-                (propertyReadSideEffects === 'always' ||
-                    this.argument.hasEffectsOnInteractionAtPath(UNKNOWN_PATH, NODE_INTERACTION_UNKNOWN_ACCESS, context))));
-    }
-    applyDeoptimizations() {
-        this.deoptimized = true;
-        // Only properties of properties of the argument could become subject to reassignment
-        // This will also reassign the return values of iterators
-        this.argument.deoptimizePath([UnknownKey, UnknownKey]);
-        this.scope.context.requestTreeshakingPass();
-    }
-}
-
 class Method extends ExpressionEntity {
     constructor(description) {
         super();
@@ -4599,13 +6969,11 @@ class Method extends ExpressionEntity {
             false
         ];
     }
-    hasEffectsOnInteractionAtPath(path, interaction, context) {
-        const { type } = interaction;
+    hasEffectsOnInteractionAtPath(path, { args, type }, context) {
         if (path.length > (type === INTERACTION_ACCESSED ? 1 : 0)) {
             return true;
         }
         if (type === INTERACTION_CALLED) {
-            const { args } = interaction;
             if (this.description.mutatesSelfAsArray === true &&
                 args[0]?.hasEffectsOnInteractionAtPath(UNKNOWN_INTEGER_PATH, NODE_INTERACTION_UNKNOWN_ASSIGNMENT, context)) {
                 return true;
@@ -4695,6 +7063,7 @@ class ObjectEntity extends ExpressionEntity {
         this.unknownIntegerProps = [];
         this.unmatchableGetters = [];
         this.unmatchablePropertiesAndGetters = [];
+        this.unmatchablePropertiesAndSetters = [];
         this.unmatchableSetters = [];
         if (Array.isArray(properties)) {
             this.buildPropertyMaps(properties);
@@ -4851,7 +7220,12 @@ class ObjectEntity extends ExpressionEntity {
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
         if (path.length === 0) {
-            return UnknownTruthyValue;
+            // This should actually be "UnknownTruthyValue". However, this currently
+            // causes an issue with TypeScript enums in files with moduleSideEffects:
+            // false because we cannot properly track whether a "var" has been
+            // initialized. This should be reverted once we can properly track this.
+            // return UnknownTruthyValue;
+            return UnknownValue;
         }
         const key = path[0];
         const expressionAtPath = this.getMemberExpressionAndTrackDeopt(key, origin);
@@ -4929,9 +7303,36 @@ class ObjectEntity extends ExpressionEntity {
         }
         return false;
     }
+    include(context, includeChildrenRecursively) {
+        this.included = true;
+        for (const property of this.allProperties) {
+            if (includeChildrenRecursively || property.shouldBeIncluded(context)) {
+                property.include(context, includeChildrenRecursively);
+            }
+        }
+        this.prototypeExpression?.include(context, includeChildrenRecursively);
+    }
+    includePath(path, context) {
+        this.included = true;
+        if (path.length === 0)
+            return;
+        const [key, ...subPath] = path;
+        const [includedMembers, includedPath] = typeof key === 'string'
+            ? [
+                new Set([
+                    ...(this.propertiesAndGettersByKey[key] || this.unmatchablePropertiesAndGetters),
+                    ...(this.propertiesAndSettersByKey[key] || this.unmatchablePropertiesAndSetters)
+                ]),
+                subPath
+            ]
+            : [this.allProperties, UNKNOWN_PATH];
+        for (const property of includedMembers) {
+            property.includePath(includedPath, context);
+        }
+        this.prototypeExpression?.includePath(path, context);
+    }
     buildPropertyMaps(properties) {
-        const { allProperties, propertiesAndGettersByKey, propertiesAndSettersByKey, settersByKey, gettersByKey, unknownIntegerProps, unmatchablePropertiesAndGetters, unmatchableGetters, unmatchableSetters } = this;
-        const unmatchablePropertiesAndSetters = [];
+        const { allProperties, propertiesAndGettersByKey, propertiesAndSettersByKey, settersByKey, gettersByKey, unknownIntegerProps, unmatchablePropertiesAndGetters, unmatchablePropertiesAndSetters, unmatchableGetters, unmatchableSetters } = this;
         for (let index = properties.length - 1; index >= 0; index--) {
             const { key, kind, property } = properties[index];
             allProperties.push(property);
@@ -5201,6 +7602,37 @@ const ARRAY_PROTOTYPE = new ObjectEntity({
     values: METHOD_DEOPTS_SELF_RETURNS_UNKNOWN
 }, OBJECT_PROTOTYPE, true);
 
+class SpreadElement extends NodeBase {
+    deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
+        if (path.length > 0) {
+            this.argument.deoptimizeArgumentsOnInteractionAtPath(interaction, UNKNOWN_PATH, recursionTracker);
+        }
+    }
+    hasEffects(context) {
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        const { propertyReadSideEffects } = this.scope.context.options
+            .treeshake;
+        return (this.argument.hasEffects(context) ||
+            (propertyReadSideEffects &&
+                (propertyReadSideEffects === 'always' ||
+                    this.argument.hasEffectsOnInteractionAtPath(UNKNOWN_PATH, NODE_INTERACTION_UNKNOWN_ACCESS, context))));
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.argument.includePath(UNKNOWN_PATH, context);
+    }
+    applyDeoptimizations() {
+        this.deoptimized = true;
+        // Only properties of properties of the argument could become subject to reassignment
+        // This will also reassign the return values of iterators
+        this.argument.deoptimizePath([UnknownKey, UnknownKey]);
+        this.scope.context.requestTreeshakingPass();
+    }
+}
+
 class ArrayExpression extends NodeBase {
     constructor() {
         super(...arguments);
@@ -5220,6 +7652,16 @@ class ArrayExpression extends NodeBase {
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return this.getObjectEntity().hasEffectsOnInteractionAtPath(path, interaction, context);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        for (const element of this.elements) {
+            if (element) {
+                element?.includePath(UNKNOWN_PATH, context);
+            }
+        }
     }
     applyDeoptimizations() {
         this.deoptimized = true;
@@ -6288,17 +8730,37 @@ class GlobalVariable extends Variable {
     }
 }
 
+// To avoid infinite recursions
+const MAX_PATH_DEPTH = 6;
+// If a path is longer than MAX_PATH_DEPTH, it is truncated so that it is at
+// most MAX_PATH_DEPTH long. The last element is always UnknownKey
+const limitConcatenatedPathDepth = (path1, path2) => {
+    const { length: length1 } = path1;
+    const { length: length2 } = path2;
+    return length1 === 0
+        ? path2
+        : length2 === 0
+            ? path1
+            : length1 + length2 > MAX_PATH_DEPTH
+                ? [...path1, ...path2.slice(0, MAX_PATH_DEPTH - 1 - path1.length), 'UnknownKey']
+                : [...path1, ...path2];
+};
+
 class LocalVariable extends Variable {
-    constructor(name, declarator, init, context, kind) {
+    constructor(name, declarator, init, 
+    /** if this is non-empty, the actual init is this path of this.init */
+    initPath, context, kind) {
         super(name);
         this.init = init;
+        this.initPath = initPath;
+        this.kind = kind;
         this.calledFromTryStatement = false;
         this.additionalInitializers = null;
+        this.includedPathTracker = new IncludedFullPathTracker();
         this.expressionsToBeDeoptimized = [];
         this.declarations = declarator ? [declarator] : [];
         this.deoptimizationTracker = context.deoptimizationTracker;
         this.module = context.module;
-        this.kind = kind;
     }
     addDeclaration(identifier, init) {
         this.declarations.push(identifier);
@@ -6309,15 +8771,16 @@ class LocalVariable extends Variable {
             for (const initializer of this.additionalInitializers) {
                 initializer.deoptimizePath(UNKNOWN_PATH);
             }
-            this.additionalInitializers = null;
         }
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
-        if (this.isReassigned) {
+        if (this.isReassigned || path.length + this.initPath.length > MAX_PATH_DEPTH) {
             deoptimizeInteraction(interaction);
             return;
         }
-        recursionTracker.withTrackedEntityAtPath(path, this.init, () => this.init.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker), undefined);
+        recursionTracker.withTrackedEntityAtPath(path, this.init, () => {
+            this.init.deoptimizeArgumentsOnInteractionAtPath(interaction, [...this.initPath, ...path], recursionTracker);
+        }, undefined);
     }
     deoptimizePath(path) {
         if (this.isReassigned ||
@@ -6331,37 +8794,40 @@ class LocalVariable extends Variable {
             for (const expression of expressionsToBeDeoptimized) {
                 expression.deoptimizeCache();
             }
-            this.init.deoptimizePath(UNKNOWN_PATH);
+            this.init.deoptimizePath([...this.initPath, UnknownKey]);
         }
         else {
-            this.init.deoptimizePath(path);
+            this.init.deoptimizePath(limitConcatenatedPathDepth(this.initPath, path));
         }
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
-        if (this.isReassigned) {
+        if (this.isReassigned || path.length + this.initPath.length > MAX_PATH_DEPTH) {
             return UnknownValue;
         }
         return recursionTracker.withTrackedEntityAtPath(path, this.init, () => {
             this.expressionsToBeDeoptimized.push(origin);
-            return this.init.getLiteralValueAtPath(path, recursionTracker, origin);
+            return this.init.getLiteralValueAtPath([...this.initPath, ...path], recursionTracker, origin);
         }, UnknownValue);
     }
     getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin) {
-        if (this.isReassigned) {
+        if (this.isReassigned || path.length + this.initPath.length > MAX_PATH_DEPTH) {
             return UNKNOWN_RETURN_EXPRESSION;
         }
         return recursionTracker.withTrackedEntityAtPath(path, this.init, () => {
             this.expressionsToBeDeoptimized.push(origin);
-            return this.init.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin);
+            return this.init.getReturnExpressionWhenCalledAtPath([...this.initPath, ...path], interaction, recursionTracker, origin);
         }, UNKNOWN_RETURN_EXPRESSION);
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
+        if (path.length + this.initPath.length > MAX_PATH_DEPTH) {
+            return true;
+        }
         switch (interaction.type) {
             case INTERACTION_ACCESSED: {
                 if (this.isReassigned)
                     return true;
                 return (!context.accessed.trackEntityAtPathAndGetIfTracked(path, this) &&
-                    this.init.hasEffectsOnInteractionAtPath(path, interaction, context));
+                    this.init.hasEffectsOnInteractionAtPath([...this.initPath, ...path], interaction, context));
             }
             case INTERACTION_ASSIGNED: {
                 if (this.included)
@@ -6371,44 +8837,58 @@ class LocalVariable extends Variable {
                 if (this.isReassigned)
                     return true;
                 return (!context.assigned.trackEntityAtPathAndGetIfTracked(path, this) &&
-                    this.init.hasEffectsOnInteractionAtPath(path, interaction, context));
+                    this.init.hasEffectsOnInteractionAtPath([...this.initPath, ...path], interaction, context));
             }
             case INTERACTION_CALLED: {
                 if (this.isReassigned)
                     return true;
                 return (!(interaction.withNew ? context.instantiated : context.called).trackEntityAtPathAndGetIfTracked(path, interaction.args, this) &&
-                    this.init.hasEffectsOnInteractionAtPath(path, interaction, context));
+                    this.init.hasEffectsOnInteractionAtPath([...this.initPath, ...path], interaction, context));
             }
         }
     }
-    include() {
-        if (!this.included) {
-            super.include();
+    includePath(path, context) {
+        if (!this.includedPathTracker.includePathAndGetIfIncluded(path)) {
+            this.module.scope.context.requestTreeshakingPass();
+            if (!this.included) {
+                // This will reduce the number of tree-shaking passes by eagerly
+                // including inits. By pushing this here instead of directly including
+                // we avoid deep call stacks.
+                this.module.scope.context.newlyIncludedVariableInits.add(this.init);
+            }
+            super.includePath(path, context);
             for (const declaration of this.declarations) {
                 // If node is a default export, it can save a tree-shaking run to include the full declaration now
                 if (!declaration.included)
-                    declaration.include(createInclusionContext(), false);
+                    declaration.include(context, false);
                 let node = declaration.parent;
                 while (!node.included) {
                     // We do not want to properly include parents in case they are part of a dead branch
                     // in which case .include() might pull in more dead code
-                    node.included = true;
+                    node.includeNode(context);
                     if (node.type === parseAst_js.Program)
                         break;
                     node = node.parent;
                 }
             }
+            // We need to make sure we include the correct path of the init
+            if (path.length > 0) {
+                this.init.includePath(limitConcatenatedPathDepth(this.initPath, path), context);
+                this.additionalInitializers?.forEach(initializer => initializer.includePath(UNKNOWN_PATH, context));
+            }
         }
     }
-    includeCallArguments(context, parameters) {
-        if (this.isReassigned || context.includedCallArguments.has(this.init)) {
-            for (const argument of parameters) {
-                argument.include(context, false);
-            }
+    includeCallArguments(interaction, context) {
+        if (this.isReassigned ||
+            context.includedCallArguments.has(this.init) ||
+            // This can be removed again once we can include arguments when called at
+            // a specific path
+            this.initPath.length > 0) {
+            includeInteraction(interaction, context);
         }
         else {
             context.includedCallArguments.add(this.init);
-            this.init.includeCallArguments(context, parameters);
+            this.init.includeCallArguments(interaction, context);
             context.includedCallArguments.delete(this.init);
         }
     }
@@ -6488,18 +8968,36 @@ class IdentifierBase extends NodeBase {
             }
         }
     }
-    include() {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        if (!this.included) {
-            this.included = true;
-            if (this.variable !== null) {
-                this.scope.context.includeVariableInModule(this.variable);
-            }
+    include(context, includeChildrenRecursively) {
+        if (!this.included)
+            this.includeNode(context);
+        if (includeChildrenRecursively) {
+            this.variable?.includePath(UNKNOWN_PATH, context);
         }
     }
-    includeCallArguments(context, parameters) {
-        this.variable.includeCallArguments(context, parameters);
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        if (this.variable !== null) {
+            this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
+        }
+    }
+    includePath(path, context) {
+        if (!this.included) {
+            this.included = true;
+            if (!this.deoptimized)
+                this.applyDeoptimizations();
+            if (this.variable !== null) {
+                this.scope.context.includeVariableInModule(this.variable, path, context);
+            }
+        }
+        else if (path.length > 0) {
+            this.variable?.includePath(path, context);
+        }
+    }
+    includeCallArguments(interaction, context) {
+        this.variable.includeCallArguments(interaction, context);
     }
     isPossibleTDZ() {
         // return cached value to avoid issues with the next tree-shaking pass
@@ -6582,10 +9080,39 @@ function closestParentFunctionOrProgram(node) {
     return node;
 }
 
+class ObjectMember extends ExpressionEntity {
+    constructor(object, path) {
+        super();
+        this.object = object;
+        this.path = path;
+    }
+    deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
+        this.object.deoptimizeArgumentsOnInteractionAtPath(interaction, [...this.path, ...path], recursionTracker);
+    }
+    deoptimizePath(path) {
+        this.object.deoptimizePath([...this.path, ...path]);
+    }
+    getLiteralValueAtPath(path, recursionTracker, origin) {
+        return this.object.getLiteralValueAtPath([...this.path, ...path], recursionTracker, origin);
+    }
+    getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin) {
+        return this.object.getReturnExpressionWhenCalledAtPath([...this.path, ...path], interaction, recursionTracker, origin);
+    }
+    hasEffectsOnInteractionAtPath(path, interaction, context) {
+        return this.object.hasEffectsOnInteractionAtPath([...this.path, ...path], interaction, context);
+    }
+}
+
 class Identifier extends IdentifierBase {
     constructor() {
         super(...arguments);
         this.variable = null;
+    }
+    get isDestructuringDeoptimized() {
+        return isFlagSet(this.flags, 16777216 /* Flag.destructuringDeoptimized */);
+    }
+    set isDestructuringDeoptimized(value) {
+        this.flags = setFlag(this.flags, 16777216 /* Flag.destructuringDeoptimized */, value);
     }
     addExportedVariables(variables, exportNamesByVariable) {
         if (exportNamesByVariable.has(this.variable)) {
@@ -6599,42 +9126,52 @@ class Identifier extends IdentifierBase {
             this.isVariableReference = true;
         }
     }
-    declare(kind, init) {
+    declare(kind, destructuredInitPath, init) {
         let variable;
         const { treeshake } = this.scope.context.options;
-        switch (kind) {
-            case 'var': {
-                variable = this.scope.addDeclaration(this, this.scope.context, init, kind);
-                if (treeshake && treeshake.correctVarValueBeforeDeclaration) {
-                    // Necessary to make sure the init is deoptimized. We cannot call deoptimizePath here.
-                    variable.markInitializersForDeoptimization();
-                }
-                break;
-            }
-            case 'function': {
-                // in strict mode, functions are only hoisted within a scope but not across block scopes
-                variable = this.scope.addDeclaration(this, this.scope.context, init, kind);
-                break;
-            }
-            case 'let':
-            case 'const':
-            case 'using':
-            case 'await using':
-            case 'class': {
-                variable = this.scope.addDeclaration(this, this.scope.context, init, kind);
-                break;
-            }
-            case 'parameter': {
-                variable = this.scope.addParameterDeclaration(this);
-                break;
-            }
-            /* istanbul ignore next */
-            default: {
-                /* istanbul ignore next */
-                throw new Error(`Internal Error: Unexpected identifier kind ${kind}.`);
+        if (kind === 'parameter') {
+            variable = this.scope.addParameterDeclaration(this, destructuredInitPath);
+        }
+        else {
+            variable = this.scope.addDeclaration(this, this.scope.context, init, destructuredInitPath, kind);
+            if (kind === 'var' && treeshake && treeshake.correctVarValueBeforeDeclaration) {
+                // Necessary to make sure the init is deoptimized. We cannot call deoptimizePath here.
+                variable.markInitializersForDeoptimization();
             }
         }
         return [(this.variable = variable)];
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        this.deoptimizePath(EMPTY_PATH);
+        init.deoptimizePath([...destructuredInitPath, UnknownKey]);
+    }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        return (destructuredInitPath.length > 0 &&
+            init.hasEffectsOnInteractionAtPath(destructuredInitPath, NODE_INTERACTION_UNKNOWN_ACCESS, context));
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        if (destructuredInitPath.length > 0 && !this.isDestructuringDeoptimized) {
+            this.isDestructuringDeoptimized = true;
+            init.deoptimizeArgumentsOnInteractionAtPath({
+                args: [new ObjectMember(init, destructuredInitPath.slice(0, -1))],
+                type: INTERACTION_ACCESSED
+            }, destructuredInitPath, SHARED_RECURSION_TRACKER);
+        }
+        const { propertyReadSideEffects } = this.scope.context.options
+            .treeshake;
+        if ((this.included ||=
+            destructuredInitPath.length > 0 &&
+                !context.brokenFlow &&
+                propertyReadSideEffects &&
+                (propertyReadSideEffects === 'always' ||
+                    init.hasEffectsOnInteractionAtPath(destructuredInitPath, NODE_INTERACTION_UNKNOWN_ACCESS, createHasEffectsContext())))) {
+            if (this.variable && !this.variable.included) {
+                this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
+            }
+            init.includePath(destructuredInitPath, context);
+            return true;
+        }
+        return false;
     }
     markDeclarationReached() {
         this.variable.initReached = true;
@@ -6688,18 +9225,17 @@ class Scope {
         - then the variable is still declared in the hoisted outer scope, but the initializer is assigned to the parameter
     - const, let, class, and function except in the cases above cannot redeclare anything
      */
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         const name = identifier.name;
         const existingVariable = this.hoistedVariables?.get(name) || this.variables.get(name);
         if (existingVariable) {
-            const existingKind = existingVariable.kind;
-            if (kind === 'var' && existingKind === 'var') {
+            if (kind === 'var' && existingVariable.kind === 'var') {
                 existingVariable.addDeclaration(identifier, init);
                 return existingVariable;
             }
             context.error(parseAst_js.logRedeclarationError(name), identifier.start);
         }
-        const newVariable = new LocalVariable(identifier.name, identifier, init, context, kind);
+        const newVariable = new LocalVariable(identifier.name, identifier, init, destructuredInitPath, context, kind);
         this.variables.set(name, newVariable);
         return newVariable;
     }
@@ -6875,7 +9411,6 @@ class MethodBase extends NodeBase {
         }
         return this.getAccessedValue()[0].hasEffectsOnInteractionAtPath(path, interaction, context);
     }
-    applyDeoptimizations() { }
     getAccessedValue() {
         if (this.accessedValue === null) {
             if (this.kind === 'get') {
@@ -6889,19 +9424,20 @@ class MethodBase extends NodeBase {
         return this.accessedValue;
     }
 }
+MethodBase.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+MethodBase.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class MethodDefinition extends MethodBase {
     hasEffects(context) {
         return super.hasEffects(context) || checkEffectForNodes(this.decorators, context);
     }
-    applyDeoptimizations() { }
 }
 
 class BlockScope extends ChildScope {
     constructor(parent) {
         super(parent, parent.context);
     }
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         if (kind === 'var') {
             const name = identifier.name;
             const existingVariable = this.hoistedVariables?.get(name) || this.variables.get(name);
@@ -6913,7 +9449,7 @@ class BlockScope extends ChildScope {
                 }
                 return context.error(parseAst_js.logRedeclarationError(name), identifier.start);
             }
-            const declaredVariable = this.parent.addDeclaration(identifier, context, init, kind);
+            const declaredVariable = this.parent.addDeclaration(identifier, context, init, destructuredInitPath, kind);
             // Necessary to make sure the init is deoptimized for conditional declarations.
             // We cannot call deoptimizePath here.
             declaredVariable.markInitializersForDeoptimization();
@@ -6921,7 +9457,7 @@ class BlockScope extends ChildScope {
             this.addHoistedVariable(name, declaredVariable);
             return declaredVariable;
         }
-        return super.addDeclaration(identifier, context, init, kind);
+        return super.addDeclaration(identifier, context, init, destructuredInitPath, kind);
     }
 }
 
@@ -6953,31 +9489,10 @@ class StaticBlock extends NodeBase {
         }
     }
 }
+StaticBlock.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+StaticBlock.prototype.applyDeoptimizations = doNotDeoptimize;
 function isStaticBlock(statement) {
     return statement.type === parseAst_js.StaticBlock;
-}
-
-class ObjectMember extends ExpressionEntity {
-    constructor(object, key) {
-        super();
-        this.object = object;
-        this.key = key;
-    }
-    deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
-        this.object.deoptimizeArgumentsOnInteractionAtPath(interaction, [this.key, ...path], recursionTracker);
-    }
-    deoptimizePath(path) {
-        this.object.deoptimizePath([this.key, ...path]);
-    }
-    getLiteralValueAtPath(path, recursionTracker, origin) {
-        return this.object.getLiteralValueAtPath([this.key, ...path], recursionTracker, origin);
-    }
-    getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin) {
-        return this.object.getReturnExpressionWhenCalledAtPath([this.key, ...path], interaction, recursionTracker, origin);
-    }
-    hasEffectsOnInteractionAtPath(path, interaction, context) {
-        return this.object.hasEffectsOnInteractionAtPath([this.key, ...path], interaction, context);
-    }
 }
 
 class ClassNode extends NodeBase {
@@ -7020,21 +9535,20 @@ class ClassNode extends NodeBase {
             : this.getObjectEntity().hasEffectsOnInteractionAtPath(path, interaction, context);
     }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         this.superClass?.include(context, includeChildrenRecursively);
         this.body.include(context, includeChildrenRecursively);
         for (const decorator of this.decorators)
             decorator.include(context, includeChildrenRecursively);
         if (this.id) {
             this.id.markDeclarationReached();
-            this.id.include();
+            this.id.include(context, includeChildrenRecursively);
         }
     }
     initialise() {
         super.initialise();
-        this.id?.declare('class', this);
+        this.id?.declare('class', EMPTY_PATH, this);
         for (const method of this.body.body) {
             if (method instanceof MethodDefinition && method.kind === 'constructor') {
                 this.classConstructor = method;
@@ -7092,11 +9606,12 @@ class ClassNode extends NodeBase {
         staticProperties.unshift({
             key: 'prototype',
             kind: 'init',
-            property: new ObjectEntity(dynamicMethods, this.superClass ? new ObjectMember(this.superClass, 'prototype') : OBJECT_PROTOTYPE)
+            property: new ObjectEntity(dynamicMethods, this.superClass ? new ObjectMember(this.superClass, ['prototype']) : OBJECT_PROTOTYPE)
         });
         return (this.objectEntity = new ObjectEntity(staticProperties, this.superClass || OBJECT_PROTOTYPE));
     }
 }
+ClassNode.prototype.includeNode = onlyIncludeSelf;
 
 class ClassDeclaration extends ClassNode {
     initialise() {
@@ -7149,53 +9664,60 @@ class ClassDeclaration extends ClassNode {
 
 class ArgumentsVariable extends LocalVariable {
     constructor(context) {
-        super('arguments', null, UNKNOWN_EXPRESSION, context, 'other');
-        this.deoptimizedArguments = [];
+        super('arguments', null, UNKNOWN_EXPRESSION, EMPTY_PATH, context, 'other');
     }
-    addArgumentToBeDeoptimized(argument) {
-        if (this.included) {
-            argument.deoptimizePath(UNKNOWN_PATH);
-        }
-        else {
-            this.deoptimizedArguments.push(argument);
-        }
+    addArgumentToBeDeoptimized(_argument) { }
+    // Only If there is at least one reference, then we need to track all
+    // arguments in order to be able to deoptimize them.
+    addReference() {
+        this.deoptimizedArguments = [];
+        this.addArgumentToBeDeoptimized = addArgumentToBeDeoptimized;
     }
     hasEffectsOnInteractionAtPath(path, { type }) {
         return type !== INTERACTION_ACCESSED || path.length > 1;
     }
-    include() {
-        super.include();
+    includePath(path, context) {
+        super.includePath(path, context);
         for (const argument of this.deoptimizedArguments) {
             argument.deoptimizePath(UNKNOWN_PATH);
         }
         this.deoptimizedArguments.length = 0;
     }
 }
+function addArgumentToBeDeoptimized(argument) {
+    if (this.included) {
+        argument.deoptimizePath(UNKNOWN_PATH);
+    }
+    else {
+        this.deoptimizedArguments?.push(argument);
+    }
+}
 
 const MAX_TRACKED_INTERACTIONS = 20;
 const NO_INTERACTIONS = parseAst_js.EMPTY_ARRAY;
 const UNKNOWN_DEOPTIMIZED_FIELD = new Set([UnknownKey]);
-const EMPTY_PATH_TRACKER = new PathTracker();
+const EMPTY_PATH_TRACKER = new EntityPathTracker();
 const UNKNOWN_DEOPTIMIZED_ENTITY = new Set([UNKNOWN_EXPRESSION]);
 class ParameterVariable extends LocalVariable {
-    constructor(name, declarator, context) {
-        super(name, declarator, UNKNOWN_EXPRESSION, context, 'parameter');
+    constructor(name, declarator, argumentPath, context) {
+        super(name, declarator, UNKNOWN_EXPRESSION, argumentPath, context, 'parameter');
+        this.includedPathTracker = new IncludedTopLevelPathTracker();
+        this.argumentsToBeDeoptimized = new Set();
         this.deoptimizationInteractions = [];
-        this.deoptimizations = new PathTracker();
+        this.deoptimizations = new EntityPathTracker();
         this.deoptimizedFields = new Set();
-        this.entitiesToBeDeoptimized = new Set();
-        this.expressionsUseTheKnownValue = [];
+        this.expressionsDependingOnKnownValue = [];
         this.knownValue = null;
         this.knownValueLiteral = UnknownValue;
-        this.frozenValue = null;
     }
-    addEntityToBeDeoptimized(entity) {
+    addArgumentForDeoptimization(entity) {
+        this.updateKnownValue(entity);
         if (entity === UNKNOWN_EXPRESSION) {
             // As unknown expressions fully deoptimize all interactions, we can clear
             // the interaction cache at this point provided we keep this optimization
             // in mind when adding new interactions
-            if (!this.entitiesToBeDeoptimized.has(UNKNOWN_EXPRESSION)) {
-                this.entitiesToBeDeoptimized.add(UNKNOWN_EXPRESSION);
+            if (!this.argumentsToBeDeoptimized.has(UNKNOWN_EXPRESSION)) {
+                this.argumentsToBeDeoptimized.add(UNKNOWN_EXPRESSION);
                 for (const { interaction } of this.deoptimizationInteractions) {
                     deoptimizeInteraction(interaction);
                 }
@@ -7205,27 +9727,30 @@ class ParameterVariable extends LocalVariable {
         else if (this.deoptimizedFields.has(UnknownKey)) {
             // This means that we already deoptimized all interactions and no longer
             // track them
-            entity.deoptimizePath(UNKNOWN_PATH);
+            entity.deoptimizePath([...this.initPath, UnknownKey]);
         }
-        else if (!this.entitiesToBeDeoptimized.has(entity)) {
-            this.entitiesToBeDeoptimized.add(entity);
+        else if (!this.argumentsToBeDeoptimized.has(entity)) {
+            this.argumentsToBeDeoptimized.add(entity);
             for (const field of this.deoptimizedFields) {
-                entity.deoptimizePath([field]);
+                entity.deoptimizePath([...this.initPath, field]);
             }
             for (const { interaction, path } of this.deoptimizationInteractions) {
-                entity.deoptimizeArgumentsOnInteractionAtPath(interaction, path, SHARED_RECURSION_TRACKER);
+                entity.deoptimizeArgumentsOnInteractionAtPath(interaction, [...this.initPath, ...path], SHARED_RECURSION_TRACKER);
             }
         }
     }
+    /** This says we should not make assumptions about the value of the parameter.
+     *  This is different from deoptimization that will also cause argument values
+     *  to be deoptimized. */
     markReassigned() {
         if (this.isReassigned) {
             return;
         }
         super.markReassigned();
-        for (const expression of this.expressionsUseTheKnownValue) {
+        for (const expression of this.expressionsDependingOnKnownValue) {
             expression.deoptimizeCache();
         }
-        this.expressionsUseTheKnownValue = parseAst_js.EMPTY_ARRAY;
+        this.expressionsDependingOnKnownValue = parseAst_js.EMPTY_ARRAY;
     }
     deoptimizeCache() {
         this.markReassigned();
@@ -7242,7 +9767,7 @@ class ParameterVariable extends LocalVariable {
         }
         if (this.knownValue === null) {
             this.knownValue = argument;
-            this.knownValueLiteral = argument.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
+            this.knownValueLiteral = argument.getLiteralValueAtPath(this.initPath, SHARED_RECURSION_TRACKER, this);
             return;
         }
         // the same literal or identifier, do nothing
@@ -7252,14 +9777,10 @@ class ParameterVariable extends LocalVariable {
                 this.knownValue.variable === argument.variable)) {
             return;
         }
-        const oldValue = this.knownValueLiteral;
-        if (typeof oldValue === 'symbol') {
-            this.markReassigned();
-            return;
-        }
-        // add tracking for the new argument
-        const newValue = argument.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
-        if (newValue !== oldValue) {
+        const { knownValueLiteral } = this;
+        if (typeof knownValueLiteral === 'symbol' ||
+            argument.getLiteralValueAtPath(this.initPath, SHARED_RECURSION_TRACKER, this) !==
+                knownValueLiteral) {
             this.markReassigned();
         }
     }
@@ -7270,42 +9791,47 @@ class ParameterVariable extends LocalVariable {
      * @returns the frozen value
      */
     getKnownValue() {
-        if (this.frozenValue === null) {
-            this.frozenValue = this.knownValue || UNKNOWN_EXPRESSION;
-        }
-        return this.frozenValue;
+        return this.knownValue || UNKNOWN_EXPRESSION;
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
-        if (this.isReassigned) {
+        if (this.isReassigned || path.length + this.initPath.length > MAX_PATH_DEPTH) {
             return UnknownValue;
         }
         const knownValue = this.getKnownValue();
-        this.expressionsUseTheKnownValue.push(origin);
-        return recursionTracker.withTrackedEntityAtPath(path, knownValue, () => knownValue.getLiteralValueAtPath(path, recursionTracker, origin), UnknownValue);
+        this.expressionsDependingOnKnownValue.push(origin);
+        return recursionTracker.withTrackedEntityAtPath(path, knownValue, () => knownValue.getLiteralValueAtPath([...this.initPath, ...path], recursionTracker, origin), UnknownValue);
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
-        if (this.isReassigned || interaction.type === INTERACTION_ASSIGNED) {
+        const { type } = interaction;
+        if (this.isReassigned ||
+            type === INTERACTION_ASSIGNED ||
+            path.length + this.initPath.length > MAX_PATH_DEPTH) {
             return super.hasEffectsOnInteractionAtPath(path, interaction, context);
         }
-        const knownValue = this.getKnownValue();
-        return knownValue.hasEffectsOnInteractionAtPath(path, interaction, context);
+        return (!(type === INTERACTION_CALLED
+            ? (interaction.withNew
+                ? context.instantiated
+                : context.called).trackEntityAtPathAndGetIfTracked(path, interaction.args, this)
+            : context.accessed.trackEntityAtPathAndGetIfTracked(path, this)) &&
+            this.getKnownValue().hasEffectsOnInteractionAtPath([...this.initPath, ...path], interaction, context));
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path) {
         // For performance reasons, we fully deoptimize all deeper interactions
         if (path.length >= 2 ||
-            this.entitiesToBeDeoptimized.has(UNKNOWN_EXPRESSION) ||
+            this.argumentsToBeDeoptimized.has(UNKNOWN_EXPRESSION) ||
             this.deoptimizationInteractions.length >= MAX_TRACKED_INTERACTIONS ||
             (path.length === 1 &&
                 (this.deoptimizedFields.has(UnknownKey) ||
-                    (interaction.type === INTERACTION_CALLED && this.deoptimizedFields.has(path[0]))))) {
+                    (interaction.type === INTERACTION_CALLED && this.deoptimizedFields.has(path[0])))) ||
+            this.initPath.length + path.length > MAX_PATH_DEPTH) {
             deoptimizeInteraction(interaction);
             return;
         }
         if (!this.deoptimizations.trackEntityAtPathAndGetIfTracked(path, interaction.args)) {
-            for (const entity of this.entitiesToBeDeoptimized) {
-                entity.deoptimizeArgumentsOnInteractionAtPath(interaction, path, SHARED_RECURSION_TRACKER);
+            for (const entity of this.argumentsToBeDeoptimized) {
+                entity.deoptimizeArgumentsOnInteractionAtPath(interaction, [...this.initPath, ...path], SHARED_RECURSION_TRACKER);
             }
-            if (!this.entitiesToBeDeoptimized.has(UNKNOWN_EXPRESSION)) {
+            if (!this.argumentsToBeDeoptimized.has(UNKNOWN_EXPRESSION)) {
                 this.deoptimizationInteractions.push({
                     interaction,
                     path
@@ -7326,17 +9852,17 @@ class ParameterVariable extends LocalVariable {
             return;
         }
         this.deoptimizedFields.add(key);
-        for (const entity of this.entitiesToBeDeoptimized) {
+        for (const entity of this.argumentsToBeDeoptimized) {
             // We do not need a recursion tracker here as we already track whether
             // this field is deoptimized
-            entity.deoptimizePath([key]);
+            entity.deoptimizePath([...this.initPath, key]);
         }
         if (key === UnknownKey) {
             // save some memory
             this.deoptimizationInteractions = NO_INTERACTIONS;
             this.deoptimizations = EMPTY_PATH_TRACKER;
             this.deoptimizedFields = UNKNOWN_DEOPTIMIZED_FIELD;
-            this.entitiesToBeDeoptimized = UNKNOWN_DEOPTIMIZED_ENTITY;
+            this.argumentsToBeDeoptimized = UNKNOWN_DEOPTIMIZED_ENTITY;
         }
     }
     getReturnExpressionWhenCalledAtPath(path) {
@@ -7351,11 +9877,14 @@ class ParameterVariable extends LocalVariable {
         }
         return UNKNOWN_RETURN_EXPRESSION;
     }
+    includeArgumentPaths(entity, context) {
+        this.includedPathTracker.includeAllPaths(entity, context, this.initPath);
+    }
 }
 
 class ThisVariable extends ParameterVariable {
     constructor(context) {
-        super('this', null, context);
+        super('this', null, EMPTY_PATH, context);
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return (context.replacedVariableInits.get(this) || UNKNOWN_EXPRESSION).hasEffectsOnInteractionAtPath(path, interaction, context);
@@ -7367,7 +9896,7 @@ class CatchBodyScope extends ChildScope {
         super(parent, parent.context);
         this.parent = parent;
     }
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         if (kind === 'var') {
             const name = identifier.name;
             const existingVariable = this.hoistedVariables?.get(name) || this.variables.get(name);
@@ -7380,7 +9909,7 @@ class CatchBodyScope extends ChildScope {
                     // the assignment actually goes to the parameter and the var is
                     // hoisted without assignment. Locally, it is shadowed by the
                     // parameter
-                    const declaredVariable = this.parent.parent.addDeclaration(identifier, context, UNDEFINED_EXPRESSION, kind);
+                    const declaredVariable = this.parent.parent.addDeclaration(identifier, context, UNDEFINED_EXPRESSION, destructuredInitPath, kind);
                     // To avoid the need to rewrite the declaration, we link the variable
                     // names. If we ever implement a logic that splits initialization and
                     // assignment for hoisted vars, the "renderLikeHoisted" logic can be
@@ -7399,7 +9928,7 @@ class CatchBodyScope extends ChildScope {
                 return context.error(parseAst_js.logRedeclarationError(name), identifier.start);
             }
             // We only add parameters to parameter scopes
-            const declaredVariable = this.parent.parent.addDeclaration(identifier, context, init, kind);
+            const declaredVariable = this.parent.parent.addDeclaration(identifier, context, init, destructuredInitPath, kind);
             // Necessary to make sure the init is deoptimized for conditional declarations.
             // We cannot call deoptimizePath here.
             declaredVariable.markInitializersForDeoptimization();
@@ -7407,7 +9936,7 @@ class CatchBodyScope extends ChildScope {
             this.addHoistedVariable(name, declaredVariable);
             return declaredVariable;
         }
-        return super.addDeclaration(identifier, context, init, kind);
+        return super.addDeclaration(identifier, context, init, destructuredInitPath, kind);
     }
 }
 
@@ -7417,7 +9946,7 @@ class FunctionBodyScope extends ChildScope {
     }
     // There is stuff that is only allowed in function scopes, i.e. functions can
     // be redeclared, functions and var can redeclare each other
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         const name = identifier.name;
         const existingVariable = this.hoistedVariables?.get(name) || this.variables.get(name);
         if (existingVariable) {
@@ -7429,7 +9958,7 @@ class FunctionBodyScope extends ChildScope {
             }
             context.error(parseAst_js.logRedeclarationError(name), identifier.start);
         }
-        const newVariable = new LocalVariable(identifier.name, identifier, init, context, kind);
+        const newVariable = new LocalVariable(identifier.name, identifier, init, destructuredInitPath, context, kind);
         this.variables.set(name, newVariable);
         return newVariable;
     }
@@ -7438,21 +9967,21 @@ class FunctionBodyScope extends ChildScope {
 class ParameterScope extends ChildScope {
     constructor(parent, isCatchScope) {
         super(parent, parent.context);
-        this.parameters = [];
         this.hasRest = false;
+        this.parameters = [];
         this.bodyScope = isCatchScope ? new CatchBodyScope(this) : new FunctionBodyScope(this);
     }
     /**
      * Adds a parameter to this scope. Parameters must be added in the correct
      * order, i.e. from left to right.
      */
-    addParameterDeclaration(identifier) {
+    addParameterDeclaration(identifier, argumentPath) {
         const { name, start } = identifier;
         const existingParameter = this.variables.get(name);
         if (existingParameter) {
             return this.context.error(parseAst_js.logDuplicateArgumentNameError(name), start);
         }
-        const variable = new ParameterVariable(name, identifier, this.context);
+        const variable = new ParameterVariable(name, identifier, argumentPath, this.context);
         this.variables.set(name, variable);
         // We also add it to the body scope to detect name conflicts with local
         // variables. We still need the intermediate scope, though, as parameter
@@ -7470,42 +9999,55 @@ class ParameterScope extends ChildScope {
         }
         this.hasRest = hasRest;
     }
-    includeCallArguments(context, parameters) {
+    includeCallArguments({ args }, context) {
         let calledFromTryStatement = false;
         let argumentIncluded = false;
         const restParameter = this.hasRest && this.parameters[this.parameters.length - 1];
-        for (const checkedArgument of parameters) {
-            if (checkedArgument instanceof SpreadElement) {
-                for (const argument of parameters) {
-                    argument.include(context, false);
-                }
-                break;
+        let lastExplicitlyIncludedIndex = args.length - 1;
+        // If there is a SpreadElement, we need to include all arguments after it
+        // because we no longer know which argument corresponds to which parameter.
+        for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex++) {
+            const argument = args[argumentIndex];
+            if (argument instanceof SpreadElement && !argumentIncluded) {
+                argumentIncluded = true;
+                lastExplicitlyIncludedIndex = argumentIndex - 1;
+            }
+            if (argumentIncluded) {
+                argument.includePath(UNKNOWN_PATH, context);
+                argument.include(context, false);
             }
         }
-        for (let index = parameters.length - 1; index >= 0; index--) {
-            const parameterVariables = this.parameters[index] || restParameter;
-            const argument = parameters[index];
+        // Now we go backwards either starting from the last argument or before the
+        // first SpreadElement to ensure all arguments before are included as needed
+        for (let index = lastExplicitlyIncludedIndex; index >= 1; index--) {
+            const parameterVariables = this.parameters[index - 1] || restParameter;
+            const argument = args[index];
             if (parameterVariables) {
                 calledFromTryStatement = false;
                 if (parameterVariables.length === 0) {
-                    // handle empty destructuring
+                    // handle empty destructuring to avoid destructuring undefined
                     argumentIncluded = true;
                 }
                 else {
-                    for (const variable of parameterVariables) {
-                        if (variable.included) {
-                            argumentIncluded = true;
-                        }
-                        if (variable.calledFromTryStatement) {
+                    for (const parameterVariable of parameterVariables) {
+                        if (parameterVariable.calledFromTryStatement) {
                             calledFromTryStatement = true;
+                        }
+                        if (parameterVariable.included) {
+                            argumentIncluded = true;
+                            if (calledFromTryStatement) {
+                                argument.include(context, true);
+                            }
+                            else {
+                                parameterVariable.includeArgumentPaths(argument, context);
+                                argument.include(context, false);
+                            }
                         }
                     }
                 }
             }
-            if (!argumentIncluded && argument.shouldBeIncluded(context)) {
+            if (argumentIncluded || argument.shouldBeIncluded(context)) {
                 argumentIncluded = true;
-            }
-            if (argumentIncluded) {
                 argument.include(context, calledFromTryStatement);
             }
         }
@@ -7521,11 +10063,63 @@ class ReturnValueScope extends ParameterScope {
     addReturnExpression(expression) {
         this.returnExpressions.push(expression);
     }
+    deoptimizeArgumentsOnCall({ args }) {
+        const { parameters } = this;
+        let position = 0;
+        for (; position < args.length - 1; position++) {
+            // Only the "this" argument arg[0] can be null
+            const argument = args[position + 1];
+            if (argument instanceof SpreadElement) {
+                // This deoptimizes the current and remaining parameters and arguments
+                for (; position < parameters.length; position++) {
+                    args[position + 1]?.deoptimizePath(UNKNOWN_PATH);
+                    for (const variable of parameters[position]) {
+                        variable.markReassigned();
+                    }
+                }
+                break;
+            }
+            if (this.hasRest && position >= parameters.length - 1) {
+                argument.deoptimizePath(UNKNOWN_PATH);
+            }
+            else {
+                const variables = parameters[position];
+                if (variables) {
+                    for (const variable of variables) {
+                        variable.addArgumentForDeoptimization(argument);
+                    }
+                }
+                this.addArgumentToBeDeoptimized(argument);
+            }
+        }
+        const nonRestParameterLength = this.hasRest ? parameters.length - 1 : parameters.length;
+        for (; position < nonRestParameterLength; position++) {
+            for (const variable of parameters[position]) {
+                variable.addArgumentForDeoptimization(UNDEFINED_EXPRESSION);
+            }
+        }
+    }
     getReturnExpression() {
         if (this.returnExpression === null)
             this.updateReturnExpression();
         return this.returnExpression;
     }
+    deoptimizeAllParameters() {
+        for (const parameter of this.parameters) {
+            for (const variable of parameter) {
+                variable.deoptimizePath(UNKNOWN_PATH);
+                variable.markReassigned();
+            }
+        }
+    }
+    reassignAllParameters() {
+        for (const parameter of this.parameters) {
+            for (const variable of parameter) {
+                variable.markReassigned();
+            }
+        }
+    }
+    addArgumentToBeDeoptimized(_argument) { }
     updateReturnExpression() {
         if (this.returnExpressions.length === 1) {
             this.returnExpression = this.returnExpressions[0];
@@ -7540,24 +10134,31 @@ class ReturnValueScope extends ParameterScope {
 }
 
 class FunctionScope extends ReturnValueScope {
-    constructor(parent) {
-        const { context } = parent;
+    constructor(parent, functionNode) {
         super(parent, false);
+        this.functionNode = functionNode;
+        const { context } = parent;
         this.variables.set('arguments', (this.argumentsVariable = new ArgumentsVariable(context)));
         this.variables.set('this', (this.thisVariable = new ThisVariable(context)));
     }
     findLexicalBoundary() {
         return this;
     }
-    includeCallArguments(context, parameters) {
-        super.includeCallArguments(context, parameters);
+    includeCallArguments(interaction, context) {
+        super.includeCallArguments(interaction, context);
         if (this.argumentsVariable.included) {
-            for (const argument of parameters) {
-                if (!argument.included) {
+            const { args } = interaction;
+            for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex++) {
+                const argument = args[argumentIndex];
+                if (argument) {
+                    argument.includePath(UNKNOWN_PATH, context);
                     argument.include(context, false);
                 }
             }
         }
+    }
+    addArgumentToBeDeoptimized(argument) {
+        this.argumentsVariable.addArgumentToBeDeoptimized(argument);
     }
 }
 
@@ -7586,8 +10187,9 @@ class ExpressionStatement extends NodeBase {
             return this.parent.type !== parseAst_js.Program;
         return super.shouldBeIncluded(context);
     }
-    applyDeoptimizations() { }
 }
+ExpressionStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ExpressionStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class BlockStatement extends NodeBase {
     get deoptimizeBody() {
@@ -7652,6 +10254,8 @@ class BlockStatement extends NodeBase {
         }
     }
 }
+BlockStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+BlockStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class RestElement extends NodeBase {
     constructor() {
@@ -7661,9 +10265,12 @@ class RestElement extends NodeBase {
     addExportedVariables(variables, exportNamesByVariable) {
         this.argument.addExportedVariables(variables, exportNamesByVariable);
     }
-    declare(kind, init) {
+    declare(kind, destructuredInitPath, init) {
         this.declarationInit = init;
-        return this.argument.declare(kind, UNKNOWN_EXPRESSION);
+        return this.argument.declare(kind, getIncludedPatternPath$1(destructuredInitPath), init);
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        this.argument.deoptimizeAssignment(getIncludedPatternPath$1(destructuredInitPath), init);
     }
     deoptimizePath(path) {
         if (path.length === 0) {
@@ -7673,6 +10280,20 @@ class RestElement extends NodeBase {
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return (path.length > 0 ||
             this.argument.hasEffectsOnInteractionAtPath(EMPTY_PATH, interaction, context));
+    }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        return this.argument.hasEffectsWhenDestructuring(context, getIncludedPatternPath$1(destructuredInitPath), init);
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        return (this.included =
+            this.argument.includeDestructuredIfNecessary(context, getIncludedPatternPath$1(destructuredInitPath), init) || this.included);
+    }
+    include(context, includeChildrenRecursively) {
+        if (!this.included)
+            this.includeNode(context);
+        // This should just include the identifier, its properties should be
+        // included where the variable is used.
+        this.argument.include(context, includeChildrenRecursively);
     }
     markDeclarationReached() {
         this.argument.markDeclarationReached();
@@ -7685,12 +10306,16 @@ class RestElement extends NodeBase {
         }
     }
 }
+RestElement.prototype.includeNode = onlyIncludeSelf;
+const getIncludedPatternPath$1 = (destructuredInitPath) => destructuredInitPath.at(-1) === UnknownKey
+    ? destructuredInitPath
+    : [...destructuredInitPath, UnknownKey];
 
 class FunctionBase extends NodeBase {
     constructor() {
         super(...arguments);
-        this.objectEntity = null;
         this.parameterVariableValuesDeoptimized = false;
+        this.includeCallArguments = this.scope.includeCallArguments.bind(this.scope);
     }
     get async() {
         return isFlagSet(this.flags, 256 /* Flag.async */);
@@ -7710,53 +10335,15 @@ class FunctionBase extends NodeBase {
     set generator(value) {
         this.flags = setFlag(this.flags, 4194304 /* Flag.generator */, value);
     }
-    updateParameterVariableValues(_arguments) {
-        for (let position = 0; position < this.params.length; position++) {
-            const parameter = this.params[position];
-            if (!(parameter instanceof Identifier)) {
-                continue;
-            }
-            const parameterVariable = parameter.variable;
-            const argument = _arguments[position + 1] ?? UNDEFINED_EXPRESSION;
-            parameterVariable.updateKnownValue(argument);
-        }
+    get hasCachedEffects() {
+        return isFlagSet(this.flags, 67108864 /* Flag.hasEffects */);
     }
-    deoptimizeParameterVariableValues() {
-        for (const parameter of this.params) {
-            if (parameter instanceof Identifier) {
-                const parameterVariable = parameter.variable;
-                parameterVariable.markReassigned();
-            }
-        }
+    set hasCachedEffects(value) {
+        this.flags = setFlag(this.flags, 67108864 /* Flag.hasEffects */, value);
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
-        if (interaction.type === INTERACTION_CALLED) {
-            const { parameters } = this.scope;
-            const { args } = interaction;
-            let hasRest = false;
-            for (let position = 0; position < args.length - 1; position++) {
-                const parameter = this.params[position];
-                // Only the "this" argument arg[0] can be null
-                const argument = args[position + 1];
-                if (argument instanceof SpreadElement) {
-                    this.deoptimizeParameterVariableValues();
-                }
-                if (hasRest || parameter instanceof RestElement) {
-                    hasRest = true;
-                    argument.deoptimizePath(UNKNOWN_PATH);
-                }
-                else if (parameter instanceof Identifier) {
-                    parameters[position][0].addEntityToBeDeoptimized(argument);
-                    this.addArgumentToBeDeoptimized(argument);
-                }
-                else if (parameter) {
-                    argument.deoptimizePath(UNKNOWN_PATH);
-                }
-                else {
-                    this.addArgumentToBeDeoptimized(argument);
-                }
-            }
-            this.updateParameterVariableValues(args);
+        if (interaction.type === INTERACTION_CALLED && path.length === 0) {
+            this.scope.deoptimizeArgumentsOnCall(interaction);
         }
         else {
             this.getObjectEntity().deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
@@ -7768,12 +10355,7 @@ class FunctionBase extends NodeBase {
             // A reassignment of UNKNOWN_PATH is considered equivalent to having lost track
             // which means the return expression and parameters need to be reassigned
             this.scope.getReturnExpression().deoptimizePath(UNKNOWN_PATH);
-            for (const parameterList of this.scope.parameters) {
-                for (const parameter of parameterList) {
-                    parameter.deoptimizePath(UNKNOWN_PATH);
-                    parameter.markReassigned();
-                }
-            }
+            this.scope.deoptimizeAllParameters();
         }
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
@@ -7797,8 +10379,8 @@ class FunctionBase extends NodeBase {
         if (path.length > 0 || interaction.type !== INTERACTION_CALLED) {
             return this.getObjectEntity().hasEffectsOnInteractionAtPath(path, interaction, context);
         }
-        if (this.annotationNoSideEffects) {
-            return false;
+        if (this.hasCachedEffects) {
+            return true;
         }
         if (this.async) {
             const { propertyReadSideEffects } = this.scope.context.options
@@ -7808,12 +10390,20 @@ class FunctionBase extends NodeBase {
                 (propertyReadSideEffects &&
                     (propertyReadSideEffects === 'always' ||
                         returnExpression.hasEffectsOnInteractionAtPath(['then'], NODE_INTERACTION_UNKNOWN_ACCESS, context)))) {
+                this.hasCachedEffects = true;
                 return true;
             }
         }
-        for (const parameter of this.params) {
-            if (parameter.hasEffects(context))
+        const { propertyReadSideEffects } = this.scope.context.options
+            .treeshake;
+        for (let index = 0; index < this.params.length; index++) {
+            const parameter = this.params[index];
+            if (parameter.hasEffects(context) ||
+                (propertyReadSideEffects &&
+                    parameter.hasEffectsWhenDestructuring(context, EMPTY_PATH, interaction.args[index + 1] || UNDEFINED_EXPRESSION))) {
+                this.hasCachedEffects = true;
                 return true;
+            }
         }
         return false;
     }
@@ -7831,20 +10421,16 @@ class FunctionBase extends NodeBase {
         return variable?.getOnlyFunctionCallUsed() ?? false;
     }
     include(context, includeChildrenRecursively) {
-        if (!this.parameterVariableValuesDeoptimized && !this.onlyFunctionCallUsed()) {
+        if (!this.included)
+            this.includeNode(context);
+        if (!(this.parameterVariableValuesDeoptimized || this.onlyFunctionCallUsed())) {
             this.parameterVariableValuesDeoptimized = true;
-            this.deoptimizeParameterVariableValues();
+            this.scope.reassignAllParameters();
         }
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        this.included = true;
         const { brokenFlow } = context;
         context.brokenFlow = false;
         this.body.include(context, includeChildrenRecursively);
         context.brokenFlow = brokenFlow;
-    }
-    includeCallArguments(context, parameters) {
-        this.scope.includeCallArguments(context, parameters);
     }
     initialise() {
         super.initialise();
@@ -7867,14 +10453,14 @@ class FunctionBase extends NodeBase {
         // so that the scope already knows all parameters and can detect conflicts
         // when parsing the body.
         const parameters = (this.params = params.map((parameter) => new (context.getNodeConstructor(parameter.type))(this, scope).parseNode(parameter)));
-        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
+        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
         this.body = new (context.getNodeConstructor(body.type))(this, bodyScope).parseNode(body);
         return super.parseNode(esTreeNode);
     }
-    addArgumentToBeDeoptimized(_argument) { }
-    applyDeoptimizations() { }
 }
 FunctionBase.prototype.preventChildBlockScope = true;
+FunctionBase.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+FunctionBase.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class FunctionNode extends FunctionBase {
     constructor() {
@@ -7882,34 +10468,35 @@ class FunctionNode extends FunctionBase {
         this.objectEntity = null;
     }
     createScope(parentScope) {
-        this.scope = new FunctionScope(parentScope);
+        this.scope = new FunctionScope(parentScope, this);
         this.constructedEntity = new ObjectEntity(Object.create(null), OBJECT_PROTOTYPE);
         // This makes sure that all deoptimizations of "this" are applied to the
         // constructed entity.
-        this.scope.thisVariable.addEntityToBeDeoptimized(this.constructedEntity);
+        this.scope.thisVariable.addArgumentForDeoptimization(this.constructedEntity);
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
         super.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
         if (interaction.type === INTERACTION_CALLED && path.length === 0 && interaction.args[0]) {
             // args[0] is the "this" argument
-            this.scope.thisVariable.addEntityToBeDeoptimized(interaction.args[0]);
+            this.scope.thisVariable.addArgumentForDeoptimization(interaction.args[0]);
         }
     }
     hasEffects(context) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
         if (this.annotationNoSideEffects) {
             return false;
         }
         return !!this.id?.hasEffects(context);
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
-        if (super.hasEffectsOnInteractionAtPath(path, interaction, context))
-            return true;
-        if (this.annotationNoSideEffects) {
+        if (this.annotationNoSideEffects &&
+            path.length === 0 &&
+            interaction.type === INTERACTION_CALLED) {
             return false;
         }
-        if (interaction.type === INTERACTION_CALLED) {
+        if (super.hasEffectsOnInteractionAtPath(path, interaction, context)) {
+            return true;
+        }
+        if (path.length === 0 && interaction.type === INTERACTION_CALLED) {
             const thisInit = context.replacedVariableInits.get(this.scope.thisVariable);
             context.replacedVariableInits.set(this.scope.thisVariable, interaction.withNew ? this.constructedEntity : UNKNOWN_EXPRESSION);
             const { brokenFlow, ignore, replacedVariableInits } = context;
@@ -7920,8 +10507,10 @@ class FunctionNode extends FunctionBase {
                 returnYield: true,
                 this: interaction.withNew
             };
-            if (this.body.hasEffects(context))
+            if (this.body.hasEffects(context)) {
+                this.hasCachedEffects = true;
                 return true;
+            }
             context.brokenFlow = brokenFlow;
             if (thisInit) {
                 replacedVariableInits.set(this.scope.thisVariable, thisInit);
@@ -7935,7 +10524,7 @@ class FunctionNode extends FunctionBase {
     }
     include(context, includeChildrenRecursively) {
         super.include(context, includeChildrenRecursively);
-        this.id?.include();
+        this.id?.include(context, includeChildrenRecursively);
         const hasArguments = this.scope.argumentsVariable.included;
         for (const parameter of this.params) {
             if (!(parameter instanceof Identifier) || hasArguments) {
@@ -7943,12 +10532,18 @@ class FunctionNode extends FunctionBase {
             }
         }
     }
+    includeNode(context) {
+        this.included = true;
+        const hasArguments = this.scope.argumentsVariable.included;
+        for (const parameter of this.params) {
+            if (!(parameter instanceof Identifier) || hasArguments) {
+                parameter.includePath(UNKNOWN_PATH, context);
+            }
+        }
+    }
     initialise() {
         super.initialise();
-        this.id?.declare('function', this);
-    }
-    addArgumentToBeDeoptimized(argument) {
-        this.scope.argumentsVariable.addArgumentToBeDeoptimized(argument);
+        this.id?.declare('function', EMPTY_PATH, this);
     }
     getObjectEntity() {
         if (this.objectEntity !== null) {
@@ -7998,10 +10593,15 @@ function getFunctionIdInsertPosition(code, start) {
 }
 class ExportDefaultDeclaration extends NodeBase {
     include(context, includeChildrenRecursively) {
-        super.include(context, includeChildrenRecursively);
+        this.included = true;
+        this.declaration.include(context, includeChildrenRecursively);
         if (includeChildrenRecursively) {
-            this.scope.context.includeVariableInModule(this.variable);
+            this.scope.context.includeVariableInModule(this.variable, UNKNOWN_PATH, context);
         }
+    }
+    includePath(path, context) {
+        this.included = true;
+        this.declaration.includePath(path, context);
     }
     initialise() {
         super.initialise();
@@ -8047,7 +10647,6 @@ class ExportDefaultDeclaration extends NodeBase {
         }
         this.declaration.render(code, options);
     }
-    applyDeoptimizations() { }
     renderNamedDeclaration(code, declarationStart, idInsertPosition, options) {
         const { exportNamesByVariable, format, snippets: { getPropertyAccess } } = options;
         const name = this.variable.getName(getPropertyAccess);
@@ -8078,6 +10677,8 @@ class ExportDefaultDeclaration extends NodeBase {
     }
 }
 ExportDefaultDeclaration.prototype.needsBoundaries = true;
+ExportDefaultDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ExportDefaultDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
 
 const needsEscapeRegEx = /[\n\r'\\\u2028\u2029]/;
 const quoteNewlineRegEx = /([\n\r'\u2028\u2029])/g;
@@ -8347,6 +10948,7 @@ class Literal extends NodeBase {
         }
     }
 }
+Literal.prototype.includeNode = onlyIncludeSelf;
 
 function getChainElementLiteralValueAtPath(element, object, path, recursionTracker, origin) {
     if ('getLiteralValueAtPathAsChainElement' in object) {
@@ -8362,8 +10964,6 @@ function getChainElementLiteralValueAtPath(element, object, path, recursionTrack
     return element.getLiteralValueAtPath(path, recursionTracker, origin);
 }
 
-// To avoid infinite recursions
-const MAX_PATH_DEPTH = 7;
 function getResolvablePropertyKey(memberExpression) {
     return memberExpression.computed
         ? getResolvableComputedPropertyKey(memberExpression.property)
@@ -8462,18 +11062,27 @@ class MemberExpression extends NodeBase {
         }
         else if (!this.isUndefined) {
             if (path.length < MAX_PATH_DEPTH) {
-                this.object.deoptimizeArgumentsOnInteractionAtPath(interaction, [this.getPropertyKey(), ...path], recursionTracker);
+                this.object.deoptimizeArgumentsOnInteractionAtPath(interaction, this.propertyKey === UnknownKey ? UNKNOWN_PATH : [this.propertyKey, ...path], recursionTracker);
             }
             else {
                 deoptimizeInteraction(interaction);
             }
         }
     }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        this.deoptimizePath(EMPTY_PATH);
+        init.deoptimizePath([...destructuredInitPath, UnknownKey]);
+    }
     deoptimizeCache() {
+        if (this.propertyKey === this.dynamicPropertyKey)
+            return;
         const { expressionsToBeDeoptimized, object } = this;
         this.expressionsToBeDeoptimized = parseAst_js.EMPTY_ARRAY;
-        this.propertyKey = UnknownKey;
+        this.dynamicPropertyKey = this.propertyKey;
         object.deoptimizePath(UNKNOWN_PATH);
+        if (this.included) {
+            object.includePath(UNKNOWN_PATH, createInclusionContext());
+        }
         for (const expression of expressionsToBeDeoptimized) {
             expression.deoptimizeCache();
         }
@@ -8484,11 +11093,13 @@ class MemberExpression extends NodeBase {
         if (this.variable) {
             this.variable.deoptimizePath(path);
         }
-        else if (!this.isUndefined && path.length < MAX_PATH_DEPTH) {
-            const propertyKey = this.getPropertyKey();
+        else if (!this.isUndefined) {
+            const { propertyKey } = this;
             this.object.deoptimizePath([
                 propertyKey === UnknownKey ? UnknownNonAccessorKey : propertyKey,
-                ...path
+                ...(path.length < MAX_PATH_DEPTH
+                    ? path
+                    : [...path.slice(0, MAX_PATH_DEPTH), UnknownKey])
             ]);
         }
     }
@@ -8499,9 +11110,11 @@ class MemberExpression extends NodeBase {
         if (this.isUndefined) {
             return undefined;
         }
-        if (this.propertyKey !== UnknownKey && path.length < MAX_PATH_DEPTH) {
-            this.expressionsToBeDeoptimized.push(origin);
-            return this.object.getLiteralValueAtPath([this.getPropertyKey(), ...path], recursionTracker, origin);
+        const propertyKey = this.getDynamicPropertyKey();
+        if (propertyKey !== UnknownKey && path.length < MAX_PATH_DEPTH) {
+            if (propertyKey !== this.propertyKey)
+                this.expressionsToBeDeoptimized.push(origin);
+            return this.object.getLiteralValueAtPath([propertyKey, ...path], recursionTracker, origin);
         }
         return UnknownValue;
     }
@@ -8521,9 +11134,11 @@ class MemberExpression extends NodeBase {
         if (this.isUndefined) {
             return [UNDEFINED_EXPRESSION, false];
         }
-        if (this.propertyKey !== UnknownKey && path.length < MAX_PATH_DEPTH) {
-            this.expressionsToBeDeoptimized.push(origin);
-            return this.object.getReturnExpressionWhenCalledAtPath([this.getPropertyKey(), ...path], interaction, recursionTracker, origin);
+        const propertyKey = this.getDynamicPropertyKey();
+        if (propertyKey !== UnknownKey && path.length < MAX_PATH_DEPTH) {
+            if (propertyKey !== this.propertyKey)
+                this.expressionsToBeDeoptimized.push(origin);
+            return this.object.getReturnExpressionWhenCalledAtPath([propertyKey, ...path], interaction, recursionTracker, origin);
         }
         return UNKNOWN_RETURN_EXPRESSION;
     }
@@ -8569,36 +11184,87 @@ class MemberExpression extends NodeBase {
             return true;
         }
         if (path.length < MAX_PATH_DEPTH) {
-            return this.object.hasEffectsOnInteractionAtPath([this.getPropertyKey(), ...path], interaction, context);
+            return this.object.hasEffectsOnInteractionAtPath([this.getDynamicPropertyKey(), ...path], interaction, context);
         }
         return true;
     }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        return (destructuredInitPath.length > 0 &&
+            init.hasEffectsOnInteractionAtPath(destructuredInitPath, NODE_INTERACTION_UNKNOWN_ACCESS, context));
+    }
     include(context, includeChildrenRecursively) {
+        if (!this.included)
+            this.includeNode(context);
+        this.object.include(context, includeChildrenRecursively);
+        this.property.include(context, includeChildrenRecursively);
+    }
+    includeNode(context) {
+        this.included = true;
         if (!this.deoptimized)
             this.applyDeoptimizations();
-        this.includeProperties(context, includeChildrenRecursively);
+        if (this.variable) {
+            this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
+        }
+        else if (!this.isUndefined) {
+            this.object.includePath([this.propertyKey], context);
+        }
     }
-    includeAsAssignmentTarget(context, includeChildrenRecursively, deoptimizeAccess) {
+    includeNodeAsAssignmentTarget(context) {
+        this.included = true;
         if (!this.assignmentDeoptimized)
             this.applyAssignmentDeoptimization();
-        if (deoptimizeAccess) {
-            this.include(context, includeChildrenRecursively);
+        if (this.variable) {
+            this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
         }
-        else {
-            this.includeProperties(context, includeChildrenRecursively);
+        else if (!this.isUndefined) {
+            this.object.includePath([this.propertyKey], context);
         }
     }
-    includeCallArguments(context, parameters) {
+    includePath(path, context) {
+        if (!this.included)
+            this.includeNode(context);
         if (this.variable) {
-            this.variable.includeCallArguments(context, parameters);
+            this.variable?.includePath(path, context);
+        }
+        else if (!this.isUndefined) {
+            this.object.includePath([
+                this.propertyKey,
+                ...(path.length < MAX_PATH_DEPTH
+                    ? path
+                    : [...path.slice(0, MAX_PATH_DEPTH), UnknownKey])
+            ], context);
+        }
+    }
+    includeAsAssignmentTarget(context, includeChildrenRecursively, deoptimizeAccess) {
+        if (!this.included)
+            this.includeNodeAsAssignmentTarget(context);
+        if (deoptimizeAccess && !this.deoptimized)
+            this.applyDeoptimizations();
+        this.object.include(context, includeChildrenRecursively);
+        this.property.include(context, includeChildrenRecursively);
+    }
+    includeCallArguments(interaction, context) {
+        if (this.variable) {
+            this.variable.includeCallArguments(interaction, context);
         }
         else {
-            super.includeCallArguments(context, parameters);
+            includeInteraction(interaction, context);
         }
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        if ((this.included ||=
+            destructuredInitPath.length > 0 &&
+                !context.brokenFlow &&
+                init.hasEffectsOnInteractionAtPath(destructuredInitPath, NODE_INTERACTION_UNKNOWN_ACCESS, createHasEffectsContext()))) {
+            init.include(context, false);
+            return true;
+        }
+        return false;
     }
     initialise() {
         super.initialise();
-        this.propertyKey = getResolvablePropertyKey(this);
+        this.dynamicPropertyKey = getResolvablePropertyKey(this);
+        this.propertyKey = this.dynamicPropertyKey === null ? UnknownKey : this.dynamicPropertyKey;
         this.accessInteraction = { args: [this.object], type: INTERACTION_ACCESSED };
     }
     render(code, options, { renderedParentType, isCalleeOfRenderedParent, renderedSurroundingElement } = parseAst_js.BLANK) {
@@ -8635,8 +11301,7 @@ class MemberExpression extends NodeBase {
         this.bound &&
             propertyReadSideEffects &&
             !(this.variable || this.isUndefined)) {
-            const propertyKey = this.getPropertyKey();
-            this.object.deoptimizeArgumentsOnInteractionAtPath(this.accessInteraction, [propertyKey], SHARED_RECURSION_TRACKER);
+            this.object.deoptimizeArgumentsOnInteractionAtPath(this.accessInteraction, [this.propertyKey], SHARED_RECURSION_TRACKER);
             this.scope.context.requestTreeshakingPass();
         }
         if (this.variable) {
@@ -8653,7 +11318,7 @@ class MemberExpression extends NodeBase {
         this.bound &&
             propertyReadSideEffects &&
             !(this.variable || this.isUndefined)) {
-            this.object.deoptimizeArgumentsOnInteractionAtPath(this.assignmentInteraction, [this.getPropertyKey()], SHARED_RECURSION_TRACKER);
+            this.object.deoptimizeArgumentsOnInteractionAtPath(this.assignmentInteraction, [this.propertyKey], SHARED_RECURSION_TRACKER);
             this.scope.context.requestTreeshakingPass();
         }
     }
@@ -8662,24 +11327,24 @@ class MemberExpression extends NodeBase {
             const variable = this.scope.findVariable(this.object.name);
             if (variable.isNamespace) {
                 if (this.variable) {
-                    this.scope.context.includeVariableInModule(this.variable);
+                    this.scope.context.includeVariableInModule(this.variable, UNKNOWN_PATH, createInclusionContext());
                 }
                 this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logIllegalImportReassignment(this.object.name, this.scope.context.module.id), this.start);
             }
         }
     }
-    getPropertyKey() {
-        if (this.propertyKey === null) {
-            this.propertyKey = UnknownKey;
+    getDynamicPropertyKey() {
+        if (this.dynamicPropertyKey === null) {
+            this.dynamicPropertyKey = this.propertyKey;
             const value = this.property.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
-            return (this.propertyKey =
+            return (this.dynamicPropertyKey =
                 value === SymbolToStringTag
                     ? value
                     : typeof value === 'symbol'
                         ? UnknownKey
                         : String(value));
         }
-        return this.propertyKey;
+        return this.dynamicPropertyKey;
     }
     hasAccessEffect(context) {
         const { propertyReadSideEffects } = this.scope.context.options
@@ -8687,17 +11352,7 @@ class MemberExpression extends NodeBase {
         return (!(this.variable || this.isUndefined) &&
             propertyReadSideEffects &&
             (propertyReadSideEffects === 'always' ||
-                this.object.hasEffectsOnInteractionAtPath([this.getPropertyKey()], this.accessInteraction, context)));
-    }
-    includeProperties(context, includeChildrenRecursively) {
-        if (!this.included) {
-            this.included = true;
-            if (this.variable) {
-                this.scope.context.includeVariableInModule(this.variable);
-            }
-        }
-        this.object.include(context, includeChildrenRecursively);
-        this.property.include(context, includeChildrenRecursively);
+                this.object.hasEffectsOnInteractionAtPath([this.getDynamicPropertyKey()], this.accessInteraction, context)));
     }
 }
 function resolveNamespaceVariables(baseVariable, path, astContext) {
@@ -8741,18 +11396,20 @@ class MetaProperty extends NodeBase {
         return path.length > 1 || type !== INTERACTION_ACCESSED;
     }
     include() {
-        if (!this.included) {
-            this.included = true;
-            if (this.meta.name === IMPORT) {
-                this.scope.context.addImportMeta(this);
-                const parent = this.parent;
-                const metaProperty = (this.metaProperty =
-                    parent instanceof MemberExpression && typeof parent.propertyKey === 'string'
-                        ? parent.propertyKey
-                        : null);
-                if (metaProperty?.startsWith(FILE_PREFIX)) {
-                    this.referenceId = metaProperty.slice(FILE_PREFIX.length);
-                }
+        if (!this.included)
+            this.includeNode();
+    }
+    includeNode() {
+        this.included = true;
+        if (this.meta.name === IMPORT) {
+            this.scope.context.addImportMeta(this);
+            const parent = this.parent;
+            const metaProperty = (this.metaProperty =
+                parent instanceof MemberExpression && typeof parent.propertyKey === 'string'
+                    ? parent.propertyKey
+                    : null);
+            if (metaProperty?.startsWith(FILE_PREFIX)) {
+                this.referenceId = metaProperty.slice(FILE_PREFIX.length);
             }
         }
     }
@@ -8859,7 +11516,7 @@ class UndefinedVariable extends Variable {
 
 class ExportDefaultVariable extends LocalVariable {
     constructor(name, exportDefaultDeclaration, context) {
-        super(name, exportDefaultDeclaration, exportDefaultDeclaration.declaration, context, 'other');
+        super(name, exportDefaultDeclaration, exportDefaultDeclaration.declaration, EMPTY_PATH, context, 'other');
         this.hasId = false;
         this.originalId = null;
         this.originalVariable = null;
@@ -9008,8 +11665,8 @@ class NamespaceVariable extends Variable {
         return (!memberVariable ||
             memberVariable.hasEffectsOnInteractionAtPath(path.slice(1), interaction, context));
     }
-    include() {
-        super.include();
+    includePath(path, context) {
+        super.includePath(path, context);
         this.context.includeAllExports();
     }
     prepare(accessedGlobalsByScope) {
@@ -9102,9 +11759,9 @@ class SyntheticNamedExportVariable extends Variable {
     getName(getPropertyAccess) {
         return `${this.syntheticNamespace.getName(getPropertyAccess)}${getPropertyAccess(this.name)}`;
     }
-    include() {
-        super.include();
-        this.context.includeVariableInModule(this.syntheticNamespace);
+    includePath(path, context) {
+        super.includePath(path, context);
+        this.context.includeVariableInModule(this.syntheticNamespace, path, context);
     }
     setRenderNames(baseName, name) {
         super.setRenderNames(baseName, name);
@@ -9396,58 +12053,114 @@ function updateExtensionForRelativeAmdId(id, forceJsExtensionForImports) {
 }
 
 const builtinModules = [
+	"node:assert",
 	"assert",
+	"node:assert/strict",
 	"assert/strict",
+	"node:async_hooks",
 	"async_hooks",
+	"node:buffer",
 	"buffer",
+	"node:child_process",
 	"child_process",
+	"node:cluster",
 	"cluster",
+	"node:console",
 	"console",
+	"node:constants",
 	"constants",
+	"node:crypto",
 	"crypto",
+	"node:dgram",
 	"dgram",
+	"node:diagnostics_channel",
 	"diagnostics_channel",
+	"node:dns",
 	"dns",
+	"node:dns/promises",
 	"dns/promises",
+	"node:domain",
 	"domain",
+	"node:events",
 	"events",
+	"node:fs",
 	"fs",
+	"node:fs/promises",
 	"fs/promises",
+	"node:http",
 	"http",
+	"node:http2",
 	"http2",
+	"node:https",
 	"https",
+	"node:inspector",
 	"inspector",
+	"node:inspector/promises",
 	"inspector/promises",
+	"node:module",
 	"module",
+	"node:net",
 	"net",
+	"node:os",
 	"os",
+	"node:path",
 	"path",
+	"node:path/posix",
 	"path/posix",
+	"node:path/win32",
 	"path/win32",
+	"node:perf_hooks",
 	"perf_hooks",
+	"node:process",
 	"process",
-	"punycode",
+	"node:querystring",
 	"querystring",
+	"node:quic",
+	"node:readline",
 	"readline",
+	"node:readline/promises",
 	"readline/promises",
+	"node:repl",
 	"repl",
+	"node:sea",
+	"node:sqlite",
+	"node:stream",
 	"stream",
+	"node:stream/consumers",
 	"stream/consumers",
+	"node:stream/promises",
 	"stream/promises",
+	"node:stream/web",
 	"stream/web",
+	"node:string_decoder",
 	"string_decoder",
+	"node:test",
+	"node:test/reporters",
+	"node:timers",
 	"timers",
+	"node:timers/promises",
 	"timers/promises",
+	"node:tls",
 	"tls",
+	"node:trace_events",
 	"trace_events",
+	"node:tty",
 	"tty",
+	"node:url",
 	"url",
+	"node:util",
 	"util",
+	"node:util/types",
 	"util/types",
+	"node:v8",
 	"v8",
+	"node:vm",
 	"vm",
+	"node:wasi",
 	"wasi",
+	"node:worker_threads",
 	"worker_threads",
+	"node:zlib",
 	"zlib"
 ];
 
@@ -9466,7 +12179,7 @@ function amd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
     const deps = dependencies.map(m => `'${updateExtensionForRelativeAmdId(m.importPath, amd.forceJsExtensionForImports)}'`);
     const parameters = dependencies.map(m => m.name);
     const { n, getNonArrowFunctionIntro, _ } = snippets;
-    if (namedExportsMode && hasExports) {
+    if (hasExports && (namedExportsMode || exports[0]?.local === 'exports.default')) {
         parameters.unshift(`exports`);
         deps.unshift(`'exports'`);
     }
@@ -9725,7 +12438,7 @@ function iife(magicString, { accessedGlobals, dependencies, exports, hasDefaultE
     if (hasExports && !name) {
         log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingNameOptionForIifeExport());
     }
-    if (namedExportsMode && hasExports) {
+    if (hasExports && (namedExportsMode || exports[0]?.local === 'exports.default')) {
         if (extend) {
             deps.unshift(`this${keypath(name, getPropertyAccess)}${_}=${_}this${keypath(name, getPropertyAccess)}${_}||${_}{}`);
             parameters.unshift('exports');
@@ -9944,7 +12657,8 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
     const trimmedImports = trimEmptyImports(dependencies);
     const globalDeps = trimmedImports.map(module => globalProperty(module.globalName, globalVariable, getPropertyAccess));
     const factoryParameters = trimmedImports.map(m => m.name);
-    if (namedExportsMode && (hasExports || noConflict)) {
+    if ((hasExports || noConflict) &&
+        (namedExportsMode || (hasExports && exports[0]?.local === 'exports.default'))) {
         amdDeps.unshift(`'exports'`);
         cjsDeps.unshift(`exports`);
         globalDeps.unshift(assignToDeepVariable(name, globalVariable, globals, `${extend ? `${globalProperty(name, globalVariable, getPropertyAccess)}${_}||${_}` : ''}{}`, snippets, log));
@@ -10026,2139 +12740,6 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
 }
 
 const finalisers = { amd, cjs, es, iife, system, umd };
-
-var utils = {};
-
-var constants;
-var hasRequiredConstants;
-
-function requireConstants () {
-	if (hasRequiredConstants) return constants;
-	hasRequiredConstants = 1;
-
-	const WIN_SLASH = '\\\\/';
-	const WIN_NO_SLASH = `[^${WIN_SLASH}]`;
-
-	/**
-	 * Posix glob regex
-	 */
-
-	const DOT_LITERAL = '\\.';
-	const PLUS_LITERAL = '\\+';
-	const QMARK_LITERAL = '\\?';
-	const SLASH_LITERAL = '\\/';
-	const ONE_CHAR = '(?=.)';
-	const QMARK = '[^/]';
-	const END_ANCHOR = `(?:${SLASH_LITERAL}|$)`;
-	const START_ANCHOR = `(?:^|${SLASH_LITERAL})`;
-	const DOTS_SLASH = `${DOT_LITERAL}{1,2}${END_ANCHOR}`;
-	const NO_DOT = `(?!${DOT_LITERAL})`;
-	const NO_DOTS = `(?!${START_ANCHOR}${DOTS_SLASH})`;
-	const NO_DOT_SLASH = `(?!${DOT_LITERAL}{0,1}${END_ANCHOR})`;
-	const NO_DOTS_SLASH = `(?!${DOTS_SLASH})`;
-	const QMARK_NO_DOT = `[^.${SLASH_LITERAL}]`;
-	const STAR = `${QMARK}*?`;
-	const SEP = '/';
-
-	const POSIX_CHARS = {
-	  DOT_LITERAL,
-	  PLUS_LITERAL,
-	  QMARK_LITERAL,
-	  SLASH_LITERAL,
-	  ONE_CHAR,
-	  QMARK,
-	  END_ANCHOR,
-	  DOTS_SLASH,
-	  NO_DOT,
-	  NO_DOTS,
-	  NO_DOT_SLASH,
-	  NO_DOTS_SLASH,
-	  QMARK_NO_DOT,
-	  STAR,
-	  START_ANCHOR,
-	  SEP
-	};
-
-	/**
-	 * Windows glob regex
-	 */
-
-	const WINDOWS_CHARS = {
-	  ...POSIX_CHARS,
-
-	  SLASH_LITERAL: `[${WIN_SLASH}]`,
-	  QMARK: WIN_NO_SLASH,
-	  STAR: `${WIN_NO_SLASH}*?`,
-	  DOTS_SLASH: `${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$)`,
-	  NO_DOT: `(?!${DOT_LITERAL})`,
-	  NO_DOTS: `(?!(?:^|[${WIN_SLASH}])${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$))`,
-	  NO_DOT_SLASH: `(?!${DOT_LITERAL}{0,1}(?:[${WIN_SLASH}]|$))`,
-	  NO_DOTS_SLASH: `(?!${DOT_LITERAL}{1,2}(?:[${WIN_SLASH}]|$))`,
-	  QMARK_NO_DOT: `[^.${WIN_SLASH}]`,
-	  START_ANCHOR: `(?:^|[${WIN_SLASH}])`,
-	  END_ANCHOR: `(?:[${WIN_SLASH}]|$)`,
-	  SEP: '\\'
-	};
-
-	/**
-	 * POSIX Bracket Regex
-	 */
-
-	const POSIX_REGEX_SOURCE = {
-	  alnum: 'a-zA-Z0-9',
-	  alpha: 'a-zA-Z',
-	  ascii: '\\x00-\\x7F',
-	  blank: ' \\t',
-	  cntrl: '\\x00-\\x1F\\x7F',
-	  digit: '0-9',
-	  graph: '\\x21-\\x7E',
-	  lower: 'a-z',
-	  print: '\\x20-\\x7E ',
-	  punct: '\\-!"#$%&\'()\\*+,./:;<=>?@[\\]^_`{|}~',
-	  space: ' \\t\\r\\n\\v\\f',
-	  upper: 'A-Z',
-	  word: 'A-Za-z0-9_',
-	  xdigit: 'A-Fa-f0-9'
-	};
-
-	constants = {
-	  MAX_LENGTH: 1024 * 64,
-	  POSIX_REGEX_SOURCE,
-
-	  // regular expressions
-	  REGEX_BACKSLASH: /\\(?![*+?^${}(|)[\]])/g,
-	  REGEX_NON_SPECIAL_CHARS: /^[^@![\].,$*+?^{}()|\\/]+/,
-	  REGEX_SPECIAL_CHARS: /[-*+?.^${}(|)[\]]/,
-	  REGEX_SPECIAL_CHARS_BACKREF: /(\\?)((\W)(\3*))/g,
-	  REGEX_SPECIAL_CHARS_GLOBAL: /([-*+?.^${}(|)[\]])/g,
-	  REGEX_REMOVE_BACKSLASH: /(?:\[.*?[^\\]\]|\\(?=.))/g,
-
-	  // Replace globs with equivalent patterns to reduce parsing time.
-	  REPLACEMENTS: {
-	    '***': '*',
-	    '**/**': '**',
-	    '**/**/**': '**'
-	  },
-
-	  // Digits
-	  CHAR_0: 48, /* 0 */
-	  CHAR_9: 57, /* 9 */
-
-	  // Alphabet chars.
-	  CHAR_UPPERCASE_A: 65, /* A */
-	  CHAR_LOWERCASE_A: 97, /* a */
-	  CHAR_UPPERCASE_Z: 90, /* Z */
-	  CHAR_LOWERCASE_Z: 122, /* z */
-
-	  CHAR_LEFT_PARENTHESES: 40, /* ( */
-	  CHAR_RIGHT_PARENTHESES: 41, /* ) */
-
-	  CHAR_ASTERISK: 42, /* * */
-
-	  // Non-alphabetic chars.
-	  CHAR_AMPERSAND: 38, /* & */
-	  CHAR_AT: 64, /* @ */
-	  CHAR_BACKWARD_SLASH: 92, /* \ */
-	  CHAR_CARRIAGE_RETURN: 13, /* \r */
-	  CHAR_CIRCUMFLEX_ACCENT: 94, /* ^ */
-	  CHAR_COLON: 58, /* : */
-	  CHAR_COMMA: 44, /* , */
-	  CHAR_DOT: 46, /* . */
-	  CHAR_DOUBLE_QUOTE: 34, /* " */
-	  CHAR_EQUAL: 61, /* = */
-	  CHAR_EXCLAMATION_MARK: 33, /* ! */
-	  CHAR_FORM_FEED: 12, /* \f */
-	  CHAR_FORWARD_SLASH: 47, /* / */
-	  CHAR_GRAVE_ACCENT: 96, /* ` */
-	  CHAR_HASH: 35, /* # */
-	  CHAR_HYPHEN_MINUS: 45, /* - */
-	  CHAR_LEFT_ANGLE_BRACKET: 60, /* < */
-	  CHAR_LEFT_CURLY_BRACE: 123, /* { */
-	  CHAR_LEFT_SQUARE_BRACKET: 91, /* [ */
-	  CHAR_LINE_FEED: 10, /* \n */
-	  CHAR_NO_BREAK_SPACE: 160, /* \u00A0 */
-	  CHAR_PERCENT: 37, /* % */
-	  CHAR_PLUS: 43, /* + */
-	  CHAR_QUESTION_MARK: 63, /* ? */
-	  CHAR_RIGHT_ANGLE_BRACKET: 62, /* > */
-	  CHAR_RIGHT_CURLY_BRACE: 125, /* } */
-	  CHAR_RIGHT_SQUARE_BRACKET: 93, /* ] */
-	  CHAR_SEMICOLON: 59, /* ; */
-	  CHAR_SINGLE_QUOTE: 39, /* ' */
-	  CHAR_SPACE: 32, /*   */
-	  CHAR_TAB: 9, /* \t */
-	  CHAR_UNDERSCORE: 95, /* _ */
-	  CHAR_VERTICAL_LINE: 124, /* | */
-	  CHAR_ZERO_WIDTH_NOBREAK_SPACE: 65279, /* \uFEFF */
-
-	  /**
-	   * Create EXTGLOB_CHARS
-	   */
-
-	  extglobChars(chars) {
-	    return {
-	      '!': { type: 'negate', open: '(?:(?!(?:', close: `))${chars.STAR})` },
-	      '?': { type: 'qmark', open: '(?:', close: ')?' },
-	      '+': { type: 'plus', open: '(?:', close: ')+' },
-	      '*': { type: 'star', open: '(?:', close: ')*' },
-	      '@': { type: 'at', open: '(?:', close: ')' }
-	    };
-	  },
-
-	  /**
-	   * Create GLOB_CHARS
-	   */
-
-	  globChars(win32) {
-	    return win32 === true ? WINDOWS_CHARS : POSIX_CHARS;
-	  }
-	};
-	return constants;
-}
-
-/*global navigator*/
-
-var hasRequiredUtils;
-
-function requireUtils () {
-	if (hasRequiredUtils) return utils;
-	hasRequiredUtils = 1;
-	(function (exports) {
-
-		const {
-		  REGEX_BACKSLASH,
-		  REGEX_REMOVE_BACKSLASH,
-		  REGEX_SPECIAL_CHARS,
-		  REGEX_SPECIAL_CHARS_GLOBAL
-		} = /*@__PURE__*/ requireConstants();
-
-		exports.isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
-		exports.hasRegexChars = str => REGEX_SPECIAL_CHARS.test(str);
-		exports.isRegexChar = str => str.length === 1 && exports.hasRegexChars(str);
-		exports.escapeRegex = str => str.replace(REGEX_SPECIAL_CHARS_GLOBAL, '\\$1');
-		exports.toPosixSlashes = str => str.replace(REGEX_BACKSLASH, '/');
-
-		exports.isWindows = () => {
-		  if (typeof navigator !== 'undefined' && navigator.platform) {
-		    const platform = navigator.platform.toLowerCase();
-		    return platform === 'win32' || platform === 'windows';
-		  }
-
-		  if (typeof process !== 'undefined' && process.platform) {
-		    return process.platform === 'win32';
-		  }
-
-		  return false;
-		};
-
-		exports.removeBackslashes = str => {
-		  return str.replace(REGEX_REMOVE_BACKSLASH, match => {
-		    return match === '\\' ? '' : match;
-		  });
-		};
-
-		exports.escapeLast = (input, char, lastIdx) => {
-		  const idx = input.lastIndexOf(char, lastIdx);
-		  if (idx === -1) return input;
-		  if (input[idx - 1] === '\\') return exports.escapeLast(input, char, idx - 1);
-		  return `${input.slice(0, idx)}\\${input.slice(idx)}`;
-		};
-
-		exports.removePrefix = (input, state = {}) => {
-		  let output = input;
-		  if (output.startsWith('./')) {
-		    output = output.slice(2);
-		    state.prefix = './';
-		  }
-		  return output;
-		};
-
-		exports.wrapOutput = (input, state = {}, options = {}) => {
-		  const prepend = options.contains ? '' : '^';
-		  const append = options.contains ? '' : '$';
-
-		  let output = `${prepend}(?:${input})${append}`;
-		  if (state.negated === true) {
-		    output = `(?:^(?!${output}).*$)`;
-		  }
-		  return output;
-		};
-
-		exports.basename = (path, { windows } = {}) => {
-		  const segs = path.split(windows ? /[\\/]/ : '/');
-		  const last = segs[segs.length - 1];
-
-		  if (last === '') {
-		    return segs[segs.length - 2];
-		  }
-
-		  return last;
-		}; 
-	} (utils));
-	return utils;
-}
-
-var scan_1;
-var hasRequiredScan;
-
-function requireScan () {
-	if (hasRequiredScan) return scan_1;
-	hasRequiredScan = 1;
-
-	const utils = /*@__PURE__*/ requireUtils();
-	const {
-	  CHAR_ASTERISK,             /* * */
-	  CHAR_AT,                   /* @ */
-	  CHAR_BACKWARD_SLASH,       /* \ */
-	  CHAR_COMMA,                /* , */
-	  CHAR_DOT,                  /* . */
-	  CHAR_EXCLAMATION_MARK,     /* ! */
-	  CHAR_FORWARD_SLASH,        /* / */
-	  CHAR_LEFT_CURLY_BRACE,     /* { */
-	  CHAR_LEFT_PARENTHESES,     /* ( */
-	  CHAR_LEFT_SQUARE_BRACKET,  /* [ */
-	  CHAR_PLUS,                 /* + */
-	  CHAR_QUESTION_MARK,        /* ? */
-	  CHAR_RIGHT_CURLY_BRACE,    /* } */
-	  CHAR_RIGHT_PARENTHESES,    /* ) */
-	  CHAR_RIGHT_SQUARE_BRACKET  /* ] */
-	} = /*@__PURE__*/ requireConstants();
-
-	const isPathSeparator = code => {
-	  return code === CHAR_FORWARD_SLASH || code === CHAR_BACKWARD_SLASH;
-	};
-
-	const depth = token => {
-	  if (token.isPrefix !== true) {
-	    token.depth = token.isGlobstar ? Infinity : 1;
-	  }
-	};
-
-	/**
-	 * Quickly scans a glob pattern and returns an object with a handful of
-	 * useful properties, like `isGlob`, `path` (the leading non-glob, if it exists),
-	 * `glob` (the actual pattern), `negated` (true if the path starts with `!` but not
-	 * with `!(`) and `negatedExtglob` (true if the path starts with `!(`).
-	 *
-	 * ```js
-	 * const pm = require('picomatch');
-	 * console.log(pm.scan('foo/bar/*.js'));
-	 * { isGlob: true, input: 'foo/bar/*.js', base: 'foo/bar', glob: '*.js' }
-	 * ```
-	 * @param {String} `str`
-	 * @param {Object} `options`
-	 * @return {Object} Returns an object with tokens and regex source string.
-	 * @api public
-	 */
-
-	const scan = (input, options) => {
-	  const opts = options || {};
-
-	  const length = input.length - 1;
-	  const scanToEnd = opts.parts === true || opts.scanToEnd === true;
-	  const slashes = [];
-	  const tokens = [];
-	  const parts = [];
-
-	  let str = input;
-	  let index = -1;
-	  let start = 0;
-	  let lastIndex = 0;
-	  let isBrace = false;
-	  let isBracket = false;
-	  let isGlob = false;
-	  let isExtglob = false;
-	  let isGlobstar = false;
-	  let braceEscaped = false;
-	  let backslashes = false;
-	  let negated = false;
-	  let negatedExtglob = false;
-	  let finished = false;
-	  let braces = 0;
-	  let prev;
-	  let code;
-	  let token = { value: '', depth: 0, isGlob: false };
-
-	  const eos = () => index >= length;
-	  const peek = () => str.charCodeAt(index + 1);
-	  const advance = () => {
-	    prev = code;
-	    return str.charCodeAt(++index);
-	  };
-
-	  while (index < length) {
-	    code = advance();
-	    let next;
-
-	    if (code === CHAR_BACKWARD_SLASH) {
-	      backslashes = token.backslashes = true;
-	      code = advance();
-
-	      if (code === CHAR_LEFT_CURLY_BRACE) {
-	        braceEscaped = true;
-	      }
-	      continue;
-	    }
-
-	    if (braceEscaped === true || code === CHAR_LEFT_CURLY_BRACE) {
-	      braces++;
-
-	      while (eos() !== true && (code = advance())) {
-	        if (code === CHAR_BACKWARD_SLASH) {
-	          backslashes = token.backslashes = true;
-	          advance();
-	          continue;
-	        }
-
-	        if (code === CHAR_LEFT_CURLY_BRACE) {
-	          braces++;
-	          continue;
-	        }
-
-	        if (braceEscaped !== true && code === CHAR_DOT && (code = advance()) === CHAR_DOT) {
-	          isBrace = token.isBrace = true;
-	          isGlob = token.isGlob = true;
-	          finished = true;
-
-	          if (scanToEnd === true) {
-	            continue;
-	          }
-
-	          break;
-	        }
-
-	        if (braceEscaped !== true && code === CHAR_COMMA) {
-	          isBrace = token.isBrace = true;
-	          isGlob = token.isGlob = true;
-	          finished = true;
-
-	          if (scanToEnd === true) {
-	            continue;
-	          }
-
-	          break;
-	        }
-
-	        if (code === CHAR_RIGHT_CURLY_BRACE) {
-	          braces--;
-
-	          if (braces === 0) {
-	            braceEscaped = false;
-	            isBrace = token.isBrace = true;
-	            finished = true;
-	            break;
-	          }
-	        }
-	      }
-
-	      if (scanToEnd === true) {
-	        continue;
-	      }
-
-	      break;
-	    }
-
-	    if (code === CHAR_FORWARD_SLASH) {
-	      slashes.push(index);
-	      tokens.push(token);
-	      token = { value: '', depth: 0, isGlob: false };
-
-	      if (finished === true) continue;
-	      if (prev === CHAR_DOT && index === (start + 1)) {
-	        start += 2;
-	        continue;
-	      }
-
-	      lastIndex = index + 1;
-	      continue;
-	    }
-
-	    if (opts.noext !== true) {
-	      const isExtglobChar = code === CHAR_PLUS
-	        || code === CHAR_AT
-	        || code === CHAR_ASTERISK
-	        || code === CHAR_QUESTION_MARK
-	        || code === CHAR_EXCLAMATION_MARK;
-
-	      if (isExtglobChar === true && peek() === CHAR_LEFT_PARENTHESES) {
-	        isGlob = token.isGlob = true;
-	        isExtglob = token.isExtglob = true;
-	        finished = true;
-	        if (code === CHAR_EXCLAMATION_MARK && index === start) {
-	          negatedExtglob = true;
-	        }
-
-	        if (scanToEnd === true) {
-	          while (eos() !== true && (code = advance())) {
-	            if (code === CHAR_BACKWARD_SLASH) {
-	              backslashes = token.backslashes = true;
-	              code = advance();
-	              continue;
-	            }
-
-	            if (code === CHAR_RIGHT_PARENTHESES) {
-	              isGlob = token.isGlob = true;
-	              finished = true;
-	              break;
-	            }
-	          }
-	          continue;
-	        }
-	        break;
-	      }
-	    }
-
-	    if (code === CHAR_ASTERISK) {
-	      if (prev === CHAR_ASTERISK) isGlobstar = token.isGlobstar = true;
-	      isGlob = token.isGlob = true;
-	      finished = true;
-
-	      if (scanToEnd === true) {
-	        continue;
-	      }
-	      break;
-	    }
-
-	    if (code === CHAR_QUESTION_MARK) {
-	      isGlob = token.isGlob = true;
-	      finished = true;
-
-	      if (scanToEnd === true) {
-	        continue;
-	      }
-	      break;
-	    }
-
-	    if (code === CHAR_LEFT_SQUARE_BRACKET) {
-	      while (eos() !== true && (next = advance())) {
-	        if (next === CHAR_BACKWARD_SLASH) {
-	          backslashes = token.backslashes = true;
-	          advance();
-	          continue;
-	        }
-
-	        if (next === CHAR_RIGHT_SQUARE_BRACKET) {
-	          isBracket = token.isBracket = true;
-	          isGlob = token.isGlob = true;
-	          finished = true;
-	          break;
-	        }
-	      }
-
-	      if (scanToEnd === true) {
-	        continue;
-	      }
-
-	      break;
-	    }
-
-	    if (opts.nonegate !== true && code === CHAR_EXCLAMATION_MARK && index === start) {
-	      negated = token.negated = true;
-	      start++;
-	      continue;
-	    }
-
-	    if (opts.noparen !== true && code === CHAR_LEFT_PARENTHESES) {
-	      isGlob = token.isGlob = true;
-
-	      if (scanToEnd === true) {
-	        while (eos() !== true && (code = advance())) {
-	          if (code === CHAR_LEFT_PARENTHESES) {
-	            backslashes = token.backslashes = true;
-	            code = advance();
-	            continue;
-	          }
-
-	          if (code === CHAR_RIGHT_PARENTHESES) {
-	            finished = true;
-	            break;
-	          }
-	        }
-	        continue;
-	      }
-	      break;
-	    }
-
-	    if (isGlob === true) {
-	      finished = true;
-
-	      if (scanToEnd === true) {
-	        continue;
-	      }
-
-	      break;
-	    }
-	  }
-
-	  if (opts.noext === true) {
-	    isExtglob = false;
-	    isGlob = false;
-	  }
-
-	  let base = str;
-	  let prefix = '';
-	  let glob = '';
-
-	  if (start > 0) {
-	    prefix = str.slice(0, start);
-	    str = str.slice(start);
-	    lastIndex -= start;
-	  }
-
-	  if (base && isGlob === true && lastIndex > 0) {
-	    base = str.slice(0, lastIndex);
-	    glob = str.slice(lastIndex);
-	  } else if (isGlob === true) {
-	    base = '';
-	    glob = str;
-	  } else {
-	    base = str;
-	  }
-
-	  if (base && base !== '' && base !== '/' && base !== str) {
-	    if (isPathSeparator(base.charCodeAt(base.length - 1))) {
-	      base = base.slice(0, -1);
-	    }
-	  }
-
-	  if (opts.unescape === true) {
-	    if (glob) glob = utils.removeBackslashes(glob);
-
-	    if (base && backslashes === true) {
-	      base = utils.removeBackslashes(base);
-	    }
-	  }
-
-	  const state = {
-	    prefix,
-	    input,
-	    start,
-	    base,
-	    glob,
-	    isBrace,
-	    isBracket,
-	    isGlob,
-	    isExtglob,
-	    isGlobstar,
-	    negated,
-	    negatedExtglob
-	  };
-
-	  if (opts.tokens === true) {
-	    state.maxDepth = 0;
-	    if (!isPathSeparator(code)) {
-	      tokens.push(token);
-	    }
-	    state.tokens = tokens;
-	  }
-
-	  if (opts.parts === true || opts.tokens === true) {
-	    let prevIndex;
-
-	    for (let idx = 0; idx < slashes.length; idx++) {
-	      const n = prevIndex ? prevIndex + 1 : start;
-	      const i = slashes[idx];
-	      const value = input.slice(n, i);
-	      if (opts.tokens) {
-	        if (idx === 0 && start !== 0) {
-	          tokens[idx].isPrefix = true;
-	          tokens[idx].value = prefix;
-	        } else {
-	          tokens[idx].value = value;
-	        }
-	        depth(tokens[idx]);
-	        state.maxDepth += tokens[idx].depth;
-	      }
-	      if (idx !== 0 || value !== '') {
-	        parts.push(value);
-	      }
-	      prevIndex = i;
-	    }
-
-	    if (prevIndex && prevIndex + 1 < input.length) {
-	      const value = input.slice(prevIndex + 1);
-	      parts.push(value);
-
-	      if (opts.tokens) {
-	        tokens[tokens.length - 1].value = value;
-	        depth(tokens[tokens.length - 1]);
-	        state.maxDepth += tokens[tokens.length - 1].depth;
-	      }
-	    }
-
-	    state.slashes = slashes;
-	    state.parts = parts;
-	  }
-
-	  return state;
-	};
-
-	scan_1 = scan;
-	return scan_1;
-}
-
-var parse_1;
-var hasRequiredParse;
-
-function requireParse () {
-	if (hasRequiredParse) return parse_1;
-	hasRequiredParse = 1;
-
-	const constants = /*@__PURE__*/ requireConstants();
-	const utils = /*@__PURE__*/ requireUtils();
-
-	/**
-	 * Constants
-	 */
-
-	const {
-	  MAX_LENGTH,
-	  POSIX_REGEX_SOURCE,
-	  REGEX_NON_SPECIAL_CHARS,
-	  REGEX_SPECIAL_CHARS_BACKREF,
-	  REPLACEMENTS
-	} = constants;
-
-	/**
-	 * Helpers
-	 */
-
-	const expandRange = (args, options) => {
-	  if (typeof options.expandRange === 'function') {
-	    return options.expandRange(...args, options);
-	  }
-
-	  args.sort();
-	  const value = `[${args.join('-')}]`;
-
-	  return value;
-	};
-
-	/**
-	 * Create the message for a syntax error
-	 */
-
-	const syntaxError = (type, char) => {
-	  return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
-	};
-
-	/**
-	 * Parse the given input string.
-	 * @param {String} input
-	 * @param {Object} options
-	 * @return {Object}
-	 */
-
-	const parse = (input, options) => {
-	  if (typeof input !== 'string') {
-	    throw new TypeError('Expected a string');
-	  }
-
-	  input = REPLACEMENTS[input] || input;
-
-	  const opts = { ...options };
-	  const max = typeof opts.maxLength === 'number' ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
-
-	  let len = input.length;
-	  if (len > max) {
-	    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`);
-	  }
-
-	  const bos = { type: 'bos', value: '', output: opts.prepend || '' };
-	  const tokens = [bos];
-
-	  const capture = opts.capture ? '' : '?:';
-
-	  // create constants based on platform, for windows or posix
-	  const PLATFORM_CHARS = constants.globChars(opts.windows);
-	  const EXTGLOB_CHARS = constants.extglobChars(PLATFORM_CHARS);
-
-	  const {
-	    DOT_LITERAL,
-	    PLUS_LITERAL,
-	    SLASH_LITERAL,
-	    ONE_CHAR,
-	    DOTS_SLASH,
-	    NO_DOT,
-	    NO_DOT_SLASH,
-	    NO_DOTS_SLASH,
-	    QMARK,
-	    QMARK_NO_DOT,
-	    STAR,
-	    START_ANCHOR
-	  } = PLATFORM_CHARS;
-
-	  const globstar = opts => {
-	    return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
-	  };
-
-	  const nodot = opts.dot ? '' : NO_DOT;
-	  const qmarkNoDot = opts.dot ? QMARK : QMARK_NO_DOT;
-	  let star = opts.bash === true ? globstar(opts) : STAR;
-
-	  if (opts.capture) {
-	    star = `(${star})`;
-	  }
-
-	  // minimatch options support
-	  if (typeof opts.noext === 'boolean') {
-	    opts.noextglob = opts.noext;
-	  }
-
-	  const state = {
-	    input,
-	    index: -1,
-	    start: 0,
-	    dot: opts.dot === true,
-	    consumed: '',
-	    output: '',
-	    prefix: '',
-	    backtrack: false,
-	    negated: false,
-	    brackets: 0,
-	    braces: 0,
-	    parens: 0,
-	    quotes: 0,
-	    globstar: false,
-	    tokens
-	  };
-
-	  input = utils.removePrefix(input, state);
-	  len = input.length;
-
-	  const extglobs = [];
-	  const braces = [];
-	  const stack = [];
-	  let prev = bos;
-	  let value;
-
-	  /**
-	   * Tokenizing helpers
-	   */
-
-	  const eos = () => state.index === len - 1;
-	  const peek = state.peek = (n = 1) => input[state.index + n];
-	  const advance = state.advance = () => input[++state.index] || '';
-	  const remaining = () => input.slice(state.index + 1);
-	  const consume = (value = '', num = 0) => {
-	    state.consumed += value;
-	    state.index += num;
-	  };
-
-	  const append = token => {
-	    state.output += token.output != null ? token.output : token.value;
-	    consume(token.value);
-	  };
-
-	  const negate = () => {
-	    let count = 1;
-
-	    while (peek() === '!' && (peek(2) !== '(' || peek(3) === '?')) {
-	      advance();
-	      state.start++;
-	      count++;
-	    }
-
-	    if (count % 2 === 0) {
-	      return false;
-	    }
-
-	    state.negated = true;
-	    state.start++;
-	    return true;
-	  };
-
-	  const increment = type => {
-	    state[type]++;
-	    stack.push(type);
-	  };
-
-	  const decrement = type => {
-	    state[type]--;
-	    stack.pop();
-	  };
-
-	  /**
-	   * Push tokens onto the tokens array. This helper speeds up
-	   * tokenizing by 1) helping us avoid backtracking as much as possible,
-	   * and 2) helping us avoid creating extra tokens when consecutive
-	   * characters are plain text. This improves performance and simplifies
-	   * lookbehinds.
-	   */
-
-	  const push = tok => {
-	    if (prev.type === 'globstar') {
-	      const isBrace = state.braces > 0 && (tok.type === 'comma' || tok.type === 'brace');
-	      const isExtglob = tok.extglob === true || (extglobs.length && (tok.type === 'pipe' || tok.type === 'paren'));
-
-	      if (tok.type !== 'slash' && tok.type !== 'paren' && !isBrace && !isExtglob) {
-	        state.output = state.output.slice(0, -prev.output.length);
-	        prev.type = 'star';
-	        prev.value = '*';
-	        prev.output = star;
-	        state.output += prev.output;
-	      }
-	    }
-
-	    if (extglobs.length && tok.type !== 'paren') {
-	      extglobs[extglobs.length - 1].inner += tok.value;
-	    }
-
-	    if (tok.value || tok.output) append(tok);
-	    if (prev && prev.type === 'text' && tok.type === 'text') {
-	      prev.output = (prev.output || prev.value) + tok.value;
-	      prev.value += tok.value;
-	      return;
-	    }
-
-	    tok.prev = prev;
-	    tokens.push(tok);
-	    prev = tok;
-	  };
-
-	  const extglobOpen = (type, value) => {
-	    const token = { ...EXTGLOB_CHARS[value], conditions: 1, inner: '' };
-
-	    token.prev = prev;
-	    token.parens = state.parens;
-	    token.output = state.output;
-	    const output = (opts.capture ? '(' : '') + token.open;
-
-	    increment('parens');
-	    push({ type, value, output: state.output ? '' : ONE_CHAR });
-	    push({ type: 'paren', extglob: true, value: advance(), output });
-	    extglobs.push(token);
-	  };
-
-	  const extglobClose = token => {
-	    let output = token.close + (opts.capture ? ')' : '');
-	    let rest;
-
-	    if (token.type === 'negate') {
-	      let extglobStar = star;
-
-	      if (token.inner && token.inner.length > 1 && token.inner.includes('/')) {
-	        extglobStar = globstar(opts);
-	      }
-
-	      if (extglobStar !== star || eos() || /^\)+$/.test(remaining())) {
-	        output = token.close = `)$))${extglobStar}`;
-	      }
-
-	      if (token.inner.includes('*') && (rest = remaining()) && /^\.[^\\/.]+$/.test(rest)) {
-	        // Any non-magical string (`.ts`) or even nested expression (`.{ts,tsx}`) can follow after the closing parenthesis.
-	        // In this case, we need to parse the string and use it in the output of the original pattern.
-	        // Suitable patterns: `/!(*.d).ts`, `/!(*.d).{ts,tsx}`, `**/!(*-dbg).@(js)`.
-	        //
-	        // Disabling the `fastpaths` option due to a problem with parsing strings as `.ts` in the pattern like `**/!(*.d).ts`.
-	        const expression = parse(rest, { ...options, fastpaths: false }).output;
-
-	        output = token.close = `)${expression})${extglobStar})`;
-	      }
-
-	      if (token.prev.type === 'bos') {
-	        state.negatedExtglob = true;
-	      }
-	    }
-
-	    push({ type: 'paren', extglob: true, value, output });
-	    decrement('parens');
-	  };
-
-	  /**
-	   * Fast paths
-	   */
-
-	  if (opts.fastpaths !== false && !/(^[*!]|[/()[\]{}"])/.test(input)) {
-	    let backslashes = false;
-
-	    let output = input.replace(REGEX_SPECIAL_CHARS_BACKREF, (m, esc, chars, first, rest, index) => {
-	      if (first === '\\') {
-	        backslashes = true;
-	        return m;
-	      }
-
-	      if (first === '?') {
-	        if (esc) {
-	          return esc + first + (rest ? QMARK.repeat(rest.length) : '');
-	        }
-	        if (index === 0) {
-	          return qmarkNoDot + (rest ? QMARK.repeat(rest.length) : '');
-	        }
-	        return QMARK.repeat(chars.length);
-	      }
-
-	      if (first === '.') {
-	        return DOT_LITERAL.repeat(chars.length);
-	      }
-
-	      if (first === '*') {
-	        if (esc) {
-	          return esc + first + (rest ? star : '');
-	        }
-	        return star;
-	      }
-	      return esc ? m : `\\${m}`;
-	    });
-
-	    if (backslashes === true) {
-	      if (opts.unescape === true) {
-	        output = output.replace(/\\/g, '');
-	      } else {
-	        output = output.replace(/\\+/g, m => {
-	          return m.length % 2 === 0 ? '\\\\' : (m ? '\\' : '');
-	        });
-	      }
-	    }
-
-	    if (output === input && opts.contains === true) {
-	      state.output = input;
-	      return state;
-	    }
-
-	    state.output = utils.wrapOutput(output, state, options);
-	    return state;
-	  }
-
-	  /**
-	   * Tokenize input until we reach end-of-string
-	   */
-
-	  while (!eos()) {
-	    value = advance();
-
-	    if (value === '\u0000') {
-	      continue;
-	    }
-
-	    /**
-	     * Escaped characters
-	     */
-
-	    if (value === '\\') {
-	      const next = peek();
-
-	      if (next === '/' && opts.bash !== true) {
-	        continue;
-	      }
-
-	      if (next === '.' || next === ';') {
-	        continue;
-	      }
-
-	      if (!next) {
-	        value += '\\';
-	        push({ type: 'text', value });
-	        continue;
-	      }
-
-	      // collapse slashes to reduce potential for exploits
-	      const match = /^\\+/.exec(remaining());
-	      let slashes = 0;
-
-	      if (match && match[0].length > 2) {
-	        slashes = match[0].length;
-	        state.index += slashes;
-	        if (slashes % 2 !== 0) {
-	          value += '\\';
-	        }
-	      }
-
-	      if (opts.unescape === true) {
-	        value = advance();
-	      } else {
-	        value += advance();
-	      }
-
-	      if (state.brackets === 0) {
-	        push({ type: 'text', value });
-	        continue;
-	      }
-	    }
-
-	    /**
-	     * If we're inside a regex character class, continue
-	     * until we reach the closing bracket.
-	     */
-
-	    if (state.brackets > 0 && (value !== ']' || prev.value === '[' || prev.value === '[^')) {
-	      if (opts.posix !== false && value === ':') {
-	        const inner = prev.value.slice(1);
-	        if (inner.includes('[')) {
-	          prev.posix = true;
-
-	          if (inner.includes(':')) {
-	            const idx = prev.value.lastIndexOf('[');
-	            const pre = prev.value.slice(0, idx);
-	            const rest = prev.value.slice(idx + 2);
-	            const posix = POSIX_REGEX_SOURCE[rest];
-	            if (posix) {
-	              prev.value = pre + posix;
-	              state.backtrack = true;
-	              advance();
-
-	              if (!bos.output && tokens.indexOf(prev) === 1) {
-	                bos.output = ONE_CHAR;
-	              }
-	              continue;
-	            }
-	          }
-	        }
-	      }
-
-	      if ((value === '[' && peek() !== ':') || (value === '-' && peek() === ']')) {
-	        value = `\\${value}`;
-	      }
-
-	      if (value === ']' && (prev.value === '[' || prev.value === '[^')) {
-	        value = `\\${value}`;
-	      }
-
-	      if (opts.posix === true && value === '!' && prev.value === '[') {
-	        value = '^';
-	      }
-
-	      prev.value += value;
-	      append({ value });
-	      continue;
-	    }
-
-	    /**
-	     * If we're inside a quoted string, continue
-	     * until we reach the closing double quote.
-	     */
-
-	    if (state.quotes === 1 && value !== '"') {
-	      value = utils.escapeRegex(value);
-	      prev.value += value;
-	      append({ value });
-	      continue;
-	    }
-
-	    /**
-	     * Double quotes
-	     */
-
-	    if (value === '"') {
-	      state.quotes = state.quotes === 1 ? 0 : 1;
-	      if (opts.keepQuotes === true) {
-	        push({ type: 'text', value });
-	      }
-	      continue;
-	    }
-
-	    /**
-	     * Parentheses
-	     */
-
-	    if (value === '(') {
-	      increment('parens');
-	      push({ type: 'paren', value });
-	      continue;
-	    }
-
-	    if (value === ')') {
-	      if (state.parens === 0 && opts.strictBrackets === true) {
-	        throw new SyntaxError(syntaxError('opening', '('));
-	      }
-
-	      const extglob = extglobs[extglobs.length - 1];
-	      if (extglob && state.parens === extglob.parens + 1) {
-	        extglobClose(extglobs.pop());
-	        continue;
-	      }
-
-	      push({ type: 'paren', value, output: state.parens ? ')' : '\\)' });
-	      decrement('parens');
-	      continue;
-	    }
-
-	    /**
-	     * Square brackets
-	     */
-
-	    if (value === '[') {
-	      if (opts.nobracket === true || !remaining().includes(']')) {
-	        if (opts.nobracket !== true && opts.strictBrackets === true) {
-	          throw new SyntaxError(syntaxError('closing', ']'));
-	        }
-
-	        value = `\\${value}`;
-	      } else {
-	        increment('brackets');
-	      }
-
-	      push({ type: 'bracket', value });
-	      continue;
-	    }
-
-	    if (value === ']') {
-	      if (opts.nobracket === true || (prev && prev.type === 'bracket' && prev.value.length === 1)) {
-	        push({ type: 'text', value, output: `\\${value}` });
-	        continue;
-	      }
-
-	      if (state.brackets === 0) {
-	        if (opts.strictBrackets === true) {
-	          throw new SyntaxError(syntaxError('opening', '['));
-	        }
-
-	        push({ type: 'text', value, output: `\\${value}` });
-	        continue;
-	      }
-
-	      decrement('brackets');
-
-	      const prevValue = prev.value.slice(1);
-	      if (prev.posix !== true && prevValue[0] === '^' && !prevValue.includes('/')) {
-	        value = `/${value}`;
-	      }
-
-	      prev.value += value;
-	      append({ value });
-
-	      // when literal brackets are explicitly disabled
-	      // assume we should match with a regex character class
-	      if (opts.literalBrackets === false || utils.hasRegexChars(prevValue)) {
-	        continue;
-	      }
-
-	      const escaped = utils.escapeRegex(prev.value);
-	      state.output = state.output.slice(0, -prev.value.length);
-
-	      // when literal brackets are explicitly enabled
-	      // assume we should escape the brackets to match literal characters
-	      if (opts.literalBrackets === true) {
-	        state.output += escaped;
-	        prev.value = escaped;
-	        continue;
-	      }
-
-	      // when the user specifies nothing, try to match both
-	      prev.value = `(${capture}${escaped}|${prev.value})`;
-	      state.output += prev.value;
-	      continue;
-	    }
-
-	    /**
-	     * Braces
-	     */
-
-	    if (value === '{' && opts.nobrace !== true) {
-	      increment('braces');
-
-	      const open = {
-	        type: 'brace',
-	        value,
-	        output: '(',
-	        outputIndex: state.output.length,
-	        tokensIndex: state.tokens.length
-	      };
-
-	      braces.push(open);
-	      push(open);
-	      continue;
-	    }
-
-	    if (value === '}') {
-	      const brace = braces[braces.length - 1];
-
-	      if (opts.nobrace === true || !brace) {
-	        push({ type: 'text', value, output: value });
-	        continue;
-	      }
-
-	      let output = ')';
-
-	      if (brace.dots === true) {
-	        const arr = tokens.slice();
-	        const range = [];
-
-	        for (let i = arr.length - 1; i >= 0; i--) {
-	          tokens.pop();
-	          if (arr[i].type === 'brace') {
-	            break;
-	          }
-	          if (arr[i].type !== 'dots') {
-	            range.unshift(arr[i].value);
-	          }
-	        }
-
-	        output = expandRange(range, opts);
-	        state.backtrack = true;
-	      }
-
-	      if (brace.comma !== true && brace.dots !== true) {
-	        const out = state.output.slice(0, brace.outputIndex);
-	        const toks = state.tokens.slice(brace.tokensIndex);
-	        brace.value = brace.output = '\\{';
-	        value = output = '\\}';
-	        state.output = out;
-	        for (const t of toks) {
-	          state.output += (t.output || t.value);
-	        }
-	      }
-
-	      push({ type: 'brace', value, output });
-	      decrement('braces');
-	      braces.pop();
-	      continue;
-	    }
-
-	    /**
-	     * Pipes
-	     */
-
-	    if (value === '|') {
-	      if (extglobs.length > 0) {
-	        extglobs[extglobs.length - 1].conditions++;
-	      }
-	      push({ type: 'text', value });
-	      continue;
-	    }
-
-	    /**
-	     * Commas
-	     */
-
-	    if (value === ',') {
-	      let output = value;
-
-	      const brace = braces[braces.length - 1];
-	      if (brace && stack[stack.length - 1] === 'braces') {
-	        brace.comma = true;
-	        output = '|';
-	      }
-
-	      push({ type: 'comma', value, output });
-	      continue;
-	    }
-
-	    /**
-	     * Slashes
-	     */
-
-	    if (value === '/') {
-	      // if the beginning of the glob is "./", advance the start
-	      // to the current index, and don't add the "./" characters
-	      // to the state. This greatly simplifies lookbehinds when
-	      // checking for BOS characters like "!" and "." (not "./")
-	      if (prev.type === 'dot' && state.index === state.start + 1) {
-	        state.start = state.index + 1;
-	        state.consumed = '';
-	        state.output = '';
-	        tokens.pop();
-	        prev = bos; // reset "prev" to the first token
-	        continue;
-	      }
-
-	      push({ type: 'slash', value, output: SLASH_LITERAL });
-	      continue;
-	    }
-
-	    /**
-	     * Dots
-	     */
-
-	    if (value === '.') {
-	      if (state.braces > 0 && prev.type === 'dot') {
-	        if (prev.value === '.') prev.output = DOT_LITERAL;
-	        const brace = braces[braces.length - 1];
-	        prev.type = 'dots';
-	        prev.output += value;
-	        prev.value += value;
-	        brace.dots = true;
-	        continue;
-	      }
-
-	      if ((state.braces + state.parens) === 0 && prev.type !== 'bos' && prev.type !== 'slash') {
-	        push({ type: 'text', value, output: DOT_LITERAL });
-	        continue;
-	      }
-
-	      push({ type: 'dot', value, output: DOT_LITERAL });
-	      continue;
-	    }
-
-	    /**
-	     * Question marks
-	     */
-
-	    if (value === '?') {
-	      const isGroup = prev && prev.value === '(';
-	      if (!isGroup && opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
-	        extglobOpen('qmark', value);
-	        continue;
-	      }
-
-	      if (prev && prev.type === 'paren') {
-	        const next = peek();
-	        let output = value;
-
-	        if ((prev.value === '(' && !/[!=<:]/.test(next)) || (next === '<' && !/<([!=]|\w+>)/.test(remaining()))) {
-	          output = `\\${value}`;
-	        }
-
-	        push({ type: 'text', value, output });
-	        continue;
-	      }
-
-	      if (opts.dot !== true && (prev.type === 'slash' || prev.type === 'bos')) {
-	        push({ type: 'qmark', value, output: QMARK_NO_DOT });
-	        continue;
-	      }
-
-	      push({ type: 'qmark', value, output: QMARK });
-	      continue;
-	    }
-
-	    /**
-	     * Exclamation
-	     */
-
-	    if (value === '!') {
-	      if (opts.noextglob !== true && peek() === '(') {
-	        if (peek(2) !== '?' || !/[!=<:]/.test(peek(3))) {
-	          extglobOpen('negate', value);
-	          continue;
-	        }
-	      }
-
-	      if (opts.nonegate !== true && state.index === 0) {
-	        negate();
-	        continue;
-	      }
-	    }
-
-	    /**
-	     * Plus
-	     */
-
-	    if (value === '+') {
-	      if (opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
-	        extglobOpen('plus', value);
-	        continue;
-	      }
-
-	      if ((prev && prev.value === '(') || opts.regex === false) {
-	        push({ type: 'plus', value, output: PLUS_LITERAL });
-	        continue;
-	      }
-
-	      if ((prev && (prev.type === 'bracket' || prev.type === 'paren' || prev.type === 'brace')) || state.parens > 0) {
-	        push({ type: 'plus', value });
-	        continue;
-	      }
-
-	      push({ type: 'plus', value: PLUS_LITERAL });
-	      continue;
-	    }
-
-	    /**
-	     * Plain text
-	     */
-
-	    if (value === '@') {
-	      if (opts.noextglob !== true && peek() === '(' && peek(2) !== '?') {
-	        push({ type: 'at', extglob: true, value, output: '' });
-	        continue;
-	      }
-
-	      push({ type: 'text', value });
-	      continue;
-	    }
-
-	    /**
-	     * Plain text
-	     */
-
-	    if (value !== '*') {
-	      if (value === '$' || value === '^') {
-	        value = `\\${value}`;
-	      }
-
-	      const match = REGEX_NON_SPECIAL_CHARS.exec(remaining());
-	      if (match) {
-	        value += match[0];
-	        state.index += match[0].length;
-	      }
-
-	      push({ type: 'text', value });
-	      continue;
-	    }
-
-	    /**
-	     * Stars
-	     */
-
-	    if (prev && (prev.type === 'globstar' || prev.star === true)) {
-	      prev.type = 'star';
-	      prev.star = true;
-	      prev.value += value;
-	      prev.output = star;
-	      state.backtrack = true;
-	      state.globstar = true;
-	      consume(value);
-	      continue;
-	    }
-
-	    let rest = remaining();
-	    if (opts.noextglob !== true && /^\([^?]/.test(rest)) {
-	      extglobOpen('star', value);
-	      continue;
-	    }
-
-	    if (prev.type === 'star') {
-	      if (opts.noglobstar === true) {
-	        consume(value);
-	        continue;
-	      }
-
-	      const prior = prev.prev;
-	      const before = prior.prev;
-	      const isStart = prior.type === 'slash' || prior.type === 'bos';
-	      const afterStar = before && (before.type === 'star' || before.type === 'globstar');
-
-	      if (opts.bash === true && (!isStart || (rest[0] && rest[0] !== '/'))) {
-	        push({ type: 'star', value, output: '' });
-	        continue;
-	      }
-
-	      const isBrace = state.braces > 0 && (prior.type === 'comma' || prior.type === 'brace');
-	      const isExtglob = extglobs.length && (prior.type === 'pipe' || prior.type === 'paren');
-	      if (!isStart && prior.type !== 'paren' && !isBrace && !isExtglob) {
-	        push({ type: 'star', value, output: '' });
-	        continue;
-	      }
-
-	      // strip consecutive `/**/`
-	      while (rest.slice(0, 3) === '/**') {
-	        const after = input[state.index + 4];
-	        if (after && after !== '/') {
-	          break;
-	        }
-	        rest = rest.slice(3);
-	        consume('/**', 3);
-	      }
-
-	      if (prior.type === 'bos' && eos()) {
-	        prev.type = 'globstar';
-	        prev.value += value;
-	        prev.output = globstar(opts);
-	        state.output = prev.output;
-	        state.globstar = true;
-	        consume(value);
-	        continue;
-	      }
-
-	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && !afterStar && eos()) {
-	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
-	        prior.output = `(?:${prior.output}`;
-
-	        prev.type = 'globstar';
-	        prev.output = globstar(opts) + (opts.strictSlashes ? ')' : '|$)');
-	        prev.value += value;
-	        state.globstar = true;
-	        state.output += prior.output + prev.output;
-	        consume(value);
-	        continue;
-	      }
-
-	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
-	        const end = rest[1] !== undefined ? '|$' : '';
-
-	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
-	        prior.output = `(?:${prior.output}`;
-
-	        prev.type = 'globstar';
-	        prev.output = `${globstar(opts)}${SLASH_LITERAL}|${SLASH_LITERAL}${end})`;
-	        prev.value += value;
-
-	        state.output += prior.output + prev.output;
-	        state.globstar = true;
-
-	        consume(value + advance());
-
-	        push({ type: 'slash', value: '/', output: '' });
-	        continue;
-	      }
-
-	      if (prior.type === 'bos' && rest[0] === '/') {
-	        prev.type = 'globstar';
-	        prev.value += value;
-	        prev.output = `(?:^|${SLASH_LITERAL}|${globstar(opts)}${SLASH_LITERAL})`;
-	        state.output = prev.output;
-	        state.globstar = true;
-	        consume(value + advance());
-	        push({ type: 'slash', value: '/', output: '' });
-	        continue;
-	      }
-
-	      // remove single star from output
-	      state.output = state.output.slice(0, -prev.output.length);
-
-	      // reset previous token to globstar
-	      prev.type = 'globstar';
-	      prev.output = globstar(opts);
-	      prev.value += value;
-
-	      // reset output with globstar
-	      state.output += prev.output;
-	      state.globstar = true;
-	      consume(value);
-	      continue;
-	    }
-
-	    const token = { type: 'star', value, output: star };
-
-	    if (opts.bash === true) {
-	      token.output = '.*?';
-	      if (prev.type === 'bos' || prev.type === 'slash') {
-	        token.output = nodot + token.output;
-	      }
-	      push(token);
-	      continue;
-	    }
-
-	    if (prev && (prev.type === 'bracket' || prev.type === 'paren') && opts.regex === true) {
-	      token.output = value;
-	      push(token);
-	      continue;
-	    }
-
-	    if (state.index === state.start || prev.type === 'slash' || prev.type === 'dot') {
-	      if (prev.type === 'dot') {
-	        state.output += NO_DOT_SLASH;
-	        prev.output += NO_DOT_SLASH;
-
-	      } else if (opts.dot === true) {
-	        state.output += NO_DOTS_SLASH;
-	        prev.output += NO_DOTS_SLASH;
-
-	      } else {
-	        state.output += nodot;
-	        prev.output += nodot;
-	      }
-
-	      if (peek() !== '*') {
-	        state.output += ONE_CHAR;
-	        prev.output += ONE_CHAR;
-	      }
-	    }
-
-	    push(token);
-	  }
-
-	  while (state.brackets > 0) {
-	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', ']'));
-	    state.output = utils.escapeLast(state.output, '[');
-	    decrement('brackets');
-	  }
-
-	  while (state.parens > 0) {
-	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', ')'));
-	    state.output = utils.escapeLast(state.output, '(');
-	    decrement('parens');
-	  }
-
-	  while (state.braces > 0) {
-	    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError('closing', '}'));
-	    state.output = utils.escapeLast(state.output, '{');
-	    decrement('braces');
-	  }
-
-	  if (opts.strictSlashes !== true && (prev.type === 'star' || prev.type === 'bracket')) {
-	    push({ type: 'maybe_slash', value: '', output: `${SLASH_LITERAL}?` });
-	  }
-
-	  // rebuild the output if we had to backtrack at any point
-	  if (state.backtrack === true) {
-	    state.output = '';
-
-	    for (const token of state.tokens) {
-	      state.output += token.output != null ? token.output : token.value;
-
-	      if (token.suffix) {
-	        state.output += token.suffix;
-	      }
-	    }
-	  }
-
-	  return state;
-	};
-
-	/**
-	 * Fast paths for creating regular expressions for common glob patterns.
-	 * This can significantly speed up processing and has very little downside
-	 * impact when none of the fast paths match.
-	 */
-
-	parse.fastpaths = (input, options) => {
-	  const opts = { ...options };
-	  const max = typeof opts.maxLength === 'number' ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
-	  const len = input.length;
-	  if (len > max) {
-	    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`);
-	  }
-
-	  input = REPLACEMENTS[input] || input;
-
-	  // create constants based on platform, for windows or posix
-	  const {
-	    DOT_LITERAL,
-	    SLASH_LITERAL,
-	    ONE_CHAR,
-	    DOTS_SLASH,
-	    NO_DOT,
-	    NO_DOTS,
-	    NO_DOTS_SLASH,
-	    STAR,
-	    START_ANCHOR
-	  } = constants.globChars(opts.windows);
-
-	  const nodot = opts.dot ? NO_DOTS : NO_DOT;
-	  const slashDot = opts.dot ? NO_DOTS_SLASH : NO_DOT;
-	  const capture = opts.capture ? '' : '?:';
-	  const state = { negated: false, prefix: '' };
-	  let star = opts.bash === true ? '.*?' : STAR;
-
-	  if (opts.capture) {
-	    star = `(${star})`;
-	  }
-
-	  const globstar = opts => {
-	    if (opts.noglobstar === true) return star;
-	    return `(${capture}(?:(?!${START_ANCHOR}${opts.dot ? DOTS_SLASH : DOT_LITERAL}).)*?)`;
-	  };
-
-	  const create = str => {
-	    switch (str) {
-	      case '*':
-	        return `${nodot}${ONE_CHAR}${star}`;
-
-	      case '.*':
-	        return `${DOT_LITERAL}${ONE_CHAR}${star}`;
-
-	      case '*.*':
-	        return `${nodot}${star}${DOT_LITERAL}${ONE_CHAR}${star}`;
-
-	      case '*/*':
-	        return `${nodot}${star}${SLASH_LITERAL}${ONE_CHAR}${slashDot}${star}`;
-
-	      case '**':
-	        return nodot + globstar(opts);
-
-	      case '**/*':
-	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${slashDot}${ONE_CHAR}${star}`;
-
-	      case '**/*.*':
-	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${slashDot}${star}${DOT_LITERAL}${ONE_CHAR}${star}`;
-
-	      case '**/.*':
-	        return `(?:${nodot}${globstar(opts)}${SLASH_LITERAL})?${DOT_LITERAL}${ONE_CHAR}${star}`;
-
-	      default: {
-	        const match = /^(.*?)\.(\w+)$/.exec(str);
-	        if (!match) return;
-
-	        const source = create(match[1]);
-	        if (!source) return;
-
-	        return source + DOT_LITERAL + match[2];
-	      }
-	    }
-	  };
-
-	  const output = utils.removePrefix(input, state);
-	  let source = create(output);
-
-	  if (source && opts.strictSlashes !== true) {
-	    source += `${SLASH_LITERAL}?`;
-	  }
-
-	  return source;
-	};
-
-	parse_1 = parse;
-	return parse_1;
-}
-
-var picomatch_1$1;
-var hasRequiredPicomatch$1;
-
-function requirePicomatch$1 () {
-	if (hasRequiredPicomatch$1) return picomatch_1$1;
-	hasRequiredPicomatch$1 = 1;
-
-	const scan = /*@__PURE__*/ requireScan();
-	const parse = /*@__PURE__*/ requireParse();
-	const utils = /*@__PURE__*/ requireUtils();
-	const constants = /*@__PURE__*/ requireConstants();
-	const isObject = val => val && typeof val === 'object' && !Array.isArray(val);
-
-	/**
-	 * Creates a matcher function from one or more glob patterns. The
-	 * returned function takes a string to match as its first argument,
-	 * and returns true if the string is a match. The returned matcher
-	 * function also takes a boolean as the second argument that, when true,
-	 * returns an object with additional information.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch(glob[, options]);
-	 *
-	 * const isMatch = picomatch('*.!(*a)');
-	 * console.log(isMatch('a.a')); //=> false
-	 * console.log(isMatch('a.b')); //=> true
-	 * ```
-	 * @name picomatch
-	 * @param {String|Array} `globs` One or more glob patterns.
-	 * @param {Object=} `options`
-	 * @return {Function=} Returns a matcher function.
-	 * @api public
-	 */
-
-	const picomatch = (glob, options, returnState = false) => {
-	  if (Array.isArray(glob)) {
-	    const fns = glob.map(input => picomatch(input, options, returnState));
-	    const arrayMatcher = str => {
-	      for (const isMatch of fns) {
-	        const state = isMatch(str);
-	        if (state) return state;
-	      }
-	      return false;
-	    };
-	    return arrayMatcher;
-	  }
-
-	  const isState = isObject(glob) && glob.tokens && glob.input;
-
-	  if (glob === '' || (typeof glob !== 'string' && !isState)) {
-	    throw new TypeError('Expected pattern to be a non-empty string');
-	  }
-
-	  const opts = options || {};
-	  const posix = opts.windows;
-	  const regex = isState
-	    ? picomatch.compileRe(glob, options)
-	    : picomatch.makeRe(glob, options, false, true);
-
-	  const state = regex.state;
-	  delete regex.state;
-
-	  let isIgnored = () => false;
-	  if (opts.ignore) {
-	    const ignoreOpts = { ...options, ignore: null, onMatch: null, onResult: null };
-	    isIgnored = picomatch(opts.ignore, ignoreOpts, returnState);
-	  }
-
-	  const matcher = (input, returnObject = false) => {
-	    const { isMatch, match, output } = picomatch.test(input, regex, options, { glob, posix });
-	    const result = { glob, state, regex, posix, input, output, match, isMatch };
-
-	    if (typeof opts.onResult === 'function') {
-	      opts.onResult(result);
-	    }
-
-	    if (isMatch === false) {
-	      result.isMatch = false;
-	      return returnObject ? result : false;
-	    }
-
-	    if (isIgnored(input)) {
-	      if (typeof opts.onIgnore === 'function') {
-	        opts.onIgnore(result);
-	      }
-	      result.isMatch = false;
-	      return returnObject ? result : false;
-	    }
-
-	    if (typeof opts.onMatch === 'function') {
-	      opts.onMatch(result);
-	    }
-	    return returnObject ? result : true;
-	  };
-
-	  if (returnState) {
-	    matcher.state = state;
-	  }
-
-	  return matcher;
-	};
-
-	/**
-	 * Test `input` with the given `regex`. This is used by the main
-	 * `picomatch()` function to test the input string.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch.test(input, regex[, options]);
-	 *
-	 * console.log(picomatch.test('foo/bar', /^(?:([^/]*?)\/([^/]*?))$/));
-	 * // { isMatch: true, match: [ 'foo/', 'foo', 'bar' ], output: 'foo/bar' }
-	 * ```
-	 * @param {String} `input` String to test.
-	 * @param {RegExp} `regex`
-	 * @return {Object} Returns an object with matching info.
-	 * @api public
-	 */
-
-	picomatch.test = (input, regex, options, { glob, posix } = {}) => {
-	  if (typeof input !== 'string') {
-	    throw new TypeError('Expected input to be a string');
-	  }
-
-	  if (input === '') {
-	    return { isMatch: false, output: '' };
-	  }
-
-	  const opts = options || {};
-	  const format = opts.format || (posix ? utils.toPosixSlashes : null);
-	  let match = input === glob;
-	  let output = (match && format) ? format(input) : input;
-
-	  if (match === false) {
-	    output = format ? format(input) : input;
-	    match = output === glob;
-	  }
-
-	  if (match === false || opts.capture === true) {
-	    if (opts.matchBase === true || opts.basename === true) {
-	      match = picomatch.matchBase(input, regex, options, posix);
-	    } else {
-	      match = regex.exec(output);
-	    }
-	  }
-
-	  return { isMatch: Boolean(match), match, output };
-	};
-
-	/**
-	 * Match the basename of a filepath.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch.matchBase(input, glob[, options]);
-	 * console.log(picomatch.matchBase('foo/bar.js', '*.js'); // true
-	 * ```
-	 * @param {String} `input` String to test.
-	 * @param {RegExp|String} `glob` Glob pattern or regex created by [.makeRe](#makeRe).
-	 * @return {Boolean}
-	 * @api public
-	 */
-
-	picomatch.matchBase = (input, glob, options) => {
-	  const regex = glob instanceof RegExp ? glob : picomatch.makeRe(glob, options);
-	  return regex.test(utils.basename(input));
-	};
-
-	/**
-	 * Returns true if **any** of the given glob `patterns` match the specified `string`.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch.isMatch(string, patterns[, options]);
-	 *
-	 * console.log(picomatch.isMatch('a.a', ['b.*', '*.a'])); //=> true
-	 * console.log(picomatch.isMatch('a.a', 'b.*')); //=> false
-	 * ```
-	 * @param {String|Array} str The string to test.
-	 * @param {String|Array} patterns One or more glob patterns to use for matching.
-	 * @param {Object} [options] See available [options](#options).
-	 * @return {Boolean} Returns true if any patterns match `str`
-	 * @api public
-	 */
-
-	picomatch.isMatch = (str, patterns, options) => picomatch(patterns, options)(str);
-
-	/**
-	 * Parse a glob pattern to create the source string for a regular
-	 * expression.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * const result = picomatch.parse(pattern[, options]);
-	 * ```
-	 * @param {String} `pattern`
-	 * @param {Object} `options`
-	 * @return {Object} Returns an object with useful properties and output to be used as a regex source string.
-	 * @api public
-	 */
-
-	picomatch.parse = (pattern, options) => {
-	  if (Array.isArray(pattern)) return pattern.map(p => picomatch.parse(p, options));
-	  return parse(pattern, { ...options, fastpaths: false });
-	};
-
-	/**
-	 * Scan a glob pattern to separate the pattern into segments.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch.scan(input[, options]);
-	 *
-	 * const result = picomatch.scan('!./foo/*.js');
-	 * console.log(result);
-	 * { prefix: '!./',
-	 *   input: '!./foo/*.js',
-	 *   start: 3,
-	 *   base: 'foo',
-	 *   glob: '*.js',
-	 *   isBrace: false,
-	 *   isBracket: false,
-	 *   isGlob: true,
-	 *   isExtglob: false,
-	 *   isGlobstar: false,
-	 *   negated: true }
-	 * ```
-	 * @param {String} `input` Glob pattern to scan.
-	 * @param {Object} `options`
-	 * @return {Object} Returns an object with
-	 * @api public
-	 */
-
-	picomatch.scan = (input, options) => scan(input, options);
-
-	/**
-	 * Compile a regular expression from the `state` object returned by the
-	 * [parse()](#parse) method.
-	 *
-	 * @param {Object} `state`
-	 * @param {Object} `options`
-	 * @param {Boolean} `returnOutput` Intended for implementors, this argument allows you to return the raw output from the parser.
-	 * @param {Boolean} `returnState` Adds the state to a `state` property on the returned regex. Useful for implementors and debugging.
-	 * @return {RegExp}
-	 * @api public
-	 */
-
-	picomatch.compileRe = (state, options, returnOutput = false, returnState = false) => {
-	  if (returnOutput === true) {
-	    return state.output;
-	  }
-
-	  const opts = options || {};
-	  const prepend = opts.contains ? '' : '^';
-	  const append = opts.contains ? '' : '$';
-
-	  let source = `${prepend}(?:${state.output})${append}`;
-	  if (state && state.negated === true) {
-	    source = `^(?!${source}).*$`;
-	  }
-
-	  const regex = picomatch.toRegex(source, options);
-	  if (returnState === true) {
-	    regex.state = state;
-	  }
-
-	  return regex;
-	};
-
-	/**
-	 * Create a regular expression from a parsed glob pattern.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * const state = picomatch.parse('*.js');
-	 * // picomatch.compileRe(state[, options]);
-	 *
-	 * console.log(picomatch.compileRe(state));
-	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
-	 * ```
-	 * @param {String} `state` The object returned from the `.parse` method.
-	 * @param {Object} `options`
-	 * @param {Boolean} `returnOutput` Implementors may use this argument to return the compiled output, instead of a regular expression. This is not exposed on the options to prevent end-users from mutating the result.
-	 * @param {Boolean} `returnState` Implementors may use this argument to return the state from the parsed glob with the returned regular expression.
-	 * @return {RegExp} Returns a regex created from the given pattern.
-	 * @api public
-	 */
-
-	picomatch.makeRe = (input, options = {}, returnOutput = false, returnState = false) => {
-	  if (!input || typeof input !== 'string') {
-	    throw new TypeError('Expected a non-empty string');
-	  }
-
-	  let parsed = { negated: false, fastpaths: true };
-
-	  if (options.fastpaths !== false && (input[0] === '.' || input[0] === '*')) {
-	    parsed.output = parse.fastpaths(input, options);
-	  }
-
-	  if (!parsed.output) {
-	    parsed = parse(input, options);
-	  }
-
-	  return picomatch.compileRe(parsed, options, returnOutput, returnState);
-	};
-
-	/**
-	 * Create a regular expression from the given regex source string.
-	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * // picomatch.toRegex(source[, options]);
-	 *
-	 * const { output } = picomatch.parse('*.js');
-	 * console.log(picomatch.toRegex(output));
-	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
-	 * ```
-	 * @param {String} `source` Regular expression source string.
-	 * @param {Object} `options`
-	 * @return {RegExp}
-	 * @api public
-	 */
-
-	picomatch.toRegex = (source, options) => {
-	  try {
-	    const opts = options || {};
-	    return new RegExp(source, opts.flags || (opts.nocase ? 'i' : ''));
-	  } catch (err) {
-	    if (options && options.debug === true) throw err;
-	    return /$^/;
-	  }
-	};
-
-	/**
-	 * Picomatch constants.
-	 * @return {Object}
-	 */
-
-	picomatch.constants = constants;
-
-	/**
-	 * Expose "picomatch"
-	 */
-
-	picomatch_1$1 = picomatch;
-	return picomatch_1$1;
-}
-
-var picomatch_1;
-var hasRequiredPicomatch;
-
-function requirePicomatch () {
-	if (hasRequiredPicomatch) return picomatch_1;
-	hasRequiredPicomatch = 1;
-
-	const pico = /*@__PURE__*/ requirePicomatch$1();
-	const utils = /*@__PURE__*/ requireUtils();
-
-	function picomatch(glob, options, returnState = false) {
-	  // default to os.platform()
-	  if (options && (options.windows === null || options.windows === undefined)) {
-	    // don't mutate the original options object
-	    options = { ...options, windows: utils.isWindows() };
-	  }
-
-	  return pico(glob, options, returnState);
-	}
-
-	Object.assign(picomatch, pico);
-	picomatch_1 = picomatch;
-	return picomatch_1;
-}
-
-var picomatchExports = /*@__PURE__*/ requirePicomatch();
-const pm = /*@__PURE__*/getDefaultExportFromCjs(picomatchExports);
 
 const extractors = {
     ArrayPattern(names, param) {
@@ -12280,20 +12861,36 @@ class ArrayPattern extends NodeBase {
             element?.addExportedVariables(variables, exportNamesByVariable);
         }
     }
-    declare(kind) {
+    declare(kind, destructuredInitPath, init) {
         const variables = [];
+        const includedPatternPath = getIncludedPatternPath(destructuredInitPath);
         for (const element of this.elements) {
             if (element !== null) {
-                variables.push(...element.declare(kind, UNKNOWN_EXPRESSION));
+                variables.push(...element.declare(kind, includedPatternPath, init));
             }
         }
         return variables;
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        const includedPatternPath = getIncludedPatternPath(destructuredInitPath);
+        for (const element of this.elements) {
+            element?.deoptimizeAssignment(includedPatternPath, init);
+        }
     }
     // Patterns can only be deoptimized at the empty path at the moment
     deoptimizePath() {
         for (const element of this.elements) {
             element?.deoptimizePath(EMPTY_PATH);
         }
+    }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        const includedPatternPath = getIncludedPatternPath(destructuredInitPath);
+        for (const element of this.elements) {
+            if (element?.hasEffectsWhenDestructuring(context, includedPatternPath, init)) {
+                return true;
+            }
+        }
+        return false;
     }
     // Patterns are only checked at the empty path at the moment
     hasEffectsOnInteractionAtPath(_path, interaction, context) {
@@ -12303,12 +12900,38 @@ class ArrayPattern extends NodeBase {
         }
         return false;
     }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        let included = false;
+        const includedPatternPath = getIncludedPatternPath(destructuredInitPath);
+        for (const element of this.elements) {
+            if (element) {
+                element.included ||= included;
+                included =
+                    element.includeDestructuredIfNecessary(context, includedPatternPath, init) || included;
+            }
+        }
+        if (included) {
+            // This is necessary so that if any pattern element is included, all are
+            // included for proper deconflicting
+            for (const element of this.elements) {
+                if (element && !element.included) {
+                    element.included = true;
+                    element.includeDestructuredIfNecessary(context, includedPatternPath, init);
+                }
+            }
+        }
+        return (this.included ||= included);
+    }
     markDeclarationReached() {
         for (const element of this.elements) {
             element?.markDeclarationReached();
         }
     }
 }
+ArrayPattern.prototype.includeNode = onlyIncludeSelf;
+const getIncludedPatternPath = (destructuredInitPath) => destructuredInitPath.at(-1) === UnknownKey
+    ? destructuredInitPath
+    : [...destructuredInitPath, UnknownInteger];
 
 class ArrowFunctionExpression extends FunctionBase {
     constructor() {
@@ -12325,16 +12948,16 @@ class ArrowFunctionExpression extends FunctionBase {
         this.scope = new ReturnValueScope(parentScope, false);
     }
     hasEffects() {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
         return false;
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
+        if (this.annotationNoSideEffects &&
+            path.length === 0 &&
+            interaction.type === INTERACTION_CALLED) {
+            return false;
+        }
         if (super.hasEffectsOnInteractionAtPath(path, interaction, context)) {
             return true;
-        }
-        if (this.annotationNoSideEffects) {
-            return false;
         }
         if (interaction.type === INTERACTION_CALLED) {
             const { ignore, brokenFlow } = context;
@@ -12365,6 +12988,15 @@ class ArrowFunctionExpression extends FunctionBase {
             }
         }
     }
+    includeNode(context) {
+        this.included = true;
+        this.body.includePath(UNKNOWN_PATH, context);
+        for (const parameter of this.params) {
+            if (!(parameter instanceof Identifier)) {
+                parameter.includePath(UNKNOWN_PATH, context);
+            }
+        }
+    }
     getObjectEntity() {
         if (this.objectEntity !== null) {
             return this.objectEntity;
@@ -12384,12 +13016,17 @@ class ObjectPattern extends NodeBase {
             }
         }
     }
-    declare(kind, init) {
+    declare(kind, destructuredInitPath, init) {
         const variables = [];
         for (const property of this.properties) {
-            variables.push(...property.declare(kind, init));
+            variables.push(...property.declare(kind, destructuredInitPath, init));
         }
         return variables;
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        for (const property of this.properties) {
+            property.deoptimizeAssignment(destructuredInitPath, init);
+        }
     }
     deoptimizePath(path) {
         if (path.length === 0) {
@@ -12408,12 +13045,54 @@ class ObjectPattern extends NodeBase {
         }
         return false;
     }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        for (const property of this.properties) {
+            if (property.hasEffectsWhenDestructuring(context, destructuredInitPath, init))
+                return true;
+        }
+        return false;
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        if (!this.properties.length)
+            return false;
+        const lastProperty = this.properties.at(-1);
+        const lastPropertyIncluded = lastProperty.includeDestructuredIfNecessary(context, destructuredInitPath, init);
+        const lastPropertyIsRestElement = lastProperty.type === parseAst_js.RestElement;
+        let included = lastPropertyIsRestElement ? lastPropertyIncluded : false;
+        for (const property of this.properties.slice(0, -1)) {
+            if (lastPropertyIsRestElement && lastPropertyIncluded) {
+                property.includeNode(context);
+            }
+            included =
+                property.includeDestructuredIfNecessary(context, destructuredInitPath, init) || included;
+        }
+        return (this.included ||= included);
+    }
     markDeclarationReached() {
         for (const property of this.properties) {
             property.markDeclarationReached();
         }
     }
+    render(code, options) {
+        if (this.properties.length > 0) {
+            const separatedNodes = getCommaSeparatedNodesWithBoundaries(this.properties, code, this.start + 1, this.end - 1);
+            let lastSeparatorPos = null;
+            for (const { node, separator, start, end } of separatedNodes) {
+                if (!node.included) {
+                    treeshakeNode(node, code, start, end);
+                    continue;
+                }
+                lastSeparatorPos = separator;
+                node.render(code, options);
+            }
+            if (lastSeparatorPos) {
+                code.remove(lastSeparatorPos, this.end - 1);
+            }
+        }
+    }
 }
+ObjectPattern.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ObjectPattern.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class AssignmentExpression extends NodeBase {
     hasEffects(context) {
@@ -12422,7 +13101,9 @@ class AssignmentExpression extends NodeBase {
             this.applyDeoptimizations();
         // MemberExpressions do not access the property before assignments if the
         // operator is '='.
-        return (right.hasEffects(context) || left.hasEffectsAsAssignmentTarget(context, operator !== '='));
+        return (right.hasEffects(context) ||
+            left.hasEffectsAsAssignmentTarget(context, operator !== '=') ||
+            this.left.hasEffectsWhenDestructuring?.(context, EMPTY_PATH, right));
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return this.right.hasEffectsOnInteractionAtPath(path, interaction, context);
@@ -12431,14 +13112,23 @@ class AssignmentExpression extends NodeBase {
         const { deoptimized, left, right, operator } = this;
         if (!deoptimized)
             this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
+        const hasEffectsContext = createHasEffectsContext();
         if (includeChildrenRecursively ||
             operator !== '=' ||
             left.included ||
-            left.hasEffectsAsAssignmentTarget(createHasEffectsContext(), false)) {
+            left.hasEffectsAsAssignmentTarget(hasEffectsContext, false) ||
+            left.hasEffectsWhenDestructuring?.(hasEffectsContext, EMPTY_PATH, right)) {
             left.includeAsAssignmentTarget(context, includeChildrenRecursively, operator !== '=');
         }
         right.include(context, includeChildrenRecursively);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.right.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -12500,8 +13190,7 @@ class AssignmentExpression extends NodeBase {
     }
     applyDeoptimizations() {
         this.deoptimized = true;
-        this.left.deoptimizePath(EMPTY_PATH);
-        this.right.deoptimizePath(UNKNOWN_PATH);
+        this.left.deoptimizeAssignment(EMPTY_PATH, this.right);
         this.scope.context.requestTreeshakingPass();
     }
 }
@@ -12510,8 +13199,11 @@ class AssignmentPattern extends NodeBase {
     addExportedVariables(variables, exportNamesByVariable) {
         this.left.addExportedVariables(variables, exportNamesByVariable);
     }
-    declare(kind, init) {
-        return this.left.declare(kind, init);
+    declare(kind, destructuredInitPath, init) {
+        return this.left.declare(kind, destructuredInitPath, init);
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        this.left.deoptimizeAssignment(destructuredInitPath, init);
     }
     deoptimizePath(path) {
         if (path.length === 0) {
@@ -12520,6 +13212,29 @@ class AssignmentPattern extends NodeBase {
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return (path.length > 0 || this.left.hasEffectsOnInteractionAtPath(EMPTY_PATH, interaction, context));
+    }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        return this.left.hasEffectsWhenDestructuring(context, destructuredInitPath, init);
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        let included = this.left.includeDestructuredIfNecessary(context, destructuredInitPath, init) ||
+            this.included;
+        if ((included ||= this.right.shouldBeIncluded(context))) {
+            this.right.include(context, false);
+            if (!this.left.included) {
+                this.left.included = true;
+                // Unfortunately, we need to include the left side again now, so that
+                // any declared variables are properly included.
+                this.left.includeDestructuredIfNecessary(context, destructuredInitPath, init);
+            }
+        }
+        return (this.included = included);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.right.includePath(UNKNOWN_PATH, context);
     }
     markDeclarationReached() {
         this.left.markDeclarationReached();
@@ -12542,23 +13257,36 @@ class AwaitExpression extends NodeBase {
             this.applyDeoptimizations();
         return true;
     }
+    initialise() {
+        super.initialise();
+        let parent = this.parent;
+        do {
+            if (parent instanceof FunctionNode || parent instanceof ArrowFunctionExpression)
+                return;
+        } while ((parent = parent.parent));
+        this.scope.context.usesTopLevelAwait = true;
+    }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        if (!this.included) {
-            this.included = true;
-            checkTopLevelAwait: if (!this.scope.context.usesTopLevelAwait) {
-                let parent = this.parent;
-                do {
-                    if (parent instanceof FunctionNode || parent instanceof ArrowFunctionExpression)
-                        break checkTopLevelAwait;
-                } while ((parent = parent.parent));
-                this.scope.context.usesTopLevelAwait = true;
-            }
-        }
+        if (!this.included)
+            this.includeNode(context);
         this.argument.include(context, includeChildrenRecursively);
     }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        // Thenables need to be included
+        this.argument.includePath(THEN_PATH, context);
+    }
+    includePath(path, context) {
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        if (!this.included)
+            this.includeNode(context);
+        this.argument.includePath(path, context);
+    }
 }
+const THEN_PATH = ['then'];
 
 const binaryOperators = {
     '!=': (left, right) => left != right,
@@ -12614,6 +13342,12 @@ class BinaryExpression extends NodeBase {
     hasEffectsOnInteractionAtPath(path, { type }) {
         return type !== INTERACTION_ACCESSED || path.length > 1;
     }
+    includeNode(context) {
+        this.included = true;
+        if (this.operator === 'in') {
+            this.right.includePath(UNKNOWN_PATH, context);
+        }
+    }
     removeAnnotations(code) {
         this.left.removeAnnotations(code);
     }
@@ -12622,6 +13356,7 @@ class BinaryExpression extends NodeBase {
         this.right.render(code, options);
     }
 }
+BinaryExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class BreakStatement extends NodeBase {
     hasEffects(context) {
@@ -12638,10 +13373,10 @@ class BreakStatement extends NodeBase {
         context.brokenFlow = true;
         return false;
     }
-    include(context) {
+    include(context, includeChildrenRecursively) {
         this.included = true;
         if (this.label) {
-            this.label.include();
+            this.label.include(context, includeChildrenRecursively);
             context.includedLabels.add(this.label.name);
         }
         else {
@@ -12650,6 +13385,8 @@ class BreakStatement extends NodeBase {
         context.brokenFlow = true;
     }
 }
+BreakStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+BreakStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 function renderCallArguments(code, options, node) {
     if (node.arguments.length > 0) {
@@ -12770,6 +13507,12 @@ class CallExpressionBase extends NodeBase {
 }
 
 class CallExpression extends CallExpressionBase {
+    get hasCheckedForWarnings() {
+        return isFlagSet(this.flags, 268435456 /* Flag.checkedForWarnings */);
+    }
+    set hasCheckedForWarnings(value) {
+        this.flags = setFlag(this.flags, 268435456 /* Flag.checkedForWarnings */, value);
+    }
     get optional() {
         return isFlagSet(this.flags, 128 /* Flag.optional */);
     }
@@ -12778,15 +13521,6 @@ class CallExpression extends CallExpressionBase {
     }
     bind() {
         super.bind();
-        if (this.callee instanceof Identifier) {
-            const variable = this.scope.findVariable(this.callee.name);
-            if (variable.isNamespace) {
-                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCannotCallNamespace(this.callee.name), this.start);
-            }
-            if (this.callee.name === 'eval') {
-                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logEval(this.scope.context.module.id), this.start);
-            }
-        }
         this.interaction = {
             args: [
                 this.callee instanceof MemberExpression && !this.callee.variable
@@ -12836,10 +13570,10 @@ class CallExpression extends CallExpressionBase {
                 this.callee.hasEffectsOnInteractionAtPath(EMPTY_PATH, this.interaction, context)));
     }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
+        if (!this.included)
+            this.includeNode(context);
         if (includeChildrenRecursively) {
-            super.include(context, includeChildrenRecursively);
+            super.include(context, true);
             if (includeChildrenRecursively === INCLUDE_PARAMETERS &&
                 this.callee instanceof Identifier &&
                 this.callee.variable) {
@@ -12847,10 +13581,15 @@ class CallExpression extends CallExpressionBase {
             }
         }
         else {
-            this.included = true;
             this.callee.include(context, false);
+            this.callee.includeCallArguments(this.interaction, context);
         }
-        this.callee.includeCallArguments(context, this.arguments);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.callee.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -12865,6 +13604,16 @@ class CallExpression extends CallExpressionBase {
             renderedSurroundingElement
         });
         renderCallArguments(code, options, this);
+        if (this.callee instanceof Identifier && !this.hasCheckedForWarnings) {
+            this.hasCheckedForWarnings = true;
+            const variable = this.scope.findVariable(this.callee.name);
+            if (variable.isNamespace) {
+                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCannotCallNamespace(this.callee.name), this.start);
+            }
+            if (this.callee.name === 'eval') {
+                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logEval(this.scope.context.module.id), this.start);
+            }
+        }
     }
     applyDeoptimizations() {
         this.deoptimized = true;
@@ -12889,13 +13638,14 @@ class CatchClause extends NodeBase {
         this.type = type;
         if (param) {
             this.param = new (this.scope.context.getNodeConstructor(param.type))(this, this.scope).parseNode(param);
-            this.param.declare('parameter', UNKNOWN_EXPRESSION);
+            this.param.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION);
         }
         this.body = new BlockStatement(this, this.scope.bodyScope).parseNode(body);
         return super.parseNode(esTreeNode);
     }
 }
 CatchClause.prototype.preventChildBlockScope = true;
+CatchClause.prototype.includeNode = onlyIncludeSelf;
 
 class ChainExpression extends NodeBase {
     // deoptimizations are not relevant as we are not caching values
@@ -12907,17 +13657,22 @@ class ChainExpression extends NodeBase {
     hasEffects(context) {
         return this.expression.hasEffectsAsChainElement(context) === true;
     }
+    includePath(path, context) {
+        this.included = true;
+        this.expression.includePath(path, context);
+    }
     removeAnnotations(code) {
         this.expression.removeAnnotations(code);
     }
-    applyDeoptimizations() { }
 }
+ChainExpression.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ChainExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ClassBodyScope extends ChildScope {
     constructor(parent, classNode) {
         const { context } = parent;
         super(parent, context);
-        this.variables.set('this', (this.thisVariable = new LocalVariable('this', null, classNode, context, 'other')));
+        this.variables.set('this', (this.thisVariable = new LocalVariable('this', null, classNode, EMPTY_PATH, context, 'other')));
         this.instanceScope = new ChildScope(this, context);
         this.instanceScope.variables.set('this', new ThisVariable(context));
     }
@@ -12932,7 +13687,7 @@ class ClassBody extends NodeBase {
     }
     include(context, includeChildrenRecursively) {
         this.included = true;
-        this.scope.context.includeVariableInModule(this.scope.thisVariable);
+        this.scope.context.includeVariableInModule(this.scope.thisVariable, UNKNOWN_PATH, context);
         for (const definition of this.body) {
             definition.include(context, includeChildrenRecursively);
         }
@@ -12945,8 +13700,9 @@ class ClassBody extends NodeBase {
         }
         return super.parseNode(esTreeNode);
     }
-    applyDeoptimizations() { }
 }
+ClassBody.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ClassBody.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ClassExpression extends ClassNode {
     render(code, options, { renderedSurroundingElement } = parseAst_js.BLANK) {
@@ -13017,6 +13773,9 @@ class ConditionalExpression extends NodeBase {
             const unusedBranch = this.usedBranch === this.consequent ? this.alternate : this.consequent;
             this.usedBranch = null;
             unusedBranch.deoptimizePath(UNKNOWN_PATH);
+            if (this.included) {
+                unusedBranch.includePath(UNKNOWN_PATH, createInclusionContext());
+            }
             const { expressionsToBeDeoptimized } = this;
             this.expressionsToBeDeoptimized = parseAst_js.EMPTY_ARRAY;
             for (const expression of expressionsToBeDeoptimized) {
@@ -13074,7 +13833,7 @@ class ConditionalExpression extends NodeBase {
     include(context, includeChildrenRecursively) {
         this.included = true;
         const usedBranch = this.getUsedBranch();
-        if (includeChildrenRecursively || this.test.shouldBeIncluded(context) || usedBranch === null) {
+        if (usedBranch === null || includeChildrenRecursively || this.test.shouldBeIncluded(context)) {
             this.test.include(context, includeChildrenRecursively);
             this.consequent.include(context, includeChildrenRecursively);
             this.alternate.include(context, includeChildrenRecursively);
@@ -13083,27 +13842,38 @@ class ConditionalExpression extends NodeBase {
             usedBranch.include(context, includeChildrenRecursively);
         }
     }
-    includeCallArguments(context, parameters) {
+    includePath(path, context) {
+        this.included = true;
         const usedBranch = this.getUsedBranch();
-        if (usedBranch) {
-            usedBranch.includeCallArguments(context, parameters);
+        if (usedBranch === null || this.test.shouldBeIncluded(context)) {
+            this.consequent.includePath(path, context);
+            this.alternate.includePath(path, context);
         }
         else {
-            this.consequent.includeCallArguments(context, parameters);
-            this.alternate.includeCallArguments(context, parameters);
+            usedBranch.includePath(path, context);
+        }
+    }
+    includeCallArguments(interaction, context) {
+        const usedBranch = this.getUsedBranch();
+        if (usedBranch) {
+            usedBranch.includeCallArguments(interaction, context);
+        }
+        else {
+            this.consequent.includeCallArguments(interaction, context);
+            this.alternate.includeCallArguments(interaction, context);
         }
     }
     removeAnnotations(code) {
         this.test.removeAnnotations(code);
     }
     render(code, options, { isCalleeOfRenderedParent, preventASI, renderedParentType, renderedSurroundingElement } = parseAst_js.BLANK) {
-        const usedBranch = this.getUsedBranch();
         if (this.test.included) {
             this.test.render(code, options, { renderedSurroundingElement });
             this.consequent.render(code, options);
             this.alternate.render(code, options);
         }
         else {
+            const usedBranch = this.getUsedBranch();
             const colonPos = findFirstOccurrenceOutsideComment(code.original, ':', this.consequent.end);
             const inclusionStart = findNonWhiteSpace(code.original, (this.consequent.included
                 ? findFirstOccurrenceOutsideComment(code.original, '?', this.test.end)
@@ -13135,6 +13905,8 @@ class ConditionalExpression extends NodeBase {
             : (this.usedBranch = testValue ? this.consequent : this.alternate);
     }
 }
+ConditionalExpression.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ConditionalExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ContinueStatement extends NodeBase {
     hasEffects(context) {
@@ -13151,10 +13923,10 @@ class ContinueStatement extends NodeBase {
         context.brokenFlow = true;
         return false;
     }
-    include(context) {
+    include(context, includeChildrenRecursively) {
         this.included = true;
         if (this.label) {
-            this.label.include();
+            this.label.include(context, includeChildrenRecursively);
             context.includedLabels.add(this.label.name);
         }
         else {
@@ -13163,12 +13935,15 @@ class ContinueStatement extends NodeBase {
         context.brokenFlow = true;
     }
 }
+ContinueStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ContinueStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class DebuggerStatement extends NodeBase {
     hasEffects() {
         return true;
     }
 }
+DebuggerStatement.prototype.includeNode = onlyIncludeSelf;
 
 class Decorator extends NodeBase {
     hasEffects(context) {
@@ -13176,6 +13951,7 @@ class Decorator extends NodeBase {
             this.expression.hasEffectsOnInteractionAtPath(EMPTY_PATH, NODE_INTERACTION_UNKNOWN_CALL, context));
     }
 }
+Decorator.prototype.includeNode = onlyIncludeSelf;
 
 function hasLoopBodyEffects(context, body) {
     const { brokenFlow, hasBreak, hasContinue, ignore } = context;
@@ -13215,12 +13991,15 @@ class DoWhileStatement extends NodeBase {
         includeLoopBody(context, this.body, includeChildrenRecursively);
     }
 }
+DoWhileStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+DoWhileStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class EmptyStatement extends NodeBase {
     hasEffects() {
         return false;
     }
 }
+EmptyStatement.prototype.includeNode = onlyIncludeSelf;
 
 class ExportAllDeclaration extends NodeBase {
     hasEffects() {
@@ -13233,9 +14012,10 @@ class ExportAllDeclaration extends NodeBase {
     render(code, _options, nodeRenderOptions) {
         code.remove(nodeRenderOptions.start, nodeRenderOptions.end);
     }
-    applyDeoptimizations() { }
 }
 ExportAllDeclaration.prototype.needsBoundaries = true;
+ExportAllDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ExportAllDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ExportNamedDeclaration extends NodeBase {
     bind() {
@@ -13258,17 +14038,30 @@ class ExportNamedDeclaration extends NodeBase {
             code.remove(start, end);
         }
         else {
-            code.remove(this.start, this.declaration.start);
+            let endBoundary = this.declaration.start;
+            // the start of the decorator may be before the start of the class declaration
+            if (this.declaration instanceof ClassDeclaration) {
+                const decorators = this.declaration.decorators;
+                for (const decorator of decorators) {
+                    endBoundary = Math.min(endBoundary, decorator.start);
+                }
+                if (endBoundary <= this.start) {
+                    endBoundary = this.declaration.start;
+                }
+            }
+            code.remove(this.start, endBoundary);
             this.declaration.render(code, options, { end, start });
         }
     }
-    applyDeoptimizations() { }
 }
 ExportNamedDeclaration.prototype.needsBoundaries = true;
+ExportNamedDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ExportNamedDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ExportSpecifier extends NodeBase {
-    applyDeoptimizations() { }
 }
+ExportSpecifier.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ExportSpecifier.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ForInStatement extends NodeBase {
     createScope(parentScope) {
@@ -13286,10 +14079,17 @@ class ForInStatement extends NodeBase {
         const { body, deoptimized, left, right } = this;
         if (!deoptimized)
             this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         left.includeAsAssignmentTarget(context, includeChildrenRecursively || true, false);
         right.include(context, includeChildrenRecursively);
         includeLoopBody(context, body, includeChildrenRecursively);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.right.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -13331,10 +14131,17 @@ class ForOfStatement extends NodeBase {
         const { body, deoptimized, left, right } = this;
         if (!deoptimized)
             this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         left.includeAsAssignmentTarget(context, includeChildrenRecursively || true, false);
         right.include(context, includeChildrenRecursively);
         includeLoopBody(context, body, includeChildrenRecursively);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.right.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -13371,7 +14178,9 @@ class ForStatement extends NodeBase {
     }
     include(context, includeChildrenRecursively) {
         this.included = true;
-        this.init?.include(context, includeChildrenRecursively, { asSingleStatement: true });
+        this.init?.include(context, includeChildrenRecursively, {
+            asSingleStatement: true
+        });
         this.test?.include(context, includeChildrenRecursively);
         this.update?.include(context, includeChildrenRecursively);
         includeLoopBody(context, this.body, includeChildrenRecursively);
@@ -13383,6 +14192,8 @@ class ForStatement extends NodeBase {
         this.body.render(code, options);
     }
 }
+ForStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ForStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class FunctionExpression extends FunctionNode {
     createScope(parentScope) {
@@ -13414,9 +14225,9 @@ class TrackingScope extends BlockScope {
         super(...arguments);
         this.hoistedDeclarations = [];
     }
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         this.hoistedDeclarations.push(identifier);
-        return super.addDeclaration(identifier, context, init, kind);
+        return super.addDeclaration(identifier, context, init, destructuredInitPath, kind);
     }
 }
 
@@ -13515,7 +14326,6 @@ class IfStatement extends NodeBase {
         }
         this.renderHoistedDeclarations(hoistedDeclarations, code, getPropertyAccess);
     }
-    applyDeoptimizations() { }
     getTestValue() {
         if (this.testValue === unset) {
             return (this.testValue = tryCastLiteralValueToBoolean(this.test.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this)));
@@ -13584,6 +14394,8 @@ class IfStatement extends NodeBase {
         return false;
     }
 }
+IfStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+IfStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ImportAttribute extends NodeBase {
 }
@@ -13601,13 +14413,15 @@ class ImportDeclaration extends NodeBase {
     render(code, _options, nodeRenderOptions) {
         code.remove(nodeRenderOptions.start, nodeRenderOptions.end);
     }
-    applyDeoptimizations() { }
 }
 ImportDeclaration.prototype.needsBoundaries = true;
+ImportDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ImportDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ImportDefaultSpecifier extends NodeBase {
-    applyDeoptimizations() { }
 }
+ImportDefaultSpecifier.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ImportDefaultSpecifier.prototype.applyDeoptimizations = doNotDeoptimize;
 
 function isReassignedExportsMember(variable, exportNamesByVariable) {
     return (variable.renderBaseName !== null && exportNamesByVariable.has(variable) && variable.isReassigned);
@@ -13616,27 +14430,32 @@ function isReassignedExportsMember(variable, exportNamesByVariable) {
 class VariableDeclarator extends NodeBase {
     declareDeclarator(kind, isUsingDeclaration) {
         this.isUsingDeclaration = isUsingDeclaration;
-        this.id.declare(kind, this.init || UNDEFINED_EXPRESSION);
+        this.id.declare(kind, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION);
     }
     deoptimizePath(path) {
         this.id.deoptimizePath(path);
     }
     hasEffects(context) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
         const initEffect = this.init?.hasEffects(context);
         this.id.markDeclarationReached();
-        return initEffect || this.id.hasEffects(context) || this.isUsingDeclaration;
+        return (initEffect ||
+            this.isUsingDeclaration ||
+            this.id.hasEffects(context) ||
+            (this.scope.context.options.treeshake
+                .propertyReadSideEffects &&
+                this.id.hasEffectsWhenDestructuring(context, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION)));
     }
     include(context, includeChildrenRecursively) {
-        const { deoptimized, id, init } = this;
-        if (!deoptimized)
-            this.applyDeoptimizations();
-        this.included = true;
+        const { id, init } = this;
+        if (!this.included)
+            this.includeNode();
         init?.include(context, includeChildrenRecursively);
         id.markDeclarationReached();
-        if (includeChildrenRecursively || id.shouldBeIncluded(context)) {
+        if (includeChildrenRecursively) {
             id.include(context, includeChildrenRecursively);
+        }
+        else {
+            id.includeDestructuredIfNecessary(context, EMPTY_PATH, init || UNDEFINED_EXPRESSION);
         }
     }
     removeAnnotations(code) {
@@ -13667,8 +14486,8 @@ class VariableDeclarator extends NodeBase {
             code.appendLeft(end, `${_}=${_}void 0`);
         }
     }
-    applyDeoptimizations() {
-        this.deoptimized = true;
+    includeNode() {
+        this.included = true;
         const { id, init } = this;
         if (init && id instanceof Identifier && init instanceof ClassExpression && !init.id) {
             const { name, variable } = id;
@@ -13680,16 +14499,28 @@ class VariableDeclarator extends NodeBase {
         }
     }
 }
+VariableDeclarator.prototype.applyDeoptimizations = doNotDeoptimize;
 
+function getChunkInfoWithPath(chunk) {
+    return { fileName: chunk.getFileName(), ...chunk.getPreRenderedChunkInfo() };
+}
 class ImportExpression extends NodeBase {
     constructor() {
         super(...arguments);
         this.inlineNamespace = null;
+        this.hasUnknownAccessedKey = false;
+        this.accessedPropKey = new Set();
         this.attributes = null;
         this.mechanism = null;
         this.namespaceExportName = undefined;
         this.resolution = null;
         this.resolutionString = null;
+    }
+    get withinTopLevelAwait() {
+        return isFlagSet(this.flags, 134217728 /* Flag.withinTopLevelAwait */);
+    }
+    set withinTopLevelAwait(value) {
+        this.flags = setFlag(this.flags, 134217728 /* Flag.withinTopLevelAwait */, value);
     }
     // Do not bind attributes
     bind() {
@@ -13698,9 +14529,10 @@ class ImportExpression extends NodeBase {
     /**
      * Get imported variables for deterministic usage, valid cases are:
      *
-     * - `const { foo } = await import('bar')`.
-     * - `(await import('bar')).foo`
-     * - `import('bar').then(({ foo }) => {})`
+     * 1. `const { foo } = await import('bar')`.
+     * 2. `(await import('bar')).foo`
+     * 3. `import('bar').then((m) => m.foo)`
+     * 4. `import('bar').then(({ foo }) => {})`
      *
      * Returns empty array if it's side-effect only import.
      * Returns undefined if it's not fully deterministic.
@@ -13717,12 +14549,15 @@ class ImportExpression extends NodeBase {
             if (parent2 instanceof ExpressionStatement) {
                 return parseAst_js.EMPTY_ARRAY;
             }
-            // Case 1: const { foo } = await import('bar')
+            // Case 1: const { foo } / module = await import('bar')
             if (parent2 instanceof VariableDeclarator) {
                 const declaration = parent2.id;
-                return declaration instanceof ObjectPattern
-                    ? getDeterministicObjectDestructure(declaration)
-                    : undefined;
+                if (declaration instanceof Identifier) {
+                    return this.hasUnknownAccessedKey ? undefined : [...this.accessedPropKey];
+                }
+                if (declaration instanceof ObjectPattern) {
+                    return getDeterministicObjectDestructure(declaration);
+                }
             }
             // Case 2: (await import('bar')).foo
             if (parent2 instanceof MemberExpression) {
@@ -13733,7 +14568,6 @@ class ImportExpression extends NodeBase {
             }
             return;
         }
-        // Case 3: import('bar').then(({ foo }) => {})
         if (parent1 instanceof MemberExpression) {
             const callExpression = parent1.parent;
             const property = parent1.property;
@@ -13752,18 +14586,38 @@ class ImportExpression extends NodeBase {
             if (callExpression.arguments.length === 0) {
                 return parseAst_js.EMPTY_ARRAY;
             }
-            const argument = callExpression.arguments[0];
+            const thenCallback = callExpression.arguments[0];
             if (callExpression.arguments.length !== 1 ||
-                !(argument instanceof ArrowFunctionExpression || argument instanceof FunctionExpression)) {
+                !(thenCallback instanceof ArrowFunctionExpression ||
+                    thenCallback instanceof FunctionExpression)) {
                 return;
             }
             // Side-effect only: import('bar').then(() => {})
-            if (argument.params.length === 0) {
+            if (thenCallback.params.length === 0) {
                 return parseAst_js.EMPTY_ARRAY;
             }
-            const declaration = argument.params[0];
-            if (argument.params.length === 1 && declaration instanceof ObjectPattern) {
-                return getDeterministicObjectDestructure(declaration);
+            if (thenCallback.params.length === 1) {
+                // Promises .then() can only have one argument so only look at first one
+                const declaration = thenCallback.params[0];
+                // Case 3: import('bar').then(m => m.foo)
+                if (declaration instanceof Identifier) {
+                    const starName = declaration.name;
+                    const memberExpression = thenCallback.body;
+                    if (!(memberExpression instanceof MemberExpression) ||
+                        memberExpression.computed ||
+                        !(memberExpression.property instanceof Identifier)) {
+                        return;
+                    }
+                    const returnVariable = memberExpression.object;
+                    if (!(returnVariable instanceof Identifier) || returnVariable.name !== starName) {
+                        return;
+                    }
+                    return [memberExpression.property.name];
+                }
+                // Case 4: import('bar').then(({ foo }) => {})
+                if (declaration instanceof ObjectPattern) {
+                    return getDeterministicObjectDestructure(declaration);
+                }
             }
             return;
         }
@@ -13772,23 +14626,56 @@ class ImportExpression extends NodeBase {
         return true;
     }
     include(context, includeChildrenRecursively) {
-        if (!this.included) {
-            this.included = true;
-            this.scope.context.includeDynamicImport(this);
-            this.scope.addAccessedDynamicImport(this);
-        }
+        if (!this.included)
+            this.includeNode();
         this.source.include(context, includeChildrenRecursively);
+    }
+    includeNode() {
+        this.included = true;
+        this.scope.context.includeDynamicImport(this);
+        this.scope.addAccessedDynamicImport(this);
+    }
+    includePath(path) {
+        if (!this.included)
+            this.includeNode();
+        // Technically, this is not correct as dynamic imports return a Promise.
+        if (this.hasUnknownAccessedKey)
+            return;
+        if (path[0] === UnknownKey) {
+            this.hasUnknownAccessedKey = true;
+        }
+        else if (typeof path[0] === 'string') {
+            this.accessedPropKey.add(path[0]);
+        }
+        // Update included paths
+        this.scope.context.includeDynamicImport(this);
     }
     initialise() {
         super.initialise();
         this.scope.context.addDynamicImport(this);
+        let parent = this.parent;
+        let withinAwaitExpression = false;
+        let withinTopLevelAwait = false;
+        do {
+            if (withinAwaitExpression &&
+                (parent instanceof FunctionNode || parent instanceof ArrowFunctionExpression)) {
+                withinTopLevelAwait = false;
+            }
+            if (parent instanceof AwaitExpression) {
+                withinAwaitExpression = true;
+                withinTopLevelAwait = true;
+            }
+        } while ((parent = parent.parent));
+        if (withinAwaitExpression && withinTopLevelAwait) {
+            this.withinTopLevelAwait = true;
+        }
     }
     parseNode(esTreeNode) {
         this.sourceAstNode = esTreeNode.source;
         return super.parseNode(esTreeNode);
     }
     render(code, options) {
-        const { snippets: { _, getDirectReturnFunction, getObject, getPropertyAccess } } = options;
+        const { snippets: { _, getDirectReturnFunction, getObject, getPropertyAccess }, importAttributesKey } = options;
         if (this.inlineNamespace) {
             const [left, right] = getDirectReturnFunction([], {
                 functionReturn: true,
@@ -13821,13 +14708,13 @@ class ImportExpression extends NodeBase {
                 code.overwrite(this.source.end, this.end - 1, '', { contentOnly: true });
             }
             if (this.attributes) {
-                code.appendLeft(this.end - 1, `,${_}${getObject([['assert', this.attributes]], {
+                code.appendLeft(this.end - 1, `,${_}${getObject([[importAttributesKey, this.attributes]], {
                     lineBreakIndent: null
                 })}`);
             }
         }
     }
-    setExternalResolution(exportMode, resolution, options, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, namespaceExportName, attributes) {
+    setExternalResolution(exportMode, resolution, options, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, namespaceExportName, attributes, ownChunk, targetChunk) {
         const { format } = options;
         this.inlineNamespace = null;
         this.resolution = resolution;
@@ -13836,7 +14723,7 @@ class ImportExpression extends NodeBase {
         this.attributes = attributes;
         const accessedGlobals = [...(accessedImportGlobals[format] || [])];
         let helper;
-        ({ helper, mechanism: this.mechanism } = this.getDynamicImportMechanismAndHelper(resolution, exportMode, options, snippets, pluginDriver));
+        ({ helper, mechanism: this.mechanism } = this.getDynamicImportMechanismAndHelper(resolution, exportMode, options, snippets, pluginDriver, ownChunk, targetChunk));
         if (helper) {
             accessedGlobals.push(helper);
         }
@@ -13847,13 +14734,39 @@ class ImportExpression extends NodeBase {
     setInternalResolution(inlineNamespace) {
         this.inlineNamespace = inlineNamespace;
     }
-    applyDeoptimizations() { }
-    getDynamicImportMechanismAndHelper(resolution, exportMode, { compact, dynamicImportInCjs, format, generatedCode: { arrowFunctions }, interop }, { _, getDirectReturnFunction, getDirectReturnIifeLeft }, pluginDriver) {
+    getDynamicImportMechanismAndHelper(resolution, exportMode, { compact, dynamicImportInCjs, format, generatedCode: { arrowFunctions }, interop }, { _, getDirectReturnFunction, getDirectReturnIifeLeft }, pluginDriver, ownChunk, targetChunk) {
         const mechanism = pluginDriver.hookFirstSync('renderDynamicImport', [
             {
+                chunk: getChunkInfoWithPath(ownChunk),
                 customResolution: typeof this.resolution === 'string' ? this.resolution : null,
                 format,
+                getTargetChunkImports() {
+                    if (targetChunk === null)
+                        return null;
+                    const chunkInfos = [];
+                    const importerPath = ownChunk.getFileName();
+                    for (const dep of targetChunk.dependencies) {
+                        const resolvedImportPath = `'${dep.getImportPath(importerPath)}'`;
+                        if (dep instanceof ExternalChunk) {
+                            chunkInfos.push({
+                                fileName: dep.getFileName(),
+                                resolvedImportPath,
+                                type: 'external'
+                            });
+                        }
+                        else {
+                            chunkInfos.push({
+                                chunk: dep.getPreRenderedChunkInfo(),
+                                fileName: dep.getFileName(),
+                                resolvedImportPath,
+                                type: 'internal'
+                            });
+                        }
+                    }
+                    return chunkInfos;
+                },
                 moduleId: this.scope.context.module.id,
+                targetChunk: targetChunk ? getChunkInfoWithPath(targetChunk) : null,
                 targetModuleId: this.resolution && typeof this.resolution !== 'string' ? this.resolution.id : null
             }
         ]);
@@ -13937,6 +14850,7 @@ class ImportExpression extends NodeBase {
         return { helper: null, mechanism: null };
     }
 }
+ImportExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 function getInteropHelper(resolution, exportMode, interop) {
     return exportMode === 'external'
         ? namespaceInteropHelpersByInteropType[interop(resolution instanceof ExternalModule ? resolution.id : null)]
@@ -13960,12 +14874,14 @@ function getDeterministicObjectDestructure(objectPattern) {
 }
 
 class ImportNamespaceSpecifier extends NodeBase {
-    applyDeoptimizations() { }
 }
+ImportNamespaceSpecifier.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ImportNamespaceSpecifier.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ImportSpecifier extends NodeBase {
-    applyDeoptimizations() { }
 }
+ImportSpecifier.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+ImportSpecifier.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class JSXIdentifier extends IdentifierBase {
     constructor() {
@@ -13980,6 +14896,29 @@ class JSXIdentifier extends IdentifierBase {
         }
         else if (type === 1 /* IdentifierType.NativeElementName */) {
             this.isNativeElement = true;
+        }
+    }
+    include(context) {
+        if (!this.included)
+            this.includeNode(context);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        if (this.variable !== null) {
+            this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
+        }
+    }
+    includePath(path, context) {
+        if (!this.included) {
+            this.included = true;
+            if (this.variable !== null) {
+                this.scope.context.includeVariableInModule(this.variable, path, context);
+            }
+        }
+        else if (path.length > 0) {
+            this.variable?.includePath(path, context);
         }
     }
     render(code, { snippets: { getPropertyAccess }, useOriginalName }) {
@@ -14043,6 +14982,7 @@ class JSXAttribute extends NodeBase {
         }
     }
 }
+JSXAttribute.prototype.includeNode = onlyIncludeSelf;
 
 class JSXClosingBase extends NodeBase {
     render(code, options) {
@@ -14055,6 +14995,7 @@ class JSXClosingBase extends NodeBase {
         }
     }
 }
+JSXClosingBase.prototype.includeNode = onlyIncludeSelf;
 
 class JSXClosingElement extends JSXClosingBase {
 }
@@ -14075,8 +15016,15 @@ class JSXSpreadAttribute extends NodeBase {
 
 class JSXEmptyExpression extends NodeBase {
 }
+JSXEmptyExpression.prototype.includeNode = onlyIncludeSelf;
 
 class JSXExpressionContainer extends NodeBase {
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.expression.includePath(UNKNOWN_PATH, context);
+    }
     render(code, options) {
         const { mode } = this.scope.context.options.jsx;
         if (mode !== 'preserve') {
@@ -14097,7 +15045,7 @@ function getRenderedJsxChildren(children) {
     return renderedChildren;
 }
 
-function getAndIncludeFactoryVariable(factory, preserve, importSource, node) {
+function getAndIncludeFactoryVariable(factory, preserve, importSource, node, context) {
     const [baseName, nestedName] = factory.split('.');
     let factoryVariable;
     if (importSource) {
@@ -14105,7 +15053,7 @@ function getAndIncludeFactoryVariable(factory, preserve, importSource, node) {
         if (preserve) {
             // This pretends we are accessing an included global variable of the same name
             const globalVariable = node.scope.findGlobal(baseName);
-            globalVariable.include();
+            globalVariable.includePath(UNKNOWN_PATH, context);
             // This excludes this variable from renaming
             factoryVariable.globalName = baseName;
         }
@@ -14113,7 +15061,7 @@ function getAndIncludeFactoryVariable(factory, preserve, importSource, node) {
     else {
         factoryVariable = node.scope.findGlobal(baseName);
     }
-    node.scope.context.includeVariableInModule(factoryVariable);
+    node.scope.context.includeVariableInModule(factoryVariable, UNKNOWN_PATH, context);
     if (factoryVariable instanceof LocalVariable) {
         factoryVariable.consolidateInitializers();
         factoryVariable.addUsedPlace(node);
@@ -14136,16 +15084,20 @@ class JSXElementBase extends NodeBase {
         }
     }
     include(context, includeChildrenRecursively) {
-        if (!this.included) {
-            const { factory, importSource, mode } = this.jsxMode;
-            if (factory) {
-                this.factory = factory;
-                this.factoryVariable = getAndIncludeFactoryVariable(factory, mode === 'preserve', importSource, this);
-            }
+        if (!this.included)
+            this.includeNode(context);
+        for (const child of this.children) {
+            child.include(context, includeChildrenRecursively);
         }
-        super.include(context, includeChildrenRecursively);
     }
-    applyDeoptimizations() { }
+    includeNode(context) {
+        this.included = true;
+        const { factory, importSource, mode } = this.jsxMode;
+        if (factory) {
+            this.factory = factory;
+            this.factoryVariable = getAndIncludeFactoryVariable(factory, mode === 'preserve', importSource, this, context);
+        }
+    }
     getRenderingMode() {
         const jsx = this.scope.context.options.jsx;
         const { mode, factory, importSource } = jsx;
@@ -14183,8 +15135,14 @@ class JSXElementBase extends NodeBase {
         return { childrenEnd, firstChild, hasMultipleChildren };
     }
 }
+JSXElementBase.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class JSXElement extends JSXElementBase {
+    include(context, includeChildrenRecursively) {
+        super.include(context, includeChildrenRecursively);
+        this.openingElement.include(context, includeChildrenRecursively);
+        this.closingElement?.include(context, includeChildrenRecursively);
+    }
     render(code, options) {
         switch (this.jsxMode.mode) {
             case 'classic': {
@@ -14336,6 +15294,11 @@ class JSXElement extends JSXElementBase {
 }
 
 class JSXFragment extends JSXElementBase {
+    include(context, includeChildrenRecursively) {
+        super.include(context, includeChildrenRecursively);
+        this.openingFragment.include(context, includeChildrenRecursively);
+        this.closingFragment.include(context, includeChildrenRecursively);
+    }
     render(code, options) {
         switch (this.jsxMode.mode) {
             case 'classic': {
@@ -14385,10 +15348,22 @@ class JSXFragment extends JSXElementBase {
 }
 
 class JSXMemberExpression extends NodeBase {
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.object.includePath([this.property.name], context);
+    }
+    includePath(path, context) {
+        if (!this.included)
+            this.includeNode(context);
+        this.object.includePath([this.property.name, ...path], context);
+    }
 }
 
 class JSXNamespacedName extends NodeBase {
 }
+JSXNamespacedName.prototype.includeNode = onlyIncludeSelf;
 
 class JSXOpeningElement extends NodeBase {
     render(code, options, { jsxMode = this.scope.context.options.jsx.mode } = {}) {
@@ -14398,6 +15373,7 @@ class JSXOpeningElement extends NodeBase {
         }
     }
 }
+JSXOpeningElement.prototype.includeNode = onlyIncludeSelf;
 
 class JSXOpeningFragment extends NodeBase {
     constructor() {
@@ -14405,22 +15381,22 @@ class JSXOpeningFragment extends NodeBase {
         this.fragment = null;
         this.fragmentVariable = null;
     }
-    include(context, includeChildrenRecursively) {
-        if (!this.included) {
-            const jsx = this.scope.context.options.jsx;
-            if (jsx.mode === 'automatic') {
-                this.fragment = 'Fragment';
-                this.fragmentVariable = getAndIncludeFactoryVariable('Fragment', false, jsx.jsxImportSource, this);
-            }
-            else {
-                const { fragment, importSource, mode } = jsx;
-                if (fragment != null) {
-                    this.fragment = fragment;
-                    this.fragmentVariable = getAndIncludeFactoryVariable(fragment, mode === 'preserve', importSource, this);
-                }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        const jsx = this.scope.context.options.jsx;
+        if (jsx.mode === 'automatic') {
+            this.fragment = 'Fragment';
+            this.fragmentVariable = getAndIncludeFactoryVariable('Fragment', false, jsx.jsxImportSource, this, context);
+        }
+        else {
+            const { fragment, importSource, mode } = jsx;
+            if (fragment != null) {
+                this.fragment = fragment;
+                this.fragmentVariable = getAndIncludeFactoryVariable(fragment, mode === 'preserve', importSource, this, context);
             }
         }
-        super.include(context, includeChildrenRecursively);
     }
     render(code, options) {
         const { mode } = this.scope.context.options.jsx;
@@ -14457,6 +15433,7 @@ class JSXText extends NodeBase {
         }
     }
 }
+JSXText.prototype.includeNode = onlyIncludeSelf;
 
 class LabeledStatement extends NodeBase {
     hasEffects(context) {
@@ -14478,16 +15455,21 @@ class LabeledStatement extends NodeBase {
         return bodyHasEffects;
     }
     include(context, includeChildrenRecursively) {
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         const { brokenFlow, includedLabels } = context;
         context.includedLabels = new Set();
         this.body.include(context, includeChildrenRecursively);
         if (includeChildrenRecursively || context.includedLabels.has(this.label.name)) {
-            this.label.include();
+            this.label.include(context, includeChildrenRecursively);
             context.includedLabels.delete(this.label.name);
             context.brokenFlow = brokenFlow;
         }
         context.includedLabels = new Set([...includedLabels, ...context.includedLabels]);
+    }
+    includeNode(context) {
+        this.included = true;
+        this.body.includePath(UNKNOWN_PATH, context);
     }
     render(code, options) {
         if (this.label.included) {
@@ -14499,6 +15481,7 @@ class LabeledStatement extends NodeBase {
         this.body.render(code, options);
     }
 }
+LabeledStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class LogicalExpression extends NodeBase {
     constructor() {
@@ -14515,10 +15498,10 @@ class LogicalExpression extends NodeBase {
         this.flags = setFlag(this.flags, 65536 /* Flag.isBranchResolutionAnalysed */, value);
     }
     get hasDeoptimizedCache() {
-        return isFlagSet(this.flags, 16777216 /* Flag.hasDeoptimizedCache */);
+        return isFlagSet(this.flags, 33554432 /* Flag.hasDeoptimizedCache */);
     }
     set hasDeoptimizedCache(value) {
-        this.flags = setFlag(this.flags, 16777216 /* Flag.hasDeoptimizedCache */, value);
+        this.flags = setFlag(this.flags, 33554432 /* Flag.hasDeoptimizedCache */, value);
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
         this.left.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
@@ -14527,10 +15510,15 @@ class LogicalExpression extends NodeBase {
     deoptimizeCache() {
         if (this.hasDeoptimizedCache)
             return;
+        this.hasDeoptimizedCache = true;
         if (this.usedBranch) {
             const unusedBranch = this.usedBranch === this.left ? this.right : this.left;
             this.usedBranch = null;
             unusedBranch.deoptimizePath(UNKNOWN_PATH);
+            if (this.included) {
+                // As we are not tracking inclusions, we just include everything
+                unusedBranch.includePath(UNKNOWN_PATH, createInclusionContext());
+            }
         }
         const { scope: { context }, expressionsToBeDeoptimized } = this;
         this.expressionsToBeDeoptimized = parseAst_js.EMPTY_ARRAY;
@@ -14540,7 +15528,6 @@ class LogicalExpression extends NodeBase {
         // Request another pass because we need to ensure "include" runs again if
         // it is rendered
         context.requestTreeshakingPass();
-        this.hasDeoptimizedCache = true;
     }
     deoptimizePath(path) {
         const usedBranch = this.getUsedBranch();
@@ -14553,12 +15540,14 @@ class LogicalExpression extends NodeBase {
         }
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
+        if (origin === this)
+            return UnknownValue;
         const usedBranch = this.getUsedBranch();
         if (usedBranch) {
             this.expressionsToBeDeoptimized.push(origin);
             return usedBranch.getLiteralValueAtPath(path, recursionTracker, origin);
         }
-        else if (!this.hasDeoptimizedCache) {
+        else if (!this.hasDeoptimizedCache && !path.length) {
             const rightValue = this.right.getLiteralValueAtPath(path, recursionTracker, origin);
             const booleanOrUnknown = tryCastLiteralValueToBoolean(rightValue);
             if (typeof booleanOrUnknown !== 'symbol') {
@@ -14576,16 +15565,17 @@ class LogicalExpression extends NodeBase {
     }
     getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin) {
         const usedBranch = this.getUsedBranch();
-        if (!usedBranch)
-            return [
-                new MultiExpression([
-                    this.left.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin)[0],
-                    this.right.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin)[0]
-                ]),
-                false
-            ];
-        this.expressionsToBeDeoptimized.push(origin);
-        return usedBranch.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin);
+        if (usedBranch) {
+            this.expressionsToBeDeoptimized.push(origin);
+            return usedBranch.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin);
+        }
+        return [
+            new MultiExpression([
+                this.left.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin)[0],
+                this.right.getReturnExpressionWhenCalledAtPath(path, interaction, recursionTracker, origin)[0]
+            ]),
+            false
+        ];
     }
     hasEffects(context) {
         if (this.left.hasEffects(context)) {
@@ -14598,23 +15588,34 @@ class LogicalExpression extends NodeBase {
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         const usedBranch = this.getUsedBranch();
-        if (!usedBranch) {
-            return (this.left.hasEffectsOnInteractionAtPath(path, interaction, context) ||
-                this.right.hasEffectsOnInteractionAtPath(path, interaction, context));
+        if (usedBranch) {
+            return usedBranch.hasEffectsOnInteractionAtPath(path, interaction, context);
         }
-        return usedBranch.hasEffectsOnInteractionAtPath(path, interaction, context);
+        return (this.left.hasEffectsOnInteractionAtPath(path, interaction, context) ||
+            this.right.hasEffectsOnInteractionAtPath(path, interaction, context));
     }
     include(context, includeChildrenRecursively) {
         this.included = true;
         const usedBranch = this.getUsedBranch();
         if (includeChildrenRecursively ||
-            (usedBranch === this.right && this.left.shouldBeIncluded(context)) ||
-            !usedBranch) {
+            !usedBranch ||
+            (usedBranch === this.right && this.left.shouldBeIncluded(context))) {
             this.left.include(context, includeChildrenRecursively);
             this.right.include(context, includeChildrenRecursively);
         }
         else {
             usedBranch.include(context, includeChildrenRecursively);
+        }
+    }
+    includePath(path, context) {
+        this.included = true;
+        const usedBranch = this.getUsedBranch();
+        if (!usedBranch || (usedBranch === this.right && this.left.shouldBeIncluded(context))) {
+            this.left.includePath(path, context);
+            this.right.includePath(path, context);
+        }
+        else {
+            usedBranch.includePath(path, context);
         }
     }
     removeAnnotations(code) {
@@ -14669,6 +15670,8 @@ class LogicalExpression extends NodeBase {
         return this.usedBranch;
     }
 }
+LogicalExpression.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+LogicalExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class NewExpression extends NodeBase {
     hasEffects(context) {
@@ -14688,16 +15691,21 @@ class NewExpression extends NodeBase {
         return path.length > 0 || type !== INTERACTION_ACCESSED;
     }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
+        if (!this.included)
+            this.includeNode(context);
         if (includeChildrenRecursively) {
-            super.include(context, includeChildrenRecursively);
+            super.include(context, true);
         }
         else {
-            this.included = true;
             this.callee.include(context, false);
+            this.callee.includeCallArguments(this.interaction, context);
         }
-        this.callee.includeCallArguments(context, this.arguments);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.callee.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -14726,6 +15734,7 @@ class ObjectExpression extends NodeBase {
     constructor() {
         super(...arguments);
         this.objectEntity = null;
+        this.protoProp = null;
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
         this.getObjectEntity().deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
@@ -14745,15 +15754,43 @@ class ObjectExpression extends NodeBase {
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return this.getObjectEntity().hasEffectsOnInteractionAtPath(path, interaction, context);
     }
+    include(context, includeChildrenRecursively) {
+        if (!this.included)
+            this.includeNode(context);
+        this.getObjectEntity().include(context, includeChildrenRecursively);
+        this.protoProp?.include(context, includeChildrenRecursively);
+    }
+    includeNode(context) {
+        this.included = true;
+        this.protoProp?.includePath(UNKNOWN_PATH, context);
+    }
+    includePath(path, context) {
+        if (!this.included)
+            this.includeNode(context);
+        this.getObjectEntity().includePath(path, context);
+    }
     render(code, options, { renderedSurroundingElement } = parseAst_js.BLANK) {
-        super.render(code, options);
         if (renderedSurroundingElement === parseAst_js.ExpressionStatement ||
             renderedSurroundingElement === parseAst_js.ArrowFunctionExpression) {
             code.appendRight(this.start, '(');
             code.prependLeft(this.end, ')');
         }
+        if (this.properties.length > 0) {
+            const separatedNodes = getCommaSeparatedNodesWithBoundaries(this.properties, code, this.start + 1, this.end - 1);
+            let lastSeparatorPos = null;
+            for (const { node, separator, start, end } of separatedNodes) {
+                if (!node.included) {
+                    treeshakeNode(node, code, start, end);
+                    continue;
+                }
+                lastSeparatorPos = separator;
+                node.render(code, options);
+            }
+            if (lastSeparatorPos) {
+                code.remove(lastSeparatorPos, this.end - 1);
+            }
+        }
     }
-    applyDeoptimizations() { }
     getObjectEntity() {
         if (this.objectEntity !== null) {
             return this.objectEntity;
@@ -14782,6 +15819,7 @@ class ObjectExpression extends NodeBase {
                         ? property.key.name
                         : String(property.key.value);
                 if (key === '__proto__' && property.kind === 'init') {
+                    this.protoProp = property;
                     prototype =
                         property.value instanceof Literal && property.value.value === null
                             ? null
@@ -14794,6 +15832,7 @@ class ObjectExpression extends NodeBase {
         return (this.objectEntity = new ObjectEntity(properties, prototype));
     }
 }
+ObjectExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class PanicError extends NodeBase {
     initialise() {
@@ -14820,6 +15859,7 @@ class ParseError extends NodeBase {
 
 class PrivateIdentifier extends NodeBase {
 }
+PrivateIdentifier.prototype.includeNode = onlyIncludeSelf;
 
 class Program extends NodeBase {
     constructor() {
@@ -14887,14 +15927,11 @@ class Program extends NodeBase {
             super.render(code, options);
         }
     }
-    applyDeoptimizations() { }
 }
+Program.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+Program.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class Property extends MethodBase {
-    constructor() {
-        super(...arguments);
-        this.declarationInit = null;
-    }
     //declare method: boolean;
     get method() {
         return isFlagSet(this.flags, 262144 /* Flag.method */);
@@ -14909,17 +15946,41 @@ class Property extends MethodBase {
     set shorthand(value) {
         this.flags = setFlag(this.flags, 524288 /* Flag.shorthand */, value);
     }
-    declare(kind, init) {
-        this.declarationInit = init;
-        return this.value.declare(kind, UNKNOWN_EXPRESSION);
+    declare(kind, destructuredInitPath, init) {
+        return this.value.declare(kind, this.getPathInProperty(destructuredInitPath), init);
+    }
+    deoptimizeAssignment(destructuredInitPath, init) {
+        this.value.deoptimizeAssignment?.(this.getPathInProperty(destructuredInitPath), init);
     }
     hasEffects(context) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        const propertyReadSideEffects = this.scope.context.options.treeshake.propertyReadSideEffects;
-        return ((this.parent.type === 'ObjectPattern' && propertyReadSideEffects === 'always') ||
-            this.key.hasEffects(context) ||
-            this.value.hasEffects(context));
+        return this.key.hasEffects(context) || this.value.hasEffects(context);
+    }
+    hasEffectsWhenDestructuring(context, destructuredInitPath, init) {
+        return this.value.hasEffectsWhenDestructuring?.(context, this.getPathInProperty(destructuredInitPath), init);
+    }
+    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
+        const path = this.getPathInProperty(destructuredInitPath);
+        let included = this.value.includeDestructuredIfNecessary(context, path, init) ||
+            this.included;
+        if ((included ||= this.key.hasEffects(createHasEffectsContext()))) {
+            this.key.include(context, false);
+            if (!this.value.included) {
+                this.value.included = true;
+                // Unfortunately, we need to include the value again now, so that any
+                // declared variables are properly included.
+                this.value.includeDestructuredIfNecessary(context, path, init);
+            }
+        }
+        return (this.included = included);
+    }
+    include(context, includeChildrenRecursively) {
+        this.included = true;
+        this.key.include(context, includeChildrenRecursively);
+        this.value.include(context, includeChildrenRecursively);
+    }
+    includePath(path, context) {
+        this.included = true;
+        this.value.includePath(path, context);
     }
     markDeclarationReached() {
         this.value.markDeclarationReached();
@@ -14930,14 +15991,20 @@ class Property extends MethodBase {
         }
         this.value.render(code, options, { isShorthandProperty: this.shorthand });
     }
-    applyDeoptimizations() {
-        this.deoptimized = true;
-        if (this.declarationInit !== null) {
-            this.declarationInit.deoptimizePath([UnknownKey, UnknownKey]);
-            this.scope.context.requestTreeshakingPass();
-        }
+    getPathInProperty(destructuredInitPath) {
+        return destructuredInitPath.at(-1) === UnknownKey
+            ? destructuredInitPath
+            : // For now, we only consider static paths as we do not know how to
+                // deoptimize the path in the dynamic case.
+                this.computed
+                    ? [...destructuredInitPath, UnknownKey]
+                    : this.key instanceof Identifier
+                        ? [...destructuredInitPath, this.key.name]
+                        : [...destructuredInitPath, String(this.key.value)];
     }
 }
+Property.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+Property.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class PropertyDefinition extends NodeBase {
     get computed() {
@@ -14970,8 +16037,15 @@ class PropertyDefinition extends NodeBase {
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         return !this.value || this.value.hasEffectsOnInteractionAtPath(path, interaction, context);
     }
-    applyDeoptimizations() { }
+    includeNode(context) {
+        this.included = true;
+        this.value?.includePath(UNKNOWN_PATH, context);
+        for (const decorator of this.decorators) {
+            decorator.includePath(UNKNOWN_PATH, context);
+        }
+    }
 }
+PropertyDefinition.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class ReturnStatement extends NodeBase {
     hasEffects(context) {
@@ -14981,9 +16055,14 @@ class ReturnStatement extends NodeBase {
         return false;
     }
     include(context, includeChildrenRecursively) {
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         this.argument?.include(context, includeChildrenRecursively);
         context.brokenFlow = true;
+    }
+    includeNode(context) {
+        this.included = true;
+        this.argument?.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -14998,6 +16077,7 @@ class ReturnStatement extends NodeBase {
         }
     }
 }
+ReturnStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class SequenceExpression extends NodeBase {
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
@@ -15025,9 +16105,14 @@ class SequenceExpression extends NodeBase {
         for (const expression of this.expressions) {
             if (includeChildrenRecursively ||
                 (expression === lastExpression && !(this.parent instanceof ExpressionStatement)) ||
-                expression.shouldBeIncluded(context))
+                expression.shouldBeIncluded(context)) {
                 expression.include(context, includeChildrenRecursively);
+            }
         }
+    }
+    includePath(path, context) {
+        this.included = true;
+        this.expressions[this.expressions.length - 1].includePath(path, context);
     }
     removeAnnotations(code) {
         this.expressions[0].removeAnnotations(code);
@@ -15063,6 +16148,8 @@ class SequenceExpression extends NodeBase {
         }
     }
 }
+SequenceExpression.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+SequenceExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class Super extends NodeBase {
     bind() {
@@ -15074,11 +16161,15 @@ class Super extends NodeBase {
     deoptimizePath(path) {
         this.variable.deoptimizePath(path);
     }
-    include() {
-        if (!this.included) {
-            this.included = true;
-            this.scope.context.includeVariableInModule(this.variable);
-        }
+    include(context) {
+        if (!this.included)
+            this.includeNode(context);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
     }
 }
 
@@ -15119,6 +16210,8 @@ class SwitchCase extends NodeBase {
     }
 }
 SwitchCase.prototype.needsBoundaries = true;
+SwitchCase.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+SwitchCase.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class SwitchStatement extends NodeBase {
     createScope(parentScope) {
@@ -15201,17 +16294,18 @@ class SwitchStatement extends NodeBase {
         }
     }
 }
+SwitchStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+SwitchStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class TaggedTemplateExpression extends CallExpressionBase {
+    get hasCheckedForWarnings() {
+        return isFlagSet(this.flags, 268435456 /* Flag.checkedForWarnings */);
+    }
+    set hasCheckedForWarnings(value) {
+        this.flags = setFlag(this.flags, 268435456 /* Flag.checkedForWarnings */, value);
+    }
     bind() {
         super.bind();
-        if (this.tag.type === parseAst_js.Identifier) {
-            const name = this.tag.name;
-            const variable = this.scope.findVariable(name);
-            if (variable.isNamespace) {
-                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCannotCallNamespace(name), this.start);
-            }
-        }
     }
     hasEffects(context) {
         if (!this.deoptimized)
@@ -15224,20 +16318,15 @@ class TaggedTemplateExpression extends CallExpressionBase {
             this.tag.hasEffectsOnInteractionAtPath(EMPTY_PATH, this.interaction, context));
     }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
+        if (!this.included)
+            this.includeNode(context);
         if (includeChildrenRecursively) {
-            super.include(context, includeChildrenRecursively);
+            super.include(context, true);
         }
         else {
-            this.included = true;
-            this.tag.include(context, includeChildrenRecursively);
-            this.quasi.include(context, includeChildrenRecursively);
-        }
-        this.tag.includeCallArguments(context, this.args);
-        const [returnExpression] = this.getReturnExpression();
-        if (!returnExpression.included) {
-            returnExpression.include(context, false);
+            this.quasi.include(context, false);
+            this.tag.include(context, false);
+            this.tag.includeCallArguments(this.interaction, context);
         }
     }
     initialise() {
@@ -15255,6 +16344,14 @@ class TaggedTemplateExpression extends CallExpressionBase {
     render(code, options) {
         this.tag.render(code, options, { isCalleeOfRenderedParent: true });
         this.quasi.render(code, options);
+        if (!this.hasCheckedForWarnings && this.tag.type === parseAst_js.Identifier) {
+            this.hasCheckedForWarnings = true;
+            const name = this.tag.name;
+            const variable = this.scope.findVariable(name);
+            if (variable.isNamespace) {
+                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCannotCallNamespace(name), this.start);
+            }
+        }
     }
     applyDeoptimizations() {
         this.deoptimized = true;
@@ -15269,6 +16366,7 @@ class TaggedTemplateExpression extends CallExpressionBase {
         return this.returnExpression;
     }
 }
+TaggedTemplateExpression.prototype.includeNode = onlyIncludeSelf;
 
 class TemplateElement extends NodeBase {
     get tail() {
@@ -15282,15 +16380,13 @@ class TemplateElement extends NodeBase {
     hasEffects() {
         return false;
     }
-    include() {
-        this.included = true;
-    }
     parseNode(esTreeNode) {
         this.value = esTreeNode.value;
         return super.parseNode(esTreeNode);
     }
     render() { }
 }
+TemplateElement.prototype.includeNode = onlyIncludeSelf;
 
 class TemplateLiteral extends NodeBase {
     deoptimizeArgumentsOnInteractionAtPath() { }
@@ -15315,6 +16411,14 @@ class TemplateLiteral extends NodeBase {
         }
         return true;
     }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        for (const node of this.expressions) {
+            node.includePath(UNKNOWN_PATH, context);
+        }
+    }
     render(code, options) {
         code.indentExclusionRanges.push([this.start, this.end]);
         super.render(code, options);
@@ -15324,13 +16428,13 @@ class TemplateLiteral extends NodeBase {
 class ModuleScope extends ChildScope {
     constructor(parent, context) {
         super(parent, context);
-        this.variables.set('this', new LocalVariable('this', null, UNDEFINED_EXPRESSION, context, 'other'));
+        this.variables.set('this', new LocalVariable('this', null, UNDEFINED_EXPRESSION, EMPTY_PATH, context, 'other'));
     }
-    addDeclaration(identifier, context, init, kind) {
+    addDeclaration(identifier, context, init, destructuredInitPath, kind) {
         if (this.context.module.importDescriptions.has(identifier.name)) {
             context.error(parseAst_js.logRedeclarationError(identifier.name), identifier.start);
         }
-        return super.addDeclaration(identifier, context, init, kind);
+        return super.addDeclaration(identifier, context, init, destructuredInitPath, kind);
     }
     addExportDefaultDeclaration(name, exportDefaultDeclaration, context) {
         const variable = new ExportDefaultVariable(name, exportDefaultDeclaration, context);
@@ -15375,10 +16479,29 @@ class ThisExpression extends NodeBase {
         }
         return this.variable.hasEffectsOnInteractionAtPath(path, interaction, context);
     }
-    include() {
+    include(context) {
+        if (!this.included)
+            this.includeNode(context);
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
+    }
+    includePath(path, context) {
         if (!this.included) {
             this.included = true;
-            this.scope.context.includeVariableInModule(this.variable);
+            this.scope.context.includeVariableInModule(this.variable, path, context);
+        }
+        else if (path.length > 0) {
+            this.variable.includePath(path, context);
+        }
+        const functionScope = findFunctionScope(this.scope, this.variable);
+        if (functionScope &&
+            functionScope.functionNode.parent instanceof Property &&
+            functionScope.functionNode.parent.parent instanceof ObjectExpression) {
+            functionScope.functionNode.parent.parent.includePath(path, context);
         }
     }
     initialise() {
@@ -15400,15 +16523,31 @@ class ThisExpression extends NodeBase {
         }
     }
 }
+function findFunctionScope(scope, thisVariable) {
+    while (!(scope instanceof FunctionScope && scope.thisVariable === thisVariable)) {
+        if (!(scope instanceof ChildScope)) {
+            return null;
+        }
+        scope = scope.parent;
+    }
+    return scope;
+}
 
 class ThrowStatement extends NodeBase {
     hasEffects() {
         return true;
     }
     include(context, includeChildrenRecursively) {
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         this.argument.include(context, includeChildrenRecursively);
         context.brokenFlow = true;
+    }
+    includeNode(context) {
+        if (!this.included) {
+            this.included = true;
+            this.argument.includePath(UNKNOWN_PATH, context);
+        }
     }
     render(code, options) {
         this.argument.render(code, options, { preventASI: true });
@@ -15453,6 +16592,8 @@ class TryStatement extends NodeBase {
         this.finalizer?.include(context, includeChildrenRecursively);
     }
 }
+TryStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+TryStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 const unaryOperators = {
     '!': value => !value,
@@ -15482,8 +16623,17 @@ class UnaryExpression extends NodeBase {
         if (path.length > 0)
             return UnknownValue;
         const argumentValue = this.argument.getLiteralValueAtPath(EMPTY_PATH, recursionTracker, origin);
-        if (typeof argumentValue === 'symbol')
+        if (typeof argumentValue === 'symbol') {
+            if (this.operator === 'void')
+                return undefined;
+            if (this.operator === '!') {
+                if (argumentValue === UnknownFalsyValue)
+                    return true;
+                if (argumentValue === UnknownTruthyValue)
+                    return false;
+            }
             return UnknownValue;
+        }
         return unaryOperators[this.operator](argumentValue);
     }
     hasEffects(context) {
@@ -15537,7 +16687,11 @@ class UnaryExpression extends NodeBase {
 }
 const CHARACTERS_THAT_DO_NOT_REQUIRE_SPACE = /[\s([=%&*+-/<>^|,?:;]/;
 function getRenderedLiteralValue(value) {
-    if (value === undefined || typeof value === 'boolean') {
+    if (value === undefined) {
+        // At the moment, the undefined only happens when the operator is void
+        return 'void 0';
+    }
+    if (typeof value === 'boolean') {
         return String(value);
     }
     if (typeof value === 'string') {
@@ -15559,6 +16713,7 @@ function getSimplifiedNumber(value) {
     const stringifiedValue = String(value).replace('+', '');
     return finalizedExp.length < stringifiedValue.length ? finalizedExp : stringifiedValue;
 }
+UnaryExpression.prototype.includeNode = onlyIncludeSelf;
 
 class UpdateExpression extends NodeBase {
     hasEffects(context) {
@@ -15570,9 +16725,8 @@ class UpdateExpression extends NodeBase {
         return path.length > 1 || type !== INTERACTION_ACCESSED;
     }
     include(context, includeChildrenRecursively) {
-        if (!this.deoptimized)
-            this.applyDeoptimizations();
-        this.included = true;
+        if (!this.included)
+            this.includeNode(context);
         this.argument.includeAsAssignmentTarget(context, includeChildrenRecursively, true);
     }
     initialise() {
@@ -15611,6 +16765,7 @@ class UpdateExpression extends NodeBase {
         this.scope.context.requestTreeshakingPass();
     }
 }
+UpdateExpression.prototype.includeNode = onlyIncludeSelf;
 
 function areAllDeclarationsIncludedAndNotExported(declarations, exportNamesByVariable) {
     for (const declarator of declarations) {
@@ -15641,8 +16796,9 @@ class VariableDeclaration extends NodeBase {
     include(context, includeChildrenRecursively, { asSingleStatement } = parseAst_js.BLANK) {
         this.included = true;
         for (const declarator of this.declarations) {
-            if (includeChildrenRecursively || declarator.shouldBeIncluded(context))
+            if (includeChildrenRecursively || declarator.shouldBeIncluded(context)) {
                 declarator.include(context, includeChildrenRecursively);
+            }
             const { id, init } = declarator;
             if (asSingleStatement) {
                 id.include(context, includeChildrenRecursively);
@@ -15680,7 +16836,6 @@ class VariableDeclaration extends NodeBase {
             this.renderReplacedDeclarations(code, options);
         }
     }
-    applyDeoptimizations() { }
     renderDeclarationEnd(code, separatorString, lastSeparatorPos, actualContentEnd, renderedContentEnd, systemPatternExports, options) {
         if (code.original.charCodeAt(this.end - 1) === 59 /*";"*/) {
             code.remove(this.end - 1, this.end);
@@ -15723,8 +16878,7 @@ class VariableDeclaration extends NodeBase {
         const singleSystemExport = gatherSystemExportsAndGetSingleExport(separatedNodes, options, aggregatedSystemExports);
         for (const { node, start, separator, contentEnd, end } of separatedNodes) {
             if (!node.included) {
-                code.remove(start, end);
-                node.removeAnnotations(code);
+                treeshakeNode(node, code, start, end);
                 continue;
             }
             node.render(code, options);
@@ -15794,6 +16948,8 @@ function gatherSystemExportsAndGetSingleExport(separatedNodes, options, aggregat
     }
     return singleSystemExport;
 }
+VariableDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+VariableDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class WhileStatement extends NodeBase {
     hasEffects(context) {
@@ -15807,12 +16963,24 @@ class WhileStatement extends NodeBase {
         includeLoopBody(context, this.body, includeChildrenRecursively);
     }
 }
+WhileStatement.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
+WhileStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class YieldExpression extends NodeBase {
+    applyDeoptimizations() {
+        this.deoptimized = true;
+        this.argument?.deoptimizePath(UNKNOWN_PATH);
+    }
     hasEffects(context) {
         if (!this.deoptimized)
             this.applyDeoptimizations();
         return !(context.ignore.returnYield && !this.argument?.hasEffects(context));
+    }
+    includeNode(context) {
+        this.included = true;
+        if (!this.deoptimized)
+            this.applyDeoptimizations();
+        this.argument?.includePath(UNKNOWN_PATH, context);
     }
     render(code, options) {
         if (this.argument) {
@@ -16047,7 +17215,7 @@ const bufferParsers = [
         const annotations = (node.annotations = parseAst_js.convertAnnotations(buffer[position + 1], buffer));
         node.annotationNoSideEffects = annotations.some(comment => comment.type === 'noSideEffects');
         const parameters = (node.params = convertNodeList(node, scope, buffer[position + 2], buffer));
-        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
+        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
         node.body = convertNode(node, scope.bodyScope, buffer[position + 3], buffer);
     },
     function assignmentExpression(node, position, buffer) {
@@ -16093,7 +17261,7 @@ const bufferParsers = [
         const parameterPosition = buffer[position];
         const parameter = (node.param =
             parameterPosition === 0 ? null : convertNode(node, scope, parameterPosition, buffer));
-        parameter?.declare('parameter', UNKNOWN_EXPRESSION);
+        parameter?.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION);
         node.body = convertNode(node, scope.bodyScope, buffer[position + 1], buffer);
     },
     function chainExpression(node, position, buffer) {
@@ -16231,7 +17399,7 @@ const bufferParsers = [
         node.id =
             idPosition === 0 ? null : convertNode(node, scope.parent, idPosition, buffer);
         const parameters = (node.params = convertNodeList(node, scope, buffer[position + 3], buffer));
-        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
+        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
         node.body = convertNode(node, scope.bodyScope, buffer[position + 4], buffer);
     },
     function functionExpression(node, position, buffer) {
@@ -16244,7 +17412,7 @@ const bufferParsers = [
         const idPosition = buffer[position + 2];
         node.id = idPosition === 0 ? null : convertNode(node, node.idScope, idPosition, buffer);
         const parameters = (node.params = convertNodeList(node, scope, buffer[position + 3], buffer));
-        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
+        scope.addParameterVariables(parameters.map(parameter => parameter.declare('parameter', EMPTY_PATH, UNKNOWN_EXPRESSION)), parameters[parameters.length - 1] instanceof RestElement);
         node.body = convertNode(node, scope.bodyScope, buffer[position + 4], buffer);
     },
     function identifier(node, position, buffer) {
@@ -16708,8 +17876,8 @@ class ExportShimVariable extends Variable {
         super(MISSING_EXPORT_SHIM_VARIABLE);
         this.module = module;
     }
-    include() {
-        super.include();
+    includePath(path, context) {
+        super.includePath(path, context);
         this.module.needsExportShim = true;
     }
 }
@@ -17048,6 +18216,7 @@ class Module {
         this.importedFromNotTreeshaken = false;
         this.importers = [];
         this.includedDynamicImporters = [];
+        this.includedDirectTopLevelAwaitingDynamicImporters = new Set();
         this.includedImports = new Set();
         this.isExecuted = false;
         this.isUserDefinedEntryPoint = false;
@@ -17055,6 +18224,7 @@ class Module {
         this.sideEffectDependenciesByVariable = new Map();
         this.sourcesWithAttributes = new Map();
         this.allExportNames = null;
+        this.allExportsIncluded = false;
         this.ast = null;
         this.exportAllModules = [];
         this.exportAllSources = new Set();
@@ -17396,36 +18566,36 @@ class Module {
             this.ast.include(context, false);
     }
     includeAllExports(includeNamespaceMembers) {
+        if (includeNamespaceMembers) {
+            this.namespace.setMergedNamespaces(this.includeAndGetAdditionalMergedNamespaces());
+        }
+        if (this.allExportsIncluded)
+            return;
+        this.allExportsIncluded = true;
         if (!this.isExecuted) {
             markModuleAndImpureDependenciesAsExecuted(this);
             this.graph.needsTreeshakingPass = true;
         }
+        const inclusionContext = createInclusionContext();
         for (const exportName of this.exports.keys()) {
             if (includeNamespaceMembers || exportName !== this.info.syntheticNamedExports) {
                 const variable = this.getVariableForExportName(exportName)[0];
                 if (!variable) {
                     return parseAst_js.error(parseAst_js.logMissingEntryExport(exportName, this.id));
                 }
+                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
                 variable.deoptimizePath(UNKNOWN_PATH);
-                if (!variable.included) {
-                    this.includeVariable(variable);
-                }
             }
         }
         for (const name of this.getReexports()) {
             const [variable] = this.getVariableForExportName(name);
             if (variable) {
                 variable.deoptimizePath(UNKNOWN_PATH);
-                if (!variable.included) {
-                    this.includeVariable(variable);
-                }
+                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
                 if (variable instanceof ExternalVariable) {
                     variable.module.reexported = true;
                 }
             }
-        }
-        if (includeNamespaceMembers) {
-            this.namespace.setMergedNamespaces(this.includeAndGetAdditionalMergedNamespaces());
         }
     }
     includeAllInBundle() {
@@ -17438,13 +18608,12 @@ class Module {
             this.graph.needsTreeshakingPass = true;
         }
         let includeNamespaceMembers = false;
+        const inclusionContext = createInclusionContext();
         for (const name of names) {
             const variable = this.getVariableForExportName(name)[0];
             if (variable) {
                 variable.deoptimizePath(UNKNOWN_PATH);
-                if (!variable.included) {
-                    this.includeVariable(variable);
-                }
+                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
             }
             if (!this.exports.has(name) && !this.reexportDescriptions.has(name)) {
                 includeNamespaceMembers = true;
@@ -17545,6 +18714,7 @@ class Module {
             manualPureFunctions: this.graph.pureFunctions,
             module: this,
             moduleContext: this.context,
+            newlyIncludedVariableInits: this.graph.newlyIncludedVariableInits,
             options: this.options,
             requestTreeshakingPass: () => (this.graph.needsTreeshakingPass = true),
             traceExport: (name) => this.getVariableForExportName(name)[0],
@@ -17885,13 +19055,13 @@ class Module {
         for (const module of [this, ...this.exportAllModules]) {
             if (module instanceof ExternalModule) {
                 const [externalVariable] = module.getVariableForExportName('*');
-                externalVariable.include();
+                externalVariable.includePath(UNKNOWN_PATH, createInclusionContext());
                 this.includedImports.add(externalVariable);
                 externalNamespaces.add(externalVariable);
             }
             else if (module.info.syntheticNamedExports) {
                 const syntheticNamespace = module.getSyntheticNamespace();
-                syntheticNamespace.include();
+                syntheticNamespace.includePath(UNKNOWN_PATH, createInclusionContext());
                 this.includedImports.add(syntheticNamespace);
                 syntheticNamespaces.add(syntheticNamespace);
             }
@@ -17901,7 +19071,12 @@ class Module {
     includeDynamicImport(node) {
         const resolution = this.dynamicImports.find(dynamicImport => dynamicImport.node === node).resolution;
         if (resolution instanceof Module) {
-            resolution.includedDynamicImporters.push(this);
+            if (!resolution.includedDynamicImporters.includes(this)) {
+                resolution.includedDynamicImporters.push(this);
+                if (node.withinTopLevelAwait) {
+                    resolution.includedDirectTopLevelAwaitingDynamicImporters.add(this);
+                }
+            }
             const importedNames = this.options.treeshake
                 ? node.getDeterministicImportedNames()
                 : undefined;
@@ -17913,15 +19088,15 @@ class Module {
             }
         }
     }
-    includeVariable(variable) {
-        const variableModule = variable.module;
-        if (variable.included) {
+    includeVariable(variable, path, context) {
+        const { included, module: variableModule } = variable;
+        variable.includePath(path, context);
+        if (included) {
             if (variableModule instanceof Module && variableModule !== this) {
                 getAndExtendSideEffectModules(variable, this);
             }
         }
         else {
-            variable.include();
             this.graph.needsTreeshakingPass = true;
             if (variableModule instanceof Module) {
                 if (!variableModule.isExecuted) {
@@ -17938,8 +19113,8 @@ class Module {
             }
         }
     }
-    includeVariableInModule(variable) {
-        this.includeVariable(variable);
+    includeVariableInModule(variable, path, context) {
+        this.includeVariable(variable, path, context);
         const variableModule = variable.module;
         if (variableModule && variableModule !== this) {
             this.includedImports.add(variable);
@@ -18285,13 +19460,13 @@ class Chunk {
         this.bundle = bundle;
         this.inputBase = inputBase;
         this.snippets = snippets;
+        this.dependencies = new Set();
         this.entryModules = [];
         this.exportMode = 'named';
         this.facadeModule = null;
         this.namespaceVariableName = '';
         this.variableName = '';
         this.accessedGlobalsByScope = new Map();
-        this.dependencies = new Set();
         this.dynamicEntryModules = [];
         this.dynamicName = null;
         this.exportNamesByVariable = new Map();
@@ -18315,6 +19490,8 @@ class Chunk {
         this.renderedModules = Object.create(null);
         this.sortedExportNames = null;
         this.strictFacade = false;
+        /** Modules with 'allow-extension' that should have preserved exports within the chunk */
+        this.allowExtensionModules = new Set();
         this.execIndex = orderedModules.length > 0 ? orderedModules[0].execIndex : Infinity;
         const chunkModules = new Set(orderedModules);
         for (const module of orderedModules) {
@@ -18420,6 +19597,16 @@ class Chunk {
                 remainingExports.delete(variable);
             }
         }
+        for (const module of this.allowExtensionModules) {
+            const exportNamesByVariable = module.getExportNamesByVariable();
+            for (const [variable, exportNames] of exportNamesByVariable) {
+                this.exportNamesByVariable.set(variable, [...exportNames]);
+                for (const exportName of exportNames) {
+                    this.exportsByName.set(exportName, variable);
+                }
+                remainingExports.delete(variable);
+            }
+        }
         if (this.outputOptions.minifyInternalExports) {
             assignExportsToMangledNames(remainingExports, this.exportsByName, this.exportNamesByVariable);
         }
@@ -18434,16 +19621,21 @@ class Chunk {
         const entryModules = new Set([...this.entryModules, ...this.implicitEntryModules]);
         const exposedVariables = new Set(this.dynamicEntryModules.map(({ namespace }) => namespace));
         for (const module of entryModules) {
-            if (module.preserveSignature) {
-                for (const exportedVariable of module.getExportNamesByVariable().keys()) {
-                    // We need to expose all entry exports from this chunk
-                    if (this.chunkByModule.get(exportedVariable.module) === this) {
-                        exposedVariables.add(exportedVariable);
+            if (module.preserveSignature === 'allow-extension') {
+                const canPreserveExports = this.canPreserveModuleExports(module);
+                if (canPreserveExports &&
+                    !module.chunkFileNames.size &&
+                    module.chunkNames.every(({ isUserDefined }) => !isUserDefined)) {
+                    this.allowExtensionModules.add(module);
+                    if (!this.facadeModule) {
+                        this.facadeModule = module;
+                        this.strictFacade = false;
+                        this.assignFacadeName({}, module, this.outputOptions.preserveModules);
                     }
+                    this.facadeChunkByModule.set(module, this);
+                    continue;
                 }
             }
-        }
-        for (const module of entryModules) {
             const requiredFacades = Array.from(new Set(module.chunkNames.filter(({ isUserDefined }) => isUserDefined).map(({ name }) => name)), 
             // mapping must run after Set 'name' dedupe
             name => ({
@@ -18497,6 +19689,26 @@ class Chunk {
             this.addNecessaryImportsForFacades();
         }
         return facades;
+    }
+    canPreserveModuleExports(module) {
+        const exportNamesByVariable = module.getExportNamesByVariable();
+        // Check for conflicts - an export name is a conflict if it points to a different module or definition
+        for (const [variable, exportNames] of exportNamesByVariable) {
+            for (const exportName of exportNames) {
+                const existingVariable = this.exportsByName.get(exportName);
+                // It's ok if the same export name in two modules references the exact same variable
+                if (existingVariable && existingVariable !== variable) {
+                    return false;
+                }
+            }
+        }
+        // No actual conflicts found, add export names for future conflict checks
+        for (const [variable, exportNames] of exportNamesByVariable) {
+            for (const exportName of exportNames) {
+                this.exportsByName.set(exportName, variable);
+            }
+        }
+        return true;
     }
     getChunkName() {
         return (this.name ??= this.outputOptions.sanitizeFileName(this.getFallbackChunkName()));
@@ -18596,9 +19808,9 @@ class Chunk {
             this.setUpChunkImportsAndExportsForModule(module);
         }
     }
-    async render() {
-        const { dependencies, exportMode, facadeModule, inputOptions: { onLog }, outputOptions, pluginDriver, snippets } = this;
-        const { format, hoistTransitiveImports, preserveModules } = outputOptions;
+    inlineTransitiveImports() {
+        const { facadeModule, dependencies, outputOptions } = this;
+        const { hoistTransitiveImports, preserveModules } = outputOptions;
         // for static and dynamic entry points, add transitive dependencies to this
         // chunk's dependencies to avoid loading latency
         if (hoistTransitiveImports && !preserveModules && facadeModule !== null) {
@@ -18607,6 +19819,10 @@ class Chunk {
                     this.inlineChunkDependencies(dep);
             }
         }
+    }
+    async render() {
+        const { exportMode, facadeModule, inputOptions: { onLog }, outputOptions, pluginDriver, snippets } = this;
+        const { format, preserveModules } = outputOptions;
         const preliminaryFileName = this.getPreliminaryFileName();
         const preliminarySourcemapFileName = this.getPreliminarySourcemapFileName();
         const { accessedGlobals, indent, magicString, renderedSource, usedModules, usesTopLevelAwait } = this.renderModules(preliminaryFileName.fileName);
@@ -18869,17 +20085,21 @@ class Chunk {
             .filter((resolution) => resolution !== this &&
             (resolution instanceof Chunk || resolution instanceof ExternalChunk));
     }
-    getDynamicImportStringAndAttributes(resolution, fileName) {
+    getDynamicImportStringAndAttributes(resolution, fileName, node) {
         if (resolution instanceof ExternalModule) {
             const chunk = this.externalChunkByModule.get(resolution);
             return [`'${chunk.getImportPath(fileName)}'`, chunk.getImportAttributes(this.snippets)];
         }
-        return [
-            resolution || '',
-            (['es', 'cjs'].includes(this.outputOptions.format) &&
-                this.outputOptions.externalImportAttributes) ||
-                null
-        ];
+        let attributes = null;
+        if (['es', 'cjs'].includes(this.outputOptions.format) &&
+            this.outputOptions.externalImportAttributes) {
+            const attributesFromImportAttributes = getAttributesFromImportExpression(node);
+            attributes =
+                attributesFromImportAttributes === parseAst_js.EMPTY_OBJECT
+                    ? true
+                    : formatAttributes(attributesFromImportAttributes, this.snippets);
+        }
+        return [resolution || '', attributes];
     }
     getFallbackChunkName() {
         if (this.manualChunkAlias) {
@@ -19095,7 +20315,7 @@ class Chunk {
     // This method changes properties on the AST before rendering and must not be async
     renderModules(fileName) {
         const { accessedGlobalsByScope, dependencies, exportNamesByVariable, includedNamespaces, inputOptions: { onLog }, isEmpty, orderedModules, outputOptions, pluginDriver, renderedModules, snippets } = this;
-        const { compact, format, freeze, generatedCode: { symbols } } = outputOptions;
+        const { compact, format, freeze, generatedCode: { symbols }, importAttributesKey } = outputOptions;
         const { _, cnst, n } = snippets;
         this.setDynamicImportResolutions(fileName);
         this.setImportMetaResolutions(fileName);
@@ -19111,6 +20331,7 @@ class Chunk {
             exportNamesByVariable,
             format,
             freeze,
+            importAttributesKey,
             indent,
             pluginDriver,
             snippets,
@@ -19184,13 +20405,13 @@ class Chunk {
                     node.setInternalResolution(resolution.namespace);
                 }
                 else {
-                    node.setExternalResolution((facadeChunk || chunk).exportMode, resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, `'${(facadeChunk || chunk).getImportPath(fileName)}'`, !facadeChunk?.strictFacade && chunk.exportNamesByVariable.get(resolution.namespace)[0], null);
+                    node.setExternalResolution((facadeChunk || chunk).exportMode, resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, `'${(facadeChunk || chunk).getImportPath(fileName)}'`, !facadeChunk?.strictFacade && chunk.exportNamesByVariable.get(resolution.namespace)[0], null, this, facadeChunk || chunk);
                 }
             }
             else {
                 const { node, resolution } = resolvedDynamicImport;
-                const [resolutionString, attributes] = this.getDynamicImportStringAndAttributes(resolution, fileName);
-                node.setExternalResolution('external', resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, false, attributes);
+                const [resolutionString, attributes] = this.getDynamicImportStringAndAttributes(resolution, fileName, node);
+                node.setExternalResolution('external', resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, false, attributes, this, null);
             }
         }
     }
@@ -19456,15 +20677,16 @@ function* concatLazy(iterables) {
  */
 function getChunkAssignments(entries, manualChunkAliasByEntry, minChunkSize, log) {
     const { chunkDefinitions, modulesInManualChunks } = getChunkDefinitionsFromManualChunks(manualChunkAliasByEntry);
-    const { allEntries, dependentEntriesByModule, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry } = analyzeModuleGraph(entries);
+    const { allEntries, dependentEntriesByModule, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry } = analyzeModuleGraph(entries);
     // Each chunk is identified by its position in this array
     const chunkAtoms = getChunksWithSameDependentEntries(getModulesWithDependentEntries(dependentEntriesByModule, modulesInManualChunks));
     const staticDependencyAtomsByEntry = getStaticDependencyAtomsByEntry(allEntries, chunkAtoms);
     // Warning: This will consume dynamicallyDependentEntriesByDynamicEntry.
     // If we no longer want this, we should make a copy here.
     const alreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, allEntries);
+    const awaitedAlreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry, allEntries);
     // This mutates the dependentEntries in chunkAtoms
-    removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry);
+    removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry, awaitedAlreadyLoadedAtomsByEntry);
     const { chunks, sideEffectAtoms, sizeByAtom } = getChunksWithSameDependentEntriesAndCorrelatedAtoms(chunkAtoms, staticDependencyAtomsByEntry, alreadyLoadedAtomsByEntry, minChunkSize);
     chunkDefinitions.push(...getOptimizedChunks(chunks, minChunkSize, sideEffectAtoms, sizeByAtom, log).map(({ modules }) => ({
         alias: null,
@@ -19500,19 +20722,23 @@ function addStaticDependenciesToManualChunk(entry, manualChunkModules, modulesIn
 }
 function analyzeModuleGraph(entries) {
     const dynamicEntryModules = new Set();
+    const awaitedDynamicEntryModules = new Set();
     const dependentEntriesByModule = new Map();
     const allEntriesSet = new Set(entries);
     const dynamicImportModulesByEntry = new Array(allEntriesSet.size);
+    const awaitedDynamicImportModulesByEntry = new Array(allEntriesSet.size);
     let entryIndex = 0;
     for (const currentEntry of allEntriesSet) {
         const dynamicImportsForCurrentEntry = new Set();
+        const awaitedDynamicImportsForCurrentEntry = new Set();
         dynamicImportModulesByEntry[entryIndex] = dynamicImportsForCurrentEntry;
-        const modulesToHandle = new Set([currentEntry]);
-        for (const module of modulesToHandle) {
+        awaitedDynamicImportModulesByEntry[entryIndex] = awaitedDynamicImportsForCurrentEntry;
+        const staticDependencies = new Set([currentEntry]);
+        for (const module of staticDependencies) {
             getOrCreate(dependentEntriesByModule, module, (getNewSet)).add(entryIndex);
             for (const dependency of module.getDependenciesToBeIncluded()) {
                 if (!(dependency instanceof ExternalModule)) {
-                    modulesToHandle.add(dependency);
+                    staticDependencies.add(dependency);
                 }
             }
             for (const { resolution } of module.dynamicImports) {
@@ -19522,6 +20748,13 @@ function analyzeModuleGraph(entries) {
                     dynamicEntryModules.add(resolution);
                     allEntriesSet.add(resolution);
                     dynamicImportsForCurrentEntry.add(resolution);
+                    for (const includedDirectTopLevelAwaitingDynamicImporter of resolution.includedDirectTopLevelAwaitingDynamicImporters) {
+                        if (staticDependencies.has(includedDirectTopLevelAwaitingDynamicImporter)) {
+                            awaitedDynamicEntryModules.add(resolution);
+                            awaitedDynamicImportsForCurrentEntry.add(resolution);
+                            break;
+                        }
+                    }
                 }
             }
             for (const dependency of module.implicitlyLoadedBefore) {
@@ -19534,23 +20767,39 @@ function analyzeModuleGraph(entries) {
         entryIndex++;
     }
     const allEntries = [...allEntriesSet];
-    const { dynamicEntries, dynamicImportsByEntry } = getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry);
+    const { awaitedDynamicEntries, awaitedDynamicImportsByEntry, dynamicEntries, dynamicImportsByEntry } = getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry);
     return {
         allEntries,
+        awaitedDynamicImportsByEntry,
         dependentEntriesByModule,
-        dynamicallyDependentEntriesByDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries),
+        dynamicallyDependentEntriesByAwaitedDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, awaitedDynamicEntries, allEntries, dynamicEntry => dynamicEntry.includedDirectTopLevelAwaitingDynamicImporters),
+        dynamicallyDependentEntriesByDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries, dynamicEntry => dynamicEntry.includedDynamicImporters),
         dynamicImportsByEntry
     };
 }
-function getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry) {
+function getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry) {
     const entryIndexByModule = new Map();
     const dynamicEntries = new Set();
+    const awaitedDynamicEntries = new Set();
     for (const [entryIndex, entry] of allEntries.entries()) {
         entryIndexByModule.set(entry, entryIndex);
         if (dynamicEntryModules.has(entry)) {
             dynamicEntries.add(entryIndex);
         }
+        if (awaitedDynamicEntryModules.has(entry)) {
+            awaitedDynamicEntries.add(entryIndex);
+        }
     }
+    const dynamicImportsByEntry = getDynamicImportsByEntry(dynamicImportModulesByEntry, entryIndexByModule);
+    const awaitedDynamicImportsByEntry = getDynamicImportsByEntry(awaitedDynamicImportModulesByEntry, entryIndexByModule);
+    return {
+        awaitedDynamicEntries,
+        awaitedDynamicImportsByEntry,
+        dynamicEntries,
+        dynamicImportsByEntry
+    };
+}
+function getDynamicImportsByEntry(dynamicImportModulesByEntry, entryIndexByModule) {
     const dynamicImportsByEntry = new Array(dynamicImportModulesByEntry.length);
     let index = 0;
     for (const dynamicImportModules of dynamicImportModulesByEntry) {
@@ -19560,15 +20809,15 @@ function getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModules
         }
         dynamicImportsByEntry[index++] = dynamicImports;
     }
-    return { dynamicEntries, dynamicImportsByEntry };
+    return dynamicImportsByEntry;
 }
-function getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries) {
+function getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries, getDynamicImporters) {
     const dynamicallyDependentEntriesByDynamicEntry = new Map();
     for (const dynamicEntryIndex of dynamicEntries) {
         const dynamicallyDependentEntries = getOrCreate(dynamicallyDependentEntriesByDynamicEntry, dynamicEntryIndex, (getNewSet));
         const dynamicEntry = allEntries[dynamicEntryIndex];
         for (const importer of concatLazy([
-            dynamicEntry.includedDynamicImporters,
+            getDynamicImporters(dynamicEntry),
             dynamicEntry.implicitlyLoadedAfter
         ])) {
             for (const entry of dependentEntriesByModule.get(importer)) {
@@ -19647,13 +20896,15 @@ function getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyD
  * This removes all unnecessary dynamic entries from the dependentEntries in its
  * first argument if a chunk is already loaded without that entry.
  */
-function removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry) {
+function removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry, awaitedAlreadyLoadedAtomsByEntry) {
     // Remove entries from dependent entries if a chunk is already loaded without
-    // that entry.
+    // that entry. Do not remove already loaded atoms where all dynamic imports
+    // are awaited to avoid cycles in the output.
     let chunkMask = 1n;
     for (const { dependentEntries } of chunkAtoms) {
         for (const entryIndex of dependentEntries) {
-            if ((alreadyLoadedAtomsByEntry[entryIndex] & chunkMask) === chunkMask) {
+            if ((alreadyLoadedAtomsByEntry[entryIndex] & chunkMask) === chunkMask &&
+                (awaitedAlreadyLoadedAtomsByEntry[entryIndex] & chunkMask) === 0n) {
                 dependentEntries.delete(entryIndex);
             }
         }
@@ -20006,24 +21257,32 @@ function analyseModuleExecution(entryModules) {
     const dynamicImports = new Set();
     const parents = new Map();
     const orderedModules = [];
+    const handleSyncLoadedModule = (module, parent) => {
+        if (parents.has(module)) {
+            if (!analysedModules.has(module)) {
+                cyclePaths.push(getCyclePath(module, parent, parents));
+            }
+            return;
+        }
+        parents.set(module, parent);
+        analyseModule(module);
+    };
     const analyseModule = (module) => {
         if (module instanceof Module) {
             for (const dependency of module.dependencies) {
-                if (parents.has(dependency)) {
-                    if (!analysedModules.has(dependency)) {
-                        cyclePaths.push(getCyclePath(dependency, module, parents));
-                    }
-                    continue;
-                }
-                parents.set(dependency, module);
-                analyseModule(dependency);
+                handleSyncLoadedModule(dependency, module);
             }
             for (const dependency of module.implicitlyLoadedBefore) {
                 dynamicImports.add(dependency);
             }
-            for (const { resolution } of module.dynamicImports) {
+            for (const { resolution, node } of module.dynamicImports) {
                 if (resolution instanceof Module) {
-                    dynamicImports.add(resolution);
+                    if (node.withinTopLevelAwait) {
+                        handleSyncLoadedModule(resolution, module);
+                    }
+                    else {
+                        dynamicImports.add(resolution);
+                    }
                 }
             }
             orderedModules.push(module);
@@ -20540,6 +21799,7 @@ class Bundle {
             this.pluginDriver.setChunkInformation(this.facadeChunkByModule);
             for (const chunk of chunks) {
                 chunk.generateExports();
+                chunk.inlineTransitiveImports();
             }
             timeEnd('generate chunks', 2);
             await renderChunks(chunks, outputBundle, this.pluginDriver, this.outputOptions, this.inputOptions.onLog);
@@ -20711,18 +21971,18 @@ function flru (max) {
 	return {
 		clear: reset,
 		has: function (key) {
-			return curr[key] !== undefined || prev[key] !== undefined;
+			return curr[key] !== void 0 || prev[key] !== void 0;
 		},
 		get: function (key) {
 			var val = curr[key];
-			if (val !== undefined) return val;
-			if ((val=prev[key]) !== undefined) {
+			if (val !== void 0) return val;
+			if ((val=prev[key]) !== void 0) {
 				keep(key, val);
 				return val;
 			}
 		},
 		set: function (key, value) {
-			if (curr[key] !== undefined) {
+			if (curr[key] !== void 0) {
 				curr[key] = value;
 			} else {
 				keep(key, value);
@@ -20817,6 +22077,13 @@ async function findFile(file, preserveSymlinks) {
     catch {
         // suppress
     }
+}
+
+function stripBom(content) {
+    if (content.charCodeAt(0) === 0xfe_ff) {
+        return stripBom(content.slice(1));
+    }
+    return content;
 }
 
 async function transform(source, module, pluginDriver, log) {
@@ -21060,10 +22327,7 @@ class ModuleLoader {
             : source != null && typeof source === 'object' && typeof source.code === 'string'
                 ? source
                 : parseAst_js.error(parseAst_js.logBadLoader(id));
-        const code = sourceDescription.code;
-        if (code.charCodeAt(0) === 0xfe_ff) {
-            sourceDescription.code = code.slice(1);
-        }
+        sourceDescription.code = stripBom(sourceDescription.code);
         const cachedModule = this.graph.cachedModules.get(id);
         if (cachedModule &&
             !cachedModule.customTransformCache &&
@@ -21444,10 +22708,11 @@ class Graph {
         this.options = options;
         this.astLru = flru(5);
         this.cachedModules = new Map();
-        this.deoptimizationTracker = new PathTracker();
+        this.deoptimizationTracker = new EntityPathTracker();
         this.entryModules = [];
         this.modulesById = new Map();
         this.needsTreeshakingPass = false;
+        this.newlyIncludedVariableInits = new Set();
         this.phase = BuildPhase.LOAD_AND_PARSE;
         this.scope = new GlobalScope();
         this.watchFiles = Object.create(null);
@@ -21541,6 +22806,7 @@ class Graph {
         }
         if (this.options.treeshake) {
             let treeshakingPass = 1;
+            this.newlyIncludedVariableInits.clear();
             do {
                 timeStart(`treeshaking pass ${treeshakingPass}`, 3);
                 this.needsTreeshakingPass = false;
@@ -21552,6 +22818,10 @@ class Graph {
                         }
                         else {
                             module.include();
+                        }
+                        for (const entity of this.newlyIncludedVariableInits) {
+                            this.newlyIncludedVariableInits.delete(entity);
+                            entity.include(createInclusionContext(), false);
                         }
                     }
                 }
@@ -22142,11 +23412,28 @@ async function rollupInternal(rawInputOptions, watcher) {
             if (watchFiles.length > 0) {
                 error_.watchFiles = watchFiles;
             }
-            await graph.pluginDriver.hookParallel('buildEnd', [error_]);
-            await graph.pluginDriver.hookParallel('closeBundle', []);
+            try {
+                await graph.pluginDriver.hookParallel('buildEnd', [error_]);
+            }
+            catch (buildEndError) {
+                // Create a compound error object to include both errors, based on the original error
+                const compoundError = parseAst_js.getRollupError({
+                    ...error_,
+                    message: `There was an error during the build:\n  ${error_.message}\nAdditionally, handling the error in the 'buildEnd' hook caused the following error:\n  ${buildEndError.message}`
+                });
+                await graph.pluginDriver.hookParallel('closeBundle', [compoundError]);
+                throw compoundError;
+            }
+            await graph.pluginDriver.hookParallel('closeBundle', [error_]);
             throw error_;
         }
-        await graph.pluginDriver.hookParallel('buildEnd', []);
+        try {
+            await graph.pluginDriver.hookParallel('buildEnd', []);
+        }
+        catch (buildEndError) {
+            await graph.pluginDriver.hookParallel('closeBundle', [buildEndError]);
+            throw buildEndError;
+        }
     });
     timeEnd('BUILD', 1);
     const result = {

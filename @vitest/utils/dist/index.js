@@ -504,144 +504,130 @@ var colorize = (defs, type, value) => {
   }
   return highlighted;
 };
-function highlight$1(code, options = { jsx: !1, colors: {} }) {
+function highlight$1(code, options = { jsx: false, colors: {} }) {
   return code && highlightTokens(options.colors || {}, code, options.jsx);
 }
 
-function getDefs(c2) {
-  const Invalid = (text) => c2.white(c2.bgRed(c2.bold(text)));
-  return {
-    Keyword: c2.magenta,
-    IdentifierCapitalized: c2.yellow,
-    Punctuator: c2.yellow,
-    StringLiteral: c2.green,
-    NoSubstitutionTemplate: c2.green,
-    MultiLineComment: c2.gray,
-    SingleLineComment: c2.gray,
-    RegularExpressionLiteral: c2.cyan,
-    NumericLiteral: c2.blue,
-    TemplateHead: (text) => c2.green(text.slice(0, text.length - 2)) + c2.cyan(text.slice(-2)),
-    TemplateTail: (text) => c2.cyan(text.slice(0, 1)) + c2.green(text.slice(1)),
-    TemplateMiddle: (text) => c2.cyan(text.slice(0, 1)) + c2.green(text.slice(1, text.length - 2)) + c2.cyan(text.slice(-2)),
-    IdentifierCallable: c2.blue,
-    PrivateIdentifierCallable: (text) => `#${c2.blue(text.slice(1))}`,
-    Invalid,
-    JSXString: c2.green,
-    JSXIdentifier: c2.yellow,
-    JSXInvalid: Invalid,
-    JSXPunctuator: c2.yellow
-  };
+function getDefs(c) {
+	const Invalid = (text) => c.white(c.bgRed(c.bold(text)));
+	return {
+		Keyword: c.magenta,
+		IdentifierCapitalized: c.yellow,
+		Punctuator: c.yellow,
+		StringLiteral: c.green,
+		NoSubstitutionTemplate: c.green,
+		MultiLineComment: c.gray,
+		SingleLineComment: c.gray,
+		RegularExpressionLiteral: c.cyan,
+		NumericLiteral: c.blue,
+		TemplateHead: (text) => c.green(text.slice(0, text.length - 2)) + c.cyan(text.slice(-2)),
+		TemplateTail: (text) => c.cyan(text.slice(0, 1)) + c.green(text.slice(1)),
+		TemplateMiddle: (text) => c.cyan(text.slice(0, 1)) + c.green(text.slice(1, text.length - 2)) + c.cyan(text.slice(-2)),
+		IdentifierCallable: c.blue,
+		PrivateIdentifierCallable: (text) => `#${c.blue(text.slice(1))}`,
+		Invalid,
+		JSXString: c.green,
+		JSXIdentifier: c.yellow,
+		JSXInvalid: Invalid,
+		JSXPunctuator: c.yellow
+	};
 }
 function highlight(code, options = { jsx: false }) {
-  return highlight$1(code, {
-    jsx: options.jsx,
-    colors: getDefs(options.colors || c)
-  });
+	return highlight$1(code, {
+		jsx: options.jsx,
+		colors: getDefs(options.colors || c)
+	});
 }
 
+// port from nanoid
+// https://github.com/ai/nanoid
 const urlAlphabet = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
 function nanoid(size = 21) {
-  let id = "";
-  let i = size;
-  while (i--) {
-    id += urlAlphabet[Math.random() * 64 | 0];
-  }
-  return id;
+	let id = "";
+	let i = size;
+	while (i--) {
+		id += urlAlphabet[Math.random() * 64 | 0];
+	}
+	return id;
 }
 
 const lineSplitRE = /\r?\n/;
 function positionToOffset(source, lineNumber, columnNumber) {
-  const lines = source.split(lineSplitRE);
-  const nl = /\r\n/.test(source) ? 2 : 1;
-  let start = 0;
-  if (lineNumber > lines.length) {
-    return source.length;
-  }
-  for (let i = 0; i < lineNumber - 1; i++) {
-    start += lines[i].length + nl;
-  }
-  return start + columnNumber;
+	const lines = source.split(lineSplitRE);
+	const nl = /\r\n/.test(source) ? 2 : 1;
+	let start = 0;
+	if (lineNumber > lines.length) {
+		return source.length;
+	}
+	for (let i = 0; i < lineNumber - 1; i++) {
+		start += lines[i].length + nl;
+	}
+	return start + columnNumber;
 }
 function offsetToLineNumber(source, offset) {
-  if (offset > source.length) {
-    throw new Error(
-      `offset is longer than source length! offset ${offset} > length ${source.length}`
-    );
-  }
-  const lines = source.split(lineSplitRE);
-  const nl = /\r\n/.test(source) ? 2 : 1;
-  let counted = 0;
-  let line = 0;
-  for (; line < lines.length; line++) {
-    const lineLength = lines[line].length + nl;
-    if (counted + lineLength >= offset) {
-      break;
-    }
-    counted += lineLength;
-  }
-  return line + 1;
+	if (offset > source.length) {
+		throw new Error(`offset is longer than source length! offset ${offset} > length ${source.length}`);
+	}
+	const lines = source.split(lineSplitRE);
+	const nl = /\r\n/.test(source) ? 2 : 1;
+	let counted = 0;
+	let line = 0;
+	for (; line < lines.length; line++) {
+		const lineLength = lines[line].length + nl;
+		if (counted + lineLength >= offset) {
+			break;
+		}
+		counted += lineLength;
+	}
+	return line + 1;
 }
 
 const RealDate = Date;
 function random(seed) {
-  const x = Math.sin(seed++) * 1e4;
-  return x - Math.floor(x);
+	const x = Math.sin(seed++) * 1e4;
+	return x - Math.floor(x);
 }
 function shuffle(array, seed = RealDate.now()) {
-  let length = array.length;
-  while (length) {
-    const index = Math.floor(random(seed) * length--);
-    const previous = array[length];
-    array[length] = array[index];
-    array[index] = previous;
-    ++seed;
-  }
-  return array;
+	let length = array.length;
+	while (length) {
+		const index = Math.floor(random(seed) * length--);
+		const previous = array[length];
+		array[length] = array[index];
+		array[index] = previous;
+		++seed;
+	}
+	return array;
 }
 
 const SAFE_TIMERS_SYMBOL = Symbol("vitest:SAFE_TIMERS");
 function getSafeTimers() {
-  const {
-    setTimeout: safeSetTimeout,
-    setInterval: safeSetInterval,
-    clearInterval: safeClearInterval,
-    clearTimeout: safeClearTimeout,
-    setImmediate: safeSetImmediate,
-    clearImmediate: safeClearImmediate
-  } = globalThis[SAFE_TIMERS_SYMBOL] || globalThis;
-  const { nextTick: safeNextTick } = globalThis[SAFE_TIMERS_SYMBOL] || globalThis.process || { nextTick: (cb) => cb() };
-  return {
-    nextTick: safeNextTick,
-    setTimeout: safeSetTimeout,
-    setInterval: safeSetInterval,
-    clearInterval: safeClearInterval,
-    clearTimeout: safeClearTimeout,
-    setImmediate: safeSetImmediate,
-    clearImmediate: safeClearImmediate
-  };
+	const { setTimeout: safeSetTimeout, setInterval: safeSetInterval, clearInterval: safeClearInterval, clearTimeout: safeClearTimeout, setImmediate: safeSetImmediate, clearImmediate: safeClearImmediate, queueMicrotask: safeQueueMicrotask } = globalThis[SAFE_TIMERS_SYMBOL] || globalThis;
+	const { nextTick: safeNextTick } = globalThis[SAFE_TIMERS_SYMBOL] || globalThis.process || { nextTick: (cb) => cb() };
+	return {
+		nextTick: safeNextTick,
+		setTimeout: safeSetTimeout,
+		setInterval: safeSetInterval,
+		clearInterval: safeClearInterval,
+		clearTimeout: safeClearTimeout,
+		setImmediate: safeSetImmediate,
+		clearImmediate: safeClearImmediate,
+		queueMicrotask: safeQueueMicrotask
+	};
 }
 function setSafeTimers() {
-  const {
-    setTimeout: safeSetTimeout,
-    setInterval: safeSetInterval,
-    clearInterval: safeClearInterval,
-    clearTimeout: safeClearTimeout,
-    setImmediate: safeSetImmediate,
-    clearImmediate: safeClearImmediate
-  } = globalThis;
-  const { nextTick: safeNextTick } = globalThis.process || {
-    nextTick: (cb) => cb()
-  };
-  const timers = {
-    nextTick: safeNextTick,
-    setTimeout: safeSetTimeout,
-    setInterval: safeSetInterval,
-    clearInterval: safeClearInterval,
-    clearTimeout: safeClearTimeout,
-    setImmediate: safeSetImmediate,
-    clearImmediate: safeClearImmediate
-  };
-  globalThis[SAFE_TIMERS_SYMBOL] = timers;
+	const { setTimeout: safeSetTimeout, setInterval: safeSetInterval, clearInterval: safeClearInterval, clearTimeout: safeClearTimeout, setImmediate: safeSetImmediate, clearImmediate: safeClearImmediate, queueMicrotask: safeQueueMicrotask } = globalThis;
+	const { nextTick: safeNextTick } = globalThis.process || { nextTick: (cb) => cb() };
+	const timers = {
+		nextTick: safeNextTick,
+		setTimeout: safeSetTimeout,
+		setInterval: safeSetInterval,
+		clearInterval: safeClearInterval,
+		clearTimeout: safeClearTimeout,
+		setImmediate: safeSetImmediate,
+		clearImmediate: safeClearImmediate,
+		queueMicrotask: safeQueueMicrotask
+	};
+	globalThis[SAFE_TIMERS_SYMBOL] = timers;
 }
 
 export { getSafeTimers, highlight, lineSplitRE, nanoid, offsetToLineNumber, positionToOffset, setSafeTimers, shuffle };

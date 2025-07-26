@@ -12,7 +12,7 @@ function restoreProperty(obj, prop, descriptor) {
 }
 function setFiles(el, files) {
     var _el_fakeFiles;
-    (_el_fakeFiles = el[fakeFiles]) === null || _el_fakeFiles === void 0 ? void 0 : _el_fakeFiles.restore();
+    (_el_fakeFiles = el[fakeFiles]) === null || _el_fakeFiles === undefined ? undefined : _el_fakeFiles.restore();
     const typeDescr = Object.getOwnPropertyDescriptor(el, 'type');
     const valueDescr = Object.getOwnPropertyDescriptor(el, 'value');
     const filesDescr = Object.getOwnPropertyDescriptor(el, 'files');
@@ -37,7 +37,7 @@ function setFiles(el, files) {
                     restore();
                 } else {
                     var _valueDescr_set;
-                    valueDescr === null || valueDescr === void 0 ? void 0 : (_valueDescr_set = valueDescr.set) === null || _valueDescr_set === void 0 ? void 0 : _valueDescr_set.call(el, v);
+                    valueDescr === null || valueDescr === undefined ? undefined : (_valueDescr_set = valueDescr.set) === null || _valueDescr_set === undefined ? undefined : _valueDescr_set.call(el, v);
                 }
             }
         },

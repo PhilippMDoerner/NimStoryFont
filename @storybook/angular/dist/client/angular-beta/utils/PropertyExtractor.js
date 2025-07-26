@@ -50,11 +50,9 @@ const uniqueArray = (arr) => {
 };
 exports.uniqueArray = uniqueArray;
 class PropertyExtractor {
-    /* eslint-enable @typescript-eslint/lines-between-class-members */
     constructor(metadata, component) {
         this.metadata = metadata;
         this.component = component;
-        /* eslint-disable @typescript-eslint/lines-between-class-members */
         this.declarations = [];
         /**
          * Analyze NgModule Metadata

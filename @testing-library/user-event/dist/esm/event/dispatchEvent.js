@@ -22,7 +22,7 @@ function dispatchUIEvent(target, type, init, preventDefault = false) {
 function dispatchEvent(target, event, preventDefault = false) {
     var _behavior_type;
     const type = event.type;
-    const behaviorImplementation = preventDefault ? ()=>{} : (_behavior_type = behavior[type]) === null || _behavior_type === void 0 ? void 0 : _behavior_type.call(behavior, event, target, this);
+    const behaviorImplementation = preventDefault ? ()=>{} : (_behavior_type = behavior[type]) === null || _behavior_type === undefined ? undefined : _behavior_type.call(behavior, event, target, this);
     if (behaviorImplementation) {
         event.preventDefault();
         let defaultPrevented = false;

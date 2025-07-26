@@ -8,7 +8,7 @@ This package contains type definitions for http-proxy (https://github.com/nodeji
 Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-proxy.
 
 ### Additional Details
- * Last updated: Tue, 06 Aug 2024 21:35:50 GMT
+ * Last updated: Fri, 07 Feb 2025 07:02:35 GMT
  * Dependencies: [@types/node](https://npmjs.com/package/@types/node)
 
 # Credits

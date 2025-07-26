@@ -5,17 +5,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 var _buffer = require("./buffer.js");
-var n = require("./node/index.js");
+var _index = require("./node/index.js");
+var n = _index;
 var _t = require("@babel/types");
 var _tokenMap = require("./token-map.js");
 var generatorFunctions = require("./generators/index.js");
+var _deprecated = require("./generators/deprecated.js");
 const {
   isExpression,
   isFunction,
   isStatement,
   isClassBody,
   isTSInterfaceBody,
-  isTSEnumDeclaration
+  isTSEnumMember
 } = _t;
 const SCIENTIFIC_NOTATION = /e/i;
 const ZERO_DECIMAL_INTEGER = /\.0+$/;
@@ -29,8 +31,7 @@ const {
 } = n;
 class Printer {
   constructor(format, map, tokens, originalCode) {
-    this.inForStatementInit = false;
-    this.tokenContext = 0;
+    this.tokenContext = _index.TokenContext.normal;
     this._tokens = null;
     this._originalCode = null;
     this._currentNode = null;
@@ -59,23 +60,29 @@ class Printer {
     this._buf = new _buffer.default(map, format.indent.style[0]);
   }
   enterForStatementInit() {
-    if (this.inForStatementInit) return () => {};
-    this.inForStatementInit = true;
-    return () => {
-      this.inForStatementInit = false;
-    };
+    this.tokenContext |= _index.TokenContext.forInitHead | _index.TokenContext.forInOrInitHeadAccumulate;
+    return () => this.tokenContext = _index.TokenContext.normal;
+  }
+  enterForXStatementInit(isForOf) {
+    if (isForOf) {
+      this.tokenContext |= _index.TokenContext.forOfHead;
+      return null;
+    } else {
+      this.tokenContext |= _index.TokenContext.forInHead | _index.TokenContext.forInOrInitHeadAccumulate;
+      return () => this.tokenContext = _index.TokenContext.normal;
+    }
   }
   enterDelimited() {
-    const oldInForStatementInit = this.inForStatementInit;
+    const oldTokenContext = this.tokenContext;
     const oldNoLineTerminatorAfterNode = this._noLineTerminatorAfterNode;
-    if (oldInForStatementInit === false && oldNoLineTerminatorAfterNode === null) {
+    if (!(oldTokenContext & _index.TokenContext.forInOrInitHeadAccumulate) && oldNoLineTerminatorAfterNode === null) {
       return () => {};
     }
-    this.inForStatementInit = false;
     this._noLineTerminatorAfterNode = null;
+    this.tokenContext = _index.TokenContext.normal;
     return () => {
-      this.inForStatementInit = oldInForStatementInit;
       this._noLineTerminatorAfterNode = oldNoLineTerminatorAfterNode;
+      this.tokenContext = oldTokenContext;
     };
   }
   generate(ast) {
@@ -151,7 +158,7 @@ class Printer {
     }
   }
   word(str, noLineTerminatorAfter = false) {
-    this.tokenContext = 0;
+    this.tokenContext &= _index.TokenContext.forInOrInitHeadAccumulatePassThroughMask;
     this._maybePrintInnerComments(str);
     this._maybeAddAuxComment();
     if (this.tokenMap) this._catchUpToCurrentToken(str);
@@ -174,7 +181,7 @@ class Printer {
     this._endsWithInteger = Number.isInteger(number) && !isNonDecimalLiteral(str) && !SCIENTIFIC_NOTATION.test(str) && !ZERO_DECIMAL_INTEGER.test(str) && str.charCodeAt(str.length - 1) !== 46;
   }
   token(str, maybeNewline = false, occurrenceCount = 0) {
-    this.tokenContext = 0;
+    this.tokenContext &= _index.TokenContext.forInOrInitHeadAccumulatePassThroughMask;
     this._maybePrintInnerComments(str, occurrenceCount);
     this._maybeAddAuxComment();
     if (this.tokenMap) this._catchUpToCurrentToken(str, occurrenceCount);
@@ -187,7 +194,7 @@ class Printer {
     this._noLineTerminator = false;
   }
   tokenChar(char) {
-    this.tokenContext = 0;
+    this.tokenContext &= _index.TokenContext.forInOrInitHeadAccumulatePassThroughMask;
     const str = String.fromCharCode(char);
     this._maybePrintInnerComments(str);
     this._maybeAddAuxComment();
@@ -367,7 +374,7 @@ class Printer {
     this._insideAux = node.loc == null;
     this._maybeAddAuxComment(this._insideAux && !oldInAux);
     const parenthesized = (_node$extra = node.extra) == null ? void 0 : _node$extra.parenthesized;
-    let shouldPrintParens = parenthesized && format.preserveFormat || parenthesized && format.retainFunctionParens && nodeType === "FunctionExpression" || needsParens(node, parent, this.tokenContext, this.inForStatementInit, format.preserveFormat ? this._boundGetRawIdentifier : undefined);
+    let shouldPrintParens = parenthesized && format.preserveFormat || parenthesized && format.retainFunctionParens && nodeType === "FunctionExpression" || needsParens(node, parent, this.tokenContext, format.preserveFormat ? this._boundGetRawIdentifier : undefined);
     if (!shouldPrintParens && parenthesized && (_node$leadingComments = node.leadingComments) != null && _node$leadingComments.length && node.leadingComments[0].type === "CommentBlock") {
       const parentType = parent == null ? void 0 : parent.type;
       switch (parentType) {
@@ -390,7 +397,7 @@ class Printer {
       indentParenthesized = true;
     }
     let oldNoLineTerminatorAfterNode;
-    let oldInForStatementInitWasTrue;
+    let oldTokenContext;
     if (!shouldPrintParens) {
       noLineTerminatorAfter || (noLineTerminatorAfter = parent && this._noLineTerminatorAfterNode === parent && n.isLastChild(parent, node));
       if (noLineTerminatorAfter) {
@@ -407,9 +414,9 @@ class Printer {
       this.tokenChar(40);
       if (indentParenthesized) this.indent();
       this._endsWithInnerRaw = false;
-      if (this.inForStatementInit) {
-        oldInForStatementInitWasTrue = true;
-        this.inForStatementInit = false;
+      if (this.tokenContext & _index.TokenContext.forInOrInitHeadAccumulate) {
+        oldTokenContext = this.tokenContext;
+        this.tokenContext = _index.TokenContext.normal;
       }
       oldNoLineTerminatorAfterNode = this._noLineTerminatorAfterNode;
       this._noLineTerminatorAfterNode = null;
@@ -426,7 +433,7 @@ class Printer {
       }
       this.tokenChar(41);
       this._noLineTerminator = noLineTerminatorAfter;
-      if (oldInForStatementInitWasTrue) this.inForStatementInit = true;
+      if (oldTokenContext) this.tokenContext = oldTokenContext;
     } else if (noLineTerminatorAfter && !this._noLineTerminator) {
       this._noLineTerminator = true;
       this._printTrailingComments(node, parent);
@@ -739,7 +746,7 @@ class Printer {
         }
         if (len === 1) {
           const singleLine = comment.loc ? comment.loc.start.line === comment.loc.end.line : !HAS_NEWLINE.test(comment.value);
-          const shouldSkipNewline = singleLine && !isStatement(node) && !isClassBody(parent) && !isTSInterfaceBody(parent) && !isTSEnumDeclaration(parent);
+          const shouldSkipNewline = singleLine && !isStatement(node) && !isClassBody(parent) && !isTSInterfaceBody(parent) && !isTSEnumMember(node);
           if (type === 0) {
             this._printComment(comment, shouldSkipNewline && node.type !== "ObjectExpression" || singleLine && isFunction(parent, {
               body: node
@@ -763,7 +770,7 @@ class Printer {
 }
 Object.assign(Printer.prototype, generatorFunctions);
 {
-  Printer.prototype.Noop = function Noop() {};
+  (0, _deprecated.addDeprecatedGenerators)(Printer);
 }
 var _default = exports.default = Printer;
 function commaSeparator(occurrenceCount, last) {

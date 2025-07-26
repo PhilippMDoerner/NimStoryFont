@@ -86,7 +86,7 @@
  * [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with
  * the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use
  * the Joda Time's [`ISODateTimeFormat.dateTime()`](
- * http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime%2D%2D
+ * http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()
  * ) to obtain a formatter capable of generating timestamps in this format.
  */
 export interface Timestamp {
@@ -104,7 +104,9 @@ export interface Timestamp {
      */
     nanos: number;
 }
-export declare const Timestamp: {
-    fromJSON(object: any): Timestamp;
-    toJSON(message: Timestamp): unknown;
-};
+export declare const Timestamp: MessageFns<Timestamp>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

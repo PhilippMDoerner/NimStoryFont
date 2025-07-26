@@ -18,7 +18,7 @@ const environment_options_1 = require("../../src/utilities/environment-options")
 const log_file_1 = require("../../src/utilities/log-file");
 var version_1 = require("../../src/utilities/version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
-const MIN_NODEJS_VERSION = [18, 13];
+const MIN_NODEJS_VERSION = [20, 19];
 /* eslint-disable no-console */
 async function default_1(options) {
     // This node version check ensures that the requirements of the project instance of the CLI are met

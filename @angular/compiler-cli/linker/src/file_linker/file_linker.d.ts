@@ -1,6 +1,6 @@
-import { AbsoluteFsPath } from '../../../src/ngtsc/file_system';
 import { DeclarationScope } from './declaration_scope';
 import { LinkerEnvironment } from './linker_environment';
+import { AbsoluteFsPath } from '../../../src/ngtsc/file_system/src/types';
 export declare const NO_STATEMENTS: Readonly<any[]>;
 /**
  * This class is responsible for linking all the partial declarations found in a single file.

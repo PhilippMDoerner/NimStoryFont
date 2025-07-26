@@ -1,21 +1,19 @@
 'use strict';
 
-require('../../utils/click/isClickableInput.js');
 require('../../utils/dataTransfer/Clipboard.js');
 var isContentEditable = require('../../utils/edit/isContentEditable.js');
-require('../../utils/edit/isEditable.js');
-require('../../utils/edit/maxLength.js');
 var selection = require('../../utils/focus/selection.js');
-require('../../utils/keyDef/readNextDescriptor.js');
-require('../../utils/misc/level.js');
-require('../../options.js');
 
+// The browser implementation seems to have changed.
+// When focus is inside <input type="text"/>,
+// Chrome updates Selection to be collapsed at the position of the input element.
+// TODO: update implementation to match that of current browsers
 /**
  * Reset the Document Selection when moving focus into an element
  * with own selection implementation.
  */ function updateSelectionOnFocus(element) {
     const selection$1 = element.ownerDocument.getSelection();
-    /* istanbul ignore if */ if (!(selection$1 === null || selection$1 === void 0 ? void 0 : selection$1.focusNode)) {
+    /* istanbul ignore if */ if (!(selection$1 === null || selection$1 === undefined ? undefined : selection$1.focusNode)) {
         return;
     }
     // If the focus moves inside an element with own selection implementation,
@@ -30,7 +28,7 @@ require('../../options.js');
         if (contenteditable) {
             if (!selection$1.isCollapsed) {
                 var _contenteditable_firstChild;
-                const focusNode = ((_contenteditable_firstChild = contenteditable.firstChild) === null || _contenteditable_firstChild === void 0 ? void 0 : _contenteditable_firstChild.nodeType) === 3 ? contenteditable.firstChild : contenteditable;
+                const focusNode = ((_contenteditable_firstChild = contenteditable.firstChild) === null || _contenteditable_firstChild === undefined ? undefined : _contenteditable_firstChild.nodeType) === 3 ? contenteditable.firstChild : contenteditable;
                 selection$1.setBaseAndExtent(focusNode, 0, focusNode, 0);
             }
         } else {

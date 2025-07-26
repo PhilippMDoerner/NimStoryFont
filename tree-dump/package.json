@@ -4,8 +4,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.2",
-  "description": "High-performance (binary) tree and sorted map implementation (AVL, Splay, Radix, Red-Black)",
+  "version": "1.0.3",
+  "description": "Tree or binary tree printer, print any tree to terminal or debug window",
   "author": {
     "name": "streamich",
     "url": "https://github.com/streamich"

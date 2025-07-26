@@ -28,6 +28,23 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     create(context) {
         (0, utils_1.ensureTemplateParser)(context);
         const sourceCode = context.sourceCode;
+        function reportNegatedAsync(prefixNotNode) {
+            const { start, end } = prefixNotNode.sourceSpan;
+            context.report({
+                messageId: 'noNegatedAsync',
+                loc: {
+                    start: sourceCode.getLocFromIndex(start),
+                    end: sourceCode.getLocFromIndex(end),
+                },
+                suggest: getSuggestionsSchema().map(({ messageId, textToInsert }) => ({
+                    messageId,
+                    fix: (fixer) => [
+                        fixer.removeRange([start, start + 1]),
+                        fixer.insertTextAfterRange([end, end], textToInsert),
+                    ],
+                })),
+            });
+        }
         return {
             'BindingPipe[name="async"]'(bindingPipe) {
                 if (bindingPipe.exp instanceof bundled_angular_compiler_1.PrefixNot) {
@@ -48,21 +65,11 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                     });
                 }
             },
-            ':not(PrefixNot) > PrefixNot > BindingPipe[name="async"]'({ parent: { sourceSpan: { end, start }, }, }) {
-                context.report({
-                    messageId: 'noNegatedAsync',
-                    loc: {
-                        start: sourceCode.getLocFromIndex(start),
-                        end: sourceCode.getLocFromIndex(end),
-                    },
-                    suggest: getSuggestionsSchema().map(({ messageId, textToInsert }) => ({
-                        messageId,
-                        fix: (fixer) => [
-                            fixer.removeRange([start, start + 1]),
-                            fixer.insertTextAfterRange([end, end], textToInsert),
-                        ],
-                    })),
-                });
+            ':not(PrefixNot) > PrefixNot > BindingPipe[name="async"]'({ parent, }) {
+                reportNegatedAsync(parent);
+            },
+            ':not(PrefixNot) > PrefixNot > ParenthesizedExpression > BindingPipe[name="async"]'({ parent: { parent }, }) {
+                reportNegatedAsync(parent);
             },
         };
     },

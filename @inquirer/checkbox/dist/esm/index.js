@@ -43,18 +43,22 @@ function normalizeChoices(choices) {
             };
         }
         const name = choice.name ?? String(choice.value);
-        return {
+        const normalizedChoice = {
             value: choice.value,
             name,
             short: choice.short ?? name,
-            description: choice.description,
             disabled: choice.disabled ?? false,
             checked: choice.checked ?? false,
         };
+        if (choice.description) {
+            normalizedChoice.description = choice.description;
+        }
+        return normalizedChoice;
     });
 }
 export default createPrompt((config, done) => {
     const { instructions, pageSize = 7, loop = true, required, validate = () => true, } = config;
+    const shortcuts = { all: 'a', invert: 'i', ...config.shortcuts };
     const theme = makeTheme(checkboxTheme, config.theme);
     const firstRender = useRef(true);
     const [status, setStatus] = useState('idle');
@@ -103,11 +107,11 @@ export default createPrompt((config, done) => {
             setShowHelpTip(false);
             setItems(items.map((choice, i) => (i === active ? toggle(choice) : choice)));
         }
-        else if (key.name === 'a') {
+        else if (key.name === shortcuts.all) {
             const selectAll = items.some((choice) => isSelectable(choice) && !choice.checked);
             setItems(items.map(check(selectAll)));
         }
-        else if (key.name === 'i') {
+        else if (key.name === shortcuts.invert) {
             setItems(items.map(toggle));
         }
         else if (isNumberKey(key)) {
@@ -161,11 +165,13 @@ export default createPrompt((config, done) => {
         else {
             const keys = [
                 `${theme.style.key('space')} to select`,
-                `${theme.style.key('a')} to toggle all`,
-                `${theme.style.key('i')} to invert selection`,
+                shortcuts.all ? `${theme.style.key(shortcuts.all)} to toggle all` : '',
+                shortcuts.invert
+                    ? `${theme.style.key(shortcuts.invert)} to invert selection`
+                    : '',
                 `and ${theme.style.key('enter')} to proceed`,
             ];
-            helpTipTop = ` (Press ${keys.join(', ')})`;
+            helpTipTop = ` (Press ${keys.filter((key) => key !== '').join(', ')})`;
         }
         if (items.length > pageSize &&
             (theme.helpMode === 'always' ||

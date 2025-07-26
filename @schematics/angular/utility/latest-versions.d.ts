@@ -10,4 +10,5 @@ export declare const latestVersions: Record<string, string> & {
     DevkitBuildAngular: string;
     AngularBuild: string;
     AngularSSR: string;
+    NgPackagr: string;
 };

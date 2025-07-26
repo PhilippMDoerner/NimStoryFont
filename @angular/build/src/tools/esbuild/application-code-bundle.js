@@ -37,8 +37,8 @@ const wasm_plugin_1 = require("./wasm-plugin");
 function createBrowserCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilation, templateUpdates) {
     return (loadCache) => {
         const { entryPoints, outputNames, polyfills } = options;
-        const pluginOptions = (0, compiler_plugin_options_1.createCompilerPluginOptions)(options, sourceFileCache, loadCache, templateUpdates);
         const zoneless = (0, utils_1.isZonelessApp)(polyfills);
+        const pluginOptions = (0, compiler_plugin_options_1.createCompilerPluginOptions)(options, sourceFileCache, loadCache, templateUpdates);
         const buildOptions = {
             ...getEsBuildCommonOptions(options),
             platform: 'browser',
@@ -51,22 +51,16 @@ function createBrowserCodeBundleOptions(options, target, sourceFileCache, styles
             entryPoints,
             target,
             supported: (0, utils_1.getFeatureSupport)(target, zoneless),
-            plugins: [
-                (0, loader_import_attribute_plugin_1.createLoaderImportAttributePlugin)(),
-                (0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadCache }),
-                (0, sourcemap_ignorelist_plugin_1.createSourcemapIgnorelistPlugin)(),
-                (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(),
-                (0, compiler_plugin_1.createCompilerPlugin)(
-                // JS/TS options
-                pluginOptions, angularCompilation, 
-                // Component stylesheet bundler
-                stylesheetBundler),
-            ],
         };
+        buildOptions.plugins ??= [];
+        buildOptions.plugins.push((0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadCache }), (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
+        // JS/TS options
+        pluginOptions, angularCompilation, 
+        // Component stylesheet bundler
+        stylesheetBundler));
         if (options.plugins) {
-            buildOptions.plugins?.push(...options.plugins);
+            buildOptions.plugins.push(...options.plugins);
         }
-        appendOptionsForExternalPackages(options, buildOptions);
         return buildOptions;
     };
 }
@@ -186,20 +180,15 @@ function createServerMainCodeBundleOptions(options, target, sourceFileCache, sty
             },
             entryPoints,
             supported: (0, utils_1.getFeatureSupport)(target, zoneless),
-            plugins: [
-                (0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadResultCache }),
-                (0, sourcemap_ignorelist_plugin_1.createSourcemapIgnorelistPlugin)(),
-                (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(),
-                (0, compiler_plugin_1.createCompilerPlugin)(
-                // JS/TS options
-                pluginOptions, 
-                // Browser compilation handles the actual Angular code compilation
-                new compilation_1.NoopCompilation(), 
-                // Component stylesheet bundler
-                stylesheetBundler),
-            ],
         };
         buildOptions.plugins ??= [];
+        buildOptions.plugins.push((0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadResultCache }), (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
+        // JS/TS options
+        pluginOptions, 
+        // Browser compilation handles the actual Angular code compilation
+        new compilation_1.NoopCompilation(), 
+        // Component stylesheet bundler
+        stylesheetBundler));
         if (!externalPackages) {
             buildOptions.plugins.push((0, rxjs_esm_resolution_plugin_1.createRxjsEsmResolutionPlugin)());
         }
@@ -259,7 +248,6 @@ function createServerMainCodeBundleOptions(options, target, sourceFileCache, sty
         if (options.plugins) {
             buildOptions.plugins.push(...options.plugins);
         }
-        appendOptionsForExternalPackages(options, buildOptions);
         return buildOptions;
     };
 }
@@ -291,19 +279,15 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
                 'server': ssrEntryNamespace,
             },
             supported: (0, utils_1.getFeatureSupport)(target, true),
-            plugins: [
-                (0, sourcemap_ignorelist_plugin_1.createSourcemapIgnorelistPlugin)(),
-                (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(),
-                (0, compiler_plugin_1.createCompilerPlugin)(
-                // JS/TS options
-                pluginOptions, 
-                // Browser compilation handles the actual Angular code compilation
-                new compilation_1.NoopCompilation(), 
-                // Component stylesheet bundler
-                stylesheetBundler),
-            ],
         };
         buildOptions.plugins ??= [];
+        buildOptions.plugins.push((0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
+        // JS/TS options
+        pluginOptions, 
+        // Browser compilation handles the actual Angular code compilation
+        new compilation_1.NoopCompilation(), 
+        // Component stylesheet bundler
+        stylesheetBundler));
         if (!externalPackages) {
             buildOptions.plugins.push((0, rxjs_esm_resolution_plugin_1.createRxjsEsmResolutionPlugin)());
         }
@@ -360,17 +344,16 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
         if (options.plugins) {
             buildOptions.plugins.push(...options.plugins);
         }
-        appendOptionsForExternalPackages(options, buildOptions);
         return buildOptions;
     };
 }
 function getEsBuildServerCommonOptions(options) {
     const isNodePlatform = options.ssrOptions?.platform !== schema_1.ExperimentalPlatform.Neutral;
-    const commonOptons = getEsBuildCommonOptions(options);
-    commonOptons.define ??= {};
-    commonOptons.define['ngServerMode'] = 'true';
+    const commonOptions = getEsBuildCommonOptions(options);
+    commonOptions.define ??= {};
+    commonOptions.define['ngServerMode'] = 'true';
     return {
-        ...commonOptons,
+        ...commonOptions,
         platform: isNodePlatform ? 'node' : 'neutral',
         outExtension: { '.js': '.mjs' },
         // Note: `es2015` is needed for RxJS v6. If not specified, `module` would
@@ -382,7 +365,7 @@ function getEsBuildServerCommonOptions(options) {
     };
 }
 function getEsBuildCommonOptions(options) {
-    const { workspaceRoot, outExtension, optimizationOptions, sourcemapOptions, tsconfig, externalDependencies, outputNames, preserveSymlinks, jit, loaderExtensions, jsonLogs, i18nOptions, } = options;
+    const { workspaceRoot, outExtension, optimizationOptions, sourcemapOptions, tsconfig, externalDependencies, outputNames, preserveSymlinks, jit, loaderExtensions, jsonLogs, i18nOptions, customConditions, frameworkVersion, } = options;
     // Ensure unique hashes for i18n translation changes when using post-process inlining.
     // This hash value is added as a footer to each file and ensures that the output file names (with hashes)
     // change when translation files have changed. If this is not done the post processed files may have
@@ -393,18 +376,54 @@ function getEsBuildCommonOptions(options) {
         const i18nHash = Object.values(i18nOptions.locales).reduce((data, locale) => data + locale.files.map((file) => file.integrity || '').join('|'), '');
         footer = { js: `/**i18n:${(0, node_crypto_1.createHash)('sha256').update(i18nHash).digest('hex')}*/` };
     }
+    // Core conditions that are always included
+    const conditions = [
+        // Required to support rxjs 7.x which will use es5 code if this condition is not present
+        'es2015',
+        'es2020',
+    ];
+    // The pre-linked code is not used with JIT for two reasons:
+    // 1) The pre-linked code may not have the metadata included that is required for JIT
+    // 2) The CLI is otherwise setup to use runtime linking for JIT to match the application template compilation
+    if (!jit) {
+        // The pre-linked package condition is based on the framework version.
+        // Currently this is specific to each patch version of the framework.
+        conditions.push('angular:linked-' + frameworkVersion);
+    }
+    // Append custom conditions if present
+    if (customConditions) {
+        conditions.push(...customConditions);
+    }
+    else {
+        // Include default conditions
+        conditions.push('module', optimizationOptions.scripts ? 'production' : 'development');
+    }
+    const plugins = [
+        (0, loader_import_attribute_plugin_1.createLoaderImportAttributePlugin)(),
+        (0, sourcemap_ignorelist_plugin_1.createSourcemapIgnorelistPlugin)(),
+    ];
+    let packages = 'bundle';
+    if (options.externalPackages) {
+        // Package files affected by a customized loader should not be implicitly marked as external
+        if (options.loaderExtensions ||
+            options.plugins ||
+            typeof options.externalPackages === 'object') {
+            // Plugin must be added after custom plugins to ensure any added loader options are considered
+            plugins.push((0, external_packages_plugin_1.createExternalPackagesPlugin)(options.externalPackages !== true ? options.externalPackages : undefined));
+            packages = 'bundle';
+        }
+        else {
+            // Safe to use the packages external option directly
+            packages = 'external';
+        }
+    }
     return {
         absWorkingDir: workspaceRoot,
         format: 'esm',
         bundle: true,
-        packages: 'bundle',
+        packages,
         assetNames: outputNames.media,
-        conditions: [
-            'es2020',
-            'es2015',
-            'module',
-            optimizationOptions.scripts ? 'production' : 'development',
-        ],
+        conditions,
         resolveExtensions: ['.ts', '.tsx', '.mjs', '.js', '.cjs'],
         metafile: true,
         legalComments: options.extractLicenses ? 'none' : 'eof',
@@ -416,6 +435,7 @@ function getEsBuildCommonOptions(options) {
         outdir: workspaceRoot,
         outExtension: outExtension ? { '.js': `.${outExtension}` } : undefined,
         sourcemap: sourcemapOptions.scripts && (sourcemapOptions.hidden ? 'external' : true),
+        sourcesContent: sourcemapOptions.sourcesContent,
         splitting: true,
         chunkNames: options.namedChunks ? '[name]-[hash]' : 'chunk-[hash]',
         tsconfig,
@@ -430,18 +450,18 @@ function getEsBuildCommonOptions(options) {
             ...(optimizationOptions.scripts ? { 'ngDevMode': 'false' } : undefined),
             'ngJitMode': jit ? 'true' : 'false',
             'ngServerMode': 'false',
+            'ngHmrMode': options.templateUpdates ? 'true' : 'false',
         },
         loader: loaderExtensions,
         footer,
+        plugins,
     };
 }
 function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfillsAsRelative, loadResultCache) {
     const { jit, workspaceRoot, i18nOptions } = options;
-    const buildOptions = {
-        ...getEsBuildCommonOptions(options),
-        splitting: false,
-        plugins: [(0, sourcemap_ignorelist_plugin_1.createSourcemapIgnorelistPlugin)()],
-    };
+    const buildOptions = getEsBuildCommonOptions(options);
+    buildOptions.splitting = false;
+    buildOptions.plugins ??= [];
     let polyfills = options.polyfills ? [...options.polyfills] : [];
     // Angular JIT mode requires the runtime compiler
     if (jit) {
@@ -466,12 +486,12 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
         needLocaleDataPlugin = true;
     }
     if (needLocaleDataPlugin) {
-        buildOptions.plugins?.push((0, i18n_locale_plugin_1.createAngularLocaleDataPlugin)());
+        buildOptions.plugins.push((0, i18n_locale_plugin_1.createAngularLocaleDataPlugin)());
     }
     if (polyfills.length === 0) {
         return;
     }
-    buildOptions.plugins?.push((0, virtual_module_plugin_1.createVirtualModulePlugin)({
+    buildOptions.plugins.push((0, virtual_module_plugin_1.createVirtualModulePlugin)({
         namespace,
         cache: loadResultCache,
         loadContent: async (_, build) => {
@@ -518,20 +538,4 @@ function entryFileToWorkspaceRelative(workspaceRoot, entryFile) {
         (0, node_path_1.relative)(workspaceRoot, entryFile)
             .replace(/.[mc]?ts$/, '')
             .replace(/\\/g, '/'));
-}
-function appendOptionsForExternalPackages(options, buildOptions) {
-    if (!options.externalPackages) {
-        return;
-    }
-    buildOptions.plugins ??= [];
-    // Package files affected by a customized loader should not be implicitly marked as external
-    if (options.loaderExtensions || options.plugins || typeof options.externalPackages === 'object') {
-        // Plugin must be added after custom plugins to ensure any added loader options are considered
-        buildOptions.plugins.push((0, external_packages_plugin_1.createExternalPackagesPlugin)(options.externalPackages !== true ? options.externalPackages : undefined));
-        buildOptions.packages = undefined;
-    }
-    else {
-        // Safe to use the packages external option directly
-        buildOptions.packages = 'external';
-    }
 }

@@ -18,29 +18,30 @@ const { compareRuntime } = require("./runtime");
 
 /**
  * @template T
- * @typedef {function(T, T): -1|0|1} Comparator
+ * @typedef {(a: T, b: T) => -1 | 0 | 1} Comparator
  */
 /**
- * @template TArg
+ * @template {object} TArg
  * @template T
- * @typedef {function(TArg, T, T): -1|0|1} RawParameterizedComparator
+ * @typedef {(tArg: TArg, a: T, b: T) => -1 | 0 | 1} RawParameterizedComparator
  */
 /**
- * @template TArg
+ * @template {object} TArg
  * @template T
- * @typedef {function(TArg): Comparator<T>} ParameterizedComparator
+ * @typedef {(tArg: TArg) => Comparator<T>} ParameterizedComparator
  */
 
 /**
- * @template T
- * @param {RawParameterizedComparator<any, T>} fn comparator with argument
- * @returns {ParameterizedComparator<any, T>} comparator
+ * @template {object} TArg
+ * @template {object} T
+ * @param {RawParameterizedComparator<TArg, T>} fn comparator with argument
+ * @returns {ParameterizedComparator<TArg, T>} comparator
  */
 const createCachedParameterizedComparator = fn => {
-	/** @type {WeakMap<object, Comparator<T>>} */
+	/** @type {WeakMap<EXPECTED_OBJECT, Comparator<T>>} */
 	const map = new WeakMap();
 	return arg => {
-		const cachedResult = map.get(arg);
+		const cachedResult = map.get(/** @type {EXPECTED_OBJECT} */ (arg));
 		if (cachedResult !== undefined) return cachedResult;
 		/**
 		 * @param {T} a first item
@@ -48,7 +49,7 @@ const createCachedParameterizedComparator = fn => {
 		 * @returns {-1|0|1} compare result
 		 */
 		const result = fn.bind(null, arg);
-		map.set(arg, result);
+		map.set(/** @type {EXPECTED_OBJECT} */ (arg), result);
 		return result;
 	};
 };
@@ -233,7 +234,7 @@ module.exports.compareModulesByIdOrIdentifier =
  * @param {ChunkGraph} chunkGraph the chunk graph
  * @param {Chunk} a chunk
  * @param {Chunk} b chunk
- * @returns {-1|0|1} compare result
+ * @returns {-1 | 0 | 1} compare result
  */
 const compareChunks = (chunkGraph, a, b) => chunkGraph.compareChunks(a, b);
 /** @type {ParameterizedComparator<ChunkGraph, Chunk>} */
@@ -241,9 +242,9 @@ module.exports.compareChunks =
 	createCachedParameterizedComparator(compareChunks);
 
 /**
- * @param {string|number} a first id
- * @param {string|number} b second id
- * @returns {-1|0|1} compare result
+ * @param {string | number} a first id
+ * @param {string | number} b second id
+ * @returns {-1 | 0 | 1} compare result
  */
 const compareIds = (a, b) => {
 	if (typeof a !== typeof b) {
@@ -272,22 +273,22 @@ module.exports.compareStrings = compareStrings;
 /**
  * @param {ChunkGroup} a first chunk group
  * @param {ChunkGroup} b second chunk group
- * @returns {-1|0|1} compare result
+ * @returns {-1 | 0 | 1} compare result
  */
 const compareChunkGroupsByIndex = (a, b) =>
 	/** @type {number} */ (a.index) < /** @type {number} */ (b.index) ? -1 : 1;
 module.exports.compareChunkGroupsByIndex = compareChunkGroupsByIndex;
 
 /**
- * @template K1 {Object}
- * @template K2
+ * @template {EXPECTED_OBJECT} K1
+ * @template {EXPECTED_OBJECT} K2
  * @template T
  */
 class TwoKeyWeakMap {
 	constructor() {
 		/**
 		 * @private
-		 * @type {WeakMap<any, WeakMap<any, T | undefined>>}
+		 * @type {WeakMap<K1, WeakMap<K2, T | undefined>>}
 		 */
 		this._map = new WeakMap();
 	}
@@ -321,7 +322,7 @@ class TwoKeyWeakMap {
 	}
 }
 
-/** @type {TwoKeyWeakMap<Comparator<any>, Comparator<any>, Comparator<any>>}} */
+/** @type {TwoKeyWeakMap<Comparator<EXPECTED_ANY>, Comparator<EXPECTED_ANY>, Comparator<EXPECTED_ANY>>}} */
 const concatComparatorsCache = new TwoKeyWeakMap();
 
 /**
@@ -360,7 +361,7 @@ module.exports.concatComparators = concatComparators;
  * @typedef {(input: A) => B | undefined | null} Selector
  */
 
-/** @type {TwoKeyWeakMap<Selector<any, any>, Comparator<any>, Comparator<any>>}} */
+/** @type {TwoKeyWeakMap<Selector<EXPECTED_ANY, EXPECTED_ANY>, Comparator<EXPECTED_ANY>, Comparator<EXPECTED_ANY>>}} */
 const compareSelectCache = new TwoKeyWeakMap();
 
 /**
@@ -397,7 +398,7 @@ const compareSelect = (getter, comparator) => {
 };
 module.exports.compareSelect = compareSelect;
 
-/** @type {WeakMap<Comparator<any>, Comparator<Iterable<any>>>} */
+/** @type {WeakMap<Comparator<EXPECTED_ANY>, Comparator<Iterable<EXPECTED_ANY>>>} */
 const compareIteratorsCache = new WeakMap();
 
 /**

@@ -9,6 +9,7 @@ const { create: createResolver } = require("enhanced-resolve");
 const nodeModule = require("module");
 const asyncLib = require("neo-async");
 const { isAbsolute } = require("path");
+const { DEFAULTS } = require("./config/defaults");
 const AsyncQueue = require("./util/AsyncQueue");
 const StackedCacheMap = require("./util/StackedCacheMap");
 const createHash = require("./util/createHash");
@@ -23,7 +24,7 @@ const processAsyncTree = require("./util/processAsyncTree");
 /** @typedef {import("./logging/Logger").Logger} Logger */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {typeof import("./util/Hash")} Hash */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("./util/fs").IStats} IStats */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/fs").PathLike} PathLike */
@@ -73,12 +74,14 @@ const INVALID = Symbol("invalid");
  * @property {string=} timestampHash
  */
 
+/** @typedef {Set<string>} Symlinks */
+
 /**
  * @typedef {object} ContextFileSystemInfoEntry
  * @property {number} safeTime
  * @property {string=} timestampHash
  * @property {ResolvedContextFileSystemInfoEntry=} resolved
- * @property {Set<string>=} symlinks
+ * @property {Symlinks=} symlinks
  */
 
 /**
@@ -94,8 +97,6 @@ const INVALID = Symbol("invalid");
  * @property {string=} timestampHash
  * @property {string} hash
  */
-
-/** @typedef {Set<string>} Symlinks */
 
 /**
  * @typedef {object} ContextTimestampAndHash
@@ -123,16 +124,26 @@ const INVALID = Symbol("invalid");
  * @property {Set<SnapshotOptimizationEntry> | undefined} children
  */
 
+/** @typedef {Map<string, string | false | undefined>} ResolveResults */
+
+/** @typedef {Set<string>} Files */
+/** @typedef {Set<string>} Directories */
+/** @typedef {Set<string>} Missing */
+
+/**
+ * @typedef {object} ResolveDependencies
+ * @property {Files} files list of files
+ * @property {Directories} directories list of directories
+ * @property {Missing} missing list of missing entries
+ */
+
 /**
  * @typedef {object} ResolveBuildDependenciesResult
- * @property {Set<string>} files list of files
- * @property {Set<string>} directories list of directories
- * @property {Set<string>} missing list of missing entries
- * @property {Map<string, string | false | undefined>} resolveResults stored resolve results
- * @property {object} resolveDependencies dependencies of the resolving
- * @property {Set<string>} resolveDependencies.files list of files
- * @property {Set<string>} resolveDependencies.directories list of directories
- * @property {Set<string>} resolveDependencies.missing list of missing entries
+ * @property {Files} files list of files
+ * @property {Directories} directories list of directories
+ * @property {Missing} missing list of missing entries
+ * @property {ResolveResults} resolveResults stored resolve results
+ * @property {ResolveDependencies} resolveDependencies dependencies of the resolving
  */
 
 /**
@@ -156,9 +167,8 @@ class SnapshotIterator {
 	}
 }
 
-/**
- * @typedef {(snapshot: Snapshot) => (Map<string, any> | Set<string> | undefined)[]} GetMapsFunction
- */
+/** @typedef {Map<string, TODO> | Set<string> | undefined} SnapshotMap */
+/** @typedef {(snapshot: Snapshot) => SnapshotMap[]} GetMapsFunction */
 
 class SnapshotIterable {
 	/**
@@ -174,9 +184,9 @@ class SnapshotIterable {
 		let state = 0;
 		/** @type {IterableIterator<string>} */
 		let it;
-		/** @type {(snapshot: Snapshot) => (Map<string, any> | Set<string> | undefined)[]} */
+		/** @type {GetMapsFunction} */
 		let getMaps;
-		/** @type {(Map<string, any> | Set<string> | undefined)[]} */
+		/** @type {SnapshotMap[]} */
 		let maps;
 		/** @type {Snapshot} */
 		let snapshot;
@@ -594,9 +604,9 @@ const MIN_COMMON_SNAPSHOT_SIZE = 3;
  */
 class SnapshotOptimization {
 	/**
-	 * @param {function(Snapshot): boolean} has has value
-	 * @param {function(Snapshot): SnapshotOptimizationValue<U, T> | undefined} get get value
-	 * @param {function(Snapshot, SnapshotOptimizationValue<U, T>): void} set set value
+	 * @param {(snapshot: Snapshot) => boolean} has has value
+	 * @param {(snapshot: Snapshot) => SnapshotOptimizationValue<U, T> | undefined} get get value
+	 * @param {(snapshot: Snapshot, value: SnapshotOptimizationValue<U, T>) => void} set set value
 	 * @param {boolean=} useStartTime use the start time of snapshots
 	 * @param {U=} isSet value is an Set instead of a Map
 	 */
@@ -698,7 +708,6 @@ class SnapshotOptimization {
 					};
 				}
 				this._map.set(path, newOptimizationEntry);
-				continue;
 			} else {
 				optimizationEntries.add(optimizationEntry);
 			}
@@ -732,7 +741,6 @@ class SnapshotOptimization {
 							continue optimizationEntriesLabel;
 						}
 						nonSharedFiles.add(path);
-						continue;
 					}
 				}
 				if (nonSharedFiles.size === 0) {
@@ -1031,6 +1039,12 @@ const addAll = (source, target) => {
 
 /** @typedef {Set<string>} LoggedPaths */
 
+/** @typedef {FileSystemInfoEntry | "ignore" | null} FileTimestamp */
+/** @typedef {ContextFileSystemInfoEntry | "ignore" | null} ContextTimestamp */
+/** @typedef {ResolvedContextFileSystemInfoEntry | "ignore" | null} ResolvedContextTimestamp */
+
+/** @typedef {(err?: WebpackError | null, result?: boolean) => void} CheckSnapshotValidCallback */
+
 /**
  * Used to access information about the filesystem in a cached way
  */
@@ -1042,7 +1056,7 @@ class FileSystemInfo {
 	 * @param {Iterable<string | RegExp>=} options.managedPaths paths that are only managed by a package manager
 	 * @param {Iterable<string | RegExp>=} options.immutablePaths paths that are immutable
 	 * @param {Logger=} options.logger logger used to log invalid snapshots
-	 * @param {string | Hash=} options.hashFunction the hash function to use
+	 * @param {HashFunction=} options.hashFunction the hash function to use
 	 */
 	constructor(
 		fs,
@@ -1051,7 +1065,7 @@ class FileSystemInfo {
 			managedPaths = [],
 			immutablePaths = [],
 			logger,
-			hashFunction = "md4"
+			hashFunction = DEFAULTS.HASH_FUNCTION
 		} = {}
 	) {
 		this.fs = fs;
@@ -1060,7 +1074,7 @@ class FileSystemInfo {
 		/** @type {LoggedPaths | undefined} */
 		this._loggedPaths = logger ? new Set() : undefined;
 		this._hashFunction = hashFunction;
-		/** @type {WeakMap<Snapshot, boolean | (function((WebpackError | null)=, boolean=): void)[]>} */
+		/** @type {WeakMap<Snapshot, boolean | CheckSnapshotValidCallback[]>} */
 		this._snapshotCache = new WeakMap();
 		this._fileTimestampsOptimization = new SnapshotOptimization(
 			s => s.hasFileTimestamps(),
@@ -1127,13 +1141,13 @@ class FileSystemInfo {
 			false,
 			true
 		);
-		/** @type {StackedCacheMap<string, FileSystemInfoEntry | "ignore" | null>} */
+		/** @type {StackedCacheMap<string, FileTimestamp>} */
 		this._fileTimestamps = new StackedCacheMap();
 		/** @type {Map<string, string | null>} */
 		this._fileHashes = new Map();
 		/** @type {Map<string, TimestampAndHash | string>} */
 		this._fileTshs = new Map();
-		/** @type {StackedCacheMap<string, ContextFileSystemInfoEntry | "ignore" | null>} */
+		/** @type {StackedCacheMap<string, ContextTimestamp>} */
 		this._contextTimestamps = new StackedCacheMap();
 		/** @type {Map<string, ContextHash>} */
 		this._contextHashes = new Map();
@@ -1184,28 +1198,34 @@ class FileSystemInfo {
 			processor: this._getManagedItemDirectoryInfo.bind(this)
 		});
 		const _unmanagedPaths = Array.from(unmanagedPaths);
-		this.unmanagedPathsWithSlash = /** @type {string[]} */ (
-			_unmanagedPaths.filter(p => typeof p === "string")
-		).map(p => join(fs, p, "_").slice(0, -1));
-		this.unmanagedPathsRegExps = /** @type {RegExp[]} */ (
-			_unmanagedPaths.filter(p => typeof p !== "string")
-		);
+		this.unmanagedPathsWithSlash =
+			/** @type {string[]} */
+			(_unmanagedPaths.filter(p => typeof p === "string")).map(p =>
+				join(fs, p, "_").slice(0, -1)
+			);
+		this.unmanagedPathsRegExps =
+			/** @type {RegExp[]} */
+			(_unmanagedPaths.filter(p => typeof p !== "string"));
 
 		this.managedPaths = Array.from(managedPaths);
-		this.managedPathsWithSlash = /** @type {string[]} */ (
-			this.managedPaths.filter(p => typeof p === "string")
-		).map(p => join(fs, p, "_").slice(0, -1));
+		this.managedPathsWithSlash =
+			/** @type {string[]} */
+			(this.managedPaths.filter(p => typeof p === "string")).map(p =>
+				join(fs, p, "_").slice(0, -1)
+			);
 
-		this.managedPathsRegExps = /** @type {RegExp[]} */ (
-			this.managedPaths.filter(p => typeof p !== "string")
-		);
+		this.managedPathsRegExps =
+			/** @type {RegExp[]} */
+			(this.managedPaths.filter(p => typeof p !== "string"));
 		this.immutablePaths = Array.from(immutablePaths);
-		this.immutablePathsWithSlash = /** @type {string[]} */ (
-			this.immutablePaths.filter(p => typeof p === "string")
-		).map(p => join(fs, p, "_").slice(0, -1));
-		this.immutablePathsRegExps = /** @type {RegExp[]} */ (
-			this.immutablePaths.filter(p => typeof p !== "string")
-		);
+		this.immutablePathsWithSlash =
+			/** @type {string[]} */
+			(this.immutablePaths.filter(p => typeof p === "string")).map(p =>
+				join(fs, p, "_").slice(0, -1)
+			);
+		this.immutablePathsRegExps =
+			/** @type {RegExp[]} */
+			(this.immutablePaths.filter(p => typeof p !== "string"));
 
 		this._cachedDeprecatedFileTimestamps = undefined;
 		this._cachedDeprecatedContextTimestamps = undefined;
@@ -1310,9 +1330,10 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {string} path path
 	 * @param {string} reason reason
-	 * @param {any[]} args arguments
+	 * @param {EXPECTED_ANY[]} args arguments
 	 */
 	_log(path, reason, ...args) {
 		const key = path + reason;
@@ -1366,7 +1387,7 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @param {ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>} map timestamps
+	 * @param {ReadonlyMap<string, FileTimestamp>} map timestamps
 	 * @param {boolean=} immutable if 'map' is immutable and FileSystemInfo can keep referencing it
 	 * @returns {void}
 	 */
@@ -1376,7 +1397,7 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @param {ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>} map timestamps
+	 * @param {ReadonlyMap<string, ContextTimestamp>} map timestamps
 	 * @param {boolean=} immutable if 'map' is immutable and FileSystemInfo can keep referencing it
 	 * @returns {void}
 	 */
@@ -1387,7 +1408,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {string} path file path
-	 * @param {function((WebpackError | null)=, (FileSystemInfoEntry | "ignore" | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, fileTimestamp?: FileTimestamp) => void} callback callback function
 	 * @returns {void}
 	 */
 	getFileTimestamp(path, callback) {
@@ -1398,7 +1419,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, (ResolvedContextFileSystemInfoEntry | "ignore" | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, resolvedContextTimestamp?: ResolvedContextTimestamp) => void} callback callback function
 	 * @returns {void}
 	 */
 	getContextTimestamp(path, callback) {
@@ -1423,8 +1444,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, (ContextFileSystemInfoEntry | "ignore" | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, contextTimestamp?: ContextTimestamp) => void} callback callback function
 	 * @returns {void}
 	 */
 	_getUnresolvedContextTimestamp(path, callback) {
@@ -1435,7 +1457,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {string} path file path
-	 * @param {function((WebpackError | null)=, (string | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, hash?: string | null) => void} callback callback function
 	 * @returns {void}
 	 */
 	getFileHash(path, callback) {
@@ -1446,7 +1468,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, string=): void} callback callback function
+	 * @param {(err?: WebpackError | null, contextHash?: string) => void} callback callback function
 	 * @returns {void}
 	 */
 	getContextHash(path, callback) {
@@ -1468,8 +1490,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, (ContextHash | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, contextHash?: ContextHash | null) => void} callback callback function
 	 * @returns {void}
 	 */
 	_getUnresolvedContextHash(path, callback) {
@@ -1480,7 +1503,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, (ResolvedContextTimestampAndHash | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, resolvedContextTimestampAndHash?: ResolvedContextTimestampAndHash | null) => void} callback callback function
 	 * @returns {void}
 	 */
 	getContextTsh(path, callback) {
@@ -1500,8 +1523,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {string} path context path
-	 * @param {function((WebpackError | null)=, (ContextTimestampAndHash | null)=): void} callback callback function
+	 * @param {(err?: WebpackError | null, contextTimestampAndHash?: ContextTimestampAndHash | null) => void} callback callback function
 	 * @returns {void}
 	 */
 	_getUnresolvedContextTsh(path, callback) {
@@ -1541,31 +1565,32 @@ class FileSystemInfo {
 	/**
 	 * @param {string} context context directory
 	 * @param {Iterable<string>} deps dependencies
-	 * @param {function((Error | null)=, ResolveBuildDependenciesResult=): void} callback callback function
+	 * @param {(err?: Error | null, resolveBuildDependenciesResult?: ResolveBuildDependenciesResult) => void} callback callback function
 	 * @returns {void}
 	 */
 	resolveBuildDependencies(context, deps, callback) {
 		const { resolveContext, resolveEsm, resolveCjs, resolveCjsAsChild } =
 			this._createBuildDependenciesResolvers();
 
-		/** @type {Set<string>} */
+		/** @type {Files} */
 		const files = new Set();
-		/** @type {Set<string>} */
+		/** @type {Symlinks} */
 		const fileSymlinks = new Set();
-		/** @type {Set<string>} */
+		/** @type {Directories} */
 		const directories = new Set();
-		/** @type {Set<string>} */
+		/** @type {Symlinks} */
 		const directorySymlinks = new Set();
-		/** @type {Set<string>} */
+		/** @type {Missing} */
 		const missing = new Set();
-		/** @type {Set<string>} */
+		/** @type {ResolveDependencies["files"]} */
 		const resolveFiles = new Set();
-		/** @type {Set<string>} */
+		/** @type {ResolveDependencies["directories"]} */
 		const resolveDirectories = new Set();
-		/** @type {Set<string>} */
+		/** @type {ResolveDependencies["missing"]} */
 		const resolveMissing = new Set();
-		/** @type {Map<string, string | false | undefined>} */
+		/** @type {ResolveResults} */
 		const resolveResults = new Map();
+		/** @type {Set<string>} */
 		const invalidResolveResults = new Set();
 		const resolverContext = {
 			fileDependencies: resolveFiles,
@@ -2059,8 +2084,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @param {Map<string, string | false>} resolveResults results from resolving
-	 * @param {function((Error | null)=, boolean=): void} callback callback with true when resolveResults resolve the same way
+	 * @param {ResolveResults} resolveResults results from resolving
+	 * @param {(err?: Error | null, result?: boolean) => void} callback callback with true when resolveResults resolve the same way
 	 * @returns {void}
 	 */
 	checkResolveResultsValid(resolveResults, callback) {
@@ -2139,7 +2164,7 @@ class FileSystemInfo {
 	 * @param {Iterable<string> | null} directories all directories
 	 * @param {Iterable<string> | null} missing all missing files or directories
 	 * @param {SnapshotOptions | null | undefined} options options object (for future extensions)
-	 * @param {function(WebpackError | null, Snapshot | null): void} callback callback function
+	 * @param {(err: WebpackError | null, snapshot: Snapshot | null) => void} callback callback function
 	 * @returns {void}
 	 */
 	createSnapshot(startTime, files, directories, missing, options, callback) {
@@ -2234,7 +2259,7 @@ class FileSystemInfo {
 		};
 		/**
 		 * @param {string} path path
-		 * @param {Set<string>} managedSet managed set
+		 * @param {ManagedFiles} managedSet managed set
 		 * @returns {boolean} true when managed
 		 */
 		const checkManaged = (path, managedSet) => {
@@ -2285,6 +2310,7 @@ class FileSystemInfo {
 		 * @returns {Set<string>} result
 		 */
 		const captureNonManaged = (items, managedSet) => {
+			/** @type {Set<string>} */
 			const capturedItems = new Set();
 			for (const path of items) {
 				if (!checkManaged(path, managedSet)) capturedItems.add(path);
@@ -2292,7 +2318,7 @@ class FileSystemInfo {
 			return capturedItems;
 		};
 		/**
-		 * @param {Set<string>} capturedFiles captured files
+		 * @param {ManagedFiles} capturedFiles captured files
 		 */
 		const processCapturedFiles = capturedFiles => {
 			switch (mode) {
@@ -2380,7 +2406,7 @@ class FileSystemInfo {
 			processCapturedFiles(captureNonManaged(files, managedFiles));
 		}
 		/**
-		 * @param {Set<string>} capturedDirectories captured directories
+		 * @param {ManagedContexts} capturedDirectories captured directories
 		 */
 		const processCapturedDirectories = capturedDirectories => {
 			switch (mode) {
@@ -2485,7 +2511,7 @@ class FileSystemInfo {
 							jobs++;
 							/**
 							 * @param {(Error | null)=} err error
-							 * @param {(FileSystemInfoEntry | "ignore" | null)=} entry entry
+							 * @param {FileTimestamp=} entry entry
 							 * @returns {void}
 							 */
 							const callback = (err, entry) => {
@@ -2525,7 +2551,7 @@ class FileSystemInfo {
 			);
 		}
 		/**
-		 * @param {Set<string>} capturedMissing captured missing
+		 * @param {ManagedMissing} capturedMissing captured missing
 		 */
 		const processCapturedMissing = capturedMissing => {
 			this._missingExistenceOptimization.optimize(snapshot, capturedMissing);
@@ -2588,7 +2614,7 @@ class FileSystemInfo {
 						// Fallback to normal snapshotting
 						/**
 						 * @param {Set<string>} set set
-						 * @param {function(Set<string>): void} fn fn
+						 * @param {(set: Set<string>) => void} fn fn
 						 */
 						const process = (set, fn) => {
 							if (set.size === 0) return;
@@ -2697,7 +2723,7 @@ class FileSystemInfo {
 
 	/**
 	 * @param {Snapshot} snapshot the snapshot made
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function
+	 * @param {CheckSnapshotValidCallback} callback callback function
 	 * @returns {void}
 	 */
 	checkSnapshotValid(snapshot, callback) {
@@ -2716,8 +2742,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {Snapshot} snapshot the snapshot made
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function
+	 * @param {CheckSnapshotValidCallback} callback callback function
 	 * @returns {void}
 	 */
 	_checkSnapshotValidNoCache(snapshot, callback) {
@@ -3019,7 +3046,7 @@ class FileSystemInfo {
 					jobs++;
 					/**
 					 * @param {(WebpackError | null)=} err error
-					 * @param {(ResolvedContextFileSystemInfoEntry | "ignore" | null)=} entry entry
+					 * @param {ResolvedContextTimestamp=} entry entry
 					 * @returns {void}
 					 */
 					const callback = (err, entry) => {
@@ -3123,7 +3150,7 @@ class FileSystemInfo {
 						jobs++;
 						/**
 						 * @param {(WebpackError | null)=} err error
-						 * @param {(ResolvedContextFileSystemInfoEntry | "ignore" | null)=} entry entry
+						 * @param {ResolvedContextTimestamp=} entry entry
 						 * @returns {void}
 						 */
 						const callback = (err, entry) => {
@@ -3222,8 +3249,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, FileSystemInfoEntry>}
 	 * @private
+	 * @type {Processor<string, FileSystemInfoEntry>}
 	 */
 	_readFileTimestamp(path, callback) {
 		this.fs.stat(path, (err, _stat) => {
@@ -3261,8 +3288,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, string>}
 	 * @private
+	 * @type {Processor<string, string>}
 	 */
 	_readFileHash(path, callback) {
 		this.fs.readFile(path, (err, content) => {
@@ -3297,9 +3324,9 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @param {string} path path
-	 * @param {function(WebpackError | null, TimestampAndHash=) : void} callback callback
 	 * @private
+	 * @param {string} path path
+	 * @param {(err: WebpackError | null, timestampAndHash?: TimestampAndHash) => void} callback callback
 	 */
 	_getFileTimestampAndHash(path, callback) {
 		/**
@@ -3349,17 +3376,18 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @template T
 	 * @template ItemType
 	 * @param {object} options options
 	 * @param {string} options.path path
-	 * @param {function(string): ItemType} options.fromImmutablePath called when context item is an immutable path
-	 * @param {function(string): ItemType} options.fromManagedItem called when context item is a managed path
-	 * @param {function(string, string, function((WebpackError | null)=, ItemType=): void): void} options.fromSymlink called when context item is a symlink
-	 * @param {function(string, IStats, function((WebpackError | null)=, (ItemType | null)=): void): void} options.fromFile called when context item is a file
-	 * @param {function(string, IStats, function((WebpackError | null)=, ItemType=): void): void} options.fromDirectory called when context item is a directory
-	 * @param {function(string[], ItemType[]): T} options.reduce called from all context items
-	 * @param {function((Error | null)=, (T | null)=): void} callback callback
+	 * @param {(value: string) => ItemType} options.fromImmutablePath called when context item is an immutable path
+	 * @param {(value: string) => ItemType} options.fromManagedItem called when context item is a managed path
+	 * @param {(value: string, result: string, callback: (err?: WebpackError | null, itemType?: ItemType) => void) => void} options.fromSymlink called when context item is a symlink
+	 * @param {(value: string, stats: IStats, callback: (err?: WebpackError | null, itemType?: ItemType | null) => void) => void} options.fromFile called when context item is a file
+	 * @param {(value: string, stats: IStats, callback: (err?: WebpackError | null, itemType?: ItemType) => void) => void} options.fromDirectory called when context item is a directory
+	 * @param {(arr: string[], arr1: ItemType[]) => T} options.reduce called from all context items
+	 * @param {(err?: Error | null, result?: T | null) => void} callback callback
 	 */
 	_readContext(
 		{
@@ -3460,8 +3488,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, ContextFileSystemInfoEntry>}
 	 * @private
+	 * @type {Processor<string, ContextFileSystemInfoEntry>}
 	 */
 	_readContextTimestamp(path, callback) {
 		this._readContext(
@@ -3575,8 +3603,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {ContextFileSystemInfoEntry} entry entry
-	 * @param {function((WebpackError | null)=, (ResolvedContextFileSystemInfoEntry | "ignore" | null)=): void} callback callback
+	 * @param {(err?: WebpackError | null, resolvedContextTimestamp?: ResolvedContextTimestamp) => void} callback callback
 	 * @returns {void}
 	 */
 	_resolveContextTimestamp(entry, callback) {
@@ -3624,8 +3653,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, ContextHash>}
 	 * @private
+	 * @type {Processor<string, ContextHash>}
 	 */
 	_readContextHash(path, callback) {
 		this._readContext(
@@ -3694,8 +3723,9 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {ContextHash} entry context hash
-	 * @param {function(WebpackError | null, string=): void} callback callback
+	 * @param {(err: WebpackError | null, contextHash?: string) => void} callback callback
 	 * @returns {void}
 	 */
 	_resolveContextHash(entry, callback) {
@@ -3733,12 +3763,12 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, ContextTimestampAndHash>}
 	 * @private
+	 * @type {Processor<string, ContextTimestampAndHash>}
 	 */
 	_readContextTimestampAndHash(path, callback) {
 		/**
-		 * @param {ContextFileSystemInfoEntry | "ignore" | null} timestamp timestamp
+		 * @param {ContextTimestamp} timestamp timestamp
 		 * @param {ContextHash} hash hash
 		 */
 		const finalize = (timestamp, hash) => {
@@ -3864,6 +3894,7 @@ class FileSystemInfo {
 	}
 
 	/**
+	 * @private
 	 * @param {ContextTimestampAndHash} entry entry
 	 * @param {ProcessorCallback<ResolvedContextTimestampAndHash>} callback callback
 	 * @returns {void}
@@ -3923,8 +3954,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, Set<string>>}
 	 * @private
+	 * @type {Processor<string, Set<string>>}
 	 */
 	_getManagedItemDirectoryInfo(path, callback) {
 		this.fs.readdir(path, (err, elements) => {
@@ -3944,8 +3975,8 @@ class FileSystemInfo {
 	}
 
 	/**
-	 * @type {Processor<string, string>}
 	 * @private
+	 * @type {Processor<string, string>}
 	 */
 	_getManagedItemInfo(path, callback) {
 		const dir = dirname(this.fs, path);
@@ -4019,6 +4050,7 @@ class FileSystemInfo {
 	getDeprecatedFileTimestamps() {
 		if (this._cachedDeprecatedFileTimestamps !== undefined)
 			return this._cachedDeprecatedFileTimestamps;
+		/** @type {Map<string, number | null>} */
 		const map = new Map();
 		for (const [path, info] of this._fileTimestamps) {
 			if (info) map.set(path, typeof info === "object" ? info.safeTime : null);
@@ -4029,6 +4061,7 @@ class FileSystemInfo {
 	getDeprecatedContextTimestamps() {
 		if (this._cachedDeprecatedContextTimestamps !== undefined)
 			return this._cachedDeprecatedContextTimestamps;
+		/** @type {Map<string, number | null>} */
 		const map = new Map();
 		for (const [path, info] of this._contextTimestamps) {
 			if (info) map.set(path, typeof info === "object" ? info.safeTime : null);

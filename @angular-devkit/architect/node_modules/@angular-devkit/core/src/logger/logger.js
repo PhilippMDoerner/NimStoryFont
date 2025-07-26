@@ -89,19 +89,19 @@ class Logger extends rxjs_1.Observable {
         this._subject.next(entry);
     }
     debug(message, metadata = {}) {
-        return this.log('debug', message, metadata);
+        this.log('debug', message, metadata);
     }
     info(message, metadata = {}) {
-        return this.log('info', message, metadata);
+        this.log('info', message, metadata);
     }
     warn(message, metadata = {}) {
-        return this.log('warn', message, metadata);
+        this.log('warn', message, metadata);
     }
     error(message, metadata = {}) {
-        return this.log('error', message, metadata);
+        this.log('error', message, metadata);
     }
     fatal(message, metadata = {}) {
-        return this.log('fatal', message, metadata);
+        this.log('fatal', message, metadata);
     }
     toString() {
         return `<Logger(${this.name})>`;

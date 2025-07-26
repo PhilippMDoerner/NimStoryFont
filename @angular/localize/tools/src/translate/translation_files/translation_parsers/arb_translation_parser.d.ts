@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { MessageId, ɵSourceMessage } from '@angular/localize';
+import { MessageId, ɵSourceMessage } from '../../../../../index';
 import { ParseAnalysis, ParsedTranslationBundle, TranslationParser } from './translation_parser';
 export interface ArbJsonObject extends Record<MessageId, ɵSourceMessage | ArbMetadata> {
     '@@locale': string;

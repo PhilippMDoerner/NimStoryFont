@@ -16,6 +16,8 @@ const HarmonyExportImportedSpecifierDependency = require("../dependencies/Harmon
 const HarmonyImportSpecifierDependency = require("../dependencies/HarmonyImportSpecifierDependency");
 const formatLocation = require("../formatLocation");
 
+/** @typedef {import("estree").MaybeNamedClassDeclaration} MaybeNamedClassDeclaration */
+/** @typedef {import("estree").MaybeNamedFunctionDeclaration} MaybeNamedFunctionDeclaration */
 /** @typedef {import("estree").ModuleDeclaration} ModuleDeclaration */
 /** @typedef {import("estree").Statement} Statement */
 /** @typedef {import("../Compiler")} Compiler */
@@ -43,7 +45,7 @@ const formatLocation = require("../formatLocation");
 
 /** @typedef {Map<string, RegExp>} CacheItem */
 
-/** @type {WeakMap<any, CacheItem>} */
+/** @type {WeakMap<Compiler, CacheItem>} */
 const globToRegexpCache = new WeakMap();
 
 /**
@@ -103,7 +105,9 @@ class SideEffectsFlagPlugin {
 							}
 							const hasSideEffects = SideEffectsFlagPlugin.moduleHasSideEffects(
 								resolveData.relativePath,
-								sideEffects,
+								/** @type {string | boolean | string[] | undefined} */ (
+									sideEffects
+								),
 								/** @type {CacheItem} */ (cache)
 							);
 							module.factoryMeta.sideEffectFree = !hasSideEffects;
@@ -128,7 +132,7 @@ class SideEffectsFlagPlugin {
 					 * @returns {void}
 					 */
 					const parserHandler = parser => {
-						/** @type {undefined | Statement | ModuleDeclaration} */
+						/** @type {undefined | Statement | ModuleDeclaration | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} */
 						let sideEffectsStatement;
 						parser.hooks.program.tap(PLUGIN_NAME, () => {
 							sideEffectsStatement = undefined;
@@ -143,7 +147,8 @@ class SideEffectsFlagPlugin {
 										if (
 											!parser.isPure(
 												statement.expression,
-												/** @type {Range} */ (statement.range)[0]
+												/** @type {Range} */
+												(statement.range)[0]
 											)
 										) {
 											sideEffectsStatement = statement;
@@ -155,7 +160,8 @@ class SideEffectsFlagPlugin {
 										if (
 											!parser.isPure(
 												statement.test,
-												/** @type {Range} */ (statement.range)[0]
+												/** @type {Range} */
+												(statement.range)[0]
 											)
 										) {
 											sideEffectsStatement = statement;
@@ -191,7 +197,8 @@ class SideEffectsFlagPlugin {
 										if (
 											!parser.isPure(
 												statement.discriminant,
-												/** @type {Range} */ (statement.range)[0]
+												/** @type {Range} */
+												(statement.range)[0]
 											)
 										) {
 											sideEffectsStatement = statement;
@@ -214,9 +221,9 @@ class SideEffectsFlagPlugin {
 									case "ExportDefaultDeclaration":
 										if (
 											!parser.isPure(
-												/** @type {TODO} */
-												(statement.declaration),
-												/** @type {Range} */ (statement.range)[0]
+												statement.declaration,
+												/** @type {Range} */
+												(statement.range)[0]
 											)
 										) {
 											sideEffectsStatement = statement;

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AsyncPipe } from '@angular/common';
-import { Component, OnChanges, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnChanges,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { FieldType } from '@ngx-formly/bootstrap/form-field';
 import {
@@ -30,6 +36,7 @@ interface CanDisableOption {
     FormlyModule,
     AsyncPipe,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormlySelectDisableFieldComponent
   extends FieldType<FieldTypeConfig>
@@ -39,7 +46,7 @@ export class FormlySelectDisableFieldComponent
   public static EMPTY_OPTION_VALUE = null;
 
   selectOptions$!: Observable<CanDisableOption[]>;
-  modelValue: any;
+  modelValue = signal<any>(undefined);
 
   ngOnInit(): void {
     const templateOptions: Pick<FormlyFieldConfig, 'props'> = {
@@ -84,6 +91,6 @@ export class FormlySelectDisableFieldComponent
   setModelValue() {
     const key: string = this.key as string;
     const model = this.field.model;
-    this.modelValue = model[key];
+    this.modelValue.set(model[key]);
   }
 }

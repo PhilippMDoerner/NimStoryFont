@@ -1,5 +1,6 @@
 import { Reader } from '@jsonjoy.com/util/lib/buffers/Reader';
 import type { BinaryJsonDecoder, PackValue } from '../types';
+export declare const readKey: (reader: Reader) => string;
 export declare class JsonDecoder implements BinaryJsonDecoder {
     reader: Reader;
     read(uint8: Uint8Array): unknown;

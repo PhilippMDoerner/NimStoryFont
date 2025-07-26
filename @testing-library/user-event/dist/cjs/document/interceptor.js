@@ -1,13 +1,7 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
-require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var isElementType = require('../utils/misc/isElementType.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
+require('../utils/dataTransfer/Clipboard.js');
 var trackValue = require('./trackValue.js');
 var UI = require('./UI.js');
 
@@ -15,8 +9,8 @@ const Interceptor = Symbol('Interceptor for programmatical calls');
 function prepareInterceptor(element, propName, interceptorImpl) {
     const prototypeDescriptor = Object.getOwnPropertyDescriptor(element.constructor.prototype, propName);
     const objectDescriptor = Object.getOwnPropertyDescriptor(element, propName);
-    const target = (prototypeDescriptor === null || prototypeDescriptor === void 0 ? void 0 : prototypeDescriptor.set) ? 'set' : 'value';
-    /* istanbul ignore if */ if (typeof (prototypeDescriptor === null || prototypeDescriptor === void 0 ? void 0 : prototypeDescriptor[target]) !== 'function' || prototypeDescriptor[target][Interceptor]) {
+    const target = (prototypeDescriptor === null || prototypeDescriptor === undefined ? undefined : prototypeDescriptor.set) ? 'set' : 'value';
+    /* istanbul ignore if */ if (typeof (prototypeDescriptor === null || prototypeDescriptor === undefined ? undefined : prototypeDescriptor[target]) !== 'function' || prototypeDescriptor[target][Interceptor]) {
         throw new Error(`Element ${element.tagName} does not implement "${String(propName)}".`);
     }
     function intercept(...args) {
@@ -27,11 +21,11 @@ function prepareInterceptor(element, propName, interceptorImpl) {
         } else {
             realFunc.call(this, ...realArgs);
         }
-        then === null || then === void 0 ? void 0 : then();
+        then === null || then === undefined ? undefined : then();
     }
     intercept[Interceptor] = Interceptor;
     Object.defineProperty(element, propName, {
-        ...objectDescriptor !== null && objectDescriptor !== void 0 ? objectDescriptor : prototypeDescriptor,
+        ...objectDescriptor !== null && objectDescriptor !== undefined ? objectDescriptor : prototypeDescriptor,
         [target]: intercept
     });
 }

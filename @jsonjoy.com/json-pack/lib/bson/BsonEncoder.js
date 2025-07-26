@@ -23,22 +23,22 @@ class BsonEncoder {
         throw new Error('NOT_OBJ');
     }
     writeNull() {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeUndef() {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeBoolean(bool) {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeNumber(num) {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeInteger(int) {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeUInteger(uint) {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeInt32(int) {
         const writer = this.writer;
@@ -54,12 +54,12 @@ class BsonEncoder {
     }
     writeFloat(float) {
         const writer = this.writer;
-        writer.ensureCapacity(4);
+        writer.ensureCapacity(8);
         writer.view.setFloat64(writer.x, float, true);
         writer.x += 8;
     }
     writeBigInt(int) {
-        throw new Error('Method not implemented.');
+        throw new Error('Use writeKey for BSON encoding');
     }
     writeBin(buf) {
         const length = buf.length;
@@ -82,7 +82,7 @@ class BsonEncoder {
         }
     }
     writeAsciiStr(str) {
-        throw new Error('Method not implemented.');
+        this.writeStr(str);
     }
     writeArr(arr) {
         this.writeObj(arr);
@@ -274,6 +274,18 @@ class BsonEncoder {
                         writer.u8(0x0d);
                         this.writeCString(key);
                         this.writeStr(value.code);
+                        break;
+                    }
+                    case values_1.BsonJavascriptCodeWithScope: {
+                        writer.u8(0x0f);
+                        this.writeCString(key);
+                        const codeWithScope = value;
+                        const x0 = writer.x;
+                        writer.x += 4;
+                        this.writeStr(codeWithScope.code);
+                        this.writeObj(codeWithScope.scope);
+                        const totalLength = writer.x - x0;
+                        writer.view.setInt32(x0, totalLength, true);
                         break;
                     }
                     case values_1.BsonInt32: {

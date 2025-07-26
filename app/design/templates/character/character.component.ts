@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   CharacterDetails,
@@ -18,7 +24,7 @@ import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { InfoCircleTooltipComponent } from '../../atoms/info-circle-tooltip/info-circle-tooltip.component';
 import { BadgeListEntry, ListEntry } from '../../molecules';
-import { ArticleContextMenuComponent } from "../../molecules/article-context-menu/article-context-menu.component";
+import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { BadgeListComponent } from '../../molecules/badge-list/badge-list.component';
 import { LinkListComponent } from '../../molecules/link-list/link-list.component';
@@ -43,8 +49,9 @@ import { QuoteFieldComponent } from '../../organisms/quote-field/quote-field.com
     InfoCircleTooltipComponent,
     EncounterAccordionComponent,
     ArticleFooterComponent,
-    ArticleContextMenuComponent
+    ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterComponent {
   character = input.required<CharacterDetails>();

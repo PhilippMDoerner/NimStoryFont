@@ -70,10 +70,7 @@ exports.isDescendantOrSelf = isDescendantOrSelf.isDescendantOrSelf;
 exports.isElementType = isElementType.isElementType;
 exports.isVisible = isVisible.isVisible;
 exports.isDisabled = isDisabled.isDisabled;
-Object.defineProperty(exports, "ApiLevel", {
-	enumerable: true,
-	get: function () { return level.ApiLevel; }
-});
+exports.ApiLevel = level.ApiLevel;
 exports.getLevelRef = level.getLevelRef;
 exports.setLevelRef = level.setLevelRef;
 exports.wait = wait.wait;

@@ -7,13 +7,15 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ROUTING_MODULE_EXT = exports.MODULE_EXT = void 0;
+exports.ROUTING_MODULE_EXT_LEGACY = exports.MODULE_EXT_LEGACY = exports.ROUTING_MODULE_EXT = exports.MODULE_EXT = void 0;
 exports.findModuleFromOptions = findModuleFromOptions;
 exports.findModule = findModule;
 exports.buildRelativePath = buildRelativePath;
 const core_1 = require("@angular-devkit/core");
-exports.MODULE_EXT = '.module.ts';
-exports.ROUTING_MODULE_EXT = '-routing.module.ts';
+exports.MODULE_EXT = '-module.ts';
+exports.ROUTING_MODULE_EXT = '-routing-module.ts';
+exports.MODULE_EXT_LEGACY = '.module.ts';
+exports.ROUTING_MODULE_EXT_LEGACY = '-routing.module.ts';
 /**
  * Find the module referred by a set of options passed to the schematics.
  */
@@ -21,11 +23,9 @@ function findModuleFromOptions(host, options) {
     if (options.standalone || options.skipImport) {
         return undefined;
     }
-    const moduleExt = options.moduleExt || exports.MODULE_EXT;
-    const routingModuleExt = options.routingModuleExt || exports.ROUTING_MODULE_EXT;
     if (!options.module) {
         const pathToCheck = (options.path || '') + '/' + options.name;
-        return (0, core_1.normalize)(findModule(host, pathToCheck, moduleExt, routingModuleExt));
+        return (0, core_1.normalize)(findModule(host, pathToCheck, options.moduleExt, options.routingModuleExt));
     }
     else {
         const modulePath = (0, core_1.normalize)(`/${options.path}/${options.module}`);
@@ -39,11 +39,18 @@ function findModuleFromOptions(host, options) {
             candidateSet.add(dir);
         }
         const candidatesDirs = [...candidateSet].sort((a, b) => b.length - a.length);
+        const candidateFiles = ['', `${moduleBaseName}.ts`];
+        if (options.moduleExt) {
+            candidateFiles.push(`${moduleBaseName}${options.moduleExt}`);
+        }
+        else {
+            candidateFiles.push(`${moduleBaseName}${exports.MODULE_EXT}`, `${moduleBaseName}${exports.MODULE_EXT_LEGACY}`);
+        }
         for (const c of candidatesDirs) {
-            const candidateFiles = ['', `${moduleBaseName}.ts`, `${moduleBaseName}${moduleExt}`].map((x) => (0, core_1.join)(c, x));
             for (const sc of candidateFiles) {
-                if (host.exists(sc)) {
-                    return (0, core_1.normalize)(sc);
+                const scPath = (0, core_1.join)(c, sc);
+                if (host.exists(scPath) && host.readText(scPath).includes('@NgModule')) {
+                    return (0, core_1.normalize)(scPath);
                 }
             }
         }
@@ -54,12 +61,16 @@ function findModuleFromOptions(host, options) {
 /**
  * Function to find the "closest" module to a generated file's path.
  */
-function findModule(host, generateDir, moduleExt = exports.MODULE_EXT, routingModuleExt = exports.ROUTING_MODULE_EXT) {
+function findModule(host, generateDir, moduleExt, routingModuleExt) {
     let dir = host.getDir('/' + generateDir);
     let foundRoutingModule = false;
+    const moduleExtensions = moduleExt ? [moduleExt] : [exports.MODULE_EXT, exports.MODULE_EXT_LEGACY];
+    const routingModuleExtensions = routingModuleExt
+        ? [routingModuleExt]
+        : [exports.ROUTING_MODULE_EXT, exports.ROUTING_MODULE_EXT_LEGACY];
     while (dir) {
-        const allMatches = dir.subfiles.filter((p) => p.endsWith(moduleExt));
-        const filteredMatches = allMatches.filter((p) => !p.endsWith(routingModuleExt));
+        const allMatches = dir.subfiles.filter((p) => moduleExtensions.some((m) => p.endsWith(m)));
+        const filteredMatches = allMatches.filter((p) => !routingModuleExtensions.some((m) => p.endsWith(m)));
         foundRoutingModule = foundRoutingModule || allMatches.length !== filteredMatches.length;
         if (filteredMatches.length == 1) {
             return (0, core_1.join)(dir.path, filteredMatches[0]);

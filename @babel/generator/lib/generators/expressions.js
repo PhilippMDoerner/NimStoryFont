@@ -97,7 +97,9 @@ function NewExpression(node, parent) {
     return;
   }
   this.print(node.typeArguments);
-  this.print(node.typeParameters);
+  {
+    this.print(node.typeParameters);
+  }
   if (node.optional) {
     this.token("?.");
   }
@@ -161,7 +163,9 @@ function OptionalMemberExpression(node) {
 }
 function OptionalCallExpression(node) {
   this.print(node.callee);
-  this.print(node.typeParameters);
+  {
+    this.print(node.typeParameters);
+  }
   if (node.optional) {
     this.token("?.");
   }
@@ -175,7 +179,9 @@ function OptionalCallExpression(node) {
 function CallExpression(node) {
   this.print(node.callee);
   this.print(node.typeArguments);
-  this.print(node.typeParameters);
+  {
+    this.print(node.typeParameters);
+  }
   this.tokenChar(40);
   const exit = this.enterDelimited();
   this.printList(node.arguments, this.shouldPrintTrailingComma(")"));
@@ -187,24 +193,23 @@ function Import() {
 }
 function AwaitExpression(node) {
   this.word("await");
-  if (node.argument) {
-    this.space();
-    this.printTerminatorless(node.argument);
-  }
+  this.space();
+  this.print(node.argument);
 }
 function YieldExpression(node) {
-  this.word("yield", true);
   if (node.delegate) {
+    this.word("yield", true);
     this.tokenChar(42);
     if (node.argument) {
       this.space();
       this.print(node.argument);
     }
+  } else if (node.argument) {
+    this.word("yield", true);
+    this.space();
+    this.print(node.argument);
   } else {
-    if (node.argument) {
-      this.space();
-      this.printTerminatorless(node.argument);
-    }
+    this.word("yield");
   }
 }
 function EmptyStatement() {

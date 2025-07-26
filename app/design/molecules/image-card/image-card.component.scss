@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 :host {
   position: relative;
@@ -20,7 +20,7 @@
       0 0 20px rgba(0, 0, 0, 0.6),
       0 10px 20px rgba(0, 0, 0, 0.8);
 
-    @include media-breakpoint-up(lg) {
+    @include screen.media-breakpoint-up(lg) {
       transition: transform ease-in-out 0.2s;
       transform: scale(1.2);
     }
@@ -71,7 +71,7 @@
     font-weight: normal;
     width: 100%;
     display: block;
-    @include media-breakpoint-up(md) {
+    @include screen.media-breakpoint-up(md) {
       text-decoration: none;
     }
   }
@@ -100,7 +100,7 @@
     border-radius: 50%;
     z-index: 2;
 
-    @include media-breakpoint-up(md) {
+    @include screen.media-breakpoint-up(md) {
       display: none;
     }
   }

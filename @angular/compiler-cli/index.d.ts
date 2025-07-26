@@ -11,7 +11,6 @@ export { NgTscPlugin, PluginCompilerHost } from './src/ngtsc/tsc_plugin';
 export { NgtscProgram } from './src/ngtsc/program';
 export { OptimizeFor } from './src/ngtsc/typecheck/api';
 export { ConsoleLogger, Logger, LogLevel } from './src/ngtsc/logging';
-export { NodeJSFileSystem, absoluteFrom } from './src/ngtsc/file_system';
-export * from './src/ngtsc/docs/src/entities';
+export { NodeJSFileSystem, absoluteFrom, FileSystem, AbsoluteFsPath } from './src/ngtsc/file_system';
 export * from './src/ngtsc/docs';
 export { isLocalCompilationDiagnostics, ErrorCode, ngErrorCode } from './src/ngtsc/diagnostics';

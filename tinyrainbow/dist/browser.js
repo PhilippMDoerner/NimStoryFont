@@ -1,14 +1,20 @@
 import {
-  a as r,
-  b as e,
-  c as o
+  a as t,
+  b as o,
+  c as r
 } from "./chunk-BVHSVHOK.js";
 
 // src/browser.ts
-var f = o(!1);
+function p() {
+  return o();
+}
+function a() {
+  return r();
+}
+var s = r();
 export {
-  o as createColors,
-  f as default,
-  r as getDefaultColors,
-  e as isSupported
+  a as createColors,
+  s as default,
+  t as getDefaultColors,
+  p as isSupported
 };

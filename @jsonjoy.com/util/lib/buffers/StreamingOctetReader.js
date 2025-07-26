@@ -118,9 +118,12 @@ class StreamingOctetReader {
         this.assertSize(n);
         this.skipUnsafe(n);
     }
-    peak() {
+    peek() {
         this.assertSize(1);
         return this.chunks[0][this.x];
+    }
+    peak() {
+        return this.peek();
     }
     utf8(length, mask, maskIndex) {
         this.assertSize(length);

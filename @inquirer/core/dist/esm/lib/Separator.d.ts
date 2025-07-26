@@ -4,7 +4,7 @@
  */
 export declare class Separator {
     readonly separator: string;
-    readonly type = "separator";
+    readonly type: string;
     constructor(separator?: string);
     static isSeparator(choice: unknown): choice is Separator;
 }

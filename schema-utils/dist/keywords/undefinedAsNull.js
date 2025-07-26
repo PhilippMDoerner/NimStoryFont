@@ -33,5 +33,4 @@ function addUndefinedAsNullKeyword(ajv) {
   });
   return ajv;
 }
-var _default = addUndefinedAsNullKeyword;
-exports.default = _default;
+var _default = exports.default = addUndefinedAsNullKeyword;

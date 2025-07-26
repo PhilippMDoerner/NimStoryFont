@@ -8,7 +8,7 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { switchMap, take } from 'rxjs';
+import { map, switchMap, take } from 'rxjs';
 import {
   Spell,
   SpellPlayerClassConnection,
@@ -18,7 +18,7 @@ import { httpErrorToast } from 'src/app/_models/toast';
 import { PlayerClassService } from 'src/app/_services/article/player-class.service';
 import { SpellPlayerClassConnectionService } from 'src/app/_services/article/spell-player-class-connection.service';
 import { SpellService } from 'src/app/_services/article/spell.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem, sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
@@ -61,7 +61,9 @@ export const SpellsPageStore = signalStore(
         campaignName$.pipe(
           take(1),
           switchMap((campaignName) =>
-            spellService.campaignDetailList(campaignName),
+            spellService
+              .campaignDetailList(campaignName)
+              .pipe(map((spells) => sortByProp(spells, 'name'))),
           ),
         ),
       playerClasses: () => playerService.list(),

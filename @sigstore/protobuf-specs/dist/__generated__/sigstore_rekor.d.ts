@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { LogId } from "./sigstore_common";
 /** KindVersion contains the entry's kind and api version. */
 export interface KindVersion {
@@ -89,13 +88,20 @@ export interface TransparencyLogEntry {
      * verification.
      */
     kindVersion: KindVersion | undefined;
-    /** The UNIX timestamp from the log when the entry was persisted. */
+    /**
+     * The UNIX timestamp from the log when the entry was persisted.
+     * The integration time MUST NOT be trusted if inclusion_promise
+     * is omitted.
+     */
     integratedTime: string;
     /**
      * The inclusion promise/signed entry timestamp from the log.
      * Required for v0.1 bundles, and MUST be verified.
-     * Optional for >= v0.2 bundles, and SHOULD be verified when present.
-     * Also may be used as a signed timestamp.
+     * Optional for >= v0.2 bundles if another suitable source of
+     * time is present (such as another source of signed time,
+     * or the current system time for long-lived certificates).
+     * MUST be verified if no other suitable source of time is present,
+     * and SHOULD be verified otherwise.
      */
     inclusionPromise: InclusionPromise | undefined;
     /**
@@ -126,23 +132,13 @@ export interface TransparencyLogEntry {
      */
     canonicalizedBody: Buffer;
 }
-export declare const KindVersion: {
-    fromJSON(object: any): KindVersion;
-    toJSON(message: KindVersion): unknown;
-};
-export declare const Checkpoint: {
-    fromJSON(object: any): Checkpoint;
-    toJSON(message: Checkpoint): unknown;
-};
-export declare const InclusionProof: {
-    fromJSON(object: any): InclusionProof;
-    toJSON(message: InclusionProof): unknown;
-};
-export declare const InclusionPromise: {
-    fromJSON(object: any): InclusionPromise;
-    toJSON(message: InclusionPromise): unknown;
-};
-export declare const TransparencyLogEntry: {
-    fromJSON(object: any): TransparencyLogEntry;
-    toJSON(message: TransparencyLogEntry): unknown;
-};
+export declare const KindVersion: MessageFns<KindVersion>;
+export declare const Checkpoint: MessageFns<Checkpoint>;
+export declare const InclusionProof: MessageFns<InclusionProof>;
+export declare const InclusionPromise: MessageFns<InclusionPromise>;
+export declare const TransparencyLogEntry: MessageFns<TransparencyLogEntry>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

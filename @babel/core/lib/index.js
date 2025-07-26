@@ -211,15 +211,13 @@ var _transform = require("./transform.js");
 var _transformFile = require("./transform-file.js");
 var _transformAst = require("./transform-ast.js");
 var _parse = require("./parse.js");
-var thisFile = require("./index.js");
 ;
-const version = exports.version = "7.26.0";
+const version = exports.version = "7.27.4";
 const resolvePlugin = (name, dirname) => resolvers.resolvePlugin(name, dirname, false).filepath;
 exports.resolvePlugin = resolvePlugin;
 const resolvePreset = (name, dirname) => resolvers.resolvePreset(name, dirname, false).filepath;
 exports.resolvePreset = resolvePreset;
 const DEFAULT_EXTENSIONS = exports.DEFAULT_EXTENSIONS = Object.freeze([".js", ".jsx", ".es6", ".es", ".mjs", ".cjs"]);
-;
 {
   exports.OptionManager = class OptionManager {
     init(opts) {

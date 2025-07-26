@@ -12,7 +12,7 @@ import { map, shareReplay, switchMap, take } from 'rxjs';
 import { Session, SessionRaw } from 'src/app/_models/session';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem, sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
@@ -34,7 +34,7 @@ const initialState: SessionsPageState = {
 };
 
 function sortSessions(sessions: Session[]): Session[] {
-  return sortByProp(sessions, 'session_number', 'desc');
+  return sortByProp(sessions, 'session_number', 'desc', true);
 }
 
 export const SessionsPageStore = signalStore(
@@ -61,7 +61,7 @@ export const SessionsPageStore = signalStore(
           switchMap((campaignName) =>
             sessionService.campaignDetailList(campaignName),
           ),
-          map((sessions) => sortByProp(sessions, 'session_number', 'desc')),
+          map((sessions) => sortSessions(sessions)),
         ),
     };
   }),

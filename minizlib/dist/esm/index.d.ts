@@ -1,9 +1,6 @@
-/// <reference types="node" resolution-mode="require"/>
-/// <reference types="node" resolution-mode="require"/>
-/// <reference types="node" resolution-mode="require"/>
 import { Buffer } from 'buffer';
 import { Minipass } from 'minipass';
-import realZlib from 'zlib';
+import * as realZlib from 'zlib';
 export { constants } from './constants.js';
 declare const _superWrite: unique symbol;
 export declare class ZlibError extends Error {

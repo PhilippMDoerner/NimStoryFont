@@ -7,35 +7,27 @@
  */
 import { AbsoluteSourceSpan, ParseSourceFile, ParseSourceSpan } from '@angular/compiler';
 import ts from 'typescript';
-import { TemplateId, TemplateSourceMapping } from '../api';
-import { TemplateSourceResolver } from './tcb_util';
+import { TypeCheckId, SourceMapping } from '../api';
+import { TypeCheckSourceResolver } from './tcb_util';
 /**
- * Represents the source of a template that was processed during type-checking. This information is
- * used when translating parse offsets in diagnostics back to their original line/column location.
- */
-export declare class TemplateSource {
-    readonly mapping: TemplateSourceMapping;
-    private file;
-    private lineStarts;
-    constructor(mapping: TemplateSourceMapping, file: ParseSourceFile);
-    toParseSourceSpan(start: number, end: number): ParseSourceSpan;
-    private toParseLocation;
-    private acquireLineStarts;
-}
-/**
- * Assigns IDs to templates and keeps track of their origins.
+ * Assigns IDs for type checking and keeps track of their origins.
  *
- * Implements `TemplateSourceResolver` to resolve the source of a template based on these IDs.
+ * Implements `TypeCheckSourceResolver` to resolve the source of a template based on these IDs.
  */
-export declare class TemplateSourceManager implements TemplateSourceResolver {
+export declare class DirectiveSourceManager implements TypeCheckSourceResolver {
     /**
      * This map keeps track of all template sources that have been type-checked by the id that is
      * attached to a TCB's function declaration as leading trivia. This enables translation of
      * diagnostics produced for TCB code to their source location in the template.
      */
     private templateSources;
-    getTemplateId(node: ts.ClassDeclaration): TemplateId;
-    captureSource(node: ts.ClassDeclaration, mapping: TemplateSourceMapping, file: ParseSourceFile): TemplateId;
-    getSourceMapping(id: TemplateId): TemplateSourceMapping;
-    toParseSourceSpan(id: TemplateId, span: AbsoluteSourceSpan): ParseSourceSpan | null;
+    /** Keeps track of type check IDs and the source location of their host bindings. */
+    private hostBindingSources;
+    getTypeCheckId(node: ts.ClassDeclaration): TypeCheckId;
+    captureTemplateSource(id: TypeCheckId, mapping: SourceMapping, file: ParseSourceFile): void;
+    captureHostBindingsMapping(id: TypeCheckId, mapping: SourceMapping, file: ParseSourceFile): void;
+    getTemplateSourceMapping(id: TypeCheckId): SourceMapping;
+    getHostBindingsMapping(id: TypeCheckId): SourceMapping;
+    toTemplateParseSourceSpan(id: TypeCheckId, span: AbsoluteSourceSpan): ParseSourceSpan | null;
+    toHostParseSourceSpan(id: TypeCheckId, span: AbsoluteSourceSpan): ParseSourceSpan | null;
 }

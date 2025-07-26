@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -1043,6 +1043,7 @@ const PanicError = 'PanicError';
 const ParseError = 'ParseError';
 const Program = 'Program';
 const Property = 'Property';
+const RestElement = 'RestElement';
 const ReturnStatement = 'ReturnStatement';
 const StaticBlock = 'StaticBlock';
 const TemplateLiteral = 'TemplateLiteral';
@@ -2154,6 +2155,7 @@ exports.Literal = Literal;
 exports.ObjectExpression = ObjectExpression;
 exports.Program = Program;
 exports.Property = Property;
+exports.RestElement = RestElement;
 exports.ReturnStatement = ReturnStatement;
 exports.StaticBlock = StaticBlock;
 exports.TemplateLiteral = TemplateLiteral;

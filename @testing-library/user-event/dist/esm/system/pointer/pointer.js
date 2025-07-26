@@ -1,12 +1,8 @@
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
-import '../../utils/keyDef/readNextDescriptor.js';
 import { getTreeDiff } from '../../utils/misc/getTreeDiff.js';
-import '../../utils/misc/level.js';
 import { assertPointerEvents, hasPointerEvents } from '../../utils/pointer/cssPointerEvents.js';
 import { isDifferentPointerPosition } from './shared.js';
+import { getMouseEventButton } from './buttons.js';
 
 function _define_property(obj, key, value) {
     if (key in obj) {
@@ -22,8 +18,7 @@ function _define_property(obj, key, value) {
     return obj;
 }
 class Pointer {
-    init(instance, position) {
-        this.position = position;
+    init(instance) {
         const target = this.getTarget(instance);
         const [, enter] = getTreeDiff(null, target);
         const init = this.getEventInit();
@@ -40,7 +35,7 @@ class Pointer {
             return;
         }
         const nextTarget = this.getTarget(instance);
-        const init = this.getEventInit();
+        const init = this.getEventInit(-1);
         const [leave, enter] = getTreeDiff(prevTarget, nextTarget);
         return {
             leave: ()=>{
@@ -63,23 +58,24 @@ class Pointer {
             }
         };
     }
-    down(instance, _keyDef) {
+    down(instance, button = 0) {
         if (this.isDown) {
             return;
         }
         const target = this.getTarget(instance);
         assertPointerEvents(instance, target);
         this.isDown = true;
-        this.isPrevented = !instance.dispatchUIEvent(target, 'pointerdown', this.getEventInit());
+        this.isPrevented = !instance.dispatchUIEvent(target, 'pointerdown', this.getEventInit(button));
     }
-    up(instance, _keyDef) {
+    up(instance, button = 0) {
         if (!this.isDown) {
             return;
         }
         const target = this.getTarget(instance);
         assertPointerEvents(instance, target);
+        this.isPrevented = false;
         this.isDown = false;
-        instance.dispatchUIEvent(target, 'pointerup', this.getEventInit());
+        instance.dispatchUIEvent(target, 'pointerup', this.getEventInit(button));
     }
     release(instance) {
         const target = this.getTarget(instance);
@@ -95,20 +91,28 @@ class Pointer {
     }
     getTarget(instance) {
         var _this_position_target;
-        return (_this_position_target = this.position.target) !== null && _this_position_target !== void 0 ? _this_position_target : instance.config.document.body;
+        return (_this_position_target = this.position.target) !== null && _this_position_target !== undefined ? _this_position_target : instance.config.document.body;
     }
-    getEventInit() {
+    getEventInit(/**
+     * The `button` that caused the event.
+     *
+     * This should be `-1` if the event is not caused by a button or touch/pen contact,
+     * e.g. a moving pointer.
+     */ button) {
         return {
             ...this.position.coords,
             pointerId: this.pointerId,
             pointerType: this.pointerType,
-            isPrimary: this.isPrimary
+            isPrimary: this.isPrimary,
+            button: getMouseEventButton(button),
+            buttons: this.buttons.getButtons()
         };
     }
-    constructor({ pointerId, pointerType, isPrimary }){
-        _define_property(this, "pointerId", void 0);
-        _define_property(this, "pointerType", void 0);
-        _define_property(this, "isPrimary", void 0);
+    constructor({ pointerId, pointerType, isPrimary }, buttons){
+        _define_property(this, "pointerId", undefined);
+        _define_property(this, "pointerType", undefined);
+        _define_property(this, "isPrimary", undefined);
+        _define_property(this, "buttons", undefined);
         _define_property(this, "isMultitouch", false);
         _define_property(this, "isCancelled", false);
         _define_property(this, "isDown", false);
@@ -118,6 +122,7 @@ class Pointer {
         this.pointerType = pointerType;
         this.isPrimary = isPrimary;
         this.isMultitouch = !isPrimary;
+        this.buttons = buttons;
     }
 }
 

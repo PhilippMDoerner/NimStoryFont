@@ -165,7 +165,8 @@ const handle = {
           return parent.optional || parent.object !== node;
         }
         if (isOptionalCallExpression(parent)) {
-          return node !== member.node && parent.optional || parent.callee !== node;
+          return (node !== member.node && parent.optional || parent.callee !== node
+          );
         }
         return true;
       });

@@ -5,15 +5,9 @@ import '../../event/behavior/keypress.js';
 import '../../event/behavior/keyup.js';
 import '../../event/behavior/paste.js';
 import '@testing-library/dom';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
 import { isDisabled } from '../../utils/misc/isDisabled.js';
-import '../../utils/keyDef/readNextDescriptor.js';
 import { getTreeDiff } from '../../utils/misc/getTreeDiff.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { focusElement } from '../../event/focus.js';
 import { setSelectionPerMouseDown } from '../../event/selection/setSelectionPerMouse.js';
 import { modifySelectionPerMouseMove } from '../../event/selection/modifySelectionPerMouse.js';
@@ -36,7 +30,7 @@ function _define_property(obj, key, value) {
 /**
  * This object is the single "virtual" mouse that might be controlled by multiple different pointer devices.
  */ class Mouse {
-    move(instance, position) {
+    move(instance, position, /** Whether `preventDefault()` has been called on the `pointerdown` event */ isPrevented) {
         const prevPosition = this.position;
         const prevTarget = this.getTarget(instance);
         this.position = position;
@@ -60,40 +54,46 @@ function _define_property(obj, key, value) {
                 }
             },
             move: ()=>{
+                if (isPrevented) {
+                    return;
+                }
                 instance.dispatchUIEvent(nextTarget, 'mousemove', init);
                 this.modifySelecting(instance);
             }
         };
     }
-    down(instance, keyDef, pointer) {
+    down(instance, keyDef, /** Whether `preventDefault()` has been called on the `pointerdown` event */ isPrevented) {
         const button = this.buttons.down(keyDef);
         if (button === undefined) {
             return;
         }
         const target = this.getTarget(instance);
         this.buttonDownTarget[button] = target;
-        const disabled = isDisabled(target);
         const init = this.getEventInit('mousedown', keyDef.button);
-        if (disabled || instance.dispatchUIEvent(target, 'mousedown', init)) {
+        const disabled = isDisabled(target);
+        if (!isPrevented && (disabled || instance.dispatchUIEvent(target, 'mousedown', init))) {
             this.startSelecting(instance, init.detail);
             focusElement(target);
         }
         if (!disabled && getMouseEventButton(keyDef.button) === 2) {
-            instance.dispatchUIEvent(target, 'contextmenu', this.getEventInit('contextmenu', keyDef.button, pointer));
+            instance.dispatchUIEvent(target, 'contextmenu', this.getEventInit('contextmenu', keyDef.button));
         }
     }
-    up(instance, keyDef, pointer) {
+    up(instance, keyDef, /** Whether `preventDefault()` has been called on the `pointerdown` event */ isPrevented) {
         const button = this.buttons.up(keyDef);
         if (button === undefined) {
             return;
         }
         const target = this.getTarget(instance);
         if (!isDisabled(target)) {
-            instance.dispatchUIEvent(target, 'mouseup', this.getEventInit('mouseup', keyDef.button));
-            this.endSelecting();
+            if (!isPrevented) {
+                const mouseUpInit = this.getEventInit('mouseup', keyDef.button);
+                instance.dispatchUIEvent(target, 'mouseup', mouseUpInit);
+                this.endSelecting();
+            }
             const clickTarget = getTreeDiff(this.buttonDownTarget[button], target)[2][0];
             if (clickTarget) {
-                const init = this.getEventInit('click', keyDef.button, pointer);
+                const init = this.getEventInit('click', keyDef.button);
                 if (init.detail) {
                     instance.dispatchUIEvent(clickTarget, init.button === 0 ? 'click' : 'auxclick', init);
                     if (init.button === 0 && init.detail === 2) {
@@ -109,15 +109,10 @@ function _define_property(obj, key, value) {
     resetClickCount() {
         this.clickCount.reset();
     }
-    getEventInit(type, button, pointer) {
+    getEventInit(type, button) {
         const init = {
             ...this.position.coords
         };
-        if (pointer) {
-            init.pointerId = pointer.pointerId;
-            init.pointerType = pointer.pointerType;
-            init.isPrimary = pointer.isPrimary;
-        }
         init.button = getMouseEventButton(button);
         init.buttons = this.buttons.getButtons();
         if (type === 'mousedown') {
@@ -131,7 +126,7 @@ function _define_property(obj, key, value) {
     }
     getTarget(instance) {
         var _this_position_target;
-        return (_this_position_target = this.position.target) !== null && _this_position_target !== void 0 ? _this_position_target : instance.config.document.body;
+        return (_this_position_target = this.position.target) !== null && _this_position_target !== undefined ? _this_position_target : instance.config.document.body;
     }
     startSelecting(instance, clickCount) {
         var _this_position_caret, _this_position_caret1;
@@ -139,8 +134,8 @@ function _define_property(obj, key, value) {
         this.selecting = setSelectionPerMouseDown({
             document: instance.config.document,
             target: this.getTarget(instance),
-            node: (_this_position_caret = this.position.caret) === null || _this_position_caret === void 0 ? void 0 : _this_position_caret.node,
-            offset: (_this_position_caret1 = this.position.caret) === null || _this_position_caret1 === void 0 ? void 0 : _this_position_caret1.offset,
+            node: (_this_position_caret = this.position.caret) === null || _this_position_caret === undefined ? undefined : _this_position_caret.node,
+            offset: (_this_position_caret1 = this.position.caret) === null || _this_position_caret1 === undefined ? undefined : _this_position_caret1.offset,
             clickCount
         });
     }
@@ -152,8 +147,8 @@ function _define_property(obj, key, value) {
         modifySelectionPerMouseMove(this.selecting, {
             document: instance.config.document,
             target: this.getTarget(instance),
-            node: (_this_position_caret = this.position.caret) === null || _this_position_caret === void 0 ? void 0 : _this_position_caret.node,
-            offset: (_this_position_caret1 = this.position.caret) === null || _this_position_caret1 === void 0 ? void 0 : _this_position_caret1.offset
+            node: (_this_position_caret = this.position.caret) === null || _this_position_caret === undefined ? undefined : _this_position_caret.node,
+            offset: (_this_position_caret1 = this.position.caret) === null || _this_position_caret1 === undefined ? undefined : _this_position_caret1.offset
         });
     }
     endSelecting() {
@@ -162,7 +157,7 @@ function _define_property(obj, key, value) {
     constructor(){
         _define_property(this, "position", {});
         _define_property(this, "buttons", new Buttons());
-        _define_property(this, "selecting", void 0);
+        _define_property(this, "selecting", undefined);
         _define_property(this, "buttonDownTarget", {});
         // According to spec the `detail` on click events should be the number
         // of *consecutive* clicks with a specific button.
@@ -185,11 +180,11 @@ function _define_property(obj, key, value) {
             getOnDown(button) {
                 var _this_count_button;
                 this.down = {
-                    [button]: (_this_count_button = this.count[button]) !== null && _this_count_button !== void 0 ? _this_count_button : 0
+                    [button]: (_this_count_button = this.count[button]) !== null && _this_count_button !== undefined ? _this_count_button : 0
                 };
                 var _this_count_button1;
                 this.count = {
-                    [button]: (_this_count_button1 = this.count[button]) !== null && _this_count_button1 !== void 0 ? _this_count_button1 : 0
+                    [button]: (_this_count_button1 = this.count[button]) !== null && _this_count_button1 !== undefined ? _this_count_button1 : 0
                 };
                 return Number(this.count[button]) + 1;
             }

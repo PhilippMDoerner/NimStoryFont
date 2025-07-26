@@ -34,9 +34,12 @@ class StreamingReader {
     set x(x) {
         this.dx = x - this.writer.x0;
     }
-    peak() {
+    peek() {
         this.assertSize(1);
         return this.view.getUint8(this.x);
+    }
+    peak() {
+        return this.peek();
     }
     skip(length) {
         this.assertSize(length);

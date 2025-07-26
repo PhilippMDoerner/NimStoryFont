@@ -1,13 +1,7 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var getActiveElement = require('../utils/focus/getActiveElement.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 
 function _define_property(obj, key, value) {
     if (key in obj) {
@@ -22,13 +16,13 @@ function _define_property(obj, key, value) {
     }
     return obj;
 }
-exports.DOM_KEY_LOCATION = void 0;
-(function(DOM_KEY_LOCATION) {
+var DOM_KEY_LOCATION = /*#__PURE__*/ function(DOM_KEY_LOCATION) {
     DOM_KEY_LOCATION[DOM_KEY_LOCATION["STANDARD"] = 0] = "STANDARD";
     DOM_KEY_LOCATION[DOM_KEY_LOCATION["LEFT"] = 1] = "LEFT";
     DOM_KEY_LOCATION[DOM_KEY_LOCATION["RIGHT"] = 2] = "RIGHT";
     DOM_KEY_LOCATION[DOM_KEY_LOCATION["NUMPAD"] = 3] = "NUMPAD";
-})(exports.DOM_KEY_LOCATION || (exports.DOM_KEY_LOCATION = {}));
+    return DOM_KEY_LOCATION;
+}({});
 const modifierKeys = [
     'Alt',
     'AltGraph',
@@ -53,23 +47,17 @@ function isModifierLock(key) {
 }
 class KeyboardHost {
     isKeyPressed(keyDef) {
-        return !!this.pressed[String(keyDef.code)];
+        return this.pressed.has(String(keyDef.code));
     }
     getPressedKeys() {
-        return Object.values(this.pressed).map((p)=>p.keyDef);
+        return this.pressed.values().map((p)=>p.keyDef);
     }
     /** Press a key */ async keydown(instance, keyDef) {
-        var // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        _this_pressed, _code, _this_pressed_code;
         const key = String(keyDef.key);
         const code = String(keyDef.code);
         const target = getActiveElement.getActiveElementOrBody(instance.config.document);
         this.setKeydownTarget(target);
-        var _;
-        (_ = (_this_pressed = this.pressed)[_code = code]) !== null && _ !== void 0 ? _ : _this_pressed[_code] = {
-            keyDef,
-            unpreventedDefault: false
-        };
+        this.pressed.add(code, keyDef);
         if (isModifierKey(key)) {
             this.modifiers[key] = true;
         }
@@ -81,7 +69,9 @@ class KeyboardHost {
             this.modifiers[key] = true;
             this.modifierLockStart[key] = true;
         }
-        (_this_pressed_code = this.pressed[code]).unpreventedDefault || (_this_pressed_code.unpreventedDefault = unprevented);
+        if (unprevented) {
+            this.pressed.setUnprevented(code);
+        }
         if (unprevented && this.hasKeyPress(key)) {
             instance.dispatchUIEvent(getActiveElement.getActiveElementOrBody(instance.config.document), 'keypress', {
                 key,
@@ -93,10 +83,9 @@ class KeyboardHost {
     /** Release a key */ async keyup(instance, keyDef) {
         const key = String(keyDef.key);
         const code = String(keyDef.code);
-        const unprevented = this.pressed[code].unpreventedDefault;
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete this.pressed[code];
-        if (isModifierKey(key) && !Object.values(this.pressed).find((p)=>p.keyDef.key === key)) {
+        const unprevented = this.pressed.isUnprevented(code);
+        this.pressed.delete(code);
+        if (isModifierKey(key) && !this.pressed.values().find((p)=>p.keyDef.key === key)) {
             this.modifiers[key] = false;
         }
         instance.dispatchUIEvent(getActiveElement.getActiveElementOrBody(instance.config.document), 'keyup', {
@@ -121,7 +110,7 @@ class KeyboardHost {
         return (key.length === 1 || key === 'Enter') && !this.modifiers.Control && !this.modifiers.Alt;
     }
     constructor(system){
-        _define_property(this, "system", void 0);
+        _define_property(this, "system", undefined);
         _define_property(this, "modifiers", {
             Alt: false,
             AltGraph: false,
@@ -136,7 +125,39 @@ class KeyboardHost {
             Symbol: false,
             SymbolLock: false
         });
-        _define_property(this, "pressed", {});
+        _define_property(this, "pressed", new class {
+            add(code, keyDef) {
+                var _this_registry, _code;
+                var _;
+                (_ = (_this_registry = this.registry)[_code = code]) !== null && _ !== undefined ? _ : _this_registry[_code] = {
+                    keyDef,
+                    unpreventedDefault: false
+                };
+            }
+            has(code) {
+                return !!this.registry[code];
+            }
+            setUnprevented(code) {
+                const o = this.registry[code];
+                if (o) {
+                    o.unpreventedDefault = true;
+                }
+            }
+            isUnprevented(code) {
+                var _this_registry_code;
+                return !!((_this_registry_code = this.registry[code]) === null || _this_registry_code === undefined ? undefined : _this_registry_code.unpreventedDefault);
+            }
+            delete(code) {
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete this.registry[code];
+            }
+            values() {
+                return Object.values(this.registry);
+            }
+            constructor(){
+                _define_property(this, "registry", {});
+            }
+        }());
         _define_property(this, "carryChar", '');
         _define_property(this, "lastKeydownTarget", undefined);
         _define_property(this, "modifierLockStart", {});
@@ -144,4 +165,5 @@ class KeyboardHost {
     }
 }
 
+exports.DOM_KEY_LOCATION = DOM_KEY_LOCATION;
 exports.KeyboardHost = KeyboardHost;

@@ -32,6 +32,7 @@ const ConstDependency = require("./ConstDependency");
 const LocalModuleDependency = require("./LocalModuleDependency");
 const UnsupportedDependency = require("./UnsupportedDependency");
 
+/** @typedef {import("../../declarations/WebpackOptions").Amd} Amd */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
 /** @typedef {import("../../declarations/WebpackOptions").ModuleOptionsNormalized} ModuleOptions */
 /** @typedef {import("../Compiler")} Compiler */
@@ -41,9 +42,11 @@ const UnsupportedDependency = require("./UnsupportedDependency");
 
 const PLUGIN_NAME = "AMDPlugin";
 
+/** @typedef {Record<string, TODO>} AmdOptions */
+
 class AMDPlugin {
 	/**
-	 * @param {Record<string, any>} amdOptions the AMD options
+	 * @param {AmdOptions} amdOptions the AMD options
 	 */
 	constructor(amdOptions) {
 		this.amdOptions = amdOptions;
@@ -140,7 +143,7 @@ class AMDPlugin {
 					/**
 					 * @param {string} optionExpr option expression
 					 * @param {string} rootName root name
-					 * @param {function(): TODO} getMembers callback
+					 * @param {() => TODO} getMembers callback
 					 */
 					const tapOptionsHooks = (optionExpr, rootName, getMembers) => {
 						parser.hooks.expression

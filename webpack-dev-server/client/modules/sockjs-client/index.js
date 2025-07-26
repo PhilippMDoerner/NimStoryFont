@@ -53,6 +53,7 @@ if (typeof Object.create === 'function') {
   \**********************************/
 /***/ (function(module) {
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 /**
  * Helpers.
  */
@@ -80,7 +81,7 @@ var y = d * 365.25;
 
 module.exports = function (val, options) {
   options = options || {};
-  var type = typeof val;
+  var type = _typeof(val);
   if (type === 'string' && val.length > 0) {
     return parse(val);
   } else if (type === 'number' && isFinite(val)) {
@@ -1347,6 +1348,7 @@ module.exports = function (availableTransports) {
 
 
 // pulled specific shims from https://github.com/es-shims/es5-shim
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 var ArrayPrototype = Array.prototype;
 var ObjectPrototype = Object.prototype;
 var FunctionPrototype = Function.prototype;
@@ -1584,7 +1586,7 @@ var properlyBoxesContext = function properlyBoxed(method) {
   var properlyBoxesStrict = true;
   if (method) {
     method.call('foo', function (_, __, context) {
-      if (typeof context !== 'object') {
+      if (_typeof(context) !== 'object') {
         properlyBoxesNonStrict = false;
       }
     });
@@ -3618,6 +3620,7 @@ if (!isChromePackagedApp) {
 "use strict";
 
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 var eventUtils = __webpack_require__(/*! ./event */ "./node_modules/sockjs-client/lib/utils/event.js"),
   browser = __webpack_require__(/*! ./browser */ "./node_modules/sockjs-client/lib/utils/browser.js");
 var debug = function debug() {};
@@ -3787,7 +3790,7 @@ module.exports.iframeEnabled = false;
 if (__webpack_require__.g.document) {
   // postMessage misbehaves in konqueror 4.6.5 - the messages are delivered with
   // huge delay, or not at all.
-  module.exports.iframeEnabled = (typeof __webpack_require__.g.postMessage === 'function' || typeof __webpack_require__.g.postMessage === 'object') && !browser.isKonqueror();
+  module.exports.iframeEnabled = (typeof __webpack_require__.g.postMessage === 'function' || _typeof(__webpack_require__.g.postMessage) === 'object') && !browser.isKonqueror();
 }
 
 /***/ }),
@@ -3826,9 +3829,10 @@ module.exports = logObject;
 "use strict";
 
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 module.exports = {
   isObject: function isObject(obj) {
-    var type = typeof obj;
+    var type = _typeof(obj);
     return type === 'function' || type === 'object' && !!obj;
   },
   extend: function extend(obj) {
@@ -4010,14 +4014,15 @@ module.exports = '1.6.1';
 "use strict";
 
 
+function _typeof2(o) { "@babel/helpers - typeof"; return _typeof2 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof2(o); }
 function _typeof(obj) {
-  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+  if (typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol") {
     _typeof = function _typeof(obj) {
-      return typeof obj;
+      return _typeof2(obj);
     };
   } else {
     _typeof = function _typeof(obj) {
-      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof2(obj);
     };
   }
   return _typeof(obj);
@@ -4424,6 +4429,7 @@ module.exports = setup;
 "use strict";
 
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 var required = __webpack_require__(/*! requires-port */ "./node_modules/requires-port/index.js"),
   qs = __webpack_require__(/*! querystringify */ "./node_modules/querystringify/index.js"),
   controlOrWhitespace = /^[\x00-\x20\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/,
@@ -4506,7 +4512,7 @@ function lolcation(loc) {
   var location = globalVar.location || {};
   loc = loc || location;
   var finaldestination = {},
-    type = typeof loc,
+    type = _typeof(loc),
     key;
   if ('blob:' === loc.protocol) {
     finaldestination = new Url(unescape(loc.pathname), {});
@@ -4658,7 +4664,7 @@ function Url(address, location, parser) {
     index,
     key,
     instructions = rules.slice(),
-    type = typeof location,
+    type = _typeof(location),
     url = this,
     i = 0;
 
@@ -4910,7 +4916,7 @@ function toString(stringify) {
     host += ':';
   }
   result += host + url.pathname;
-  query = 'object' === typeof url.query ? stringify(url.query) : url.query;
+  query = 'object' === _typeof(url.query) ? stringify(url.query) : url.query;
   if (query) result += '?' !== query.charAt(0) ? '?' + query : query;
   if (url.hash) result += url.hash;
   return result;

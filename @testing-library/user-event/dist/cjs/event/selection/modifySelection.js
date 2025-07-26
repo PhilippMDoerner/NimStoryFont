@@ -1,13 +1,7 @@
 'use strict';
 
 var UI = require('../../document/UI.js');
-require('../../utils/click/isClickableInput.js');
 require('../../utils/dataTransfer/Clipboard.js');
-require('../../utils/edit/isEditable.js');
-require('../../utils/edit/maxLength.js');
-require('../../utils/keyDef/readNextDescriptor.js');
-require('../../utils/misc/level.js');
-require('../../options.js');
 var getTargetTypeAndSelection = require('./getTargetTypeAndSelection.js');
 
 /**
@@ -21,7 +15,7 @@ var getTargetTypeAndSelection = require('./getTargetTypeAndSelection.js');
             focusOffset
         }, 'modify');
     }
-    (_focusNode_ownerDocument = focusNode.ownerDocument) === null || _focusNode_ownerDocument === void 0 ? void 0 : (_focusNode_ownerDocument_getSelection = _focusNode_ownerDocument.getSelection()) === null || _focusNode_ownerDocument_getSelection === void 0 ? void 0 : _focusNode_ownerDocument_getSelection.extend(focusNode, focusOffset);
+    (_focusNode_ownerDocument = focusNode.ownerDocument) === null || _focusNode_ownerDocument === undefined ? undefined : (_focusNode_ownerDocument_getSelection = _focusNode_ownerDocument.getSelection()) === null || _focusNode_ownerDocument_getSelection === undefined ? undefined : _focusNode_ownerDocument_getSelection.extend(focusNode, focusOffset);
 }
 
 exports.modifySelection = modifySelection;

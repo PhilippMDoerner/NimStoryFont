@@ -17,6 +17,8 @@ function generateFromFiles(options, extraTemplateValues = {}) {
         options.path ??= await (0, workspace_1.createDefaultPath)(host, options.project);
         options.prefix ??= '';
         options.flat ??= true;
+        // Schematic templates require a defined type value
+        options.type ??= '';
         const parsedPath = (0, parse_name_1.parseName)(options.path, options.name);
         options.name = parsedPath.name;
         options.path = parsedPath.path;
@@ -29,6 +31,18 @@ function generateFromFiles(options, extraTemplateValues = {}) {
                 ...options,
                 ...extraTemplateValues,
             }),
+            !options.type
+                ? (0, schematics_1.forEach)((file) => {
+                    let filePath = file.path;
+                    while (filePath.includes('..')) {
+                        filePath = filePath.replaceAll('..', '.');
+                    }
+                    return {
+                        content: file.content,
+                        path: filePath,
+                    };
+                })
+                : (0, schematics_1.noop)(),
             (0, schematics_1.move)(parsedPath.path + (options.flat ? '' : '/' + schematics_1.strings.dasherize(options.name))),
         ]);
         return (0, schematics_1.chain)([(0, schematics_1.mergeWith)(templateSource)]);

@@ -1,6 +1,6 @@
 {
     "name": "@types/http-proxy",
-    "version": "1.17.15",
+    "version": "1.17.16",
     "description": "TypeScript definitions for http-proxy",
     "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-proxy",
     "license": "MIT",
@@ -42,6 +42,7 @@
     "dependencies": {
         "@types/node": "*"
     },
-    "typesPublisherContentHash": "6c052868c41c24a39e7b0768efa59a2f08447783cacfb962cdac5ef1d1d38ce8",
-    "typeScriptVersion": "4.8"
+    "peerDependencies": {},
+    "typesPublisherContentHash": "9485ba96f8d1f5becbf3fb9727c6870f2ee1e47b103bc22d93989a5c33bdd8d7",
+    "typeScriptVersion": "5.0"
 }

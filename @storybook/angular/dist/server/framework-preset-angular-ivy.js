@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.webpack = exports.runNgcc = void 0;
-const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
 /**
  * Source :
@@ -45,31 +44,17 @@ const runNgcc = async () => {
 };
 exports.runNgcc = runNgcc;
 const webpack = async (webpackConfig, options) => {
-    const packageJsonPath = require.resolve('@angular/core/package.json');
-    const packageJson = JSON.parse((0, node_fs_1.readFileSync)(packageJsonPath, 'utf8'));
-    const VERSION = packageJson.version;
     const framework = await options.presets.apply('framework');
     const angularOptions = (typeof framework === 'object' ? framework.options : {});
-    const angularMajorVersion = VERSION.split('.')[0];
-    const isAngular16OrNewer = parseInt(angularMajorVersion, 10) >= 16;
     // Default to true, if undefined
     if (angularOptions.enableIvy === false) {
         return webpackConfig;
-    }
-    let extraMainFields = [];
-    if (angularOptions.enableNgcc !== false && !isAngular16OrNewer) {
-        // TODO: Drop if Angular 14 and 15 are not supported anymore
-        (0, exports.runNgcc)();
-        extraMainFields = ['es2015_ivy_ngcc', 'module_ivy_ngcc', 'main_ivy_ngcc'];
-    }
-    if (!isAngular16OrNewer) {
-        extraMainFields.push('es2015');
     }
     return {
         ...webpackConfig,
         resolve: {
             ...webpackConfig.resolve,
-            mainFields: [...extraMainFields, 'browser', 'module', 'main'],
+            mainFields: ['browser', 'module', 'main'],
         },
     };
 };

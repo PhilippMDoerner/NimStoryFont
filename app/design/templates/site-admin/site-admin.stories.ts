@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { dummyGroups } from 'src/app/_services/article/group.service.mock';
 import { dummyUsers } from 'src/app/_services/article/user.mock.service';

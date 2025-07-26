@@ -1,11 +1,5 @@
-import '../utils/click/isClickableInput.js';
 import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
 import { getWindow } from '../utils/misc/getWindow.js';
-import '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
-import '../options.js';
 import { setUIValueClean, setUISelection, hasUISelection } from './UI.js';
 
 const TrackChanges = Symbol('Track programmatic changes for React workaround');
@@ -30,7 +24,7 @@ function startTrackValue(element) {
 }
 function trackOrSetValue(element, v) {
     var _element_TrackChanges_tracked, _element_TrackChanges;
-    (_element_TrackChanges = element[TrackChanges]) === null || _element_TrackChanges === void 0 ? void 0 : (_element_TrackChanges_tracked = _element_TrackChanges.tracked) === null || _element_TrackChanges_tracked === void 0 ? void 0 : _element_TrackChanges_tracked.push(v);
+    (_element_TrackChanges = element[TrackChanges]) === null || _element_TrackChanges === undefined ? undefined : (_element_TrackChanges_tracked = _element_TrackChanges.tracked) === null || _element_TrackChanges_tracked === undefined ? undefined : _element_TrackChanges_tracked.push(v);
     if (!element[TrackChanges]) {
         setUIValueClean(element);
         setUISelection(element, {
@@ -42,7 +36,7 @@ function commitValueAfterInput(element, cursorOffset) {
     var _changes_tracked;
     const changes = element[TrackChanges];
     element[TrackChanges] = undefined;
-    if (!(changes === null || changes === void 0 ? void 0 : (_changes_tracked = changes.tracked) === null || _changes_tracked === void 0 ? void 0 : _changes_tracked.length)) {
+    if (!(changes === null || changes === undefined ? undefined : (_changes_tracked = changes.tracked) === null || _changes_tracked === undefined ? undefined : _changes_tracked.length)) {
         return;
     }
     const isJustReactStateUpdate = changes.tracked.length === 2 && changes.tracked[0] === changes.previousValue && changes.tracked[1] === element.value;

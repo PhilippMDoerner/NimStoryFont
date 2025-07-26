@@ -1,23 +1,17 @@
 import { getUIValue } from '../../document/UI.js';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
 import { hasOwnSelection } from '../../utils/focus/selection.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 
 function resolveCaretPosition({ target, node, offset }) {
     if (hasOwnSelection(target)) {
         return {
             node: target,
-            offset: offset !== null && offset !== void 0 ? offset : getUIValue(target).length
+            offset: offset !== null && offset !== undefined ? offset : getUIValue(target).length
         };
     } else if (node) {
         return {
             node,
-            offset: offset !== null && offset !== void 0 ? offset : node.nodeType === 3 ? node.nodeValue.length : node.childNodes.length
+            offset: offset !== null && offset !== undefined ? offset : node.nodeType === 3 ? node.nodeValue.length : node.childNodes.length
         };
     }
     return findNodeAtTextOffset(target, offset);
@@ -30,7 +24,7 @@ function findNodeAtTextOffset(node, offset, isRoot = true) {
     // the browser moves the cursor to the last non-empty text node inside this element.
     // 3. Otherwise the cursor is moved to the end of the target.
     let i = offset === undefined ? node.childNodes.length - 1 : 0;
-    const step = offset === undefined ? -1 : +1;
+    const step = offset === undefined ? -1 : 1;
     while(offset === undefined ? i >= (isRoot ? Math.max(node.childNodes.length - 1, 0) : 0) : i <= node.childNodes.length){
         if (offset && i === node.childNodes.length) {
             throw new Error('The given offset is out of bounds.');
@@ -49,7 +43,7 @@ function findNodeAtTextOffset(node, offset, isRoot = true) {
                 if (c.nodeType === 3) {
                     return {
                         node: c,
-                        offset: offset !== null && offset !== void 0 ? offset : c.nodeValue.length
+                        offset: offset !== null && offset !== undefined ? offset : c.nodeValue.length
                     };
                 }
             }

@@ -7,10 +7,17 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.addUndefinedObjectDefaults = addUndefinedObjectDefaults;
 exports.addUndefinedDefaults = addUndefinedDefaults;
 const utils_1 = require("../utils");
 const utility_1 = require("./utility");
+function addUndefinedObjectDefaults(value, _pointer, schema) {
+    return transformUndefined(value, _pointer, schema, true);
+}
 function addUndefinedDefaults(value, _pointer, schema) {
+    return transformUndefined(value, _pointer, schema, false);
+}
+function transformUndefined(value, _pointer, schema, onlyObjects) {
     if (typeof schema === 'boolean' || schema === undefined) {
         return value;
     }
@@ -40,7 +47,7 @@ function addUndefinedDefaults(value, _pointer, schema) {
         // anything else needs to be checked by the consumer anyway
         return value;
     }
-    if (type === 'array') {
+    if (!onlyObjects && type === 'array') {
         return value == undefined ? [] : value;
     }
     if (type === 'object') {
@@ -83,7 +90,7 @@ function addUndefinedDefaults(value, _pointer, schema) {
                         return false;
                     });
                 if (adjustedSchema && (0, utils_1.isJsonObject)(adjustedSchema)) {
-                    newValue[propName] = addUndefinedDefaults(value, _pointer, adjustedSchema);
+                    newValue[propName] = transformUndefined(value, _pointer, adjustedSchema, onlyObjects);
                 }
             }
         }

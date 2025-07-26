@@ -16,6 +16,7 @@ const { mkdirp, dirname, join } = require("../util/fs");
 const memoize = require("../util/memoize");
 
 /** @typedef {import("http").IncomingMessage} IncomingMessage */
+/** @typedef {import("http").OutgoingHttpHeaders} OutgoingHttpHeaders */
 /** @typedef {import("http").RequestOptions} RequestOptions */
 /** @typedef {import("net").Socket} Socket */
 /** @typedef {import("stream").Readable} Readable */
@@ -32,7 +33,7 @@ const getHttps = memoize(() => require("https"));
 /**
  * @param {typeof import("http") | typeof import("https")} request request
  * @param {string | { toString: () => string } | undefined} proxy proxy
- * @returns {function(URL, RequestOptions, function(IncomingMessage): void): EventEmitter} fn
+ * @returns {(url: URL, requestOptions: RequestOptions, callback: (incomingMessage: IncomingMessage) => void) => EventEmitter} fn
  */
 const proxyFetch = (request, proxy) => (url, options, callback) => {
 	const eventEmitter = new EventEmitter();
@@ -147,7 +148,7 @@ const parseKeyValuePairs = str => {
 /**
  * @param {string | undefined} cacheControl Cache-Control header
  * @param {number} requestTime timestamp of request
- * @returns {{storeCache: boolean, storeLock: boolean, validUntil: number}} Logic for storing in cache and lockfile cache
+ * @returns {{ storeCache: boolean, storeLock: boolean, validUntil: number }} Logic for storing in cache and lockfile cache
  */
 const parseCacheControl = (cacheControl, requestTime) => {
 	// When false resource is not stored in cache
@@ -190,7 +191,7 @@ const areLockfileEntriesEqual = (a, b) =>
 
 /**
  * @param {LockfileEntry} entry lockfile entry
- * @returns {`resolved: ${string}, integrity: ${string}, contentType: ${*}`} stringified entry
+ * @returns {`resolved: ${string}, integrity: ${string}, contentType: ${string}`} stringified entry
  */
 const entryToString = entry =>
 	`resolved: ${entry.resolved}, integrity: ${entry.integrity}, contentType: ${entry.contentType}`;
@@ -255,8 +256,18 @@ class Lockfile {
 
 /**
  * @template R
- * @param {function(function(Error | null, R=): void): void} fn function
- * @returns {function(function(Error | null, R=): void): void} cached function
+ * @typedef {(err: Error | null, result?: R) => void}  FnWithoutKeyCallback
+ */
+
+/**
+ * @template R
+ * @typedef {(callback: FnWithoutKeyCallback<R>) => void} FnWithoutKey
+ */
+
+/**
+ * @template R
+ * @param {FnWithoutKey<R>} fn function
+ * @returns {FnWithoutKey<R>} cached function
  */
 const cachedWithoutKey = fn => {
 	let inFlight = false;
@@ -264,7 +275,7 @@ const cachedWithoutKey = fn => {
 	let cachedError;
 	/** @type {R | undefined} */
 	let cachedResult;
-	/** @type {(function(Error| null, R=): void)[] | undefined} */
+	/** @type {FnWithoutKeyCallback<R>[] | undefined} */
 	let cachedCallbacks;
 	return callback => {
 		if (inFlight) {
@@ -287,22 +298,33 @@ const cachedWithoutKey = fn => {
 };
 
 /**
+ * @template R
+ * @typedef {(err: Error | null, result?: R) => void} FnWithKeyCallback
+ */
+
+/**
  * @template T
  * @template R
- * @param {function(T, function(Error | null, R=): void): void} fn function
- * @param {function(T, function(Error | null, R=): void): void=} forceFn function for the second try
- * @returns {(function(T, function(Error | null, R=): void): void) & { force: function(T, function(Error | null, R=): void): void }} cached function
+ * @typedef {(item: T, callback: FnWithKeyCallback<R>) => void} FnWithKey
+ */
+
+/**
+ * @template T
+ * @template R
+ * @param {FnWithKey<T, R>} fn function
+ * @param {FnWithKey<T, R>=} forceFn function for the second try
+ * @returns {(FnWithKey<T, R>) & { force: FnWithKey<T, R> }} cached function
  */
 const cachedWithKey = (fn, forceFn = fn) => {
 	/**
 	 * @template R
-	 * @typedef {{ result?: R, error?: Error, callbacks?: (function(Error | null, R=): void)[], force?: true }} CacheEntry
+	 * @typedef {{ result?: R, error?: Error, callbacks?: FnWithKeyCallback<R>[], force?: true }} CacheEntry
 	 */
 	/** @type {Map<T, CacheEntry<R>>} */
 	const cache = new Map();
 	/**
 	 * @param {T} arg arg
-	 * @param {function(Error | null, R=): void} callback callback
+	 * @param {FnWithKeyCallback<R>} callback callback
 	 * @returns {void}
 	 */
 	const resultFn = (arg, callback) => {
@@ -333,7 +355,7 @@ const cachedWithKey = (fn, forceFn = fn) => {
 	};
 	/**
 	 * @param {T} arg arg
-	 * @param {function(Error | null, R=): void} callback callback
+	 * @param {FnWithKeyCallback<R>} callback callback
 	 * @returns {void}
 	 */
 	resultFn.force = (arg, callback) => {
@@ -384,6 +406,8 @@ const cachedWithKey = (fn, forceFn = fn) => {
 /** @typedef {FetchResultMeta & { entry: LockfileEntry, content: Buffer }} ContentFetchResult */
 /** @typedef {RedirectFetchResult | ContentFetchResult} FetchResult */
 
+const PLUGIN_NAME = "HttpUriPlugin";
+
 class HttpUriPlugin {
 	/**
 	 * @param {HttpUriPluginOptions} options options
@@ -419,14 +443,14 @@ class HttpUriPlugin {
 		/** @type {LockfileCache} */
 		let lockfileCache;
 		compiler.hooks.compilation.tap(
-			"HttpUriPlugin",
+			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				const intermediateFs =
 					/** @type {IntermediateFileSystem} */
 					(compiler.intermediateFileSystem);
 				const fs = compilation.inputFileSystem;
-				const cache = compilation.getCache("webpack.HttpUriPlugin");
-				const logger = compilation.getLogger("webpack.HttpUriPlugin");
+				const cache = compilation.getCache(`webpack.${PLUGIN_NAME}`);
+				const logger = compilation.getLogger(`webpack.${PLUGIN_NAME}`);
 				/** @type {string} */
 				const lockfileLocation =
 					this._lockfileLocation ||
@@ -487,7 +511,7 @@ class HttpUriPlugin {
 
 				const getLockfile = cachedWithoutKey(
 					/**
-					 * @param {function(Error | null, Lockfile=): void} callback callback
+					 * @param {(err: Error | null, lockfile?: Lockfile) => void} callback callback
 					 * @returns {void}
 					 */
 					callback => {
@@ -581,7 +605,7 @@ class HttpUriPlugin {
 				 * @param {Lockfile} lockfile lockfile
 				 * @param {string} url url
 				 * @param {ResolveContentResult} result result
-				 * @param {function(Error | null, ResolveContentResult=): void} callback callback
+				 * @param {(err: Error | null, result?: ResolveContentResult) => void} callback callback
 				 * @returns {void}
 				 */
 				const storeResult = (lockfile, url, result, callback) => {
@@ -608,16 +632,19 @@ class HttpUriPlugin {
 					/**
 					 * @param {string} url URL
 					 * @param {string | null} integrity integrity
-					 * @param {function(Error | null, ResolveContentResult=): void} callback callback
+					 * @param {(err: Error | null, resolveContentResult?: ResolveContentResult) => void} callback callback
 					 */
 					const resolveContent = (url, integrity, callback) => {
 						/**
 						 * @param {Error | null} err error
-						 * @param {TODO} result result result
+						 * @param {FetchResult=} _result fetch result
 						 * @returns {void}
 						 */
-						const handleResult = (err, result) => {
+						const handleResult = (err, _result) => {
 							if (err) return callback(err);
+
+							const result = /** @type {FetchResult} */ (_result);
+
 							if ("location" in result) {
 								return resolveContent(
 									result.location,
@@ -634,6 +661,7 @@ class HttpUriPlugin {
 									}
 								);
 							}
+
 							if (
 								!result.fresh &&
 								integrity &&
@@ -642,181 +670,181 @@ class HttpUriPlugin {
 							) {
 								return fetchContent.force(url, handleResult);
 							}
+
 							return callback(null, {
 								entry: result.entry,
 								content: result.content,
 								storeLock: result.storeLock
 							});
 						};
+
 						fetchContent(url, handleResult);
 					};
 
 					/**
 					 * @param {string} url URL
 					 * @param {FetchResult | RedirectFetchResult | undefined} cachedResult result from cache
-					 * @param {function(Error | null, FetchResult=): void} callback callback
+					 * @param {(err: Error | null, fetchResult?: FetchResult) => void} callback callback
 					 * @returns {void}
 					 */
 					const fetchContentRaw = (url, cachedResult, callback) => {
 						const requestTime = Date.now();
-						fetch(
-							new URL(url),
-							{
-								headers: {
-									"accept-encoding": "gzip, deflate, br",
-									"user-agent": "webpack",
-									"if-none-match": /** @type {TODO} */ (
-										cachedResult ? cachedResult.etag || null : null
-									)
-								}
-							},
-							res => {
-								const etag = res.headers.etag;
-								const location = res.headers.location;
-								const cacheControl = res.headers["cache-control"];
-								const { storeLock, storeCache, validUntil } = parseCacheControl(
-									cacheControl,
-									requestTime
-								);
-								/**
-								 * @param {Partial<Pick<FetchResultMeta, "fresh">> & (Pick<RedirectFetchResult, "location"> | Pick<ContentFetchResult, "content" | "entry">)} partialResult result
-								 * @returns {void}
-								 */
-								const finishWith = partialResult => {
-									if ("location" in partialResult) {
-										logger.debug(
-											`GET ${url} [${res.statusCode}] -> ${partialResult.location}`
-										);
-									} else {
-										logger.debug(
-											`GET ${url} [${res.statusCode}] ${Math.ceil(
-												partialResult.content.length / 1024
-											)} kB${!storeLock ? " no-cache" : ""}`
-										);
-									}
-									const result = {
-										...partialResult,
-										fresh: true,
-										storeLock,
-										storeCache,
-										validUntil,
-										etag
-									};
-									if (!storeCache) {
-										logger.log(
-											`${url} can't be stored in cache, due to Cache-Control header: ${cacheControl}`
-										);
-										return callback(null, result);
-									}
-									cache.store(
-										url,
-										null,
-										{
-											...result,
-											fresh: false
-										},
-										err => {
-											if (err) {
-												logger.warn(
-													`${url} can't be stored in cache: ${err.message}`
-												);
-												logger.debug(err.stack);
-											}
-											callback(null, result);
-										}
+						/** @type {OutgoingHttpHeaders} */
+						const headers = {
+							"accept-encoding": "gzip, deflate, br",
+							"user-agent": "webpack"
+						};
+
+						if (cachedResult && cachedResult.etag) {
+							headers["if-none-match"] = cachedResult.etag;
+						}
+
+						fetch(new URL(url), { headers }, res => {
+							const etag = res.headers.etag;
+							const location = res.headers.location;
+							const cacheControl = res.headers["cache-control"];
+							const { storeLock, storeCache, validUntil } = parseCacheControl(
+								cacheControl,
+								requestTime
+							);
+							/**
+							 * @param {Partial<Pick<FetchResultMeta, "fresh">> & (Pick<RedirectFetchResult, "location"> | Pick<ContentFetchResult, "content" | "entry">)} partialResult result
+							 * @returns {void}
+							 */
+							const finishWith = partialResult => {
+								if ("location" in partialResult) {
+									logger.debug(
+										`GET ${url} [${res.statusCode}] -> ${partialResult.location}`
 									);
+								} else {
+									logger.debug(
+										`GET ${url} [${res.statusCode}] ${Math.ceil(
+											partialResult.content.length / 1024
+										)} kB${!storeLock ? " no-cache" : ""}`
+									);
+								}
+								const result = {
+									...partialResult,
+									fresh: true,
+									storeLock,
+									storeCache,
+									validUntil,
+									etag
 								};
-								if (res.statusCode === 304) {
-									const result = /** @type {FetchResult} */ (cachedResult);
-									if (
-										result.validUntil < validUntil ||
-										result.storeLock !== storeLock ||
-										result.storeCache !== storeCache ||
-										result.etag !== etag
-									) {
-										return finishWith(result);
-									}
-									logger.debug(`GET ${url} [${res.statusCode}] (unchanged)`);
-									return callback(null, { ...result, fresh: true });
+								if (!storeCache) {
+									logger.log(
+										`${url} can't be stored in cache, due to Cache-Control header: ${cacheControl}`
+									);
+									return callback(null, result);
 								}
-								if (
-									location &&
-									res.statusCode &&
-									res.statusCode >= 301 &&
-									res.statusCode <= 308
-								) {
-									const result = {
-										location: new URL(location, url).href
-									};
-									if (
-										!cachedResult ||
-										!("location" in cachedResult) ||
-										cachedResult.location !== result.location ||
-										cachedResult.validUntil < validUntil ||
-										cachedResult.storeLock !== storeLock ||
-										cachedResult.storeCache !== storeCache ||
-										cachedResult.etag !== etag
-									) {
-										return finishWith(result);
-									}
-									logger.debug(`GET ${url} [${res.statusCode}] (unchanged)`);
-									return callback(null, {
+								cache.store(
+									url,
+									null,
+									{
 										...result,
-										fresh: true,
-										storeLock,
-										storeCache,
-										validUntil,
-										etag
-									});
-								}
-								const contentType = res.headers["content-type"] || "";
-								/** @type {Buffer[]} */
-								const bufferArr = [];
-
-								const contentEncoding = res.headers["content-encoding"];
-								/** @type {Readable} */
-								let stream = res;
-								if (contentEncoding === "gzip") {
-									stream = stream.pipe(createGunzip());
-								} else if (contentEncoding === "br") {
-									stream = stream.pipe(createBrotliDecompress());
-								} else if (contentEncoding === "deflate") {
-									stream = stream.pipe(createInflate());
-								}
-
-								stream.on("data", chunk => {
-									bufferArr.push(chunk);
-								});
-
-								stream.on("end", () => {
-									if (!res.complete) {
-										logger.log(`GET ${url} [${res.statusCode}] (terminated)`);
-										return callback(new Error(`${url} request was terminated`));
+										fresh: false
+									},
+									err => {
+										if (err) {
+											logger.warn(
+												`${url} can't be stored in cache: ${err.message}`
+											);
+											logger.debug(err.stack);
+										}
+										callback(null, result);
 									}
-
-									const content = Buffer.concat(bufferArr);
-
-									if (res.statusCode !== 200) {
-										logger.log(`GET ${url} [${res.statusCode}]`);
-										return callback(
-											new Error(
-												`${url} request status code = ${
-													res.statusCode
-												}\n${content.toString("utf-8")}`
-											)
-										);
-									}
-
-									const integrity = computeIntegrity(content);
-									const entry = { resolved: url, integrity, contentType };
-
-									finishWith({
-										entry,
-										content
-									});
+								);
+							};
+							if (res.statusCode === 304) {
+								const result = /** @type {FetchResult} */ (cachedResult);
+								if (
+									result.validUntil < validUntil ||
+									result.storeLock !== storeLock ||
+									result.storeCache !== storeCache ||
+									result.etag !== etag
+								) {
+									return finishWith(result);
+								}
+								logger.debug(`GET ${url} [${res.statusCode}] (unchanged)`);
+								return callback(null, { ...result, fresh: true });
+							}
+							if (
+								location &&
+								res.statusCode &&
+								res.statusCode >= 301 &&
+								res.statusCode <= 308
+							) {
+								const result = {
+									location: new URL(location, url).href
+								};
+								if (
+									!cachedResult ||
+									!("location" in cachedResult) ||
+									cachedResult.location !== result.location ||
+									cachedResult.validUntil < validUntil ||
+									cachedResult.storeLock !== storeLock ||
+									cachedResult.storeCache !== storeCache ||
+									cachedResult.etag !== etag
+								) {
+									return finishWith(result);
+								}
+								logger.debug(`GET ${url} [${res.statusCode}] (unchanged)`);
+								return callback(null, {
+									...result,
+									fresh: true,
+									storeLock,
+									storeCache,
+									validUntil,
+									etag
 								});
 							}
-						).on("error", err => {
+							const contentType = res.headers["content-type"] || "";
+							/** @type {Buffer[]} */
+							const bufferArr = [];
+
+							const contentEncoding = res.headers["content-encoding"];
+							/** @type {Readable} */
+							let stream = res;
+							if (contentEncoding === "gzip") {
+								stream = stream.pipe(createGunzip());
+							} else if (contentEncoding === "br") {
+								stream = stream.pipe(createBrotliDecompress());
+							} else if (contentEncoding === "deflate") {
+								stream = stream.pipe(createInflate());
+							}
+
+							stream.on("data", chunk => {
+								bufferArr.push(chunk);
+							});
+
+							stream.on("end", () => {
+								if (!res.complete) {
+									logger.log(`GET ${url} [${res.statusCode}] (terminated)`);
+									return callback(new Error(`${url} request was terminated`));
+								}
+
+								const content = Buffer.concat(bufferArr);
+
+								if (res.statusCode !== 200) {
+									logger.log(`GET ${url} [${res.statusCode}]`);
+									return callback(
+										new Error(
+											`${url} request status code = ${
+												res.statusCode
+											}\n${content.toString("utf-8")}`
+										)
+									);
+								}
+
+								const integrity = computeIntegrity(content);
+								const entry = { resolved: url, integrity, contentType };
+
+								finishWith({
+									entry,
+									content
+								});
+							});
+						}).on("error", err => {
 							logger.log(`GET ${url} (error)`);
 							err.message += `\nwhile fetching ${url}`;
 							callback(err);
@@ -826,7 +854,7 @@ class HttpUriPlugin {
 					const fetchContent = cachedWithKey(
 						/**
 						 * @param {string} url URL
-						 * @param {function(Error | null, { validUntil: number, etag?: string, entry: LockfileEntry, content: Buffer, fresh: boolean } | { validUntil: number, etag?: string, location: string, fresh: boolean }=): void} callback callback
+						 * @param {(err: Error | null, result?: FetchResult) => void} callback callback
 						 * @returns {void}
 						 */
 						(url, callback) => {
@@ -864,7 +892,7 @@ class HttpUriPlugin {
 					const getInfo = cachedWithKey(
 						/**
 						 * @param {string} url the url
-						 * @param {function(Error | null, Info=): void} callback callback
+						 * @param {(err: Error | null, info?: Info) => void} callback callback
 						 * @returns {void}
 						 */
 						// eslint-disable-next-line no-loop-func
@@ -1113,7 +1141,7 @@ Run build with un-frozen lockfile to automatically fix lockfile.`
 					/**
 					 * @param {URL} url url
 					 * @param {ResourceDataWithData} resourceData resource data
-					 * @param {function(Error | null, true | void): void} callback callback
+					 * @param {(err: Error | null, result: true | void) => void} callback callback
 					 */
 					const respondWithUrlModule = (url, resourceData, callback) => {
 						getInfo(url.href, (err, _result) => {
@@ -1133,19 +1161,16 @@ Run build with un-frozen lockfile to automatically fix lockfile.`
 					};
 					normalModuleFactory.hooks.resolveForScheme
 						.for(scheme)
-						.tapAsync(
-							"HttpUriPlugin",
-							(resourceData, resolveData, callback) => {
-								respondWithUrlModule(
-									new URL(resourceData.resource),
-									resourceData,
-									callback
-								);
-							}
-						);
+						.tapAsync(PLUGIN_NAME, (resourceData, resolveData, callback) => {
+							respondWithUrlModule(
+								new URL(resourceData.resource),
+								resourceData,
+								callback
+							);
+						});
 					normalModuleFactory.hooks.resolveInScheme
 						.for(scheme)
-						.tapAsync("HttpUriPlugin", (resourceData, data, callback) => {
+						.tapAsync(PLUGIN_NAME, (resourceData, data, callback) => {
 							// Only handle relative urls (./xxx, ../xxx, /xxx, //xxx)
 							if (
 								data.dependencyType !== "url" &&
@@ -1162,7 +1187,7 @@ Run build with un-frozen lockfile to automatically fix lockfile.`
 					const hooks = NormalModule.getCompilationHooks(compilation);
 					hooks.readResourceForScheme
 						.for(scheme)
-						.tapAsync("HttpUriPlugin", (resource, module, callback) =>
+						.tapAsync(PLUGIN_NAME, (resource, module, callback) =>
 							getInfo(resource, (err, _result) => {
 								if (err) return callback(err);
 								const result = /** @type {Info} */ (_result);
@@ -1171,33 +1196,27 @@ Run build with un-frozen lockfile to automatically fix lockfile.`
 								callback(null, result.content);
 							})
 						);
-					hooks.needBuild.tapAsync(
-						"HttpUriPlugin",
-						(module, context, callback) => {
-							if (
-								module.resource &&
-								module.resource.startsWith(`${scheme}://`)
-							) {
-								getInfo(module.resource, (err, _result) => {
-									if (err) return callback(err);
-									const result = /** @type {Info} */ (_result);
-									if (
-										result.entry.integrity !==
-										/** @type {BuildInfo} */
-										(module.buildInfo).resourceIntegrity
-									) {
-										return callback(null, true);
-									}
-									callback();
-								});
-							} else {
-								return callback();
-							}
+					hooks.needBuild.tapAsync(PLUGIN_NAME, (module, context, callback) => {
+						if (module.resource && module.resource.startsWith(`${scheme}://`)) {
+							getInfo(module.resource, (err, _result) => {
+								if (err) return callback(err);
+								const result = /** @type {Info} */ (_result);
+								if (
+									result.entry.integrity !==
+									/** @type {BuildInfo} */
+									(module.buildInfo).resourceIntegrity
+								) {
+									return callback(null, true);
+								}
+								callback();
+							});
+						} else {
+							return callback();
 						}
-					);
+					});
 				}
 				compilation.hooks.finishModules.tapAsync(
-					"HttpUriPlugin",
+					PLUGIN_NAME,
 					(modules, callback) => {
 						if (!lockfileUpdates) return callback();
 						const ext = extname(lockfileLocation);

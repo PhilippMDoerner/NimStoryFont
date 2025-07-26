@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 .container {
   width: 100vw;
@@ -32,7 +32,7 @@
   &__buttons {
     width: 100%;
 
-    @include media-breakpoint-up(sm) {
+    @include screen.media-breakpoint-up(sm) {
       width: unset;
     }
   }
@@ -43,7 +43,7 @@
     display: inline-block;
     width: 100%;
 
-    @include media-breakpoint-up(sm) {
+    @include screen.media-breakpoint-up(sm) {
       width: unset;
       margin: var(--spacer-2);
     }

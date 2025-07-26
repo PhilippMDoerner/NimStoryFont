@@ -7,13 +7,12 @@ exports.default = void 0;
 var _renamer = require("./lib/renamer.js");
 var _index = require("../index.js");
 var _binding = require("./binding.js");
-var _globals = require("globals");
 var _t = require("@babel/types");
 var t = _t;
 var _cache = require("../cache.js");
-var _visitors = require("../visitors.js");
+const globalsBuiltinLower = require("@babel/helper-globals/data/builtin-lower.json"),
+  globalsBuiltinUpper = require("@babel/helper-globals/data/builtin-upper.json");
 const {
-  NOT_LOCAL_BINDING,
   assignmentExpression,
   callExpression,
   cloneNode,
@@ -121,6 +120,7 @@ function gatherNodeParts(node, parts) {
       parts.push("super");
       break;
     case "Import":
+    case "ImportExpression":
       parts.push("import");
       break;
     case "DoExpression":
@@ -178,6 +178,17 @@ function gatherNodeParts(node, parts) {
       break;
   }
 }
+function resetScope(scope) {
+  {
+    scope.references = Object.create(null);
+    scope.uids = Object.create(null);
+  }
+  scope.bindings = Object.create(null);
+  scope.globals = Object.create(null);
+}
+{
+  var NOT_LOCAL_BINDING = Symbol.for("should not be considered a local binding");
+}
 const collectorVisitor = {
   ForStatement(path) {
     const declar = path.get("init");
@@ -200,7 +211,15 @@ const collectorVisitor = {
     const parent = path.scope.getBlockParent();
     parent.registerDeclaration(path);
   },
+  TSImportEqualsDeclaration(path) {
+    const parent = path.scope.getBlockParent();
+    parent.registerDeclaration(path);
+  },
   ReferencedIdentifier(path, state) {
+    if (t.isTSQualifiedName(path.parent) && path.parent.right === path.node) {
+      return;
+    }
+    if (path.parentPath.isTSImportEqualsDeclaration()) return;
     state.references.push(path);
   },
   ForXStatement(path, state) {
@@ -284,6 +303,7 @@ const collectorVisitor = {
     path.skip();
   }
 };
+let scopeVisitor;
 let uid = 0;
 class Scope {
   constructor(path) {
@@ -293,9 +313,9 @@ class Scope {
     this.inited = void 0;
     this.labels = void 0;
     this.bindings = void 0;
-    this.references = void 0;
+    this.referencesSet = void 0;
     this.globals = void 0;
-    this.uids = void 0;
+    this.uidsSet = void 0;
     this.data = void 0;
     this.crawling = void 0;
     const {
@@ -311,6 +331,22 @@ class Scope {
     this.path = path;
     this.labels = new Map();
     this.inited = false;
+    {
+      Object.defineProperties(this, {
+        references: {
+          enumerable: true,
+          configurable: true,
+          writable: true,
+          value: Object.create(null)
+        },
+        uids: {
+          enumerable: true,
+          configurable: true,
+          writable: true,
+          value: Object.create(null)
+        }
+      });
+    }
   }
   get parent() {
     var _parent;
@@ -325,6 +361,12 @@ class Scope {
     } while (path && !parent);
     return (_parent = parent) == null ? void 0 : _parent.scope;
   }
+  get references() {
+    throw new Error("Scope#references is not available in Babel 8. Use Scope#referencesSet instead.");
+  }
+  get uids() {
+    throw new Error("Scope#uids is not available in Babel 8. Use Scope#uidsSet instead.");
+  }
   generateDeclaredUidIdentifier(name) {
     const id = this.generateUidIdentifier(name);
     this.push({
@@ -338,15 +380,17 @@ class Scope {
   generateUid(name = "temp") {
     name = toIdentifier(name).replace(/^_+/, "").replace(/\d+$/g, "");
     let uid;
-    let i = 1;
+    let i = 0;
     do {
       uid = `_${name}`;
-      if (i > 1) uid += i;
+      if (i >= 11) uid += i - 1;else if (i >= 9) uid += i - 9;else if (i >= 1) uid += i + 1;
       i++;
     } while (this.hasLabel(uid) || this.hasBinding(uid) || this.hasGlobal(uid) || this.hasReference(uid));
     const program = this.getProgramParent();
-    program.references[uid] = true;
-    program.uids[uid] = true;
+    {
+      program.references[uid] = true;
+      program.uids[uid] = true;
+    }
     return uid;
   }
   generateUidBasedOnNode(node, defaultName) {
@@ -486,7 +530,9 @@ class Scope {
     const parent = this.getProgramParent();
     const ids = path.getOuterBindingIdentifiers(true);
     for (const name of Object.keys(ids)) {
-      parent.references[name] = true;
+      {
+        parent.references[name] = true;
+      }
       for (const id of ids[name]) {
         const local = this.getOwnBinding(name);
         if (local) {
@@ -510,11 +556,13 @@ class Scope {
     this.globals[node.name] = node;
   }
   hasUid(name) {
-    let scope = this;
-    do {
-      if (scope.uids[name]) return true;
-    } while (scope = scope.parent);
-    return false;
+    {
+      let scope = this;
+      do {
+        if (scope.uids[name]) return true;
+      } while (scope = scope.parent);
+      return false;
+    }
   }
   hasGlobal(name) {
     let scope = this;
@@ -524,7 +572,9 @@ class Scope {
     return false;
   }
   hasReference(name) {
-    return !!this.getProgramParent().references[name];
+    {
+      return !!this.getProgramParent().references[name];
+    }
   }
   isPure(node, constantsOnly) {
     if (isIdentifier(node)) {
@@ -627,10 +677,7 @@ class Scope {
   }
   crawl() {
     const path = this.path;
-    this.references = Object.create(null);
-    this.bindings = Object.create(null);
-    this.globals = Object.create(null);
-    this.uids = Object.create(null);
+    resetScope(this);
     this.data = Object.create(null);
     let scope = this;
     do {
@@ -646,18 +693,23 @@ class Scope {
       assignments: []
     };
     this.crawling = true;
-    if (path.type !== "Program" && (0, _visitors.isExplodedVisitor)(collectorVisitor)) {
-      for (const visit of collectorVisitor.enter) {
+    scopeVisitor || (scopeVisitor = _index.default.visitors.merge([{
+      Scope(path) {
+        resetScope(path.scope);
+      }
+    }, collectorVisitor]));
+    if (path.type !== "Program") {
+      for (const visit of scopeVisitor.enter) {
         visit.call(state, path, state);
       }
-      const typeVisitors = collectorVisitor[path.type];
+      const typeVisitors = scopeVisitor[path.type];
       if (typeVisitors) {
         for (const visit of typeVisitors.enter) {
           visit.call(state, path, state);
         }
       }
     }
-    path.traverse(collectorVisitor, state);
+    path.traverse(scopeVisitor, state);
     this.crawling = false;
     for (const path of state.assignments) {
       const ids = path.getAssignmentIdentifiers();
@@ -803,20 +855,25 @@ class Scope {
   }
   hasBinding(name, opts) {
     if (!name) return false;
+    let noGlobals;
+    let noUids;
+    let upToScope;
+    if (typeof opts === "object") {
+      noGlobals = opts.noGlobals;
+      noUids = opts.noUids;
+      upToScope = opts.upToScope;
+    } else if (typeof opts === "boolean") {
+      noGlobals = opts;
+    }
     let scope = this;
     do {
+      if (upToScope === scope) {
+        break;
+      }
       if (scope.hasOwnBinding(name)) {
         return true;
       }
     } while (scope = scope.parent);
-    let noGlobals;
-    let noUids;
-    if (typeof opts === "object") {
-      noGlobals = opts.noGlobals;
-      noUids = opts.noUids;
-    } else if (typeof opts === "boolean") {
-      noGlobals = opts;
-    }
     if (!noUids && this.hasUid(name)) return true;
     if (!noGlobals && Scope.globals.includes(name)) return true;
     if (!noGlobals && Scope.contextVariables.includes(name)) return true;
@@ -840,12 +897,14 @@ class Scope {
   removeBinding(name) {
     var _this$getBinding3;
     (_this$getBinding3 = this.getBinding(name)) == null || _this$getBinding3.scope.removeOwnBinding(name);
-    let scope = this;
-    do {
-      if (scope.uids[name]) {
-        scope.uids[name] = false;
-      }
-    } while (scope = scope.parent);
+    {
+      let scope = this;
+      do {
+        if (scope.uids[name]) {
+          scope.uids[name] = false;
+        }
+      } while (scope = scope.parent);
+    }
   }
   hoistVariables(emit = id => this.push({
     id
@@ -868,8 +927,7 @@ class Scope {
       let firstId;
       const init = [];
       for (const decl of parent.declarations) {
-        var _firstId;
-        (_firstId = firstId) != null ? _firstId : firstId = decl.id;
+        firstId != null ? firstId : firstId = decl.id;
         if (decl.init) {
           init.push(assignmentExpression("=", decl.id, decl.init));
         }
@@ -898,7 +956,7 @@ class Scope {
   }
 }
 exports.default = Scope;
-Scope.globals = Object.keys(_globals.builtin);
+Scope.globals = [...globalsBuiltinLower, ...globalsBuiltinUpper];
 Scope.contextVariables = ["arguments", "undefined", "Infinity", "NaN"];
 {
   Scope.prototype._renameFromMap = function _renameFromMap(map, oldName, newName, value) {

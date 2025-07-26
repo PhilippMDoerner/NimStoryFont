@@ -70,17 +70,13 @@ function transformClass(path, file, builtinClasses, isLoose, assumptions, suppor
         kind: "constructor"
       })) return;
     }
-    let params, body;
+    const params = [];
+    let body;
     if (classState.isDerived) {
-      const constructor = _core.template.expression.ast`
-        (function () {
+      body = _core.template.statement.ast`{
           super(...arguments);
-        })
-      `;
-      params = constructor.params;
-      body = constructor.body;
+        }`;
     } else {
-      params = [];
       body = _core.types.blockStatement([]);
     }
     classBodyPath.unshiftContainer("body", _core.types.classMethod("constructor", _core.types.identifier("constructor"), params, body));

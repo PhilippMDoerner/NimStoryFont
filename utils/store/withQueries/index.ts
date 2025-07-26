@@ -1,11 +1,10 @@
-import { WritableStateSource } from '@ngrx/signals';
 import {
-  MethodsDictionary,
   SignalStoreFeature,
   SignalStoreFeatureResult,
   StateSignals,
-} from '@ngrx/signals/src/signal-store-models';
-import { RequestMap } from '../factory-types';
+  WritableStateSource,
+} from '@ngrx/signals';
+import { MethodsDictionary, RequestMap } from '../factory-types';
 import { AllNewMethods, withQueryMethods } from './withQueryMethods';
 import { AllNewProperties, withQueriesState } from './withQueryState';
 

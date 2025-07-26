@@ -8,8 +8,8 @@
         [text]="'Add Spell'"
         [icon]="'plus'"
         (clicked)="addSpell()"
-        [hotkey]="'c'"
-        (hotkeyPressed)="addSpell()"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="addSpell()"
       ></button>
     </div>
   }
@@ -39,7 +39,11 @@
         </app-collapsible-panel>
       </div>
     }
-    <app-focus-list [entries]="spellCards()" #focusListComponent>
+    <app-focus-list
+      [entries]="spellCards()"
+      [listLabel]="'Spells'"
+      #focusListComponent
+    >
       <ng-template
         #itemTemplate
         let-focusEntry
@@ -87,6 +91,7 @@
               [canDelete]="canDelete()"
               [canCreate]="canCreate()"
               [cancelButtonType]="'DARK'"
+              [disabledHotkeys]="!focusEntry.isInFocus"
               (spellDelete)="onSpellDelete($event)"
               (spellUpdate)="spellUpdate.emit($event)"
               (spellCreateCancel)="cancelSpellCreation()"

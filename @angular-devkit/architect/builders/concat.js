@@ -9,7 +9,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const rxjs_1 = require("rxjs");
 const src_1 = require("../src");
-exports.default = (0, src_1.createBuilder)((options, context) => {
+const builder = (0, src_1.createBuilder)((options, context) => {
     const allRuns = [];
     context.reportProgress(0, (options.targets ? options.targets.length : 0) +
         (options.builders ? options.builders.length : 0));
@@ -42,3 +42,4 @@ exports.default = (0, src_1.createBuilder)((options, context) => {
         }
     }), (0, rxjs_1.last)());
 });
+exports.default = builder;

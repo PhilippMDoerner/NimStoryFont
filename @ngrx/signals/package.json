@@ -1,6 +1,6 @@
 {
   "name": "@ngrx/signals",
-  "version": "19.0.1",
+  "version": "19.2.1",
   "description": "Reactive Store and Set of Utilities for Angular Signals",
   "repository": {
     "type": "git",
@@ -62,13 +62,21 @@
       "types": "./index.d.ts",
       "default": "./fesm2022/ngrx-signals.mjs"
     },
-    "./entities": {
-      "types": "./entities/index.d.ts",
-      "default": "./fesm2022/ngrx-signals-entities.mjs"
+    "./events": {
+      "types": "./events/index.d.ts",
+      "default": "./fesm2022/ngrx-signals-events.mjs"
     },
     "./rxjs-interop": {
       "types": "./rxjs-interop/index.d.ts",
       "default": "./fesm2022/ngrx-signals-rxjs-interop.mjs"
+    },
+    "./entities": {
+      "types": "./entities/index.d.ts",
+      "default": "./fesm2022/ngrx-signals-entities.mjs"
+    },
+    "./testing": {
+      "types": "./testing/index.d.ts",
+      "default": "./fesm2022/ngrx-signals-testing.mjs"
     }
   }
 }

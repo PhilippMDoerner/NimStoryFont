@@ -13,6 +13,11 @@
 const enabledTypes = new WeakMap();
 
 /**
+ * @typedef {object} EnableLibraryPluginOptions
+ * @property {() => void=} additionalApply function that runs when applying the current plugin.
+ */
+
+/**
  * @param {Compiler} compiler the compiler instance
  * @returns {Set<LibraryType>} enabled types
  */
@@ -28,9 +33,13 @@ const getEnabledTypes = compiler => {
 class EnableLibraryPlugin {
 	/**
 	 * @param {LibraryType} type library type that should be available
+	 * @param {EnableLibraryPluginOptions} options options of EnableLibraryPlugin
 	 */
-	constructor(type) {
+	constructor(type, options = {}) {
+		/** @type {LibraryType} */
 		this.type = type;
+		/** @type {EnableLibraryPluginOptions} */
+		this.options = options;
 	}
 
 	/**
@@ -67,12 +76,16 @@ class EnableLibraryPlugin {
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		const { type } = this;
+		const { type, options } = this;
 
 		// Only enable once
 		const enabled = getEnabledTypes(compiler);
 		if (enabled.has(type)) return;
 		enabled.add(type);
+
+		if (typeof options.additionalApply === "function") {
+			options.additionalApply();
+		}
 
 		if (typeof type === "string") {
 			const enableExportProperty = () => {
@@ -80,7 +93,8 @@ class EnableLibraryPlugin {
 				new ExportPropertyTemplatePlugin({
 					type,
 					nsObjectUsed: !["module", "modern-module"].includes(type),
-					runtimeExportsUsed: type !== "modern-module"
+					runtimeExportsUsed: !["module", "modern-module"].includes(type),
+					renderStartupUsed: !["module", "modern-module"].includes(type)
 				}).apply(compiler);
 			};
 			switch (type) {
@@ -212,6 +226,9 @@ class EnableLibraryPlugin {
 						compiler.options.output.iife = true;
 
 						class WarnFalseIifeUmdPlugin {
+							/**
+							 * @param {Compiler} compiler the compiler instance
+							 */
 							apply(compiler) {
 								compiler.hooks.thisCompilation.tap(
 									"WarnFalseIifeUmdPlugin",
@@ -249,18 +266,11 @@ class EnableLibraryPlugin {
 					}).apply(compiler);
 					break;
 				}
-				case "module": {
+				case "module":
+				case "modern-module": {
 					enableExportProperty();
 					const ModuleLibraryPlugin = require("./ModuleLibraryPlugin");
 					new ModuleLibraryPlugin({
-						type
-					}).apply(compiler);
-					break;
-				}
-				case "modern-module": {
-					enableExportProperty();
-					const ModernModuleLibraryPlugin = require("./ModernModuleLibraryPlugin");
-					new ModernModuleLibraryPlugin({
 						type
 					}).apply(compiler);
 					break;

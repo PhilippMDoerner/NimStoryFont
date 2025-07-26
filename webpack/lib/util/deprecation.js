@@ -7,7 +7,7 @@
 
 const util = require("util");
 
-/** @type {Map<string, Function>} */
+/** @type {Map<string, () => void>} */
 const deprecationCache = new Map();
 
 /**
@@ -23,7 +23,7 @@ const deprecationCache = new Map();
 /**
  * @param {string} message deprecation message
  * @param {string} code deprecation code
- * @returns {Function} function to trigger deprecation
+ * @returns {() => void} function to trigger deprecation
  */
 const createDeprecation = (message, code) => {
 	const cached = deprecationCache.get(message);
@@ -37,6 +37,9 @@ const createDeprecation = (message, code) => {
 	return fn;
 };
 
+/** @typedef {"concat" | "entry" | "filter" | "find" | "findIndex" | "includes" | "indexOf" | "join" | "lastIndexOf" | "map" | "reduce" | "reduceRight" | "slice" | "some"} COPY_METHODS_NAMES */
+
+/** @type {COPY_METHODS_NAMES[]} */
 const COPY_METHODS = [
 	"concat",
 	"entry",
@@ -54,6 +57,9 @@ const COPY_METHODS = [
 	"some"
 ];
 
+/** @typedef {"copyWithin" | "entries" | "fill" | "keys" | "pop" | "reverse" | "shift" | "splice" | "sort" | "unshift"} DISABLED_METHODS_NAMES */
+
+/** @type {DISABLED_METHODS_NAMES[]} */
 const DISABLED_METHODS = [
 	"copyWithin",
 	"entries",
@@ -68,7 +74,13 @@ const DISABLED_METHODS = [
 ];
 
 /**
- * @param {any} set new set
+ * @template T
+ * @typedef {Set<T> & {[Symbol.isConcatSpreadable]?: boolean} & { push?: (...items: T[]) => void } & { [P in DISABLED_METHODS_NAMES]?: () => void } & { [P in COPY_METHODS_NAMES]?: () => TODO }} SetWithDeprecatedArrayMethods
+ */
+
+/**
+ * @template T
+ * @param {SetWithDeprecatedArrayMethods<T>} set new set
  * @param {string} name property name
  * @returns {void}
  */
@@ -81,7 +93,7 @@ module.exports.arrayToSetDeprecation = (set, name) => {
 		);
 		/**
 		 * @deprecated
-		 * @this {Set<any>}
+		 * @this {Set<T>}
 		 * @returns {number} count
 		 */
 		set[method] = function () {
@@ -108,7 +120,7 @@ module.exports.arrayToSetDeprecation = (set, name) => {
 	);
 	/**
 	 * @deprecated
-	 * @this {Set<any>}
+	 * @this {Set<T>}
 	 * @returns {number} count
 	 */
 	set.push = function () {
@@ -121,6 +133,7 @@ module.exports.arrayToSetDeprecation = (set, name) => {
 	};
 	for (const method of DISABLED_METHODS) {
 		if (set[method]) continue;
+
 		set[method] = () => {
 			throw new Error(
 				`${name} was changed from Array to Set (using Array method '${method}' is not possible)`
@@ -129,12 +142,12 @@ module.exports.arrayToSetDeprecation = (set, name) => {
 	}
 	/**
 	 * @param {number} index index
-	 * @returns {any} value
+	 * @returns {() => T | undefined} value
 	 */
 	const createIndexGetter = index => {
 		/**
-		 * @this {Set<any>} a Set
-		 * @returns {any} the value at this location
+		 * @this {Set<T>} a Set
+		 * @returns {T | undefined} the value at this location
 		 */
 		// eslint-disable-next-line func-style
 		const fn = function () {
@@ -214,67 +227,56 @@ module.exports.createArrayToSetDeprecationSet = name => {
  * @param {string} name property name
  * @param {string} code deprecation code
  * @param {string} note additional note
- * @returns {Proxy<T>} frozen object with deprecation when modifying
+ * @returns {T} frozen object with deprecation when modifying
  */
 module.exports.soonFrozenObjectDeprecation = (obj, name, code, note = "") => {
 	const message = `${name} will be frozen in future, all modifications are deprecated.${
 		note && `\n${note}`
 	}`;
-	return /** @type {Proxy<T>} */ (
-		new Proxy(/** @type {object} */ (obj), {
+	return /** @type {T} */ (
+		new Proxy(obj, {
 			set: util.deprecate(
 				/**
-				 * @param {T} target target
+				 * @param {object} target target
 				 * @param {string | symbol} property property
-				 * @param {any} value value
-				 * @param {any} receiver receiver
+				 * @param {EXPECTED_ANY} value value
+				 * @param {EXPECTED_ANY} receiver receiver
 				 * @returns {boolean} result
 				 */
 				(target, property, value, receiver) =>
-					Reflect.set(
-						/** @type {object} */ (target),
-						property,
-						value,
-						receiver
-					),
+					Reflect.set(target, property, value, receiver),
 				message,
 				code
 			),
 			defineProperty: util.deprecate(
 				/**
-				 * @param {T} target target
+				 * @param {object} target target
 				 * @param {string | symbol} property property
 				 * @param {PropertyDescriptor} descriptor descriptor
 				 * @returns {boolean} result
 				 */
 				(target, property, descriptor) =>
-					Reflect.defineProperty(
-						/** @type {object} */ (target),
-						property,
-						descriptor
-					),
+					Reflect.defineProperty(target, property, descriptor),
 				message,
 				code
 			),
 			deleteProperty: util.deprecate(
 				/**
-				 * @param {T} target target
+				 * @param {object} target target
 				 * @param {string | symbol} property property
 				 * @returns {boolean} result
 				 */
-				(target, property) =>
-					Reflect.deleteProperty(/** @type {object} */ (target), property),
+				(target, property) => Reflect.deleteProperty(target, property),
 				message,
 				code
 			),
 			setPrototypeOf: util.deprecate(
 				/**
-				 * @param {T} target target
-				 * @param {object | null} proto proto
+				 * @param {object} target target
+				 * @param {EXPECTED_OBJECT | null} proto proto
 				 * @returns {boolean} result
 				 */
-				(target, proto) =>
-					Reflect.setPrototypeOf(/** @type {object} */ (target), proto),
+				(target, proto) => Reflect.setPrototypeOf(target, proto),
 				message,
 				code
 			)

@@ -22,7 +22,7 @@ import { DiaryentryService } from 'src/app/_services/article/diaryentry.service'
 import { EncounterConnectionService } from 'src/app/_services/article/encounter-connection.service';
 import { EncounterService } from 'src/app/_services/article/encounter.service';
 import { LocationService } from 'src/app/_services/article/location.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem, sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

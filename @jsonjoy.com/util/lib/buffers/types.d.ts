@@ -28,6 +28,7 @@ export interface IWriterGrowable {
     newBuffer(size: number): void;
 }
 export interface IReaderBase {
+    peek(): number;
     peak(): number;
     skip(length: number): void;
     buf(size: number): Uint8Array;

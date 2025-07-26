@@ -8,9 +8,9 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.writeErrorToLogFile = writeErrorToLogFile;
-const fs_1 = require("fs");
-const os_1 = require("os");
-const path_1 = require("path");
+const node_fs_1 = require("node:fs");
+const node_os_1 = require("node:os");
+const node_path_1 = require("node:path");
 let logPath;
 /**
  * Writes an Error to a temporary log file.
@@ -19,9 +19,9 @@ let logPath;
  */
 function writeErrorToLogFile(error) {
     if (!logPath) {
-        const tempDirectory = (0, fs_1.mkdtempSync)((0, fs_1.realpathSync)((0, os_1.tmpdir)()) + '/ng-');
-        logPath = (0, path_1.normalize)(tempDirectory + '/angular-errors.log');
+        const tempDirectory = (0, node_fs_1.mkdtempSync)((0, node_fs_1.realpathSync)((0, node_os_1.tmpdir)()) + '/ng-');
+        logPath = (0, node_path_1.normalize)(tempDirectory + '/angular-errors.log');
     }
-    (0, fs_1.appendFileSync)(logPath, '[error] ' + (error.stack || error) + '\n\n');
+    (0, node_fs_1.appendFileSync)(logPath, '[error] ' + (error.stack || error) + '\n\n');
     return logPath;
 }

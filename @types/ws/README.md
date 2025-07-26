@@ -8,7 +8,7 @@ This package contains type definitions for ws (https://github.com/websockets/ws)
 Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ws.
 
 ### Additional Details
- * Last updated: Thu, 23 Jan 2025 16:36:36 GMT
+ * Last updated: Tue, 01 Apr 2025 02:59:53 GMT
  * Dependencies: [@types/node](https://npmjs.com/package/@types/node)
 
 # Credits

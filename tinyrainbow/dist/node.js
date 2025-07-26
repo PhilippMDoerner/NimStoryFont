@@ -1,15 +1,22 @@
 import {
-  a as t,
-  b as e,
+  a as e,
+  b as t,
   c as o
 } from "./chunk-BVHSVHOK.js";
 
 // src/node.ts
-import { isatty as r } from "tty";
-var p = o(r(1));
+import { isatty as s } from "tty";
+var r = process.env.FORCE_TTY !== void 0 || s(1);
+function n() {
+  return t(r);
+}
+function a() {
+  return o(r);
+}
+var u = o(r);
 export {
-  o as createColors,
-  p as default,
-  t as getDefaultColors,
-  e as isSupported
+  a as createColors,
+  u as default,
+  e as getDefaultColors,
+  n as isSupported
 };

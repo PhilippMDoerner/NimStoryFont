@@ -7,7 +7,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { filter, mergeMap, of, skip, take } from 'rxjs';
+import { combineLatest, filter, of, skip, switchMap, take } from 'rxjs';
 import { Organization, OrganizationRaw } from 'src/app/_models/organization';
 import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
@@ -90,7 +90,11 @@ export class OrganizationCreateUpdatePageComponent {
       key: 'leader',
       label: 'Leader',
       getOptions: () => this.campaignCharacters$,
-      initialOption$: of(this.store.campaignCharacters()?.find(char => char.name === this.userModel().leader) ?? null),
+      initialOption$: of(
+        this.store
+          .campaignCharacters()
+          ?.find((char) => char.name === this.userModel().leader) ?? null,
+      ),
       formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name',
       optionValueProp: 'name',
@@ -100,7 +104,12 @@ export class OrganizationCreateUpdatePageComponent {
       key: 'headquarter',
       label: 'Headquarter',
       getOptions: () => this.campaignLocations$,
-      initialOption$: of(this.store.campaignLocations()?.find(location => location.pk === this.userModel()?.headquarter) ?? null),
+      initialOption$: of(
+        this.store
+          .campaignLocations()
+          ?.find((location) => location.pk === this.userModel()?.headquarter) ??
+          null,
+      ),
       formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name_full',
       optionValueProp: 'pk',
@@ -147,12 +156,15 @@ export class OrganizationCreateUpdatePageComponent {
   create(organization: Partial<OrganizationRaw>) {
     // TODO: Figure out why this gets called twice sometimes
     this.store.createOrganization(organization as OrganizationRaw);
-    this.organizationCreateState$
+    combineLatest({
+      state: this.organizationCreateState$,
+      organization: this.organization$,
+    })
       .pipe(
-        filter((state) => state === 'success'),
-        take(1),
-        mergeMap(() => this.organization$),
+        filter(({ state }) => state === 'success'),
+        switchMap(() => this.organization$),
         filterNil(),
+        take(1),
       )
       .subscribe((organization) =>
         this.routeToOrganization(organization as Organization),

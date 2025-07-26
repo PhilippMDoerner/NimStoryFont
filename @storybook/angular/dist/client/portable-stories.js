@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setProjectAnnotations = setProjectAnnotations;
-const preview_api_1 = require("storybook/internal/preview-api");
+const preview_api_1 = require("storybook/preview-api");
 const INTERNAL_DEFAULT_PROJECT_ANNOTATIONS = __importStar(require("./render"));
 /**
  * Function that sets the globalConfig of your storybook. The global config is the preview module of

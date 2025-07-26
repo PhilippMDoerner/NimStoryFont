@@ -7,11 +7,11 @@ var level = require('../misc/level.js');
 
 function hasPointerEvents(instance, element) {
     var _checkPointerEvents;
-    return ((_checkPointerEvents = checkPointerEvents(instance, element)) === null || _checkPointerEvents === void 0 ? void 0 : _checkPointerEvents.pointerEvents) !== 'none';
+    return ((_checkPointerEvents = checkPointerEvents(instance, element)) === null || _checkPointerEvents === undefined ? undefined : _checkPointerEvents.pointerEvents) !== 'none';
 }
 function closestPointerEventsDeclaration(element) {
     const window = getWindow.getWindow(element);
-    for(let el = element, tree = []; el === null || el === void 0 ? void 0 : el.ownerDocument; el = el.parentElement){
+    for(let el = element, tree = []; el === null || el === undefined ? undefined : el.ownerDocument; el = el.parentElement){
         tree.push(el);
         const pointerEvents = window.getComputedStyle(el).pointerEvents;
         if (pointerEvents && ![
@@ -31,7 +31,7 @@ function checkPointerEvents(instance, element) {
     const lastCheck = element[PointerEventsCheck];
     const needsCheck = instance.config.pointerEventsCheck !== options.PointerEventsCheckLevel.Never && (!lastCheck || hasBitFlag(instance.config.pointerEventsCheck, options.PointerEventsCheckLevel.EachApiCall) && lastCheck[level.ApiLevel.Call] !== level.getLevelRef(instance, level.ApiLevel.Call) || hasBitFlag(instance.config.pointerEventsCheck, options.PointerEventsCheckLevel.EachTrigger) && lastCheck[level.ApiLevel.Trigger] !== level.getLevelRef(instance, level.ApiLevel.Trigger));
     if (!needsCheck) {
-        return lastCheck === null || lastCheck === void 0 ? void 0 : lastCheck.result;
+        return lastCheck === null || lastCheck === undefined ? undefined : lastCheck.result;
     }
     const declaration = closestPointerEventsDeclaration(element);
     element[PointerEventsCheck] = {
@@ -43,7 +43,7 @@ function checkPointerEvents(instance, element) {
 }
 function assertPointerEvents(instance, element) {
     const declaration = checkPointerEvents(instance, element);
-    if ((declaration === null || declaration === void 0 ? void 0 : declaration.pointerEvents) === 'none') {
+    if ((declaration === null || declaration === undefined ? undefined : declaration.pointerEvents) === 'none') {
         throw new Error([
             `Unable to perform pointer interaction as the element ${declaration.tree.length > 1 ? 'inherits' : 'has'} \`pointer-events: none\`:`,
             '',
@@ -69,7 +69,7 @@ function getLabelDescr(element) {
         label = element.getAttribute('aria-label');
     } else if (element.hasAttribute('aria-labelledby')) {
         var _element_ownerDocument_getElementById_textContent, _element_ownerDocument_getElementById;
-        label = (_element_ownerDocument_getElementById = element.ownerDocument.getElementById(element.getAttribute('aria-labelledby'))) === null || _element_ownerDocument_getElementById === void 0 ? void 0 : (_element_ownerDocument_getElementById_textContent = _element_ownerDocument_getElementById.textContent) === null || _element_ownerDocument_getElementById_textContent === void 0 ? void 0 : _element_ownerDocument_getElementById_textContent.trim();
+        label = (_element_ownerDocument_getElementById = element.ownerDocument.getElementById(element.getAttribute('aria-labelledby'))) === null || _element_ownerDocument_getElementById === undefined ? undefined : (_element_ownerDocument_getElementById_textContent = _element_ownerDocument_getElementById.textContent) === null || _element_ownerDocument_getElementById_textContent === undefined ? undefined : _element_ownerDocument_getElementById_textContent.trim();
     } else if (isElementType.isElementType(element, [
         'button',
         'input',
@@ -78,18 +78,18 @@ function getLabelDescr(element) {
         'progress',
         'select',
         'textarea'
-    ]) && ((_element_labels = element.labels) === null || _element_labels === void 0 ? void 0 : _element_labels.length)) {
+    ]) && ((_element_labels = element.labels) === null || _element_labels === undefined ? undefined : _element_labels.length)) {
         label = Array.from(element.labels).map((el)=>{
             var _el_textContent;
-            return (_el_textContent = el.textContent) === null || _el_textContent === void 0 ? void 0 : _el_textContent.trim();
+            return (_el_textContent = el.textContent) === null || _el_textContent === undefined ? undefined : _el_textContent.trim();
         }).join('|');
     } else if (isElementType.isElementType(element, 'button')) {
         var _element_textContent;
-        label = (_element_textContent = element.textContent) === null || _element_textContent === void 0 ? void 0 : _element_textContent.trim();
+        label = (_element_textContent = element.textContent) === null || _element_textContent === undefined ? undefined : _element_textContent.trim();
     }
-    label = label === null || label === void 0 ? void 0 : label.replace(/\n/g, '  ');
-    if (Number(label === null || label === void 0 ? void 0 : label.length) > 30) {
-        label = `${label === null || label === void 0 ? void 0 : label.substring(0, 29)}…`;
+    label = label === null || label === undefined ? undefined : label.replace(/\n/g, '  ');
+    if (Number(label === null || label === undefined ? undefined : label.length) > 30) {
+        label = `${label === null || label === undefined ? undefined : label.substring(0, 29)}…`;
     }
     return label ? `(label=${label})` : '';
 }

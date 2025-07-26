@@ -1,6 +1,6 @@
 {
   "name": "@inquirer/type",
-  "version": "3.0.2",
+  "version": "3.0.8",
   "description": "Inquirer core TS types",
   "keywords": [
     "answer",
@@ -75,12 +75,16 @@
     "tsc": "tshy"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.17.2",
-    "@repo/tsconfig": "workspace:*",
+    "@arethetypeswrong/cli": "^0.18.2",
     "tshy": "^3.0.2"
   },
   "peerDependencies": {
     "@types/node": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=18"
@@ -94,5 +98,5 @@
       ".": "./src/index.ts"
     }
   },
-  "gitHead": "7613d7474f1f17a18019b89f208f46be10c5b02f"
+  "gitHead": "c1a755fe8b50377b685ea5951e0794985ce8d356"
 }

@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { Params, RedirectFunction, UrlTree } from '@angular/router';
 import { ToastConfig } from '../_models/toast';
 import { RoutingService } from '../_services/routing.service';
-import { ToastService } from '../design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from '../design/organisms/toast-overlay/toast.service';
 
 function toPasswordResetToast(
   state: string,

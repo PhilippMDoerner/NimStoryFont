@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { action } from '@storybook/addon-actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { PlayerClass } from 'src/app/_models/playerclass';
 import { Spell } from 'src/app/_models/spell';
 import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { action } from 'storybook/actions';
 import * as all from 'tinymce/tinymce';
 import { SpellsTemplateComponent } from './spells-template.component';
 

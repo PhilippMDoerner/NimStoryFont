@@ -46,16 +46,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.inlineLocales = inlineLocales;
 const remapping_1 = __importDefault(require("@ampproject/remapping"));
 const core_1 = require("@babel/core");
-const fs = __importStar(require("fs/promises"));
-const path = __importStar(require("path"));
-const worker_threads_1 = require("worker_threads");
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
+const node_worker_threads_1 = require("node:worker_threads");
 const environment_options_1 = require("./environment-options");
 const error_1 = require("./error");
 const load_esm_1 = require("./load-esm");
 // Lazy loaded webpack-sources object
 // Webpack is only imported if needed during the processing
 let webpackSources;
-const { i18n } = (worker_threads_1.workerData || {});
+const { i18n } = (node_worker_threads_1.workerData || {});
 /**
  * Internal flag to enable the direct usage of the `@angular/localize` translation plugins.
  * Their usage is currently several times slower than the string manipulation method.
@@ -171,7 +171,8 @@ async function inlineLocales(options) {
         if (!transformResult || !transformResult.code) {
             throw new Error(`Unknown error occurred processing bundle for "${options.filename}".`);
         }
-        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : locale, options.filename);
+        const subPath = i18n.locales[locale].subPath;
+        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : subPath, options.filename);
         await fs.writeFile(outputPath, transformResult.code);
         if (options.map && transformResult.map) {
             const outputMap = (0, remapping_1.default)([transformResult.map, options.map], () => null);
@@ -231,7 +232,8 @@ async function inlineLocalesDirect(ast, options) {
                 : new ConcatSource(setLocaleText, content);
         }
         const { source: outputCode, map: outputMap } = outputSource.sourceAndMap();
-        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : locale, options.filename);
+        const subPath = i18n.locales[locale].subPath;
+        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : subPath, options.filename);
         await fs.writeFile(outputPath, outputCode);
         if (inputMap && outputMap) {
             outputMap.file = options.filename;
@@ -248,7 +250,8 @@ async function inlineCopyOnly(options) {
         throw new Error('i18n options are missing');
     }
     for (const locale of i18n.inlineLocales) {
-        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : locale, options.filename);
+        const subPath = i18n.locales[locale].subPath;
+        const outputPath = path.join(options.outputPath, i18n.flatOutput ? '' : subPath, options.filename);
         await fs.writeFile(outputPath, options.code);
         if (options.map) {
             await fs.writeFile(outputPath + '.map', options.map);

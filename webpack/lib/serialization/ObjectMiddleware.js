@@ -4,7 +4,9 @@
 
 "use strict";
 
+const { DEFAULTS } = require("../config/defaults");
 const createHash = require("../util/createHash");
+const AggregateErrorSerializer = require("./AggregateErrorSerializer");
 const ArraySerializer = require("./ArraySerializer");
 const DateObjectSerializer = require("./DateObjectSerializer");
 const ErrorObjectSerializer = require("./ErrorObjectSerializer");
@@ -15,11 +17,13 @@ const RegExpObjectSerializer = require("./RegExpObjectSerializer");
 const SerializerMiddleware = require("./SerializerMiddleware");
 const SetObjectSerializer = require("./SetObjectSerializer");
 
+/** @typedef {import("../logging/Logger").Logger} Logger */
 /** @typedef {typeof import("../util/Hash")} Hash */
+/** @typedef {import("./SerializerMiddleware").LazyOptions} LazyOptions */
 /** @typedef {import("./types").ComplexSerializableType} ComplexSerializableType */
 /** @typedef {import("./types").PrimitiveSerializableType} PrimitiveSerializableType */
 
-/** @typedef {new (...params: any[]) => any} Constructor */
+/** @typedef {new (...params: EXPECTED_ANY[]) => EXPECTED_ANY} Constructor */
 
 /*
 
@@ -44,23 +48,37 @@ Technically any value can be used.
 */
 
 /**
+ * @typedef {object} ObjectSerializerSnapshot
+ * @property {number} length
+ * @property {number} cycleStackSize
+ * @property {number} referenceableSize
+ * @property {number} currentPos
+ * @property {number} objectTypeLookupSize
+ * @property {number} currentPosTypeLookup
+ */
+/** @typedef {TODO} Value */
+/** @typedef {EXPECTED_OBJECT | string} ReferenceableItem */
+
+/**
  * @typedef {object} ObjectSerializerContext
- * @property {function(any): void} write
- * @property {(function(any): void)=} writeLazy
- * @property {(function(any, object=): (() => Promise<any> | any))=} writeSeparate
- * @property {function(any): void} setCircularReference
+ * @property {(value: Value) => void} write
+ * @property {(value: ReferenceableItem) => void} setCircularReference
+ * @property {() => ObjectSerializerSnapshot} snapshot
+ * @property {(snapshot: ObjectSerializerSnapshot) => void} rollback
+ * @property {((item: Value | (() => Value)) => void)=} writeLazy
+ * @property {((item: (Value | (() => Value)), obj: LazyOptions | undefined) => import("./SerializerMiddleware").LazyFunction<EXPECTED_ANY, EXPECTED_ANY, EXPECTED_ANY, LazyOptions>)=} writeSeparate
  */
 
 /**
  * @typedef {object} ObjectDeserializerContext
- * @property {function(): any} read
- * @property {function(any): void} setCircularReference
+ * @property {() => Value} read
+ * @property {(value: ReferenceableItem) => void} setCircularReference
  */
 
 /**
  * @typedef {object} ObjectSerializer
- * @property {function(any, ObjectSerializerContext): void} serialize
- * @property {function(ObjectDeserializerContext): any} deserialize
+ * @property {(value: Value, context: ObjectSerializerContext) => void} serialize
+ * @property {(context: ObjectDeserializerContext) => Value} deserialize
  */
 
 /**
@@ -109,7 +127,10 @@ const ESCAPE_UNDEFINED = false;
 
 const CURRENT_VERSION = 2;
 
-/** @type {Map<Constructor, { request?: string, name?: string | number | null, serializer?: ObjectSerializer }>} */
+/** @typedef {{ request?: string, name?: string | number | null, serializer?: ObjectSerializer }} SerializerConfig */
+/** @typedef {{ request?: string, name?: string | number | null, serializer: ObjectSerializer }} SerializerConfigWithSerializer */
+
+/** @type {Map<Constructor, SerializerConfig>} */
 const serializers = new Map();
 /** @type {Map<string | number, ObjectSerializer>} */
 const serializerInversed = new Map();
@@ -120,6 +141,7 @@ const loadedRequests = new Set();
 const NOT_SERIALIZABLE = {};
 
 const jsTypes = new Map();
+
 jsTypes.set(Object, new PlainObjectSerializer());
 jsTypes.set(Array, new ArraySerializer());
 jsTypes.set(null, new NullPrototypeObjectSerializer());
@@ -134,14 +156,25 @@ jsTypes.set(ReferenceError, new ErrorObjectSerializer(ReferenceError));
 jsTypes.set(SyntaxError, new ErrorObjectSerializer(SyntaxError));
 jsTypes.set(TypeError, new ErrorObjectSerializer(TypeError));
 
-// If in a sandboxed environment (e. g. jest), this escapes the sandbox and registers
-// real Object and Array types to. These types may occur in the wild too, e. g. when
+// @ts-expect-error ES2018 doesn't `AggregateError`, but it can be used by developers
+// eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax
+if (typeof AggregateError !== "undefined") {
+	jsTypes.set(
+		// @ts-expect-error ES2018 doesn't `AggregateError`, but it can be used by developers
+		// eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax
+		AggregateError,
+		new AggregateErrorSerializer()
+	);
+}
+
+// If in a sandboxed environment (e.g. jest), this escapes the sandbox and registers
+// real Object and Array types to. These types may occur in the wild too, e.g. when
 // using Structured Clone in postMessage.
 // eslint-disable-next-line n/exports-style
 if (exports.constructor !== Object) {
-	// eslint-disable-next-line jsdoc/check-types, n/exports-style
-	const Obj = /** @type {typeof Object} */ (exports.constructor);
-	const Fn = /** @type {typeof Function} */ (Obj.constructor);
+	// eslint-disable-next-line n/exports-style
+	const Obj = /** @type {ObjectConstructor} */ (exports.constructor);
+	const Fn = /** @type {FunctionConstructor} */ (Obj.constructor);
 	for (const [type, config] of Array.from(jsTypes)) {
 		if (type) {
 			const Type = new Fn(`return ${type.name};`)();
@@ -171,17 +204,19 @@ for (const { request, name, serializer } of serializers.values()) {
 /** @type {Map<RegExp, (request: string) => boolean>} */
 const loaders = new Map();
 
+/** @typedef {ComplexSerializableType[]} DeserializedType */
+/** @typedef {PrimitiveSerializableType[]} SerializedType */
+/** @typedef {{ logger: Logger }} Context */
+
 /**
- * @typedef {ComplexSerializableType[]} DeserializedType
- * @typedef {PrimitiveSerializableType[]} SerializedType
- * @extends {SerializerMiddleware<DeserializedType, SerializedType>}
+ * @extends {SerializerMiddleware<DeserializedType, SerializedType, Context>}
  */
 class ObjectMiddleware extends SerializerMiddleware {
 	/**
-	 * @param {function(any): void} extendContext context extensions
+	 * @param {(context: ObjectSerializerContext | ObjectDeserializerContext) => void} extendContext context extensions
 	 * @param {string | Hash} hashFunction hash function to use
 	 */
-	constructor(extendContext, hashFunction = "md4") {
+	constructor(extendContext, hashFunction = DEFAULTS.HASH_FUNCTION) {
 		super();
 		this.extendContext = extendContext;
 		this._hashFunction = hashFunction;
@@ -189,7 +224,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {RegExp} regExp RegExp for which the request is tested
-	 * @param {function(string): boolean} loader loader to load the request, returns true when successful
+	 * @param {(request: string) => boolean} loader loader to load the request, returns true when successful
 	 * @returns {void}
 	 */
 	static registerLoader(regExp, loader) {
@@ -241,6 +276,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 		serializers.set(Constructor, NOT_SERIALIZABLE);
 	}
 
+	/**
+	 * @param {Constructor} object for serialization
+	 * @returns {SerializerConfigWithSerializer} Serializer config
+	 */
 	static getSerializerFor(object) {
 		const proto = Object.getPrototypeOf(object);
 		let c;
@@ -260,12 +299,12 @@ class ObjectMiddleware extends SerializerMiddleware {
 		if (!config) throw new Error(`No serializer registered for ${c.name}`);
 		if (config === NOT_SERIALIZABLE) throw NOT_SERIALIZABLE;
 
-		return config;
+		return /** @type {SerializerConfigWithSerializer} */ (config);
 	}
 
 	/**
 	 * @param {string} request request
-	 * @param {TODO} name name
+	 * @param {string} name name
 	 * @returns {ObjectSerializer} serializer
 	 */
 	static getDeserializerFor(request, name) {
@@ -292,14 +331,18 @@ class ObjectMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {DeserializedType} data data
-	 * @param {object} context context object
-	 * @returns {SerializedType|Promise<SerializedType>} serialized data
+	 * @param {Context} context context object
+	 * @returns {SerializedType | Promise<SerializedType> | null} serialized data
 	 */
 	serialize(data, context) {
-		/** @type {any[]} */
+		/** @type {Value[]} */
 		let result = [CURRENT_VERSION];
 		let currentPos = 0;
+		/** @type {Map<ReferenceableItem, number>} */
 		let referenceable = new Map();
+		/**
+		 * @param {ReferenceableItem} item referenceable item
+		 */
 		const addReferenceable = item => {
 			referenceable.set(item, currentPos++);
 		};
@@ -368,6 +411,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 		let currentPosTypeLookup = 0;
 		let objectTypeLookup = new Map();
 		const cycleStack = new Set();
+		/**
+		 * @param {Value} item item to stack
+		 * @returns {string} stack
+		 */
 		const stackToString = item => {
 			const arr = Array.from(cycleStack);
 			arr.push(item);
@@ -411,15 +458,16 @@ class ObjectMiddleware extends SerializerMiddleware {
 					try {
 						return `${item}`;
 					} catch (err) {
-						return `(${err.message})`;
+						return `(${/** @type {Error} */ (err).message})`;
 					}
 				})
 				.join(" -> ");
 		};
 		/** @type {WeakSet<Error>} */
 		let hasDebugInfoAttached;
+		/** @type {ObjectSerializerContext} */
 		let ctx = {
-			write(value, key) {
+			write(value) {
 				try {
 					process(value);
 				} catch (err) {
@@ -459,6 +507,9 @@ class ObjectMiddleware extends SerializerMiddleware {
 			...context
 		};
 		this.extendContext(ctx);
+		/**
+		 * @param {Value} item item to serialize
+		 */
 		const process = item => {
 			if (Buffer.isBuffer(item)) {
 				// check if we can emit a reference
@@ -547,9 +598,11 @@ class ObjectMiddleware extends SerializerMiddleware {
 			} else if (typeof item === "function") {
 				if (!SerializerMiddleware.isLazy(item))
 					throw new Error(`Unexpected function ${item}`);
-				/** @type {SerializedType} */
+
+				/** @type {SerializedType | undefined} */
 				const serializedData =
 					SerializerMiddleware.getLazySerializedValue(item);
+
 				if (serializedData !== undefined) {
 					if (typeof serializedData === "function") {
 						result.push(serializedData);
@@ -599,8 +652,8 @@ class ObjectMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {SerializedType} data data
-	 * @param {object} context context object
-	 * @returns {DeserializedType|Promise<DeserializedType>} deserialized data
+	 * @param {Context} context context object
+	 * @returns {DeserializedType | Promise<DeserializedType>} deserialized data
 	 */
 	deserialize(data, context) {
 		let currentDataPos = 0;
@@ -615,14 +668,20 @@ class ObjectMiddleware extends SerializerMiddleware {
 			throw new Error("Version mismatch, serializer changed");
 
 		let currentPos = 0;
+		/** @type {ReferenceableItem[]} */
 		let referenceable = [];
+		/**
+		 * @param {Value} item referenceable item
+		 */
 		const addReferenceable = item => {
 			referenceable.push(item);
 			currentPos++;
 		};
 		let currentPosTypeLookup = 0;
+		/** @type {ObjectSerializer[]} */
 		let objectTypeLookup = [];
 		let result = [];
+		/** @type {ObjectDeserializerContext} */
 		let ctx = {
 			read() {
 				return decodeValue();
@@ -746,7 +805,9 @@ class ObjectMiddleware extends SerializerMiddleware {
 			} else if (typeof item === "function") {
 				return SerializerMiddleware.deserializeLazy(
 					item,
-					data => this.deserialize(data, context)[0]
+					data =>
+						/** @type {[DeserializedType]} */
+						(this.deserialize(data, context))[0]
 				);
 			} else {
 				return item;

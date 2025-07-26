@@ -6,10 +6,10 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { ConstantPool, ParseSourceSpan, R3DeclareDirectiveMetadata, R3DirectiveMetadata, R3PartialDeclaration } from '@angular/compiler';
-import { AbsoluteFsPath } from '../../../../src/ngtsc/file_system';
 import { Range } from '../../ast/ast_host';
 import { AstObject } from '../../ast/ast_value';
 import { LinkedDefinition, PartialLinker } from './partial_linker';
+import { AbsoluteFsPath } from '../../../../src/ngtsc/file_system/src/types';
 /**
  * A `PartialLinker` that is designed to process `ɵɵngDeclareDirective()` call expressions.
  */

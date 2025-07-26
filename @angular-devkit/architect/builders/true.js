@@ -8,4 +8,5 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const src_1 = require("../src");
-exports.default = (0, src_1.createBuilder)(() => ({ success: true }));
+const builder = (0, src_1.createBuilder)(() => ({ success: true }));
+exports.default = builder;

@@ -51,6 +51,7 @@ const processExportInfo = require("./processExportInfo");
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("./HarmonyImportDependency").ExportPresenceMode} ExportPresenceMode */
 /** @typedef {import("./processExportInfo").ReferencedExports} ReferencedExports */
 
 /** @typedef {"missing"|"unused"|"empty-star"|"reexport-dynamic-default"|"reexport-named-default"|"reexport-namespace-object"|"reexport-fake-namespace-object"|"reexport-undefined"|"normal-reexport"|"dynamic-reexport"} ExportModeType */
@@ -115,11 +116,14 @@ class ExportMode {
 	}
 }
 
+/** @typedef {string[]} Names */
+/** @typedef {number[]} DependencyIndices */
+
 /**
  * @param {ModuleGraph} moduleGraph module graph
- * @param {TODO} dependencies dependencies
+ * @param {HarmonyExportImportedSpecifierDependency[]} dependencies dependencies
  * @param {TODO=} additionalDependency additional dependency
- * @returns {TODO} result
+ * @returns {{ names: Names, dependencyIndices: DependencyIndices }} result
  */
 const determineExportAssignments = (
 	moduleGraph,
@@ -157,6 +161,14 @@ const determineExportAssignments = (
 	return { names: Array.from(names), dependencyIndices };
 };
 
+/**
+ * @param {object} options options
+ * @param {Names} options.names names
+ * @param {DependencyIndices} options.dependencyIndices dependency indices
+ * @param {string} name name
+ * @param {Iterable<HarmonyExportImportedSpecifierDependency>} dependencies dependencies
+ * @returns {HarmonyExportImportedSpecifierDependency | undefined} found dependency or nothing
+ */
 const findDependencyForName = (
 	{ names, dependencyIndices },
 	name,
@@ -214,7 +226,8 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 
 	const importedExportsType = importedModule.getExportsType(
 		moduleGraph,
-		/** @type {BuildMeta} */ (parentModule.buildMeta).strictHarmonyModule
+		/** @type {BuildMeta} */
+		(parentModule.buildMeta).strictHarmonyModule
 	);
 
 	const ids = dep.getIds(moduleGraph);
@@ -359,7 +372,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	 * @param {string | null} name the export name of for this module
 	 * @param {Set<string>} activeExports other named exports in the module
 	 * @param {ReadonlyArray<HarmonyExportImportedSpecifierDependency> | Iterable<HarmonyExportImportedSpecifierDependency> | null} otherStarExports other star exports in the module before this import
-	 * @param {number} exportPresenceMode mode of checking export names
+	 * @param {ExportPresenceMode} exportPresenceMode mode of checking export names
 	 * @param {HarmonyStarExportsList | null} allStarExports all star exports in the module
 	 * @param {ImportAttributes=} attributes import attributes
 	 */
@@ -424,8 +437,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	 * @returns {void}
 	 */
 	setIds(moduleGraph, ids) {
-		/** @type {TODO} */
-		(moduleGraph.getMeta(this))[idsSymbol] = ids;
+		moduleGraph.getMeta(this)[idsSymbol] = ids;
 	}
 
 	/**
@@ -619,7 +631,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @returns {{ names: string[], namesSlice: number, dependencyIndices: number[], dependencyIndex: number } | undefined} exported names and their origin dependency
+	 * @returns {{ names: Names, namesSlice: number, dependencyIndices: DependencyIndices, dependencyIndex: number } | undefined} exported names and their origin dependency
 	 */
 	_discoverActiveExportsFromOtherStarExports(moduleGraph) {
 		if (!this.otherStarExports) return;
@@ -796,7 +808,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 
 	/**
 	 * @param {ModuleGraph} moduleGraph module graph
-	 * @returns {number} effective mode
+	 * @returns {ExportPresenceMode} effective mode
 	 */
 	_getEffectiveExportPresenceLevel(moduleGraph) {
 		if (this.exportPresenceMode !== ExportPresenceModes.AUTO)
@@ -871,7 +883,11 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 							exportInfo.name,
 							this.allStarExports
 								? this.allStarExports.dependencies
-								: [...this.otherStarExports, this]
+								: [
+										.../** @type {Iterable<HarmonyExportImportedSpecifierDependency>} */
+										(this.otherStarExports),
+										this
+									]
 						);
 						if (!conflictingDependency) continue;
 						const target = exportInfo.getTerminalBinding(moduleGraph);

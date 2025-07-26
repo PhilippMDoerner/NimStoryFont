@@ -1,4 +1,4 @@
-import { defaultTheme } from './theme.js';
+import { defaultTheme } from "./theme.js";
 function isPlainObject(value) {
     if (typeof value !== 'object' || value === null)
         return false;

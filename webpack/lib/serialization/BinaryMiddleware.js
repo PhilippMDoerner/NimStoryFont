@@ -135,27 +135,33 @@ const identifyBigInt = n => {
 	return 2;
 };
 
-/** @typedef {TODO} Context */
+/** @typedef {PrimitiveSerializableType[]} DeserializedType */
+/** @typedef {BufferSerializableType[]} SerializedType} */
+/** @typedef {{ retainedBuffer?: (x: Buffer) => Buffer }} Context} */
 
 /**
- * @typedef {PrimitiveSerializableType[]} DeserializedType
- * @typedef {BufferSerializableType[]} SerializedType
- * @extends {SerializerMiddleware<DeserializedType, SerializedType>}
+ * @template LazyInputValue
+ * @template LazyOutputValue
+ * @typedef {import("./SerializerMiddleware").LazyFunction<LazyInputValue, LazyOutputValue, BinaryMiddleware, undefined>} LazyFunction
+ */
+
+/**
+ * @extends {SerializerMiddleware<DeserializedType, SerializedType, Context>}
  */
 class BinaryMiddleware extends SerializerMiddleware {
 	/**
 	 * @param {DeserializedType} data data
-	 * @param {object} context context object
-	 * @returns {SerializedType|Promise<SerializedType>} serialized data
+	 * @param {Context} context context object
+	 * @returns {SerializedType | Promise<SerializedType> | null} serialized data
 	 */
 	serialize(data, context) {
 		return this._serialize(data, context);
 	}
 
 	/**
-	 * @param {function(): Promise<any> | any} fn lazy function
-	 * @param {TODO} context serialize function
-	 * @returns {function(): Promise<any> | any} new lazy
+	 * @param {LazyFunction<DeserializedType, SerializedType>} fn lazy function
+	 * @param {Context} context serialize function
+	 * @returns {LazyFunction<SerializedType, DeserializedType>} new lazy
 	 */
 	_serializeLazy(fn, context) {
 		return SerializerMiddleware.serializeLazy(fn, data =>
@@ -165,7 +171,7 @@ class BinaryMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {DeserializedType} data data
-	 * @param {TODO} context context object
+	 * @param {Context} context context object
 	 * @param {{ leftOverBuffer: Buffer | null, allocationSize: number, increaseCounter: number }} allocationScope allocation scope
 	 * @returns {SerializedType} serialized data
 	 */
@@ -277,7 +283,7 @@ class BinaryMiddleware extends SerializerMiddleware {
 				case "function": {
 					if (!SerializerMiddleware.isLazy(thing))
 						throw new Error(`Unexpected function ${thing}`);
-					/** @type {SerializedType | (() => SerializedType)} */
+					/** @type {SerializedType | LazyFunction<SerializedType, DeserializedType> | undefined} */
 					let serializedData =
 						SerializerMiddleware.getLazySerializedValue(thing);
 					if (serializedData === undefined) {
@@ -285,9 +291,8 @@ class BinaryMiddleware extends SerializerMiddleware {
 							flush();
 							allocationScope.leftOverBuffer = leftOverBuffer;
 							const result =
-								/** @type {(Exclude<PrimitiveSerializableType, Promise<PrimitiveSerializableType>>)[]} */ (
-									thing()
-								);
+								/** @type {PrimitiveSerializableType[]} */
+								(thing());
 							const data = this._serialize(result, context, allocationScope);
 							leftOverBuffer = allocationScope.leftOverBuffer;
 							allocationScope.leftOverBuffer = null;
@@ -644,13 +649,19 @@ class BinaryMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {SerializedType} data data
-	 * @param {object} context context object
-	 * @returns {DeserializedType|Promise<DeserializedType>} deserialized data
+	 * @param {Context} context context object
+	 * @returns {DeserializedType | Promise<DeserializedType>} deserialized data
 	 */
 	deserialize(data, context) {
 		return this._deserialize(data, context);
 	}
 
+	/**
+	 * @private
+	 * @param {SerializedType} content content
+	 * @param {Context} context context object
+	 * @returns {LazyFunction<DeserializedType, SerializedType>} lazy function
+	 */
 	_createLazyDeserialized(content, context) {
 		return SerializerMiddleware.createLazy(
 			memoize(() => this._deserialize(content, context)),
@@ -660,6 +671,12 @@ class BinaryMiddleware extends SerializerMiddleware {
 		);
 	}
 
+	/**
+	 * @private
+	 * @param {LazyFunction<SerializedType, DeserializedType>} fn lazy function
+	 * @param {Context} context context object
+	 * @returns {LazyFunction<DeserializedType, SerializedType>} new lazy
+	 */
 	_deserializeLazy(fn, context) {
 		return SerializerMiddleware.deserializeLazy(fn, data =>
 			this._deserialize(data, context)
@@ -668,7 +685,7 @@ class BinaryMiddleware extends SerializerMiddleware {
 
 	/**
 	 * @param {SerializedType} data data
-	 * @param {TODO} context context object
+	 * @param {Context} context context object
 	 * @returns {DeserializedType} deserialized data
 	 */
 	_deserialize(data, context) {
@@ -678,7 +695,6 @@ class BinaryMiddleware extends SerializerMiddleware {
 		let currentIsBuffer = Buffer.isBuffer(currentBuffer);
 		let currentPosition = 0;
 
-		/** @type {(x: Buffer) => Buffer} */
 		const retainedBuffer = context.retainedBuffer || (x => x);
 
 		const checkOverflow = () => {
@@ -795,6 +811,7 @@ class BinaryMiddleware extends SerializerMiddleware {
 					return () => {
 						const count = readU32();
 						const lengths = Array.from({ length: count }).map(() => readU32());
+						/** @type {(Buffer | LazyFunction<SerializedType, DeserializedType>)[]} */
 						const content = [];
 						for (let l of lengths) {
 							if (l === 0) {

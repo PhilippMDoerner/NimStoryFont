@@ -2,11 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withMethods } from '@ngrx/signals';
-import { MethodsDictionary } from '@ngrx/signals/src/signal-store-models';
 import { Observable, take } from 'rxjs';
 import { successToast } from 'src/app/_models/toast';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import {
+  MethodsDictionary,
   Request,
   RequestMap,
   RequestState,

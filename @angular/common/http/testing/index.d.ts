@@ -1,40 +1,88 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
-import { HttpEvent } from '@angular/common/http';
-import { HttpHeaders } from '@angular/common/http';
-import { HttpRequest } from '@angular/common/http';
-import * as i0 from '@angular/core';
-import * as i1 from '@angular/common/http';
+import { HttpRequest, HttpEvent, HttpHeaders, HttpClientModule } from '../../module.d-yNBsZ8gb.js';
 import { Observer } from 'rxjs';
+import * as i0 from '@angular/core';
 import { Provider } from '@angular/core';
 
 /**
- * Configures `HttpClientTestingBackend` as the `HttpBackend` used by `HttpClient`.
+ * Type that describes options that can be used to create an error
+ * in `TestRequest`.
+ */
+type TestRequestErrorOptions = {
+    headers?: HttpHeaders | {
+        [name: string]: string | string[];
+    };
+    status?: number;
+    statusText?: string;
+};
+/**
+ * A mock requests that was received and is ready to be answered.
  *
- * Inject `HttpTestingController` to expect and flush requests in your tests.
+ * This interface allows access to the underlying `HttpRequest`, and allows
+ * responding with `HttpEvent`s or `HttpErrorResponse`s.
  *
  * @publicApi
- *
- * @deprecated Add `provideHttpClientTesting()` to your providers instead.
  */
-export declare class HttpClientTestingModule {
-    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClientTestingModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<HttpClientTestingModule, never, [typeof i1.HttpClientModule], never>;
-    static ɵinj: i0.ɵɵInjectorDeclaration<HttpClientTestingModule>;
+declare class TestRequest {
+    request: HttpRequest<any>;
+    private observer;
+    /**
+     * Whether the request was cancelled after it was sent.
+     */
+    get cancelled(): boolean;
+    constructor(request: HttpRequest<any>, observer: Observer<HttpEvent<any>>);
+    /**
+     * Resolve the request by returning a body plus additional HTTP information (such as response
+     * headers) if provided.
+     * If the request specifies an expected body type, the body is converted into the requested type.
+     * Otherwise, the body is converted to `JSON` by default.
+     *
+     * Both successful and unsuccessful responses can be delivered via `flush()`.
+     */
+    flush(body: ArrayBuffer | Blob | boolean | string | number | Object | (boolean | string | number | Object | null)[] | null, opts?: {
+        headers?: HttpHeaders | {
+            [name: string]: string | string[];
+        };
+        status?: number;
+        statusText?: string;
+    }): void;
+    /**
+     * Resolve the request by returning an `ErrorEvent` (e.g. simulating a network failure).
+     * @deprecated Http requests never emit an `ErrorEvent`. Please specify a `ProgressEvent`.
+     */
+    error(error: ErrorEvent, opts?: TestRequestErrorOptions): void;
+    /**
+     * Resolve the request by returning an `ProgressEvent` (e.g. simulating a network failure).
+     */
+    error(error: ProgressEvent, opts?: TestRequestErrorOptions): void;
+    /**
+     * Deliver an arbitrary `HttpEvent` (such as a progress event) on the response stream for this
+     * request.
+     */
+    event(event: HttpEvent<any>): void;
 }
 
+/**
+ * Defines a matcher for requests based on URL, method, or both.
+ *
+ * @publicApi
+ */
+interface RequestMatch {
+    method?: string;
+    url?: string;
+}
 /**
  * Controller to be injected into tests, that allows for mocking and flushing
  * of requests.
  *
  * @publicApi
  */
-export declare abstract class HttpTestingController {
+declare abstract class HttpTestingController {
     /**
      * Search for requests that match the given parameter, without any expectations.
      */
@@ -113,75 +161,22 @@ export declare abstract class HttpTestingController {
     }): void;
 }
 
-export declare function provideHttpClientTesting(): Provider[];
-
 /**
- * Defines a matcher for requests based on URL, method, or both.
+ * Configures `HttpClientTestingBackend` as the `HttpBackend` used by `HttpClient`.
+ *
+ * Inject `HttpTestingController` to expect and flush requests in your tests.
  *
  * @publicApi
+ *
+ * @deprecated Add `provideHttpClientTesting()` to your providers instead.
  */
-export declare interface RequestMatch {
-    method?: string;
-    url?: string;
+declare class HttpClientTestingModule {
+    static ɵfac: i0.ɵɵFactoryDeclaration<HttpClientTestingModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<HttpClientTestingModule, never, [typeof HttpClientModule], never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<HttpClientTestingModule>;
 }
 
-/**
- * A mock requests that was received and is ready to be answered.
- *
- * This interface allows access to the underlying `HttpRequest`, and allows
- * responding with `HttpEvent`s or `HttpErrorResponse`s.
- *
- * @publicApi
- */
-export declare class TestRequest {
-    request: HttpRequest<any>;
-    private observer;
-    /**
-     * Whether the request was cancelled after it was sent.
-     */
-    get cancelled(): boolean;
-    constructor(request: HttpRequest<any>, observer: Observer<HttpEvent<any>>);
-    /**
-     * Resolve the request by returning a body plus additional HTTP information (such as response
-     * headers) if provided.
-     * If the request specifies an expected body type, the body is converted into the requested type.
-     * Otherwise, the body is converted to `JSON` by default.
-     *
-     * Both successful and unsuccessful responses can be delivered via `flush()`.
-     */
-    flush(body: ArrayBuffer | Blob | boolean | string | number | Object | (boolean | string | number | Object | null)[] | null, opts?: {
-        headers?: HttpHeaders | {
-            [name: string]: string | string[];
-        };
-        status?: number;
-        statusText?: string;
-    }): void;
-    /**
-     * Resolve the request by returning an `ErrorEvent` (e.g. simulating a network failure).
-     * @deprecated Http requests never emit an `ErrorEvent`. Please specify a `ProgressEvent`.
-     */
-    error(error: ErrorEvent, opts?: TestRequestErrorOptions): void;
-    /**
-     * Resolve the request by returning an `ProgressEvent` (e.g. simulating a network failure).
-     */
-    error(error: ProgressEvent, opts?: TestRequestErrorOptions): void;
-    /**
-     * Deliver an arbitrary `HttpEvent` (such as a progress event) on the response stream for this
-     * request.
-     */
-    event(event: HttpEvent<any>): void;
-}
+declare function provideHttpClientTesting(): Provider[];
 
-/**
- * Type that describes options that can be used to create an error
- * in `TestRequest`.
- */
-declare type TestRequestErrorOptions = {
-    headers?: HttpHeaders | {
-        [name: string]: string | string[];
-    };
-    status?: number;
-    statusText?: string;
-};
-
-export { }
+export { HttpClientTestingModule, HttpTestingController, TestRequest, provideHttpClientTesting };
+export type { RequestMatch };

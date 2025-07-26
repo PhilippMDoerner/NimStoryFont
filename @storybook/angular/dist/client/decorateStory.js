@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = decorateStory;
 exports.decorateStory = decorateStory;
-const preview_api_1 = require("storybook/internal/preview-api");
+const preview_api_1 = require("storybook/preview-api");
 const ComputesTemplateFromComponent_1 = require("./angular-beta/ComputesTemplateFromComponent");
 function decorateStory(mainStoryFn, decorators) {
     const returnDecorators = [cleanArgsDecorator, ...decorators].reduce((previousStoryFn, decorator) => (context) => {

@@ -1,0 +1,12 @@
+import { ArgTypes, SBType } from 'storybook/internal/types';
+import { Class, CompodocJson, Component, Directive, Injectable, Method, Pipe, Property } from './compodoc-types';
+export declare const isMethod: (methodOrProp: Method | Property) => methodOrProp is Method;
+export declare const setCompodocJson: (compodocJson: CompodocJson) => void;
+export declare const getCompodocJson: () => CompodocJson;
+export declare const checkValidComponentOrDirective: (component: Component | Directive) => void;
+export declare const checkValidCompodocJson: (compodocJson: CompodocJson) => void;
+export declare const findComponentByName: (name: string, compodocJson: CompodocJson) => Class | Injectable | Pipe | Directive | undefined;
+export declare const extractType: (property: Property, defaultValue: any) => SBType;
+export declare const extractArgTypesFromData: (componentData: Class | Directive | Injectable | Pipe) => ArgTypes<import("storybook/internal/csf").Args>;
+export declare const extractArgTypes: (component: Component | Directive) => ArgTypes<import("storybook/internal/csf").Args> | null | undefined;
+export declare const extractComponentDescription: (component: Component | Directive) => string | null | undefined;

@@ -93,7 +93,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 			(compilation.outputOptions.environment);
 		const {
 			runtimeTemplate,
-			outputOptions: { importFunctionName, crossOriginLoading }
+			outputOptions: { importFunctionName, crossOriginLoading, charset }
 		} = compilation;
 		const fn = RuntimeGlobals.ensureChunkHandlers;
 		const withBaseURI = this._runtimeRequirements.has(RuntimeGlobals.baseURI);
@@ -214,9 +214,11 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 													: `if(${hasJsMatcher("chunkId")}) {`,
 												Template.indent([
 													"// setup Promise in chunk cache",
-													`var promise = ${importFunctionName}(${JSON.stringify(
-														rootOutputDir
-													)} + ${
+													`var promise = ${importFunctionName}(${
+														compilation.outputOptions.publicPath === "auto"
+															? JSON.stringify(rootOutputDir)
+															: RuntimeGlobals.publicPath
+													} + ${
 														RuntimeGlobals.getChunkScriptFilename
 													}(chunkId)).then(installChunk, ${runtimeTemplate.basicFunction(
 														"e",
@@ -248,6 +250,9 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 				? `${
 						RuntimeGlobals.prefetchChunkHandlers
 					}.j = ${runtimeTemplate.basicFunction("chunkId", [
+						isNeutralPlatform
+							? "if (typeof document === 'undefined') return;"
+							: "",
 						`if((!${
 							RuntimeGlobals.hasOwnProperty
 						}(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && ${
@@ -255,12 +260,10 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 						}) {`,
 						Template.indent([
 							"installedChunks[chunkId] = null;",
-							isNeutralPlatform
-								? "if (typeof document === 'undefined') return;"
-								: "",
 							linkPrefetch.call(
 								Template.asString([
 									"var link = document.createElement('link');",
+									charset ? "link.charset = 'utf-8';" : "",
 									crossOriginLoading
 										? `link.crossOrigin = ${JSON.stringify(
 												crossOriginLoading
@@ -287,6 +290,9 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 				? `${
 						RuntimeGlobals.preloadChunkHandlers
 					}.j = ${runtimeTemplate.basicFunction("chunkId", [
+						isNeutralPlatform
+							? "if (typeof document === 'undefined') return;"
+							: "",
 						`if((!${
 							RuntimeGlobals.hasOwnProperty
 						}(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && ${
@@ -294,13 +300,10 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 						}) {`,
 						Template.indent([
 							"installedChunks[chunkId] = null;",
-							isNeutralPlatform
-								? "if (typeof document === 'undefined') return;"
-								: "",
 							linkPreload.call(
 								Template.asString([
 									"var link = document.createElement('link');",
-									"link.charset = 'utf-8';",
+									charset ? "link.charset = 'utf-8';" : "",
 									`if (${RuntimeGlobals.scriptNonce}) {`,
 									Template.indent(
 										`link.setAttribute("nonce", ${RuntimeGlobals.scriptNonce});`

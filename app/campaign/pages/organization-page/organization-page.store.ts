@@ -10,7 +10,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { map, pipe, shareReplay, switchMap, take } from 'rxjs';
+import { map, pipe, shareReplay, switchMap, take, tap } from 'rxjs';
 import { OrganizationMembership } from 'src/app/_models/character';
 import { Organization, OrganizationMember } from 'src/app/_models/organization';
 import { OverviewItem } from 'src/app/_models/overview';
@@ -18,7 +18,7 @@ import { httpErrorToast, successToast } from 'src/app/_models/toast';
 import { CharacterService } from 'src/app/_services/article/character.service';
 import { OrganizationMembershipService } from 'src/app/_services/article/organization-membership.service';
 import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
@@ -110,20 +110,21 @@ export const OrganizationStore = signalStore(
           organizationError: undefined,
           organizationQueryState: 'init',
         }),
-      deleteOrganization: (pk: number) => {
-        patchState(state, {
-          organizationDeleteState: 'loading',
-        });
-        organizationService.delete(pk).subscribe({
-          next: () => {
-            patchState(state, {
-              organizationDeleteState: 'success',
-            });
-          },
-          error: (err: HttpErrorResponse) =>
-            handleError(state, err, toastService),
-        });
-      },
+      deleteOrganization: rxMethod<number>(
+        pipe(
+          tap(() => patchState(state, { organizationDeleteState: 'loading' })),
+          switchMap((pk) => organizationService.delete(pk)),
+          tapResponse({
+            next: () => {
+              patchState(state, {
+                organizationDeleteState: 'success',
+              });
+            },
+            error: (err: HttpErrorResponse) =>
+              handleError(state, err, toastService),
+          }),
+        ),
+      ),
       createMembership: rxMethod<OverviewItem>(
         pipe(
           switchMap((item) =>

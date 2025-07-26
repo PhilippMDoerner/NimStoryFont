@@ -9,7 +9,7 @@
           [width]="128"
           [height]="128"
           priority
-          [alt]="DEFAULT_ICON"
+          alt=""
         />
         <h1 class="heading-container__heading">
           {{ campaignData()?.name }}
@@ -78,20 +78,10 @@
             [icon]="'download'"
             [disabled]="!canLoadMore()"
             [isLoading]="isLoading()"
-            (clicked)="triggerNextPageLoad()"
+            (clicked)="triggerNextPageLoad(this.pageNumber())"
           ></button>
         </div>
       }
     </section>
-
-    @if (isHotkeyModifierPressed()) {
-      <button
-        btn
-        class="hotkey-help"
-        [kind]="'LIGHT-OUTLINE'"
-        [disabled]="true"
-        [text]="'Hotkey Help: Alt + H'"
-      ></button>
-    }
   </article>
 </app-page-container>

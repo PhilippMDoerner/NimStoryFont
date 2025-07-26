@@ -44,12 +44,10 @@ class PathCannotBeFragmentException extends exception_1.BaseException {
 exports.PathCannotBeFragmentException = PathCannotBeFragmentException;
 /**
  * The Separator for normalized path.
- * @type {Path}
  */
 exports.NormalizedSep = '/';
 /**
  * The root of a normalized path.
- * @type {Path}
  */
 exports.NormalizedRoot = exports.NormalizedSep;
 /**

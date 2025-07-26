@@ -6,6 +6,6 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { PathManipulation } from '@angular/compiler-cli/private/localize';
-import { ɵParsedMessage } from '@angular/localize';
+import { ɵParsedMessage } from '../../../../index';
 import { PluginObj } from '@babel/core';
 export declare function makeEs2015ExtractPlugin(fs: PathManipulation, messages: ɵParsedMessage[], localizeName?: string): PluginObj;

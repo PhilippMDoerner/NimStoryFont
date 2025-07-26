@@ -8,13 +8,16 @@
 const util = require("util");
 const truncateArgs = require("../logging/truncateArgs");
 
+/** @typedef {import("../../declarations/WebpackOptions").InfrastructureLogging} InfrastructureLogging */
 /** @typedef {import("../logging/createConsoleLogger").LoggerConsole} LoggerConsole */
+
+/* eslint-disable no-console */
 
 /**
  * @param {object} options options
  * @param {boolean=} options.colors colors
  * @param {boolean=} options.appendOnly append only
- * @param {NodeJS.WritableStream} options.stream stream
+ * @param {NonNullable<InfrastructureLogging["stream"]>} options.stream stream
  * @returns {LoggerConsole} logger function
  */
 module.exports = ({ colors, appendOnly, stream }) => {
@@ -55,7 +58,7 @@ module.exports = ({ colors, appendOnly, stream }) => {
 
 	const writeStatusMessage = () => {
 		if (!currentStatusMessage) return;
-		const l = /** @type {TODO} */ (stream).columns || 40;
+		const l = stream.columns || 40;
 		const args = truncateArgs(currentStatusMessage, l - 1);
 		const str = args.join(" ");
 		const coloredStr = `\u001B[1m${str}\u001B[39m\u001B[22m`;
@@ -67,7 +70,7 @@ module.exports = ({ colors, appendOnly, stream }) => {
 	 * @param {string} prefix prefix
 	 * @param {string} colorPrefix color prefix
 	 * @param {string} colorSuffix color suffix
-	 * @returns {(function(...EXPECTED_ANY[]): void)} function to write with colors
+	 * @returns {(...args: EXPECTED_ANY[]) => void} function to write with colors
 	 */
 	const writeColored =
 		(prefix, colorPrefix, colorSuffix) =>

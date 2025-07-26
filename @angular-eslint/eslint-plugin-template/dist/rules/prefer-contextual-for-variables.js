@@ -3,8 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
-const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const are_equivalent_asts_1 = require("../utils/are-equivalent-asts");
+const create_eslint_rule_1 = require("../utils/create-eslint-rule");
+const unwrap_parenthesized_expression_1 = require("../utils/unwrap-parenthesized-expression");
 exports.RULE_NAME = 'prefer-contextual-for-variables';
 const DEFAULT_OPTIONS = {
     allowedAliases: {
@@ -482,35 +483,38 @@ function isIndex(node) {
     return isContextualVariable(node, '$index');
 }
 function isIndexPlusOne(node) {
-    if (node instanceof bundled_angular_compiler_1.Binary) {
-        if (node.operation === '+') {
-            if (isIndex(node.left)) {
-                return isOne(node.right);
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    if (unwrapped instanceof bundled_angular_compiler_1.Binary) {
+        if (unwrapped.operation === '+') {
+            if (isIndex(unwrapped.left)) {
+                return isOne(unwrapped.right);
             }
             else {
-                return isIndex(node.right) && isOne(node.left);
+                return isIndex(unwrapped.right) && isOne(unwrapped.left);
             }
         }
     }
     return false;
 }
 function isIndexModTwo(node) {
-    return (node instanceof bundled_angular_compiler_1.Binary &&
-        node.operation === '%' &&
-        isIndex(node.left) &&
-        isTwo(node.right));
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    return (unwrapped instanceof bundled_angular_compiler_1.Binary &&
+        unwrapped.operation === '%' &&
+        isIndex(unwrapped.left) &&
+        isTwo(unwrapped.right));
 }
 function isCount(node) {
     return isContextualVariable(node, '$count');
 }
 function isCountMinusOne(node) {
-    if (node instanceof bundled_angular_compiler_1.Binary) {
-        if (node.operation === '-') {
-            if (isCount(node.left)) {
-                return isOne(node.right);
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    if (unwrapped instanceof bundled_angular_compiler_1.Binary) {
+        if (unwrapped.operation === '-') {
+            if (isCount(unwrapped.left)) {
+                return isOne(unwrapped.right);
             }
             else {
-                return isCount(node.right) && isOne(node.left);
+                return isCount(unwrapped.right) && isOne(unwrapped.left);
             }
         }
     }

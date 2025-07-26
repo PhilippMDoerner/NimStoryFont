@@ -68,7 +68,7 @@ function ngAdd(options) {
         // Installing dependencies
         const angularCoreVersion = getPackageVersionFromPackageJson(tree, '@angular/core');
         const angularLocalizeVersion = getPackageVersionFromPackageJson(tree, '@angular/localize', true);
-        addPackageToPackageJson(tree, 'bootstrap', "^5.3.3");
+        addPackageToPackageJson(tree, 'bootstrap', "^5.3.6");
         addPackageToPackageJson(tree, '@popperjs/core', "^2.11.8");
         if (angularLocalizeVersion === null) {
             addPackageToPackageJson(tree, '@angular/localize', angularCoreVersion, true);

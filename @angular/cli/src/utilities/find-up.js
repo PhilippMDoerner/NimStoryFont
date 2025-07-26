@@ -41,8 +41,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findUp = findUp;
-const fs_1 = require("fs");
-const path = __importStar(require("path"));
+const node_fs_1 = require("node:fs");
+const path = __importStar(require("node:path"));
 function findUp(names, from) {
     if (!Array.isArray(names)) {
         names = [names];
@@ -52,7 +52,7 @@ function findUp(names, from) {
     while (currentDir && currentDir !== root) {
         for (const name of names) {
             const p = path.join(currentDir, name);
-            if ((0, fs_1.existsSync)(p)) {
+            if ((0, node_fs_1.existsSync)(p)) {
                 return p;
             }
         }

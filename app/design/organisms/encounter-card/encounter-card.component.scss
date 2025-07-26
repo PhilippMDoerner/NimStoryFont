@@ -1,11 +1,11 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 .repeated-unit {
   padding: 0;
   scroll-margin-top: var(--spacer-5);
   border-radius: var(--bs-border-radius);
 
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     padding: unset;
   }
 }
@@ -16,7 +16,7 @@
   --card-flex-direction: column;
   --card-padding: var(--spacer-3);
 
-  @include media-breakpoint-up(md) {
+  @include screen.media-breakpoint-up(md) {
     --card-flex-direction: row;
   }
 

@@ -8,10 +8,11 @@ var _helperPluginUtils = require("@babel/helper-plugin-utils");
 var _helperCompilationTargets = require("@babel/helper-compilation-targets");
 var _helperAnnotateAsPure = require("@babel/helper-annotate-as-pure");
 var _core = require("@babel/core");
-var _globals = require("globals");
 var _transformClass = require("./transformClass.js");
-const getBuiltinClasses = category => Object.keys(_globals[category]).filter(name => /^[A-Z]/.test(name));
-const builtinClasses = new Set([...getBuiltinClasses("builtin"), ...getBuiltinClasses("browser")]);
+const globalsBrowserUpper = require("@babel/helper-globals/data/browser-upper.json"),
+  globalsBuiltinUpper = require("@babel/helper-globals/data/builtin-upper.json");
+const builtinClasses = new Set([...globalsBrowserUpper, ...globalsBuiltinUpper]);
+builtinClasses.delete("Iterator");
 var _default = exports.default = (0, _helperPluginUtils.declare)((api, options) => {
   var _api$assumption, _api$assumption2, _api$assumption3, _api$assumption4;
   api.assertVersion(7);

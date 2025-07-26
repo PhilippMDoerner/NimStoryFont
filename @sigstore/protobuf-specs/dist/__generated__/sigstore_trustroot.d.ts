@@ -1,5 +1,33 @@
 import { DistinguishedName, HashAlgorithm, LogId, PublicKey, TimeRange, X509CertificateChain } from "./sigstore_common";
 /**
+ * ServiceSelector specifies how a client SHOULD select a set of
+ * Services to connect to. A client SHOULD throw an error if
+ * the value is SERVICE_SELECTOR_UNDEFINED.
+ */
+export declare enum ServiceSelector {
+    SERVICE_SELECTOR_UNDEFINED = 0,
+    /**
+     * ALL - Clients SHOULD select all Services based on supported API version
+     * and validity window.
+     */
+    ALL = 1,
+    /**
+     * ANY - Clients SHOULD select one Service based on supported API version
+     * and validity window. It is up to the client implementation to
+     * decide how to select the Service, e.g. random or round-robin.
+     */
+    ANY = 2,
+    /**
+     * EXACT - Clients SHOULD select a specific number of Services based on
+     * supported API version and validity window, using the provided
+     * `count`. It is up to the client implementation to decide how to
+     * select the Service, e.g. random or round-robin.
+     */
+    EXACT = 3
+}
+export declare function serviceSelectorFromJSON(object: any): ServiceSelector;
+export declare function serviceSelectorToJSON(object: ServiceSelector): string;
+/**
  * TransparencyLogInstance describes the immutable parameters from a
  * transparency log.
  * See https://www.rfc-editor.org/rfc/rfc9162.html#name-log-parameters
@@ -8,7 +36,11 @@ import { DistinguishedName, HashAlgorithm, LogId, PublicKey, TimeRange, X509Cert
  * and verify an inclusion proof/promise.
  */
 export interface TransparencyLogInstance {
-    /** The base URL at which can be used to URLs for the client. */
+    /**
+     * The base URL at which can be used to URLs for the client.
+     * SHOULD match the origin on the log checkpoint:
+     * https://github.com/C2SP/C2SP/blob/main/tlog-checkpoint.md#note-text.
+     */
     baseUrl: string;
     /** The hash algorithm used for the Merkle Tree. */
     hashAlgorithm: HashAlgorithm;
@@ -23,26 +55,50 @@ export interface TransparencyLogInstance {
      * calculated over the DER encoding of the key represented as
      * SubjectPublicKeyInfo.
      * See https://www.rfc-editor.org/rfc/rfc6962#section-3.2
+     * MUST set checkpoint_key_id if multiple logs use the same
+     * signing key.
+     * Deprecated: Use checkpoint_key_id instead, since log_id is not
+     * guaranteed to be unique across multiple deployments. Clients
+     * must use the key name and key ID from a checkpoint to determine
+     * the correct TransparencyLogInstance to verify a proof.
+     *
+     * @deprecated
      */
     logId: LogId | undefined;
     /**
-     * The checkpoint key identifier for the log used in a checkpoint.
-     * Optional, not provided for logs that do not generate checkpoints.
-     * For logs that do generate checkpoints, if not set, assume
-     * log_id equals checkpoint_key_id.
-     * Follows the specification described here
-     * for ECDSA and Ed25519 signatures:
+     * The unique identifier for the log, used in the checkpoint.
+     * Its calculation is described in
      * https://github.com/C2SP/C2SP/blob/main/signed-note.md#signatures
-     * For RSA signatures, the key ID will match the ECDSA format, the
-     * hashed DER-encoded SPKI public key. Publicly witnessed logs MUST NOT
-     * use RSA-signed checkpoints, since witnesses do not support
-     * RSA signatures.
+     * SHOULD be set for all logs. When not set, clients MUST use log_id.
+     *
+     * For Ed25519 signatures, the key ID is computed per the C2SP spec:
+     * key ID = SHA-256(key name || 0x0A || 0x01 || 32-byte Ed25519 public key)[:4]
+     * For ECDSA signatures, the key ID is computed per the C2SP spec:
+     * key ID = SHA-256(PKIX ASN.1 DER-encoded public key, in SubjectPublicKeyInfo format)[:4]
+     * For RSA signatures, the signature type will be 0xff with an appended identifier for the format,
+     * "PKIX-RSA-PKCS#1v1.5":
+     * key ID = SHA-256(key name || 0x0A || 0xff || PKIX-RSA-PKCS#1v1.5 || PKIX ASN.1 DER-encoded public key)[:4]
+     *
      * This is provided for convenience. Clients can also calculate the
      * checkpoint key ID given the log's public key.
-     * SHOULD be set for logs generating Ed25519 signatures.
      * SHOULD be 4 bytes long, as a truncated hash.
+     *
+     * To find a matching TransparencyLogInstance in the TrustedRoot,
+     * clients will parse the checkpoint, and for each signature line,
+     * use the key name (i.e. log origin, base_url from TrustedRoot)
+     * and checkpoint key ID (i.e. checkpoint_key_id from TrustedRoot)
+     * which can then be compared against the TrustedRoot log instances.
      */
     checkpointKeyId: LogId | undefined;
+    /**
+     * The name of the operator of this log deployment. Operator MUST be
+     * formatted as a scheme-less URI, e.g. sigstore.dev
+     * This MUST be used when there are multiple transparency log instances
+     * to determine if log proof verification meets a specified threshold,
+     * e.g. two proofs from log deployments operated by the same operator
+     * should count as only one valid proof.
+     */
+    operator: string;
 }
 /**
  * CertificateAuthority enlists the information required to identify which
@@ -79,6 +135,16 @@ export interface CertificateAuthority {
      * endpoints.
      */
     validFor: TimeRange | undefined;
+    /**
+     * The name of the operator of this certificate or timestamp authority.
+     * Operator MUST be formatted as a scheme-less URI, e.g. sigstore.dev
+     * This MUST be used when there are multiple timestamp authorities to
+     * determine if the signed timestamp verification meets a specified
+     * threshold, e.g. two signed timestamps from timestamp authorities
+     * operated by the same operator should count as only one valid
+     * timestamp.
+     */
+    operator: string;
 }
 /**
  * TrustedRoot describes the client's complete set of trusted entities.
@@ -146,39 +212,149 @@ export interface TrustedRoot {
  */
 export interface SigningConfig {
     /**
-     * A URL to a Fulcio-compatible CA, capable of receiving
+     * MUST be application/vnd.dev.sigstore.signingconfig.v0.2+json
+     * Clients MAY choose to also support
+     * application/vnd.dev.sigstore.signingconfig.v0.1+json
+     */
+    mediaType: string;
+    /**
+     * URLs to Fulcio-compatible CAs, capable of receiving
      * Certificate Signing Requests (CSRs) and responding with
      * issued certificates.
      *
-     * This URL **MUST** be the "base" URL for the CA, which clients
+     * These URLs MUST be the "base" URL for the CAs, which clients
      * should construct an appropriate CSR endpoint on top of.
-     * For example, if `ca_url` is `https://example.com/ca`, then
-     * the client **MAY** construct the CSR endpoint as
+     * For example, if a CA URL is `https://example.com/ca`, then
+     * the client MAY construct the CSR endpoint as
      * `https://example.com/ca/api/v2/signingCert`.
-     */
-    caUrl: string;
-    /**
-     * A URL to an OpenID Connect identity provider.
      *
-     * This URL **MUST** be the "base" URL for the OIDC IdP, which clients
+     * Clients MUST select only one Service with the highest API version
+     * that the client is compatible with, that is within its
+     * validity period, and has the newest validity start date.
+     * Client SHOULD select the first Service that meets this requirement.
+     * All listed Services SHOULD be sorted by the `valid_for` window in
+     * descending order, with the newest instance first.
+     */
+    caUrls: Service[];
+    /**
+     * URLs to OpenID Connect identity providers.
+     *
+     * These URLs MUST be the "base" URLs for the OIDC IdPs, which clients
      * should perform well-known OpenID Connect discovery against.
-     */
-    oidcUrl: string;
-    /**
-     * One or more URLs to Rekor-compatible transparency log.
      *
-     * Each URL **MUST** be the "base" URL for the transparency log,
+     * Clients MUST select only one Service with the highest API version
+     * that the client is compatible with, that is within its
+     * validity period, and has the newest validity start date.
+     * Client SHOULD select the first Service that meets this requirement.
+     * All listed Services SHOULD be sorted by the `valid_for` window in
+     * descending order, with the newest instance first.
+     */
+    oidcUrls: Service[];
+    /**
+     * URLs to Rekor transparency logs.
+     *
+     * These URL MUST be the "base" URLs for the transparency logs,
      * which clients should construct appropriate API endpoints on top of.
-     */
-    tlogUrls: string[];
-    /**
-     * One ore more URLs to RFC 3161 Time Stamping Authority (TSA).
      *
-     * Each URL **MUST** be the **full** URL for the TSA, meaning that it
+     * Clients MUST group Services by `operator` and select at most one
+     * Service from each operator. Clients MUST select Services with the
+     * highest API version that the client is compatible with, that are
+     * within its validity period, and have the newest validity start dates.
+     * All listed Services SHOULD be sorted by the `valid_for` window in
+     * descending order, with the newest instance first.
+     *
+     * Clients MUST select Services based on the selector value of
+     * `rekor_tlog_config`.
+     */
+    rekorTlogUrls: Service[];
+    /**
+     * Specifies how a client should select the set of Rekor transparency
+     * logs to write to.
+     */
+    rekorTlogConfig: ServiceConfiguration | undefined;
+    /**
+     * URLs to RFC 3161 Time Stamping Authorities (TSA).
+     *
+     * These URLs MUST be the *full* URL for the TSA, meaning that it
      * should be suitable for submitting Time Stamp Requests (TSRs) to
      * via HTTP, per RFC 3161.
+     *
+     * Clients MUST group Services by `operator` and select at most one
+     * Service from each operator. Clients MUST select Services with the
+     * highest API version that the client is compatible with, that are
+     * within its validity period, and have the newest validity start dates.
+     * All listed Services SHOULD be sorted by the `valid_for` window in
+     * descending order, with the newest instance first.
+     *
+     * Clients MUST select Services based on the selector value of
+     * `tsa_config`.
      */
-    tsaUrls: string[];
+    tsaUrls: Service[];
+    /**
+     * Specifies how a client should select the set of TSAs to request
+     * signed timestamps from.
+     */
+    tsaConfig: ServiceConfiguration | undefined;
+}
+/**
+ * Service represents an instance of a service that is a part of Sigstore infrastructure.
+ * When selecting one or multiple services from a list of services, clients MUST:
+ * * Use the API version hint to determine the service with the highest API version
+ *   that the client is compatible with.
+ * * Only select services within the specified validity period and that have the
+ *   newest validity start date.
+ * When selecting multiple services, clients MUST:
+ * * Use the ServiceConfiguration to determine how many services MUST be selected.
+ *   Clients MUST return an error if there are not enough services that meet the
+ *   selection criteria.
+ * * Group services by `operator` and select at most one service from an operator.
+ *   During verification, clients MUST treat valid verification metadata from the
+ *   operator as valid only once towards a threshold.
+ * * Select services from only the highest supported API version.
+ */
+export interface Service {
+    /** URL of the service. MUST include scheme and authority. MAY include path. */
+    url: string;
+    /**
+     * Specifies the major API version. A value of 0 represents a service that
+     * has not yet been released.
+     */
+    majorApiVersion: number;
+    /**
+     * Validity period of a service. A service that has only a start date
+     * SHOULD be considered the most recent instance of that service, but
+     * the client MUST NOT assume there is only one valid instance.
+     * The TimeRange MUST be considered valid *inclusive* of the
+     * endpoints.
+     */
+    validFor: TimeRange | undefined;
+    /**
+     * Specifies the name of the service operator. When selecting multiple
+     * services, clients MUST use the operator to select services from
+     * distinct operators. Operator MUST be formatted as a scheme-less
+     * URI, e.g. sigstore.dev
+     */
+    operator: string;
+}
+/**
+ * ServiceConfiguration specifies how a client should select a set of
+ * Services to connect to, along with a count when a specific number
+ * of Services is requested.
+ */
+export interface ServiceConfiguration {
+    /**
+     * How a client should select a set of Services to connect to.
+     * Clients SHOULD NOT select services from multiple API versions.
+     */
+    selector: ServiceSelector;
+    /**
+     * count specifies the number of Services the client should use.
+     * Only used when selector is set to EXACT, and count MUST be greater
+     * than 0. count MUST be less than or equal to the number of Services.
+     * Clients MUST return an error is there are not enough services
+     * that meet selection criteria.
+     */
+    count: number;
 }
 /**
  * ClientTrustConfig describes the complete state needed by a client
@@ -193,23 +369,15 @@ export interface ClientTrustConfig {
     /** Configuration for signing clients, which MUST be present. */
     signingConfig: SigningConfig | undefined;
 }
-export declare const TransparencyLogInstance: {
-    fromJSON(object: any): TransparencyLogInstance;
-    toJSON(message: TransparencyLogInstance): unknown;
-};
-export declare const CertificateAuthority: {
-    fromJSON(object: any): CertificateAuthority;
-    toJSON(message: CertificateAuthority): unknown;
-};
-export declare const TrustedRoot: {
-    fromJSON(object: any): TrustedRoot;
-    toJSON(message: TrustedRoot): unknown;
-};
-export declare const SigningConfig: {
-    fromJSON(object: any): SigningConfig;
-    toJSON(message: SigningConfig): unknown;
-};
-export declare const ClientTrustConfig: {
-    fromJSON(object: any): ClientTrustConfig;
-    toJSON(message: ClientTrustConfig): unknown;
-};
+export declare const TransparencyLogInstance: MessageFns<TransparencyLogInstance>;
+export declare const CertificateAuthority: MessageFns<CertificateAuthority>;
+export declare const TrustedRoot: MessageFns<TrustedRoot>;
+export declare const SigningConfig: MessageFns<SigningConfig>;
+export declare const Service: MessageFns<Service>;
+export declare const ServiceConfiguration: MessageFns<ServiceConfiguration>;
+export declare const ClientTrustConfig: MessageFns<ClientTrustConfig>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

@@ -10,7 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateCacheConfig = updateCacheConfig;
 exports.getCacheConfig = getCacheConfig;
 const core_1 = require("@angular-devkit/core");
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const workspace_schema_1 = require("../../../lib/config/workspace-schema");
 function updateCacheConfig(workspace, key, value) {
     const cli = (workspace.extensions['cli'] ??= {});
@@ -23,7 +23,7 @@ function getCacheConfig(workspace) {
         throw new Error(`Cannot retrieve cache configuration as workspace is not defined.`);
     }
     const defaultSettings = {
-        path: (0, path_1.resolve)(workspace.basePath, '.angular/cache'),
+        path: (0, node_path_1.resolve)(workspace.basePath, '.angular/cache'),
         environment: workspace_schema_1.Environment.Local,
         enabled: true,
     };
@@ -39,7 +39,7 @@ function getCacheConfig(workspace) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      } = cacheSettings;
     return {
-        path: (0, path_1.resolve)(workspace.basePath, path),
+        path: (0, node_path_1.resolve)(workspace.basePath, path),
         environment,
         enabled,
     };

@@ -9,7 +9,7 @@ function getNextCursorPosition(node, offset, direction, inputType) {
     // Firefox always moves to zero offset and jumps over last offset.
     // Chrome jumps over zero offset per default but over last offset when Shift is pressed.
     // The cursor always moves to zero offset if the focus area (contenteditable or body) ends there.
-    // When walking foward both ignore zero offset.
+    // When walking forward both ignore zero offset.
     // When walking over input elements the cursor moves before or after that element.
     // When walking over line breaks the cursor moves inside any following text node.
     if (isTextNode(node) && offset + direction >= 0 && offset + direction <= node.nodeValue.length) {
@@ -109,7 +109,7 @@ function walkNodes(node, direction, callback) {
             if (callback(node)) {
                 return node;
             }
-        } else if (node.parentNode && (!isElement(node.parentNode) || !isContentEditable.isContentEditable(node.parentNode) && node.parentNode !== ((_node_ownerDocument = node.ownerDocument) === null || _node_ownerDocument === void 0 ? void 0 : _node_ownerDocument.body))) {
+        } else if (node.parentNode && (!isElement(node.parentNode) || !isContentEditable.isContentEditable(node.parentNode) && node.parentNode !== ((_node_ownerDocument = node.ownerDocument) === null || _node_ownerDocument === undefined ? undefined : _node_ownerDocument.body))) {
             node = node.parentNode;
         } else {
             break;

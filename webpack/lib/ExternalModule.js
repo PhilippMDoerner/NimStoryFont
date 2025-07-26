@@ -19,6 +19,7 @@ const {
 const { JAVASCRIPT_MODULE_TYPE_DYNAMIC } = require("./ModuleTypeConstants");
 const RuntimeGlobals = require("./RuntimeGlobals");
 const Template = require("./Template");
+const { DEFAULTS } = require("./config/defaults");
 const StaticExportsDependency = require("./dependencies/StaticExportsDependency");
 const createHash = require("./util/createHash");
 const extractUrlAndGlobal = require("./util/extractUrlAndGlobal");
@@ -27,20 +28,24 @@ const propertyAccess = require("./util/propertyAccess");
 const { register } = require("./util/serialization");
 
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./ChunkGraph")} ChunkGraph */
 /** @typedef {import("./Compilation")} Compilation */
+/** @typedef {import("./Compilation").UnsafeCacheData} UnsafeCacheData */
 /** @typedef {import("./Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./ExportsInfo")} ExportsInfo */
 /** @typedef {import("./Generator").GenerateContext} GenerateContext */
 /** @typedef {import("./Generator").SourceTypes} SourceTypes */
+/** @typedef {import("./Module").BuildCallback} BuildCallback */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./Module").CodeGenerationContext} CodeGenerationContext */
 /** @typedef {import("./Module").CodeGenerationResult} CodeGenerationResult */
 /** @typedef {import("./Module").ConcatenationBailoutReasonContext} ConcatenationBailoutReasonContext */
 /** @typedef {import("./Module").LibIdentOptions} LibIdentOptions */
+/** @typedef {import("./Module").NeedBuildCallback} NeedBuildCallback */
 /** @typedef {import("./Module").NeedBuildContext} NeedBuildContext */
 /** @typedef {import("./Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
@@ -54,7 +59,6 @@ const { register } = require("./util/serialization");
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./util/Hash")} Hash */
-/** @typedef {typeof import("./util/Hash")} HashConstructor */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
 
@@ -211,9 +215,10 @@ const getSourceForImportExternal = (
 };
 
 /**
- * @param {string} key key
- * @param {any | undefined} value value
- * @returns {undefined | string} replaced value
+ * @template {{ [key: string]: string }} T
+ * @param {keyof T} key key
+ * @param {T[keyof T]} value value
+ * @returns {undefined | T[keyof T]} replaced value
  */
 const importAssertionReplacer = (key, value) => {
 	if (key === "_isLegacyAssert") {
@@ -231,9 +236,14 @@ class ModuleExternalInitFragment extends InitFragment {
 	 * @param {string} request import source
 	 * @param {string=} ident recomputed ident
 	 * @param {ImportDependencyMeta=} dependencyMeta the dependency meta
-	 * @param {string | HashConstructor=} hashFunction the hash function to use
+	 * @param {HashFunction=} hashFunction the hash function to use
 	 */
-	constructor(request, ident, dependencyMeta, hashFunction = "md4") {
+	constructor(
+		request,
+		ident,
+		dependencyMeta,
+		hashFunction = DEFAULTS.HASH_FUNCTION
+	) {
 		if (ident === undefined) {
 			ident = Template.toIdentifier(request);
 			if (ident !== request) {
@@ -554,7 +564,7 @@ class ExternalModule extends Module {
 
 	/**
 	 * @param {NeedBuildContext} context context info
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback function, returns true, if the module needs a rebuild
+	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
 	 */
 	needBuild(context, callback) {
@@ -566,7 +576,7 @@ class ExternalModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
@@ -647,7 +657,7 @@ class ExternalModule extends Module {
 
 	/**
 	 * restore unsafe cache data
-	 * @param {object} unsafeCacheData data from getUnsafeCacheData
+	 * @param {UnsafeCacheData} unsafeCacheData data from getUnsafeCacheData
 	 * @param {NormalModuleFactory} normalModuleFactory the normal module factory handling the unsafe caching
 	 */
 	restoreFromUnsafeCache(unsafeCacheData, normalModuleFactory) {

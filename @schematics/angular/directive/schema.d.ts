@@ -59,4 +59,9 @@ export type Schema = {
      * other standalone components or directives.
      */
     standalone?: boolean;
+    /**
+     * Append a custom type to the directive's filename. For example, if you set the type to
+     * `directive`, the file will be named `example.directive.ts`.
+     */
+    type?: string;
 };

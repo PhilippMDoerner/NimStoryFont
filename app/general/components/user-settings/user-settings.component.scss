@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+::ng-deep {
+  .shortcut-table {
+    border-radius: calc(2 * var(--bs-border-radius));
+    overflow: hidden;
+    background-color: var(--bs-dark);
+    margin-bottom: var(--spacer-3);
+
+    &__row {
+      display: flex;
+      align-items: center;
+      padding: var(--spacer-2);
+      outline-offset: -2px;
+
+      &:hover {
+        background-color: color-mix(
+          in srgb,
+          var(--bs-secondary) 75%,
+          transparent
+        );
+        border-radius: var(--bs-border-radius);
+      }
+    }
+  }
+}
+
+.table {
+  border-radius: var(--bs-border-radius);
+  overflow: hidden;
+
+  &__column-content {
+    vertical-align: middle;
+  }
+
+  &__modified-column {
+    font-size: x-large;
+  }
+
+  &__action-buttons {
+    display: flex;
+    gap: var(--spacer-3);
+  }
+
+  &__action-button {
+    &--hidden {
+      visibility: hidden;
+    }
+  }
+
+  &__container {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+}

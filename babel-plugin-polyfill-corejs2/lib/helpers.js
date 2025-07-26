@@ -3,7 +3,7 @@
 exports.__esModule = true;
 exports.hasMinVersion = hasMinVersion;
 var _semver = _interopRequireDefault(require("semver"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function hasMinVersion(minVersion, runtimeVersion) {
   // If the range is unavailable, we're running the script during Babel's
   // build process, and we want to assume that all versions are satisfied so

@@ -43,7 +43,6 @@ Object.defineProperty(exports, "unreleasedLabels", {
 });
 var _browserslist = require("browserslist");
 var _helperValidatorOption = require("@babel/helper-validator-option");
-var _nativeModules = require("@babel/compat-data/native-modules");
 var _lruCache = require("lru-cache");
 var _utils = require("./utils.js");
 var _targets = require("./targets.js");
@@ -51,7 +50,8 @@ var _options = require("./options.js");
 var _pretty = require("./pretty.js");
 var _debug = require("./debug.js");
 var _filterItems = require("./filter-items.js");
-const ESM_SUPPORT = _nativeModules["es6.module"];
+const browserModulesData = require("@babel/compat-data/native-modules");
+const ESM_SUPPORT = browserModulesData["es6.module"];
 const v = new _helperValidatorOption.OptionValidator("@babel/helper-compilation-targets");
 function validateTargetNames(targets) {
   const validTargets = Object.keys(_options.TargetNames);
@@ -120,7 +120,7 @@ function semverifyTarget(target, value) {
   }
 }
 function nodeTargetParser(value) {
-  const parsed = value === true || value === "current" ? process.versions.node : semverifyTarget("node", value);
+  const parsed = value === true || value === "current" ? process.versions.node.split("-")[0] : semverifyTarget("node", value);
   return ["node", parsed];
 }
 function defaultTargetParser(target, value) {
@@ -186,6 +186,7 @@ function getTargets(inputTargets = {}, options = {}) {
       }
     }
   }
+  ;
   if (esmodules && (esmodules !== "intersect" || !((_browsers = browsers) != null && _browsers.length))) {
     browsers = Object.keys(ESM_SUPPORT).map(browser => `${browser} >= ${ESM_SUPPORT[browser]}`).join(", ");
     esmodules = false;

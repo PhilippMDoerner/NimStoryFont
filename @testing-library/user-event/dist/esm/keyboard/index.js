@@ -1,11 +1,5 @@
-import '../utils/click/isClickableInput.js';
 import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
-import '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
 import { wait } from '../utils/misc/wait.js';
-import '../options.js';
 import { parseKeyDef } from './parseKeyDef.js';
 
 async function keyboard(text) {

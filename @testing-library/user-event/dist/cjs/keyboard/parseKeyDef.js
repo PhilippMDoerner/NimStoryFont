@@ -1,15 +1,10 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var readNextDescriptor = require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 
 /**
- * Parse key defintions per `keyboardMap`
+ * Parse key definitions per `keyboardMap`
  *
  * Keys can be referenced by `{key}` or `{special}` as well as physical locations per `[code]`.
  * Everything else will be interpreted as a typed character - e.g. `a`.
@@ -25,13 +20,13 @@ require('../options.js');
         const keyDef = (_keyboardMap_find = keyboardMap.find((def)=>{
             if (type === '[') {
                 var _def_code;
-                return ((_def_code = def.code) === null || _def_code === void 0 ? void 0 : _def_code.toLowerCase()) === descriptor.toLowerCase();
+                return ((_def_code = def.code) === null || _def_code === undefined ? undefined : _def_code.toLowerCase()) === descriptor.toLowerCase();
             } else if (type === '{') {
                 var _def_key;
-                return ((_def_key = def.key) === null || _def_key === void 0 ? void 0 : _def_key.toLowerCase()) === descriptor.toLowerCase();
+                return ((_def_key = def.key) === null || _def_key === undefined ? undefined : _def_key.toLowerCase()) === descriptor.toLowerCase();
             }
             return def.key === descriptor;
-        })) !== null && _keyboardMap_find !== void 0 ? _keyboardMap_find : {
+        })) !== null && _keyboardMap_find !== undefined ? _keyboardMap_find : {
             key: 'Unknown',
             code: 'Unknown',
             [type === '[' ? 'code' : 'key']: descriptor

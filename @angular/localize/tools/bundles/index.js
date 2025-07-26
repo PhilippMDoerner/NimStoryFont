@@ -11,7 +11,7 @@ import {
   Xliff2TranslationSerializer,
   XmbTranslationSerializer,
   checkDuplicateMessages
-} from "./chunk-E4HORTOJ.js";
+} from "./chunk-TONUHCMD.js";
 import {
   ArbTranslationParser,
   SimpleJsonTranslationParser,
@@ -21,7 +21,7 @@ import {
   makeEs2015TranslatePlugin,
   makeEs5TranslatePlugin,
   makeLocalePlugin
-} from "./chunk-7VEU2OGJ.js";
+} from "./chunk-YGTHV3U7.js";
 import {
   Diagnostics,
   buildLocalizeReplacement,
@@ -31,9 +31,9 @@ import {
   unwrapMessagePartsFromLocalizeCall,
   unwrapMessagePartsFromTemplateLiteral,
   unwrapSubstitutionsFromLocalizeCall
-} from "./chunk-7G4W4ZDI.js";
+} from "./chunk-EZ3BW4XG.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/index.js
 import { NodeJSFileSystem, setFileSystem } from "@angular/compiler-cli/private/localize";
 setFileSystem(new NodeJSFileSystem());
 export {

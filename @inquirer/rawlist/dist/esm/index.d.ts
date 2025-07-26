@@ -9,6 +9,7 @@ type Choice<Value> = {
 declare const _default: <Value>(config: {
     message: string;
     choices: readonly (string | Separator)[] | readonly (Separator | Choice<Value>)[];
+    loop?: boolean | undefined;
     theme?: PartialDeep<Theme> | undefined;
 }, context?: import("@inquirer/type").Context) => Promise<Value> & {
     cancel: () => void;

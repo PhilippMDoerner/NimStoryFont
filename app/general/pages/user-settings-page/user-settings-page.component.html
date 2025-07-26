@@ -1,0 +1,5 @@
+<app-user-settings
+  [shortcutMap]="shortcuts()"
+  (shortcutMapChanged)="updateShortcut($event)"
+  (shortcutResetRequested)="resetShortcut($event)"
+/>

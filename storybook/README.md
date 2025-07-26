@@ -1,49 +1,51 @@
-# Storybook
+# Storybook Core
 
-## CLI
+The `@storybook/core` package is the core of Storybook. It is responsible for the following:
 
-Storybook CLI (_Command Line Interface_) is the easiest way to add [Storybook](https://github.com/storybookjs/storybook) to your project.
+- the main UI of storybook
+- the UI used by addons
+- the API used by addons
+- the API used by the CLI
+- the API used by the server
+- prebundled code used by the browser
+- static assets used by the browser
+- utilities for CSF, MDX & Docs
 
-![Screenshot](docs/getstorybook.png)
+## Private package
 
-Go to your project and run:
+This package is not intended to be used by anyone but storybook internally.
 
-```sh
-cd my-app
-npx sb@latest init
+Even though this is where all of the code is located, it is NOT to be the entry point when using functionality within!
+
+Consumers of the code should import like so:
+
+```ts
+import { addons } from 'storybook/manager-api';
 ```
 
-In addition to `init`, the CLI also has other commands:
+Importing from `@storybook/core` is explicitly NOT supported; it WILL break in a future version of storybook, very likely in a non-major version bump.
 
-- `add` - add an addon and register it
-- `info` - print out system information for bug reports
-- `upgrade` - upgrade to the latest version of Storybook (or a specific version)
-- `migrate` - run codemods to migrate your code
+# For maintainers
 
-See the command-line help with `-h` (including other useful commands) for details.
+## When to use `@storybook/core`
 
-## Core APIs
+In the following packages you should import from `@storybook/core` (and ONLY from `@storybook/core`):
 
-This package has multiple sub-exports to can be used to gain access to storybook's APIs.
+- `@storybook/core`
+- `@storybook/codemod`
 
-### `storybook/components`
+To prevent cyclical dependencies, these packages cannot depend on the `storybook` package.
 
-This export contains a list of components very useful for building out addons.
-We recommend addon-authors to use these components to ensure a consistent look and feel, and to reduce the amount of code they need to write.
+## When to use `storybook/internal`
 
-### `storybook/theming`
+In every other package you should import from `storybook/internal` (and ONLY from `storybook/internal`).
 
-This export exposes a few utility functions to help writing components that automatically adapt to the current theme.
-Useful for addon authors who want to make their addons theme-aware.
+The heuristic is simple:
 
-### `storybook/preview-api`
+> If you see a peerDependency on `storybook` in the `package.json` of the package you are working on, you should import from `storybook/internal`.
 
-This export contains the API that is available in the preview iframe.
+## The 1 exception: the `storybook` package itself
 
-### `storybook/manager-api`
+The sole exception is the `storybook` package itself.
 
-This export contains the API that is available in the manager iframe.
-
-### `storybook/types`
-
-This export exposes a lot of TypeScript interfaces used throughout storybook, including for storybook configuration, addons etc.
+Obviously, the `storybook` package cannot depend on itself, so it must import from `@storybook/core`.

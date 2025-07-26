@@ -7,4 +7,4 @@ export declare const skipSourceRender: (context: StoryContext) => any;
  * @param storyFn Fn
  * @param context StoryContext
  */
-export declare const sourceDecorator: (storyFn: PartialStoryFn<AngularRenderer>, context: StoryContext) => import("../types").StoryFnAngularReturnType;
+export declare const sourceDecorator: (storyFn: PartialStoryFn<AngularRenderer>, context: StoryContext) => import("..").IStory;

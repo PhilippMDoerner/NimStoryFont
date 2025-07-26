@@ -1,13 +1,7 @@
 import { getUIValue, getUISelection } from '../../document/UI.js';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
 import { getContentEditable } from '../../utils/edit/isContentEditable.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
 import { hasOwnSelection } from '../../utils/focus/selection.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { setSelection } from './setSelection.js';
 
 /**
@@ -21,7 +15,7 @@ import { setSelection } from './setSelection.js';
         });
     }
     var _getContentEditable;
-    const focusNode = (_getContentEditable = getContentEditable(target)) !== null && _getContentEditable !== void 0 ? _getContentEditable : target.ownerDocument.body;
+    const focusNode = (_getContentEditable = getContentEditable(target)) !== null && _getContentEditable !== undefined ? _getContentEditable : target.ownerDocument.body;
     setSelection({
         focusNode,
         anchorOffset: 0,
@@ -33,9 +27,9 @@ function isAllSelected(target) {
         return getUISelection(target).startOffset === 0 && getUISelection(target).endOffset === getUIValue(target).length;
     }
     var _getContentEditable;
-    const focusNode = (_getContentEditable = getContentEditable(target)) !== null && _getContentEditable !== void 0 ? _getContentEditable : target.ownerDocument.body;
+    const focusNode = (_getContentEditable = getContentEditable(target)) !== null && _getContentEditable !== undefined ? _getContentEditable : target.ownerDocument.body;
     const selection = target.ownerDocument.getSelection();
-    return (selection === null || selection === void 0 ? void 0 : selection.anchorNode) === focusNode && selection.focusNode === focusNode && selection.anchorOffset === 0 && selection.focusOffset === focusNode.childNodes.length;
+    return (selection === null || selection === undefined ? undefined : selection.anchorNode) === focusNode && selection.focusNode === focusNode && selection.anchorOffset === 0 && selection.focusOffset === focusNode.childNodes.length;
 }
 
 export { isAllSelected, selectAll };

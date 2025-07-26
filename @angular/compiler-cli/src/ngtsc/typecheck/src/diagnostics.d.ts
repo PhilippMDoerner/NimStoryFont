@@ -7,8 +7,8 @@
  */
 import { AbsoluteSourceSpan, ParseSourceSpan } from '@angular/compiler';
 import ts from 'typescript';
-import { TemplateDiagnostic, TemplateId } from '../api';
-import { TemplateSourceResolver } from './tcb_util';
+import { TemplateDiagnostic, TypeCheckId } from '../api';
+import { TypeCheckSourceResolver } from './tcb_util';
 /**
  * Wraps the node in parenthesis such that inserted span comments become attached to the proper
  * node. This is an alias for `ts.factory.createParenthesizedExpression` with the benefit that it
@@ -34,10 +34,10 @@ export declare function wrapForTypeChecker(expr: ts.Expression): ts.Expression;
  */
 export declare function addParseSpanInfo(node: ts.Node, span: AbsoluteSourceSpan | ParseSourceSpan): void;
 /**
- * Adds a synthetic comment to the function declaration that contains the template id
+ * Adds a synthetic comment to the function declaration that contains the type checking ID
  * of the class declaration.
  */
-export declare function addTemplateId(tcb: ts.FunctionDeclaration, id: TemplateId): void;
+export declare function addTypeCheckId(tcb: ts.FunctionDeclaration, id: TypeCheckId): void;
 /**
  * Determines if the diagnostic should be reported. Some diagnostics are produced because of the
  * way TCBs are generated; those diagnostics should not be reported as type check errors of the
@@ -52,4 +52,4 @@ export declare function shouldReportDiagnostic(diagnostic: ts.Diagnostic): boole
  * should not be reported at all. This prevents diagnostics from non-TCB code in a user's source
  * file from being reported as type-check errors.
  */
-export declare function translateDiagnostic(diagnostic: ts.Diagnostic, resolver: TemplateSourceResolver): TemplateDiagnostic | null;
+export declare function translateDiagnostic(diagnostic: ts.Diagnostic, resolver: TypeCheckSourceResolver): TemplateDiagnostic | null;

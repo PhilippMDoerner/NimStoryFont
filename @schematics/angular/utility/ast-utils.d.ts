@@ -60,7 +60,7 @@ export declare function findNode(node: ts.Node, kind: ts.SyntaxKind, text: strin
  */
 export declare function insertAfterLastOccurrence(nodes: ts.Node[] | ts.NodeArray<ts.Node>, toInsert: string, file: string, fallbackPos: number, syntaxKind?: ts.SyntaxKind): Change;
 export declare function getDecoratorMetadata(source: ts.SourceFile, identifier: string, module: string): ts.Node[];
-export declare function getMetadataField(node: ts.ObjectLiteralExpression, metadataField: string): ts.ObjectLiteralElement[];
+export declare function getMetadataField(node: ts.ObjectLiteralExpression, metadataField: string): ts.PropertyAssignment[];
 export declare function addSymbolToNgModuleMetadata(source: ts.SourceFile, ngModulePath: string, metadataField: string, symbolName: string, importPath?: string | null): Change[];
 /**
  * Custom function to insert a declaration (component, pipe, directive)

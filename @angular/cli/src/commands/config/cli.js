@@ -7,15 +7,15 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-const crypto_1 = require("crypto");
-const path_1 = require("path");
+const node_crypto_1 = require("node:crypto");
+const node_path_1 = require("node:path");
 const command_module_1 = require("../../command-builder/command-module");
 const config_1 = require("../../utilities/config");
 const json_file_1 = require("../../utilities/json-file");
 class ConfigCommandModule extends command_module_1.CommandModule {
     command = 'config [json-path] [value]';
     describe = 'Retrieves or sets Angular configuration values in the angular.json file for the workspace.';
-    longDescriptionPath = (0, path_1.join)(__dirname, 'long-description.md');
+    longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     builder(localYargs) {
         return localYargs
             .positional('json-path', {
@@ -75,7 +75,7 @@ class ConfigCommandModule extends command_module_1.CommandModule {
         if (!config || !configPath) {
             throw new command_module_1.CommandModuleError('Confguration file cannot be found.');
         }
-        const normalizeUUIDValue = (v) => (v === '' ? (0, crypto_1.randomUUID)() : `${v}`);
+        const normalizeUUIDValue = (v) => (v === '' ? (0, node_crypto_1.randomUUID)() : `${v}`);
         const value = options.jsonPath === 'cli.analyticsSharing.uuid'
             ? normalizeUUIDValue(options.value)
             : options.value;

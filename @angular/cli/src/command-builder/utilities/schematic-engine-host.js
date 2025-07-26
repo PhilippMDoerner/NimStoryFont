@@ -10,11 +10,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SchematicEngineHost = void 0;
 const schematics_1 = require("@angular-devkit/schematics");
 const tools_1 = require("@angular-devkit/schematics/tools");
-const fs_1 = require("fs");
 const jsonc_parser_1 = require("jsonc-parser");
-const module_1 = require("module");
-const path_1 = require("path");
-const vm_1 = require("vm");
+const node_fs_1 = require("node:fs");
+const node_module_1 = require("node:module");
+const node_path_1 = require("node:path");
+const node_vm_1 = require("node:vm");
 const error_1 = require("../../utilities/error");
 /**
  * Environment variable to control schematic package redirection
@@ -57,11 +57,11 @@ class SchematicEngineHost extends tools_1.NodeModulesEngineHost {
     _resolveReferenceString(refString, parentPath, collectionDescription) {
         const [path, name] = refString.split('#', 2);
         // Mimic behavior of ExportStringRef class used in default behavior
-        const fullPath = path[0] === '.' ? (0, path_1.resolve)(parentPath ?? process.cwd(), path) : path;
-        const referenceRequire = (0, module_1.createRequire)(__filename);
+        const fullPath = path[0] === '.' ? (0, node_path_1.resolve)(parentPath ?? process.cwd(), path) : path;
+        const referenceRequire = (0, node_module_1.createRequire)(__filename);
         const schematicFile = referenceRequire.resolve(fullPath, { paths: [parentPath] });
         if (shouldWrapSchematic(schematicFile, !!collectionDescription?.encapsulation)) {
-            const schematicPath = (0, path_1.dirname)(schematicFile);
+            const schematicPath = (0, node_path_1.dirname)(schematicFile);
             const moduleCache = new Map();
             const factoryInitializer = wrap(schematicFile, schematicPath, moduleCache, name || 'default');
             const factory = factoryInitializer();
@@ -106,8 +106,8 @@ const legacyModules = {
  * @param exportName An optional name of a specific export to return. Otherwise, return all exports.
  */
 function wrap(schematicFile, schematicDirectory, moduleCache, exportName) {
-    const hostRequire = (0, module_1.createRequire)(__filename);
-    const schematicRequire = (0, module_1.createRequire)(schematicFile);
+    const hostRequire = (0, node_module_1.createRequire)(__filename);
+    const schematicRequire = (0, node_module_1.createRequire)(schematicFile);
     const customRequire = function (id) {
         if (legacyModules[id]) {
             // Provide compatibility modules for older versions of @angular/cdk
@@ -154,7 +154,7 @@ function wrap(schematicFile, schematicDirectory, moduleCache, exportName) {
             if (!/[/\\]node_modules[/\\]@schematics[/\\]angular[/\\]third_party[/\\]/.test(modulePath) &&
                 !modulePath.endsWith('.json')) {
                 // Wrap module and save in cache
-                const wrappedModule = wrap(modulePath, (0, path_1.dirname)(modulePath), moduleCache)();
+                const wrappedModule = wrap(modulePath, (0, node_path_1.dirname)(modulePath), moduleCache)();
                 moduleCache.set(modulePath, wrappedModule);
                 return wrappedModule;
             }
@@ -163,12 +163,12 @@ function wrap(schematicFile, schematicDirectory, moduleCache, exportName) {
         return schematicRequire(id);
     };
     // Setup a wrapper function to capture the module's exports
-    const schematicCode = (0, fs_1.readFileSync)(schematicFile, 'utf8');
-    const script = new vm_1.Script(module_1.Module.wrap(schematicCode), {
+    const schematicCode = (0, node_fs_1.readFileSync)(schematicFile, 'utf8');
+    const script = new node_vm_1.Script(node_module_1.Module.wrap(schematicCode), {
         filename: schematicFile,
         lineOffset: 1,
     });
-    const schematicModule = new module_1.Module(schematicFile);
+    const schematicModule = new node_module_1.Module(schematicFile);
     const moduleFactory = script.runInThisContext();
     return () => {
         moduleFactory(schematicModule.exports, customRequire, schematicModule, schematicFile, schematicDirectory);

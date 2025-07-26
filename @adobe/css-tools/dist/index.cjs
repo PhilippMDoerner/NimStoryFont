@@ -89,6 +89,90 @@ var $d103407e81c97042$export$9be5dd6e61d5d73a = /*#__PURE__*/ function(CssTypes)
 }({});
 
 
+const $6fedb2016a78880b$export$82eb5486fce3d340 = 10000;
+const $6fedb2016a78880b$export$c8b95ffeec50f24a = (string, search, position)=>{
+    let currentPosition = position;
+    let maxLoop = $6fedb2016a78880b$export$82eb5486fce3d340;
+    do {
+        const all = search.map((v)=>string.indexOf(v, currentPosition));
+        all.push(string.indexOf('\\', currentPosition));
+        const foundAll = all.filter((v)=>v !== -1);
+        if (foundAll.length === 0) return -1;
+        const found = Math.min(...foundAll);
+        if (string[found] === '\\') {
+            currentPosition = found + 2;
+            maxLoop--;
+        } else return found;
+    }while (maxLoop > 0);
+    throw new Error('Too many escaping');
+};
+const $6fedb2016a78880b$export$b8d42a8583d2e477 = (string, search, position)=>{
+    let currentSearchPosition = position;
+    let maxLoop = $6fedb2016a78880b$export$82eb5486fce3d340;
+    do {
+        const all = search.map((v)=>string.indexOf(v, currentSearchPosition));
+        all.push(string.indexOf('(', currentSearchPosition));
+        all.push(string.indexOf('"', currentSearchPosition));
+        all.push(string.indexOf("'", currentSearchPosition));
+        all.push(string.indexOf('\\', currentSearchPosition));
+        const foundAll = all.filter((v)=>v !== -1);
+        if (foundAll.length === 0) return -1;
+        const firstMatchPos = Math.min(...foundAll);
+        const char = string[firstMatchPos];
+        switch(char){
+            case '\\':
+                currentSearchPosition = firstMatchPos + 2;
+                break;
+            case '(':
+                {
+                    const endPosition = $6fedb2016a78880b$export$b8d42a8583d2e477(string, [
+                        ')'
+                    ], firstMatchPos + 1);
+                    if (endPosition === -1) return -1;
+                    currentSearchPosition = endPosition + 1;
+                }
+                break;
+            case '"':
+                {
+                    const endQuotePosition = $6fedb2016a78880b$export$c8b95ffeec50f24a(string, [
+                        '"'
+                    ], firstMatchPos + 1);
+                    if (endQuotePosition === -1) return -1;
+                    currentSearchPosition = endQuotePosition + 1;
+                }
+                break;
+            case "'":
+                {
+                    const endQuotePosition = $6fedb2016a78880b$export$c8b95ffeec50f24a(string, [
+                        "'"
+                    ], firstMatchPos + 1);
+                    if (endQuotePosition === -1) return -1;
+                    currentSearchPosition = endQuotePosition + 1;
+                }
+                break;
+            default:
+                return firstMatchPos;
+        }
+        maxLoop--;
+    }while (maxLoop > 0);
+    throw new Error('Too many escaping');
+};
+const $6fedb2016a78880b$export$801dd37ac183521b = (string, search)=>{
+    const result = [];
+    let currentPosition = 0;
+    while(currentPosition < string.length){
+        const index = $6fedb2016a78880b$export$b8d42a8583d2e477(string, search, currentPosition);
+        if (index === -1) {
+            result.push(string.substring(currentPosition));
+            return result;
+        }
+        result.push(string.substring(currentPosition, index));
+        currentPosition = index + 1;
+    }
+    return result;
+};
+
+
 // http://www.w3.org/TR/CSS21/grammar.html
 // https://github.com/visionmedia/css-parse/pull/49#issuecomment-30088027
 // New rule => https://www.w3.org/TR/CSS22/syndata.html#comments
@@ -149,12 +233,22 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
     /**
    * Opening brace.
    */ function open() {
-        return match(/^{\s*/);
+        const openMatch = /^{\s*/.exec(css);
+        if (openMatch) {
+            processMatch(openMatch);
+            return true;
+        }
+        return false;
     }
     /**
    * Closing brace.
    */ function close() {
-        return match(/^}/);
+        const closeMatch = /^}/.exec(css);
+        if (closeMatch) {
+            processMatch(closeMatch);
+            return true;
+        }
+        return false;
     }
     /**
    * Parse ruleset.
@@ -170,10 +264,8 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
         return rules;
     }
     /**
-   * Match `re` and return captures.
-   */ function match(re) {
-        const m = re.exec(css);
-        if (!m) return;
+   * Update position and css string. Return the matches
+   */ function processMatch(m) {
         const str = m[0];
         updatePosition(str);
         css = css.slice(str.length);
@@ -182,7 +274,8 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
     /**
    * Parse whitespace.
    */ function whitespace() {
-        match(/^\s*/);
+        const m = /^\s*/.exec(css);
+        if (m) processMatch(m);
     }
     /**
    * Parse comments;
@@ -197,92 +290,61 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    */ function comment() {
         const pos = position();
         if ('/' !== css.charAt(0) || '*' !== css.charAt(1)) return;
-        const m = match(/^\/\*[^]*?\*\//);
+        const m = /^\/\*[^]*?\*\//.exec(css);
         if (!m) return error('End of comment missing');
+        processMatch(m);
         return pos({
             type: (0, $d103407e81c97042$export$9be5dd6e61d5d73a).comment,
             comment: m[0].slice(2, -2)
         });
     }
-    function findClosingParenthese(str, start, depth) {
-        let ptr = start + 1;
-        let found = false;
-        let closeParentheses = str.indexOf(')', ptr);
-        while(!found && closeParentheses !== -1){
-            const nextParentheses = str.indexOf('(', ptr);
-            if (nextParentheses !== -1 && nextParentheses < closeParentheses) {
-                const nextSearch = findClosingParenthese(str, nextParentheses + 1, depth + 1);
-                ptr = nextSearch + 1;
-                closeParentheses = str.indexOf(')', ptr);
-            } else found = true;
-        }
-        if (found && closeParentheses !== -1) return closeParentheses;
-        else return -1;
-    }
     /**
    * Parse selector.
    */ function selector() {
-        const m = match(/^([^{]+)/);
+        const m = /^([^{]+)/.exec(css);
         if (!m) return;
+        processMatch(m);
         // remove comment in selector;
-        let res = $b499486c7f02abe7$var$trim(m[0]).replace($b499486c7f02abe7$var$commentre, '');
-        // Optimisation: If there is no ',' no need to split or post-process (this is less costly)
-        if (res.indexOf(',') === -1) return [
-            res
-        ];
-        // Replace all the , in the parentheses by \u200C
-        let ptr = 0;
-        let startParentheses = res.indexOf('(', ptr);
-        while(startParentheses !== -1){
-            const closeParentheses = findClosingParenthese(res, startParentheses, 0);
-            if (closeParentheses === -1) break;
-            ptr = closeParentheses + 1;
-            res = res.substring(0, startParentheses) + res.substring(startParentheses, closeParentheses).replace(/,/g, '\u200C') + res.substring(closeParentheses);
-            startParentheses = res.indexOf('(', ptr);
-        }
-        // Replace all the , in ' and " by \u200C
-        res = res/**
-       * replace ',' by \u200C for data selector (div[data-lang="fr,de,us"])
-       *
-       * Examples:
-       * div[data-lang="fr,\"de,us"]
-       * div[data-lang='fr,\'de,us']
-       *
-       * Regex logic:
-       *  ("|')(?:\\\1|.)*?\1 => Handle the " and '
-       *
-       * Optimization 1:
-       * No greedy capture (see docs about the difference between .* and .*?)
-       *
-       * Optimization 2:
-       * ("|')(?:\\\1|.)*?\1 this use reference to capture group, it work faster.
-       */ .replace(/("|')(?:\\\1|.)*?\1/g, (m)=>m.replace(/,/g, '\u200C'));
-        // Split all the left , and replace all the \u200C by ,
-        return res// Split the selector by ','
-        .split(',')// Replace back \u200C by ','
-        .map((s)=>{
-            return $b499486c7f02abe7$var$trim(s.replace(/\u200C/g, ','));
-        });
+        const res = $b499486c7f02abe7$var$trim(m[0]).replace($b499486c7f02abe7$var$commentre, '');
+        return (0, $6fedb2016a78880b$export$801dd37ac183521b)(res, [
+            ','
+        ]).map((v)=>$b499486c7f02abe7$var$trim(v));
     }
     /**
    * Parse declaration.
    */ function declaration() {
         const pos = position();
         // prop
-        const propMatch = match(/^(\*?[-#/*\\\w]+(\[[0-9a-z_-]+\])?)\s*/);
+        const propMatch = /^(\*?[-#/*\\\w]+(\[[0-9a-z_-]+\])?)\s*/.exec(css);
         if (!propMatch) return;
+        processMatch(propMatch);
         const propValue = $b499486c7f02abe7$var$trim(propMatch[0]);
         // :
-        if (!match(/^:\s*/)) return error("property missing ':'");
+        const sepratotorMatch = /^:\s*/.exec(css);
+        if (!sepratotorMatch) return error("property missing ':'");
+        processMatch(sepratotorMatch);
         // val
-        const val = match(/^((?:'(?:\\'|.)*?'|"(?:\\"|.)*?"|\((?:'(?:\\'|.)*?'|"(?:\\"|.)*?"|[^)])*?\)|[^};])+)/);
+        let value = '';
+        const endValuePosition = (0, $6fedb2016a78880b$export$b8d42a8583d2e477)(css, [
+            ';',
+            '}'
+        ]);
+        if (endValuePosition !== -1) {
+            value = css.substring(0, endValuePosition);
+            const fakeMatch = [
+                value
+            ];
+            processMatch(fakeMatch);
+            value = $b499486c7f02abe7$var$trim(value).replace($b499486c7f02abe7$var$commentre, '');
+        }
         const ret = pos({
             type: (0, $d103407e81c97042$export$9be5dd6e61d5d73a).declaration,
             property: propValue.replace($b499486c7f02abe7$var$commentre, ''),
-            value: val ? $b499486c7f02abe7$var$trim(val[0]).replace($b499486c7f02abe7$var$commentre, '') : ''
+            value: value
         });
         // ;
-        match(/^[;\s]*/);
+        const endMatch = /^[;\s]*/.exec(css);
+        if (endMatch) processMatch(endMatch);
         return ret;
     }
     /**
@@ -306,9 +368,11 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
         let m;
         const vals = [];
         const pos = position();
-        while(m = match(/^((\d+\.\d+|\.\d+|\d+)%?|[a-z]+)\s*/)){
-            vals.push(m[1]);
-            match(/^,\s*/);
+        while(m = /^((\d+\.\d+|\.\d+|\d+)%?|[a-z]+)\s*/.exec(css)){
+            const res = processMatch(m);
+            vals.push(res[1]);
+            const spacesMatch = /^,\s*/.exec(css);
+            if (spacesMatch) processMatch(spacesMatch);
         }
         if (!vals.length) return;
         return pos({
@@ -321,13 +385,13 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse keyframes.
    */ function atkeyframes() {
         const pos = position();
-        const m1 = match(/^@([-\w]+)?keyframes\s*/);
+        const m1 = /^@([-\w]+)?keyframes\s*/.exec(css);
         if (!m1) return;
-        const vendor = m1[1];
+        const vendor = processMatch(m1)[1];
         // identifier
-        const m2 = match(/^([-\w]+)\s*/);
+        const m2 = /^([-\w]+)\s*/.exec(css);
         if (!m2) return error('@keyframes missing name');
-        const name = m2[1];
+        const name = processMatch(m2)[1];
         if (!open()) return error("@keyframes missing '{'");
         let frame;
         let frames = comments();
@@ -347,9 +411,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse supports.
    */ function atsupports() {
         const pos = position();
-        const m = match(/^@supports *([^{]+)/);
+        const m = /^@supports *([^{]+)/.exec(css);
         if (!m) return;
-        const supports = $b499486c7f02abe7$var$trim(m[1]);
+        const supports = $b499486c7f02abe7$var$trim(processMatch(m)[1]);
         if (!open()) return error("@supports missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@supports missing '}'");
@@ -363,8 +427,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse host.
    */ function athost() {
         const pos = position();
-        const m = match(/^@host\s*/);
+        const m = /^@host\s*/.exec(css);
         if (!m) return;
+        processMatch(m);
         if (!open()) return error("@host missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@host missing '}'");
@@ -377,9 +442,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse container.
    */ function atcontainer() {
         const pos = position();
-        const m = match(/^@container *([^{]+)/);
+        const m = /^@container *([^{]+)/.exec(css);
         if (!m) return;
-        const container = $b499486c7f02abe7$var$trim(m[1]);
+        const container = $b499486c7f02abe7$var$trim(processMatch(m)[1]);
         if (!open()) return error("@container missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@container missing '}'");
@@ -393,11 +458,12 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse container.
    */ function atlayer() {
         const pos = position();
-        const m = match(/^@layer *([^{;@]+)/);
+        const m = /^@layer *([^{;@]+)/.exec(css);
         if (!m) return;
-        const layer = $b499486c7f02abe7$var$trim(m[1]);
+        const layer = $b499486c7f02abe7$var$trim(processMatch(m)[1]);
         if (!open()) {
-            match(/^[;\s]*/);
+            const m2 = /^[;\s]*/.exec(css);
+            if (m2) processMatch(m2);
             return pos({
                 type: (0, $d103407e81c97042$export$9be5dd6e61d5d73a).layer,
                 layer: layer
@@ -415,9 +481,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse media.
    */ function atmedia() {
         const pos = position();
-        const m = match(/^@media *([^{]+)/);
+        const m = /^@media *([^{]+)/.exec(css);
         if (!m) return;
-        const media = $b499486c7f02abe7$var$trim(m[1]);
+        const media = $b499486c7f02abe7$var$trim(processMatch(m)[1]);
         if (!open()) return error("@media missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@media missing '}'");
@@ -431,20 +497,22 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse custom-media.
    */ function atcustommedia() {
         const pos = position();
-        const m = match(/^@custom-media\s+(--\S+)\s*([^{;\s][^{;]*);/);
+        const m = /^@custom-media\s+(--\S+)\s+([^{;\s][^{;]*);/.exec(css);
         if (!m) return;
+        const res = processMatch(m);
         return pos({
             type: (0, $d103407e81c97042$export$9be5dd6e61d5d73a).customMedia,
-            name: $b499486c7f02abe7$var$trim(m[1]),
-            media: $b499486c7f02abe7$var$trim(m[2])
+            name: $b499486c7f02abe7$var$trim(res[1]),
+            media: $b499486c7f02abe7$var$trim(res[2])
         });
     }
     /**
    * Parse paged media.
    */ function atpage() {
         const pos = position();
-        const m = match(/^@page */);
+        const m = /^@page */.exec(css);
         if (!m) return;
+        processMatch(m);
         const sel = selector() || [];
         if (!open()) return error("@page missing '{'");
         let decls = comments();
@@ -465,10 +533,11 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse document.
    */ function atdocument() {
         const pos = position();
-        const m = match(/^@([-\w]+)?document *([^{]+)/);
+        const m = /^@([-\w]+)?document *([^{]+)/.exec(css);
         if (!m) return;
-        const vendor = $b499486c7f02abe7$var$trim(m[1]);
-        const doc = $b499486c7f02abe7$var$trim(m[2]);
+        const res = processMatch(m);
+        const vendor = $b499486c7f02abe7$var$trim(res[1]);
+        const doc = $b499486c7f02abe7$var$trim(res[2]);
         if (!open()) return error("@document missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@document missing '}'");
@@ -483,8 +552,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse font-face.
    */ function atfontface() {
         const pos = position();
-        const m = match(/^@font-face\s*/);
+        const m = /^@font-face\s*/.exec(css);
         if (!m) return;
+        processMatch(m);
         if (!open()) return error("@font-face missing '{'");
         let decls = comments();
         // declarations
@@ -503,8 +573,9 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
    * Parse starting style.
    */ function atstartingstyle() {
         const pos = position();
-        const m = match(/^@starting-style\s*/);
+        const m = /^@starting-style\s*/.exec(css);
         if (!m) return;
+        processMatch(m);
         if (!open()) return error("@starting-style missing '{'");
         const style = comments().concat(rules());
         if (!close()) return error("@starting-style missing '}'");
@@ -529,12 +600,13 @@ const $b499486c7f02abe7$export$98e6a39c04603d36 = (css, options)=>{
         // ^@import\s*([^;"']|("|')(?:\\\2|.)*?\2)+(;|$)
         return function() {
             const pos = position();
-            const m = match(re);
+            const m = re.exec(css);
             if (!m) return;
+            const res = processMatch(m);
             const ret = {
                 type: name
             };
-            ret[name] = m[1].trim();
+            ret[name] = res[1].trim();
             return pos(ret);
         };
     }
@@ -784,6 +856,7 @@ class $24dc7e49cb76910e$var$Compiler {
    * Visit declaration node.
    */ declaration(node) {
         if (this.compress) return this.emit(node.property + ':' + node.value, node.position) + this.emit(';');
+        if (node.property === 'grid-template-areas') return this.emit(this.indent()) + this.emit(node.property + ': ' + node.value.split('\n').join('\n'.padEnd(22) + this.indent()), node.position) + this.emit(';');
         return this.emit(this.indent()) + this.emit(node.property + ': ' + node.value, node.position) + this.emit(';');
     }
 }

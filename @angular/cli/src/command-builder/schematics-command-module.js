@@ -78,7 +78,7 @@ exports.SchematicsCommandModule = exports.DEFAULT_SCHEMATICS_COLLECTION = void 0
 const core_1 = require("@angular-devkit/core");
 const schematics_1 = require("@angular-devkit/schematics");
 const tools_1 = require("@angular-devkit/schematics/tools");
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const analytics_1 = require("../analytics/analytics");
 const analytics_parameters_1 = require("../analytics/analytics-parameters");
 const config_1 = require("../utilities/config");
@@ -176,23 +176,18 @@ let SchematicsCommandModule = (() => {
             workflow.registry.addPostTransform(core_1.schema.transforms.addUndefinedDefaults);
             workflow.registry.useXDeprecatedProvider((msg) => logger.warn(msg));
             workflow.registry.addSmartDefaultProvider('projectName', () => this.getProjectName());
-            const workingDir = (0, core_1.normalize)((0, path_1.relative)(this.context.root, process.cwd()));
+            const workingDir = (0, core_1.normalize)((0, node_path_1.relative)(this.context.root, process.cwd()));
             workflow.registry.addSmartDefaultProvider('workingDirectory', () => workingDir === '' ? undefined : workingDir);
-            let shouldReportAnalytics = true;
             workflow.engineHost.registerOptionsTransform(async (schematic, options) => {
-                // Report analytics
-                if (shouldReportAnalytics) {
-                    shouldReportAnalytics = false;
-                    const { collection: { name: collectionName }, name: schematicName, } = schematic;
-                    const analytics = (0, analytics_1.isPackageNameSafeForAnalytics)(collectionName)
-                        ? await this.getAnalytics()
-                        : undefined;
-                    analytics?.reportSchematicRunEvent({
-                        [analytics_parameters_1.EventCustomDimension.SchematicCollectionName]: collectionName,
-                        [analytics_parameters_1.EventCustomDimension.SchematicName]: schematicName,
-                        ...this.getAnalyticsParameters(options),
-                    });
-                }
+                const { collection: { name: collectionName }, name: schematicName, } = schematic;
+                const analytics = (0, analytics_1.isPackageNameSafeForAnalytics)(collectionName)
+                    ? await this.getAnalytics()
+                    : undefined;
+                analytics?.reportSchematicRunEvent({
+                    [analytics_parameters_1.EventCustomDimension.SchematicCollectionName]: collectionName,
+                    [analytics_parameters_1.EventCustomDimension.SchematicName]: schematicName,
+                    ...this.getAnalyticsParameters(options),
+                });
                 return options;
             });
             if (options.interactive !== false && (0, tty_1.isTTY)()) {
@@ -286,17 +281,13 @@ let SchematicsCommandModule = (() => {
             return workflow;
         }
         async getSchematicCollections() {
-            // Resolve relative collections from the location of `angular.json`
-            const resolveRelativeCollection = (collectionName) => collectionName.charAt(0) === '.'
-                ? (0, path_1.resolve)(this.context.root, collectionName)
-                : collectionName;
             const getSchematicCollections = (configSection) => {
                 if (!configSection) {
                     return undefined;
                 }
                 const { schematicCollections } = configSection;
                 if (Array.isArray(schematicCollections)) {
-                    return new Set(schematicCollections.map((c) => resolveRelativeCollection(c)));
+                    return new Set(schematicCollections);
                 }
                 return undefined;
             };
@@ -379,6 +370,10 @@ let SchematicsCommandModule = (() => {
         }
         getResolvePaths(collectionName) {
             const { workspace, root } = this.context;
+            if (collectionName[0] === '.') {
+                // Resolve relative collections from the location of `angular.json`
+                return [root];
+            }
             return workspace
                 ? // Workspace
                     collectionName === exports.DEFAULT_SCHEMATICS_COLLECTION

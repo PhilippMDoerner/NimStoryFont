@@ -1,16 +1,21 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
+import { Version, CompilerFactory, CompilerOptions, Compiler, StaticProvider, PlatformRef } from '@angular/core';
 
-import { Compiler } from '@angular/core';
-import { CompilerFactory } from '@angular/core';
-import { CompilerOptions } from '@angular/core';
-import { PlatformRef } from '@angular/core';
-import { StaticProvider } from '@angular/core';
-import { Version } from '@angular/core';
+/**
+ * @module
+ * @description
+ * Entry point for all public APIs of the platform-browser-dynamic package.
+ */
+
+/**
+ * @publicApi
+ */
+declare const VERSION: Version;
 
 /**
  * @publicApi
@@ -18,31 +23,15 @@ import { Version } from '@angular/core';
  * @deprecated
  * Ivy JIT mode doesn't require accessing this symbol.
  */
-export declare class JitCompilerFactory implements CompilerFactory {
+declare class JitCompilerFactory implements CompilerFactory {
     private _defaultOptions;
     createCompiler(options?: CompilerOptions[]): Compiler;
 }
 
 /**
- * @publicApi
+ * @deprecated Use the `platformBrowser` function instead from `@angular/platform-browser`.
+ * In case you are not in a CLI app and rely on JIT compilation, you will also need to import `@angular/compiler`
  */
-export declare const platformBrowserDynamic: (extraProviders?: StaticProvider[]) => PlatformRef;
+declare const platformBrowserDynamic: (extraProviders?: StaticProvider[]) => PlatformRef;
 
-/**
- * @publicApi
- */
-export declare const VERSION: Version;
-
-/**
- * @publicApi
- */
-export declare const ɵINTERNAL_BROWSER_DYNAMIC_PLATFORM_PROVIDERS: StaticProvider[];
-
-/**
- * A platform that included corePlatform and the compiler.
- *
- * @publicApi
- */
-export declare const ɵplatformCoreDynamic: (extraProviders?: StaticProvider[]) => PlatformRef;
-
-export { }
+export { JitCompilerFactory, VERSION, platformBrowserDynamic };

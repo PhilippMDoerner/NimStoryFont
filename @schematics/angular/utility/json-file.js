@@ -63,9 +63,15 @@ class JSONFile {
                 tabSize: 2,
             },
         });
-        this.content = (0, jsonc_parser_1.applyEdits)(this.content, edits);
-        this.host.overwrite(this.path, this.content);
-        this._jsonAst = undefined;
+        if (edits.length > 0) {
+            const editedContent = (0, jsonc_parser_1.applyEdits)(this.content, edits);
+            // Update the file content if it changed
+            if (editedContent !== this.content) {
+                this.content = editedContent;
+                this.host.overwrite(this.path, editedContent);
+                this._jsonAst = undefined;
+            }
+        }
     }
     remove(jsonPath) {
         if (this.get(jsonPath) !== undefined) {

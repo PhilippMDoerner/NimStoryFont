@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -10,6 +11,7 @@ import {
 } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
+import { ShortcutAction } from 'src/app/_models/hotkey';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
@@ -33,6 +35,7 @@ export interface DisableableOption<T> {
     HotkeyDirective,
     TypeaheadComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SmallCreateFormComponent<T> {
   options = input.required<T[]>();
@@ -42,7 +45,7 @@ export class SmallCreateFormComponent<T> {
   valueProp = input.required<keyof T>();
   submitButtonType = input<ElementKind>('PRIMARY');
   cancelButtonType = input<ElementKind>('SECONDARY');
-  createHotkey = input<string | undefined>();
+  createHotkey = input<ShortcutAction | undefined>();
   disableHotkeys = input<boolean>(false);
 
   readonly create = output<T>();
@@ -67,7 +70,12 @@ export class SmallCreateFormComponent<T> {
     this.userModel = undefined;
   }
 
-  onSubmit() {
+  onSubmit(event: Event) {
+    event.preventDefault();
+
+    const canSubmit = this.userModel != null;
+    if (!canSubmit) return;
+
     this.changeState('DISPLAY');
 
     const hasValue = this.userModel?.[this.valueProp()] != null;

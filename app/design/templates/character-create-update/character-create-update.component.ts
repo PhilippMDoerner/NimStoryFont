@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -36,6 +37,7 @@ type MembershipFormState = 'CREATE' | 'DISPLAY';
     CompareFormComponent,
     HotkeyDirective,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterCreateUpdateComponent {
   state = input.required<CreateUpdateState>();
@@ -81,10 +83,13 @@ export class CharacterCreateUpdateComponent {
       key: 'current_location',
       label: 'Location',
       getOptions: () => this.lastVisitedPlaceOptions$,
-      formatSearchTerm: searchTerm => this.formatEntry(searchTerm),
+      formatSearchTerm: (searchTerm) => this.formatEntry(searchTerm),
       optionLabelProp: 'name_full',
       optionValueProp: 'pk',
-      initialOption$: of({ name_full: this.userModel().current_location_details?.name_full, pk: this.userModel().current_location }),
+      initialOption$: of({
+        name_full: this.userModel().current_location_details?.name_full,
+        pk: this.userModel().current_location,
+      }),
       required: false,
     }),
   ]);
@@ -121,7 +126,7 @@ export class CharacterCreateUpdateComponent {
     }
   }
 
-    private formatEntry(str: string | undefined) {
+  private formatEntry(str: string | undefined) {
     const undesiredCharRegex = /[-\s']/g;
     return str?.replaceAll(undesiredCharRegex, '') ?? '';
   }

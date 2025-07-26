@@ -1,6 +1,7 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -52,6 +53,7 @@ type DiaryEntryState = 'DISPLAY' | 'EDIT';
     ContextMenuComponent,
     DeleteModalComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryComponent {
   diaryentry = input.required<DiaryEntry>();

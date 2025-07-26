@@ -1,6 +1,6 @@
 'use strict';
 
-var previewApi = require('storybook/internal/preview-api');
+var previewApi = require('storybook/preview-api');
 var coreEvents = require('storybook/internal/core-events');
 require('storybook/internal/csf');
 var global = require('@storybook/global');

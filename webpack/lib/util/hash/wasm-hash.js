@@ -19,7 +19,7 @@ class WasmHash {
 	 * @param {number} digestSize size of digest returned by wasm
 	 */
 	constructor(instance, instancesPool, chunkSize, digestSize) {
-		const exports = /** @type {any} */ (instance.exports);
+		const exports = /** @type {EXPECTED_ANY} */ (instance.exports);
 		exports.init();
 		this.exports = exports;
 		this.mem = Buffer.from(exports.memory.buffer, 0, 65536);
@@ -149,7 +149,7 @@ class WasmHash {
 }
 
 /**
- * @param {TODO} wasmModule wasm module
+ * @param {WebAssembly.Module} wasmModule wasm module
  * @param {WasmHash[]} instancesPool pool of instances
  * @param {number} chunkSize size of data chunks passed to wasm
  * @param {number} digestSize size of digest returned by wasm

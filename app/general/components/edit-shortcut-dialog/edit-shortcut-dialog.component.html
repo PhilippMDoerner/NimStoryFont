@@ -1,0 +1,83 @@
+<div class="modal-border">
+  <div class="modal-header justify-content-between">
+    <div class="h4 modal-title" [id]="modalId">
+      Edit "{{ action() }}" shortcut
+    </div>
+    <button
+      btn
+      class="rounded"
+      [kind]="'NONE'"
+      [icon]="'xmark'"
+      aria-label="Close"
+      (clicked)="cancelled.emit()"
+    ></button>
+  </div>
+
+  <div class="modal-body body">
+    @let value = value$ | async;
+    <form
+      class="body__shortcut-form"
+      (submit)="emitShortcutEdited(value, $event)"
+    >
+      <label class="form-label" [for]="fieldId"> New Shortcut keys </label>
+
+      <input
+        [id]="fieldId"
+        #keyInput
+        type="text"
+        class="form-control"
+        [value]="text$ | async"
+        (change)="$event.preventDefault()"
+      />
+      @let conflictKind = conflictKind$ | async;
+      @if (conflictKind) {
+        <div class="form-text">
+          <app-icon [icon]="'circle-exclamation'" />
+          @switch (conflictKind) {
+            @case ("already-in-sequence") {
+              Shortcut is already taken or part of another shortcut
+            }
+          }
+        </div>
+      }
+
+      <div class="body__keys">
+        @for (key of value$ | async; track key.timeStamp) {
+          <app-key [key]="key" />
+          @if (!$last) {
+            <span class="body__key-separator">+</span>
+          }
+        }
+      </div>
+
+      <div class="body__buttons">
+        <button
+          btn
+          class="body__button"
+          [kind]="'SECONDARY'"
+          [icon]="'times'"
+          [text]="'Cancel'"
+          [type]="'submit'"
+          (clicked)="cancelled.emit()"
+        ></button>
+        <button
+          btn
+          class="body__button"
+          [kind]="'PRIMARY'"
+          [icon]="'floppy-disk'"
+          [type]="'submit'"
+          [text]="'Save'"
+          [disabled]="(hasConflict$ | async) !== false"
+        ></button>
+        <button
+          btn
+          [disabled]="!modified()"
+          [kind]="'INFO-OUTLINE'"
+          [icon]="'arrow-rotate-left'"
+          [text]="'Reset to default'"
+          (clicked)="emitShortcutReset()"
+        ></button>
+      </div>
+    </form>
+  </div>
+</div>

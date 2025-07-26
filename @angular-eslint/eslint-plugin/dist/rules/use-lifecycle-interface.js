@@ -24,9 +24,14 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             ...utils_1.ASTUtils.ANGULAR_LIFECYCLE_METHODS,
         ]);
         return {
-            [`MethodDefinition[key.name=${angularLifecycleMethodsPattern}]`]({ key, parent: { parent }, }) {
+            [`MethodDefinition[key.name=${angularLifecycleMethodsPattern}]`](node) {
+                const { key, parent: { parent }, } = node;
                 if (!utils_1.ASTUtils.getAngularClassDecorator(parent))
                     return;
+                // Do not report the method if it has the override keyword because it implies the base class is responsible for the implementation
+                if (node.override) {
+                    return;
+                }
                 const declaredLifecycleInterfaces = utils_1.ASTUtils.getDeclaredAngularLifecycleInterfaces(parent);
                 const methodName = key
                     .name;

@@ -27,7 +27,7 @@ export type Schema = {
      * The full path for the browser entry point to the application, relative to the current
      * workspace.
      */
-    browser: string;
+    browser?: string;
     /**
      * Budget thresholds to ensure parts of your application stay within boundaries which you
      * set.
@@ -37,6 +37,13 @@ export type Schema = {
      * Automatically clear the terminal screen during rebuilds.
      */
     clearScreen?: boolean;
+    /**
+     * Custom package resolution conditions used to resolve conditional exports/imports.
+     * Defaults to ['module', 'development'/'production']. The following special conditions are
+     * always present if the requirements are satisfied: 'default', 'import', 'require',
+     * 'browser', 'node'.
+     */
+    conditions?: string[];
     /**
      * Define the crossorigin attribute setting of elements that provide CORS support.
      */
@@ -62,7 +69,9 @@ export type Schema = {
     deployUrl?: string;
     /**
      * Exclude the listed external dependencies from being bundled into the bundle. Instead, the
-     * created bundle relies on these dependencies to be available during runtime.
+     * created bundle relies on these dependencies to be available during runtime. Note:
+     * `@foo/bar` marks all paths within the `@foo/bar` package as external, including sub-paths
+     * like `@foo/bar/baz`.
      */
     externalDependencies?: string[];
     /**
@@ -84,7 +93,7 @@ export type Schema = {
     /**
      * Configures the generation of the application's HTML index.
      */
-    index: IndexUnion;
+    index?: IndexUnion;
     /**
      * The stylesheet language to use for the application's inline component styles.
      */
@@ -126,7 +135,7 @@ export type Schema = {
     /**
      * Specify the output path relative to workspace root.
      */
-    outputPath: OutputPathUnion;
+    outputPath?: OutputPathUnion;
     /**
      * Enable and define the file watching poll time period in milliseconds.
      */
@@ -161,11 +170,11 @@ export type Schema = {
      * The full path for the server entry point to the application, relative to the current
      * workspace.
      */
-    server?: string;
+    server?: Serv;
     /**
      * Generates a service worker configuration.
      */
-    serviceWorker?: ServiceWorker;
+    serviceWorker?: Serv;
     /**
      * Output source maps for scripts and styles. For more information, see
      * https://angular.dev/reference/configs/workspace-config#source-map-configuration.
@@ -494,9 +503,12 @@ export type AutoCspClass = {
     unsafeEval?: boolean;
 };
 /**
+ * The full path for the server entry point to the application, relative to the current
+ * workspace.
+ *
  * Generates a service worker configuration.
  */
-export type ServiceWorker = boolean | string;
+export type Serv = boolean | string;
 /**
  * Output source maps for scripts and styles. For more information, see
  * https://angular.dev/reference/configs/workspace-config#source-map-configuration.
@@ -511,6 +523,10 @@ export type SourceMapClass = {
      * Output source maps for all scripts.
      */
     scripts?: boolean;
+    /**
+     * Output original source content for files within the source map.
+     */
+    sourcesContent?: boolean;
     /**
      * Output source maps for all styles.
      */

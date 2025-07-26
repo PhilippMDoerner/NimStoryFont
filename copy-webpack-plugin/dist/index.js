@@ -26,24 +26,16 @@ require("glob-parent"));
 const getSerializeJavascript = memoize(() =>
 // eslint-disable-next-line global-require
 require("serialize-javascript"));
-const getFastGlob = memoize(() =>
+const getTinyGlobby = memoize(() =>
 // eslint-disable-next-line global-require
-require("fast-glob"));
-const getGlobby = memoize(async () => {
-  // @ts-ignore
-  const {
-    globby
-  } = await import("globby");
-  return globby;
-});
+require("tinyglobby"));
 
 /** @typedef {import("schema-utils/declarations/validate").Schema} Schema */
 /** @typedef {import("webpack").Compiler} Compiler */
 /** @typedef {import("webpack").Compilation} Compilation */
 /** @typedef {import("webpack").WebpackError} WebpackError */
 /** @typedef {import("webpack").Asset} Asset */
-/** @typedef {import("globby").Options} GlobbyOptions */
-/** @typedef {import("globby").GlobEntry} GlobEntry */
+/** @typedef {import("tinyglobby").GlobOptions} GlobbyOptions */
 /** @typedef {ReturnType<Compilation["getLogger"]>} WebpackLogger */
 /** @typedef {ReturnType<Compilation["getCache"]>} CacheFacade */
 /** @typedef {ReturnType<ReturnType<Compilation["getCache"]>["getLazyHashedEtag"]>} Etag */
@@ -161,6 +153,7 @@ const getGlobby = memoize(async () => {
  * @property {AdditionalOptions} [options]
  */
 
+const PLUGIN_NAME = "CopyPlugin";
 class CopyPlugin {
   /**
    * @param {PluginOptions} [options]
@@ -168,7 +161,7 @@ class CopyPlugin {
   constructor(options = {
     patterns: []
   }) {
-    validate( /** @type {Schema} */schema, options, {
+    validate(/** @type {Schema} */schema, options, {
       name: "Copy Plugin",
       baseDataPath: "options"
     });
@@ -206,7 +199,7 @@ class CopyPlugin {
           reject(error);
           return;
         }
-        resolve( /** @type {Snapshot} */snapshot);
+        resolve(/** @type {Snapshot} */snapshot);
       });
     });
   }
@@ -247,7 +240,7 @@ class CopyPlugin {
       hashFunction,
       hashSalt
     } = outputOptions;
-    const hash = compiler.webpack.util.createHash( /** @type {string} */hashFunction);
+    const hash = compiler.webpack.util.createHash(/** @type {string} */hashFunction);
     if (hashSalt) {
       hash.update(hashSalt);
     }
@@ -258,16 +251,17 @@ class CopyPlugin {
 
   /**
    * @private
-   * @param {typeof import("globby").globby} globby
+   * @param {typeof import("tinyglobby").glob} globby
    * @param {Compiler} compiler
    * @param {Compilation} compilation
    * @param {WebpackLogger} logger
    * @param {CacheFacade} cache
+   * @param {number} concurrency
    * @param {ObjectPattern & { context: string }} inputPattern
    * @param {number} index
    * @returns {Promise<Array<CopiedResult | undefined> | undefined>}
    */
-  static async runPattern(globby, compiler, compilation, logger, cache, inputPattern, index) {
+  static async glob(globby, compiler, compilation, logger, cache, concurrency, inputPattern, index) {
     const {
       RawSource
     } = compiler.webpack.sources;
@@ -289,6 +283,7 @@ class CopyPlugin {
     } = compiler;
     let stats;
     try {
+      // @ts-ignore
       stats = await stat(inputFileSystem, absoluteFrom);
     } catch (error) {
       // Nothing
@@ -315,18 +310,16 @@ class CopyPlugin {
       logger.debug(`determined '${absoluteFrom}' is a glob`);
     }
 
-    /** @type {GlobbyOptions & { objectMode: true }} */
+    /** @type {GlobbyOptions} */
     const globOptions = {
-      ...{
-        followSymbolicLinks: true
-      },
+      absolute: true,
+      followSymbolicLinks: true,
       ...(pattern.globOptions || {}),
-      ...{
-        cwd: pattern.context,
-        objectMode: true
-      }
+      cwd: pattern.context,
+      onlyFiles: true
     };
 
+    // Will work when https://github.com/SuperchupuDev/tinyglobby/issues/81 will be resolved, so let's pass it to `tinyglobby` right now
     // @ts-ignore
     globOptions.fs = inputFileSystem;
     let glob;
@@ -335,7 +328,7 @@ class CopyPlugin {
         compilation.contextDependencies.add(absoluteFrom);
         logger.debug(`added '${absoluteFrom}' as a context dependency`);
         pattern.context = absoluteFrom;
-        glob = path.posix.join(getFastGlob().escapePath(getNormalizePath()(path.resolve(absoluteFrom))), "**/*");
+        glob = path.posix.join(getTinyGlobby().escapePath(getNormalizePath()(path.resolve(absoluteFrom))), "**/*");
         absoluteFrom = path.join(absoluteFrom, "**/*");
         if (typeof globOptions.dot === "undefined") {
           globOptions.dot = true;
@@ -345,7 +338,7 @@ class CopyPlugin {
         compilation.fileDependencies.add(absoluteFrom);
         logger.debug(`added '${absoluteFrom}' as a file dependency`);
         pattern.context = path.dirname(absoluteFrom);
-        glob = getFastGlob().escapePath(getNormalizePath()(path.resolve(absoluteFrom)));
+        glob = getTinyGlobby().escapePath(getNormalizePath()(path.resolve(absoluteFrom)));
         if (typeof globOptions.dot === "undefined") {
           globOptions.dot = true;
         }
@@ -356,19 +349,19 @@ class CopyPlugin {
           const contextDependencies = path.normalize(getGlobParent()(absoluteFrom));
           compilation.contextDependencies.add(contextDependencies);
           logger.debug(`added '${contextDependencies}' as a context dependency`);
-          glob = path.isAbsolute(originalFrom) ? originalFrom : path.posix.join(getFastGlob().escapePath(getNormalizePath()(path.resolve(pattern.context))), originalFrom);
+          glob = path.isAbsolute(originalFrom) ? originalFrom : path.posix.join(getTinyGlobby().escapePath(getNormalizePath()(path.resolve(pattern.context))), originalFrom);
         }
     }
     logger.log(`begin globbing '${glob}'...`);
 
     /**
-     * @type {GlobEntry[]}
+     * @type {string[]}
      */
     let globEntries;
     try {
       globEntries = await globby(glob, globOptions);
     } catch (error) {
-      compilation.errors.push( /** @type {WebpackError} */error);
+      compilation.errors.push(/** @type {WebpackError} */error);
       return;
     }
     if (globEntries.length === 0) {
@@ -377,7 +370,7 @@ class CopyPlugin {
         return;
       }
       const missingError = new Error(`unable to locate '${glob}' glob`);
-      compilation.errors.push( /** @type {WebpackError} */missingError);
+      compilation.errors.push(/** @type {WebpackError} */missingError);
       return;
     }
 
@@ -386,30 +379,21 @@ class CopyPlugin {
      */
     let copiedResult;
     try {
-      copiedResult = await Promise.all(globEntries.map(
-      /**
-       * @param {GlobEntry} globEntry
-       * @returns {Promise<CopiedResult | undefined>}
-       */
-      async globEntry => {
-        // Exclude directories
-        if (!globEntry.dirent.isFile()) {
-          return;
-        }
+      copiedResult = await throttleAll(concurrency, globEntries.map(globEntry => async () => {
         if (pattern.filter) {
           let isFiltered;
           try {
-            isFiltered = await pattern.filter(globEntry.path);
+            isFiltered = await pattern.filter(globEntry);
           } catch (error) {
-            compilation.errors.push( /** @type {WebpackError} */error);
+            compilation.errors.push(/** @type {WebpackError} */error);
             return;
           }
           if (!isFiltered) {
-            logger.log(`skip '${globEntry.path}', because it was filtered`);
+            logger.log(`skip '${globEntry}', because it was filtered`);
             return;
           }
         }
-        const from = globEntry.path;
+        const from = globEntry;
         logger.debug(`found '${from}'`);
 
         // `globby`/`fast-glob` return the relative path when the path contains special characters on windows
@@ -423,7 +407,7 @@ class CopyPlugin {
         const relativeFrom = path.relative(pattern.context, absoluteFilename);
         let filename = toType === "dir" ? path.join(to, relativeFrom) : to;
         if (path.isAbsolute(filename)) {
-          filename = path.relative( /** @type {string} */compiler.options.output.path, filename);
+          filename = path.relative(/** @type {string} */compiler.options.output.path, filename);
         }
         logger.log(`determined that '${from}' should write to '${filename}'`);
         const sourceFilename = getNormalizePath()(path.relative(compiler.context, absoluteFilename));
@@ -438,7 +422,7 @@ class CopyPlugin {
         try {
           cacheEntry = await cache.getPromise(`${sourceFilename}|${index}`, null);
         } catch (error) {
-          compilation.errors.push( /** @type {WebpackError} */error);
+          compilation.errors.push(/** @type {WebpackError} */error);
           return;
         }
 
@@ -453,7 +437,7 @@ class CopyPlugin {
           try {
             isValidSnapshot = await CopyPlugin.checkSnapshotValid(compilation, cacheEntry.snapshot);
           } catch (error) {
-            compilation.errors.push( /** @type {WebpackError} */error);
+            compilation.errors.push(/** @type {WebpackError} */error);
             return;
           }
           if (isValidSnapshot) {
@@ -472,9 +456,10 @@ class CopyPlugin {
           logger.debug(`reading '${absoluteFilename}'...`);
           let data;
           try {
+            // @ts-ignore
             data = await readFile(inputFileSystem, absoluteFilename);
           } catch (error) {
-            compilation.errors.push( /** @type {WebpackError} */error);
+            compilation.errors.push(/** @type {WebpackError} */error);
             return;
           }
           logger.debug(`read '${absoluteFilename}'`);
@@ -484,7 +469,7 @@ class CopyPlugin {
           try {
             snapshot = await CopyPlugin.createSnapshot(compilation, startTime, absoluteFilename);
           } catch (error) {
-            compilation.errors.push( /** @type {WebpackError} */error);
+            compilation.errors.push(/** @type {WebpackError} */error);
             return;
           }
           if (snapshot) {
@@ -496,7 +481,7 @@ class CopyPlugin {
                 snapshot
               });
             } catch (error) {
-              compilation.errors.push( /** @type {WebpackError} */error);
+              compilation.errors.push(/** @type {WebpackError} */error);
               return;
             }
             logger.debug(`stored cache for '${absoluteFilename}'`);
@@ -513,10 +498,8 @@ class CopyPlugin {
             logger.log(`transforming content for '${absoluteFilename}'...`);
             const buffer = source.buffer();
             if (transformObj.cache) {
-              // TODO: remove in the next major release
-              const hasher = compiler.webpack && compiler.webpack.util && compiler.webpack.util.createHash ? compiler.webpack.util.createHash("xxhash64") :
-              // eslint-disable-next-line global-require
-              require("crypto").createHash("md4");
+              const hasher = compiler.webpack.util.createHash(/** @type {string} */
+              compilation.outputOptions.hashFunction);
               const defaultCacheKeys = {
                 version,
                 sourceFilename,
@@ -561,7 +544,7 @@ class CopyPlugin {
             contentHash,
             chunk: {
               name,
-              id: ( /** @type {string} */sourceFilename),
+              id: (/** @type {string} */sourceFilename),
               hash: contentHash
             }
           };
@@ -590,7 +573,7 @@ class CopyPlugin {
         };
       }));
     } catch (error) {
-      compilation.errors.push( /** @type {WebpackError} */error);
+      compilation.errors.push(/** @type {WebpackError} */error);
       return;
     }
     if (copiedResult.length === 0) {
@@ -599,7 +582,7 @@ class CopyPlugin {
         return;
       }
       const missingError = new Error(`unable to locate '${glob}' glob after filtering paths`);
-      compilation.errors.push( /** @type {WebpackError} */missingError);
+      compilation.errors.push(/** @type {WebpackError} */missingError);
       return;
     }
     logger.log(`finished to process a pattern from '${normalizedOriginalFrom}' using '${pattern.context}' context`);
@@ -618,34 +601,29 @@ class CopyPlugin {
       const cache = compilation.getCache("CopyWebpackPlugin");
 
       /**
-       * @type {typeof import("globby").globby}
+       * @type {typeof import("tinyglobby").glob}
        */
       let globby;
       compilation.hooks.processAssets.tapAsync({
-        name: "copy-webpack-plugin",
+        name: PLUGIN_NAME,
         stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
       }, async (unusedAssets, callback) => {
         if (typeof globby === "undefined") {
           try {
-            globby = await getGlobby();
+            globby = await getTinyGlobby().glob;
           } catch (error) {
-            callback( /** @type {Error} */error);
+            callback(/** @type {Error} */error);
             return;
           }
         }
         logger.log("starting to add additional assets...");
+        const concurrency = this.options.concurrency || 100;
+        /** @type {Map<number, Map<number, CopiedResult[]>>} */
         const copiedResultMap = new Map();
-        /**
-         * @type {(() => Promise<void>)[]}
-         */
-        const scheduledTasks = [];
-        this.patterns.map(
-        /**
-         * @param {Pattern} item
-         * @param {number} index
-         * @return {number}
-         */
-        (item, index) => scheduledTasks.push(async () => {
+        await throttleAll(
+        // Should be enough, it might be worth considering an option for this, but in real configurations it usually doesn't exceed this value
+        // https://github.com/webpack-contrib/copy-webpack-plugin/issues/627
+        2, this.patterns.map((item, index) => async () => {
           /**
            * @type {ObjectPattern}
            */
@@ -662,10 +640,10 @@ class CopyPlugin {
            */
           let copiedResult;
           try {
-            copiedResult = await CopyPlugin.runPattern(globby, compiler, compilation, logger, cache, /** @type {ObjectPattern & { context: string }} */
+            copiedResult = await CopyPlugin.glob(globby, compiler, compilation, logger, cache, concurrency, /** @type {ObjectPattern & { context: string }} */
             normalizedPattern, index);
           } catch (error) {
-            compilation.errors.push( /** @type {WebpackError} */error);
+            compilation.errors.push(/** @type {WebpackError} */error);
             return;
           }
           if (!copiedResult) {
@@ -683,7 +661,7 @@ class CopyPlugin {
           result => Boolean(result));
           if (typeof normalizedPattern.transformAll !== "undefined") {
             if (typeof normalizedPattern.to === "undefined") {
-              compilation.errors.push( /** @type {WebpackError} */
+              compilation.errors.push(/** @type {WebpackError} */
 
               new Error(`Invalid "pattern.to" for the "pattern.from": "${normalizedPattern.from}" and "pattern.transformAll" function. The "to" option must be specified.`));
               return;
@@ -699,7 +677,7 @@ class CopyPlugin {
             // @ts-ignore
             (accumulator, asset, i) => {
               // eslint-disable-next-line no-param-reassign
-              accumulator = cache.mergeEtags(i === 1 ? cache.getLazyHashedEtag( /** @type {CopiedResult}*/accumulator.source) : accumulator, cache.getLazyHashedEtag(asset.source));
+              accumulator = cache.mergeEtags(i === 1 ? cache.getLazyHashedEtag(/** @type {CopiedResult}*/accumulator.source) : accumulator, cache.getLazyHashedEtag(asset.source));
               return accumulator;
             });
             const cacheItem = cache.getItemCache(`transformAll|${getSerializeJavascript()({
@@ -722,7 +700,7 @@ class CopyPlugin {
                   };
                 }));
               } catch (error) {
-                compilation.errors.push( /** @type {WebpackError} */error);
+                compilation.errors.push(/** @type {WebpackError} */error);
                 return;
               }
               const filename = typeof normalizedPattern.to === "function" ? await normalizedPattern.to({
@@ -754,21 +732,25 @@ class CopyPlugin {
           }
           const priority = normalizedPattern.priority || 0;
           if (!copiedResultMap.has(priority)) {
-            copiedResultMap.set(priority, []);
+            copiedResultMap.set(priority, new Map());
           }
-          copiedResultMap.get(priority).push(...filteredCopiedResult);
+
+          /** @type {Map<index, CopiedResult[]>} */
+          copiedResultMap.get(priority).set(index, filteredCopiedResult);
         }));
-        await throttleAll(this.options.concurrency || 100, scheduledTasks);
         const copiedResult = [...copiedResultMap.entries()].sort((a, b) => a[0] - b[0]);
 
-        // Avoid writing assets inside `p-limit`, because it creates concurrency.
+        // Avoid writing assets inside `throttleAll`, because it creates concurrency.
         // It could potentially lead to an error - 'Multiple assets emit different content to the same filename'
-        copiedResult.reduce((acc, val) => acc.concat(val[1]), []).filter(Boolean).forEach(
-        /**
-         * @param {CopiedResult} result
-         * @returns {void}
-         */
-        result => {
+        copiedResult.reduce((acc, val) => {
+          const sortedByIndex = [...val[1]].sort((a, b) => a[0] - b[0]);
+          for (const [, item] of sortedByIndex) {
+            // eslint-disable-next-line no-param-reassign
+            acc = acc.concat(item);
+          }
+          return acc;
+        }, /** @type {CopiedResult[]} */
+        []).filter(Boolean).forEach(result => {
           const {
             absoluteFilename,
             sourceFilename,
@@ -810,10 +792,10 @@ class CopyPlugin {
       });
       if (compilation.hooks.statsPrinter) {
         compilation.hooks.statsPrinter.tap(pluginName, stats => {
-          stats.hooks.print.for("asset.info.copied").tap("copy-webpack-plugin", (copied, {
+          stats.hooks.print.for("asset.info.copied").tap(PLUGIN_NAME, (copied, {
             green,
             formatFlag
-          }) => copied ? /** @type {Function} */green( /** @type {Function} */formatFlag("copied")) : "");
+          }) => copied ? /** @type {Function} */green(/** @type {Function} */formatFlag("copied")) : "");
         });
       }
     });

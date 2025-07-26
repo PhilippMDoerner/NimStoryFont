@@ -56,6 +56,31 @@ console.log(inlined)
 // "<style>.blue{color:blue}</style><div class=\"blue\">I'm Blue</div>"
 ```
 
+## Usage with Vite
+
+Beasties can be used with Vite through [vite-plugin-beasties](https://www.npmjs.org/package/vite-plugin-beasties). [![npm](https://img.shields.io/npm/v/vite-plugin-beasties.svg)](https://www.npmjs.org/package/vite-plugin-beasties)
+
+Just add it to your Vite configuration:
+
+```js
+// vite.config.ts
+import { defineConfig } from 'vite'
+import { beasties } from 'vite-plugin-beasties'
+
+export default defineConfig({
+  plugins: [
+    beasties({
+      // optional beasties configuration
+      options: {
+        preload: 'swap',
+      }
+    })
+  ]
+})
+```
+
+The plugin will process the output for your `index.html` and inline critical CSS while lazy-loading the rest.
+
 ## Usage with webpack
 
 Beasties is also available as a Webpack plugin called [beasties-webpack-plugin](https://www.npmjs.org/package/beasties-webpack-plugin). [![npm](https://img.shields.io/npm/v/beasties-webpack-plugin.svg)](https://www.npmjs.org/package/beasties-webpack-plugin)
@@ -101,6 +126,7 @@ All optional. Pass them to `new Beasties({ ... })`.
 - `mergeStylesheets` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Merged inlined stylesheets into a single `<style>` tag _(default: `true`)_
 - `additionalStylesheets` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** Glob for matching other stylesheets to be used while looking for critical CSS.
 - `reduceInlineStyles` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Option indicates if inline styles should be evaluated for critical CSS. By default inline style tags will be evaluated and rewritten to only contain critical CSS. Set it to `false` to skip processing inline styles. _(default: `true`)_
+- `allowRules` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [RegExp](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp)>** Always include rules matching these selectors or patterns in the critical CSS, regardless of whether they match elements in the document. _(default: `[]`)_
 - `preload` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Which [preload strategy](#preloadstrategy) to use
 - `noscriptFallback` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Add `<noscript>` fallback to JS-based strategies
 - `inlineFonts` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Inline critical font-face rules _(default: `false`)_
@@ -172,6 +198,24 @@ Including/Excluding multiple rules by adding start and end markers
 /* beasties:include end */
 ```
 
+### Programmatically including rules with allowRules
+
+In addition to comment-based inclusion, you can use the `allowRules` option to programmatically include specific selectors or patterns in the critical CSS, regardless of whether they match elements in the document. This is useful for cases where you know certain styles should always be included.
+
+```js
+const beasties = new Beasties({
+  // Always include these selectors in critical CSS
+  allowRules: [
+    // Exact selector match
+    '.always-include',
+    // Regular expression pattern
+    /^\.modal-/
+  ]
+})
+```
+
+With this configuration, any CSS rules with selectors that match `.always-include` exactly or start with `.modal-` will be included in the critical CSS, even if no matching elements exist in the document.
+
 ### Beasties container
 
 By default Beasties evaluates the CSS against the entire input HTML. Beasties evaluates the Critical CSS by reconstructing the entire DOM and evaluating the CSS selectors to find matching nodes. Usually this works well as Beasties is lightweight and fast.
@@ -240,11 +284,12 @@ Note: <kbd>JS</kbd> indicates a strategy requiring JavaScript (falls back to `<n
 - **"media":** Load stylesheets asynchronously by adding `media="not x"` and removing once loaded. <kbd>JS</kbd>
 - **"swap":** Convert stylesheet links to preloads that swap to `rel="stylesheet"` once loaded ([details](https://www.filamentgroup.com/lab/load-css-simpler/#the-code)). <kbd>JS</kbd>
 - **"swap-high":** Use `<link rel="alternate stylesheet preload">` and swap to `rel="stylesheet"` once loaded ([details](http://filamentgroup.github.io/loadCSS/test/new-high.html)). <kbd>JS</kbd>
+- **"swap-low":** Use `<link rel="alternate stylesheet">` (no `preload` in `rel` here!) and swap to `rel="stylesheet"` once loaded ([details](http://filamentgroup.github.io/loadCSS/test/new-low.html)). It ensures lowest priority compared to `swap` and `swap-high`. <kbd>JS</kbd>
 - **"js":** Inject an asynchronous CSS loader similar to [LoadCSS](https://github.com/filamentgroup/loadCSS) and use it to load stylesheets. <kbd>JS</kbd>
 - **"js-lazy":** Like `"js"`, but the stylesheet is disabled until fully loaded.
 - **false:** Disables adding preload tags.
 
-Type: (default | `"body"` | `"media"` | `"swap"` | `"swap-high"` | `"js"` | `"js-lazy"`)
+Type: (default | `"body"` | `"media"` | `"swap"` | `"swap-high"` | `"swap-low"` | `"js"` | `"js-lazy"`)
 
 ## Similar Libraries
 

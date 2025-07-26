@@ -22,6 +22,7 @@ const {
 const createHash = require("./util/createHash");
 
 /** @typedef {import("estree").Expression} Expression */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./Module").ValueCacheVersions} ValueCacheVersions */
@@ -31,10 +32,9 @@ const createHash = require("./util/createHash");
 /** @typedef {import("./javascript/JavascriptParser").DestructuringAssignmentProperty} DestructuringAssignmentProperty */
 /** @typedef {import("./javascript/JavascriptParser").Range} Range */
 /** @typedef {import("./logging/Logger").Logger} Logger */
-/** @typedef {import("./util/createHash").Algorithm} Algorithm */
 
-/** @typedef {null|undefined|RegExp|Function|string|number|boolean|bigint|undefined} CodeValuePrimitive */
-/** @typedef {RecursiveArrayOrRecord<CodeValuePrimitive|RuntimeValue>} CodeValue */
+/** @typedef {null | undefined | RegExp | EXPECTED_FUNCTION | string | number | boolean | bigint | undefined} CodeValuePrimitive */
+/** @typedef {RecursiveArrayOrRecord<CodeValuePrimitive | RuntimeValue>} CodeValue */
 
 /**
  * @typedef {object} RuntimeValueOptions
@@ -42,11 +42,11 @@ const createHash = require("./util/createHash");
  * @property {string[]=} contextDependencies
  * @property {string[]=} missingDependencies
  * @property {string[]=} buildDependencies
- * @property {string|function(): string=} version
+ * @property {string| (() => string)=} version
  */
 
 /** @typedef {string | Set<string>} ValueCacheVersion */
-/** @typedef {function({ module: NormalModule, key: string, readonly version: ValueCacheVersion }): CodeValuePrimitive} GeneratorFn */
+/** @typedef {(value: { module: NormalModule, key: string, readonly version: ValueCacheVersion }) => CodeValuePrimitive} GeneratorFn */
 
 class RuntimeValue {
 	/**
@@ -137,7 +137,7 @@ function getObjKeys(properties) {
 /** @typedef {boolean | undefined | null} AsiSafe */
 
 /**
- * @param {any[]|{[k: string]: any}} obj obj
+ * @param {EXPECTED_ANY[] | {[k: string]: EXPECTED_ANY}} obj obj
  * @param {JavascriptParser} parser Parser
  * @param {ValueCacheVersions} valueCacheVersions valueCacheVersions
  * @param {string} key the defined key
@@ -160,21 +160,19 @@ const stringifyObj = (
 	let code;
 	const arr = Array.isArray(obj);
 	if (arr) {
-		code = `[${
-			/** @type {any[]} */ (obj)
-				.map(code =>
-					toCode(
-						code,
-						parser,
-						valueCacheVersions,
-						key,
-						runtimeTemplate,
-						logger,
-						null
-					)
+		code = `[${obj
+			.map(code =>
+				toCode(
+					code,
+					parser,
+					valueCacheVersions,
+					key,
+					runtimeTemplate,
+					logger,
+					null
 				)
-				.join(",")
-		}]`;
+			)
+			.join(",")}]`;
 	} else {
 		let keys = Object.keys(obj);
 		if (objKeys) {
@@ -182,7 +180,7 @@ const stringifyObj = (
 		}
 		code = `{${keys
 			.map(key => {
-				const code = /** @type {{[k: string]: any}} */ (obj)[key];
+				const code = obj[key];
 				return `${JSON.stringify(key)}:${toCode(
 					code,
 					parser,
@@ -310,7 +308,10 @@ const toCacheVersion = code => {
 	if (typeof code === "object") {
 		const items = Object.keys(code).map(key => ({
 			key,
-			value: toCacheVersion(/** @type {Record<string, any>} */ (code)[key])
+			value: toCacheVersion(
+				/** @type {Record<string, EXPECTED_ANY>} */
+				(code)[key]
+			)
 		}));
 		if (items.some(({ value }) => value === undefined)) return;
 		return `{${items.map(({ key, value }) => `${key}: ${value}`).join(", ")}}`;
@@ -366,7 +367,7 @@ class DefinePlugin {
 				const { runtimeTemplate } = compilation;
 
 				const mainHash = createHash(
-					/** @type {Algorithm} */
+					/** @type {HashFunction} */
 					(compilation.outputOptions.hashFunction)
 				);
 				mainHash.update(
@@ -408,10 +409,10 @@ class DefinePlugin {
 					};
 
 					/**
-					 * @template {Function} T
+					 * @template T
 					 * @param {string} key key
-					 * @param {T} fn fn
-					 * @returns {function(TODO): TODO} result
+					 * @param {(expression: Expression) => T} fn fn
+					 * @returns {(expression: Expression) => T} result
 					 */
 					const withValueDependency =
 						(key, fn) =>

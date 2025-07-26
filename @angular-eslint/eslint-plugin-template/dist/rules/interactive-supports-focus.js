@@ -61,7 +61,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                 const tabIndex = [...node.attributes, ...node.inputs].find((attr) => attr.name === 'tabindex');
                 if (interactiveOutput &&
                     !tabIndex &&
-                    !(0, is_interactive_element_1.isInteractiveElement)(node) &&
+                    !(0, is_interactive_element_1.isInherentlyInteractiveElement)(node) &&
                     !(0, is_interactive_element_1.isNonInteractiveRole)(node) &&
                     !(0, is_content_editable_1.isContentEditable)(node)) {
                     const parserServices = (0, utils_1.getTemplateParserServices)(context);

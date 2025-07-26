@@ -11,20 +11,30 @@ const memoize = require("./util/memoize");
 /** @typedef {import("../declarations/WebpackOptions").Entry} Entry */
 /** @typedef {import("../declarations/WebpackOptions").EntryNormalized} EntryNormalized */
 /** @typedef {import("../declarations/WebpackOptions").EntryObject} EntryObject */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItem} ExternalItem */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunction} ExternalItemFunction */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionCallback} ExternalItemFunctionCallback */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionData} ExternalItemFunctionData */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolve} ExternalItemFunctionDataGetResolve */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolveCallbackResult} ExternalItemFunctionDataGetResolveCallbackResult */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolveResult} ExternalItemFunctionDataGetResolveResult */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionPromise} ExternalItemFunctionPromise */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectKnown} ExternalItemObjectKnown */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectUnknown} ExternalItemObjectUnknown */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemValue} ExternalItemValue */
 /** @typedef {import("../declarations/WebpackOptions").Externals} Externals */
 /** @typedef {import("../declarations/WebpackOptions").FileCacheOptions} FileCacheOptions */
+/** @typedef {import("../declarations/WebpackOptions").GeneratorOptionsByModuleTypeKnown} GeneratorOptionsByModuleTypeKnown */
 /** @typedef {import("../declarations/WebpackOptions").LibraryOptions} LibraryOptions */
 /** @typedef {import("../declarations/WebpackOptions").MemoryCacheOptions} MemoryCacheOptions */
 /** @typedef {import("../declarations/WebpackOptions").ModuleOptions} ModuleOptions */
+/** @typedef {import("../declarations/WebpackOptions").ParserOptionsByModuleTypeKnown} ParserOptionsByModuleTypeKnown */
 /** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetCondition} RuleSetCondition */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetConditionAbsolute} RuleSetConditionAbsolute */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetUse} RuleSetUse */
+/** @typedef {import("../declarations/WebpackOptions").RuleSetUseFunction} RuleSetUseFunction */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetUseItem} RuleSetUseItem */
 /** @typedef {import("../declarations/WebpackOptions").StatsOptions} StatsOptions */
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptions} Configuration */
@@ -37,6 +47,7 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./Compilation").EntryOptions} EntryOptions */
 /** @typedef {import("./Compilation").PathData} PathData */
 /** @typedef {import("./Compiler").AssetEmittedInfo} AssetEmittedInfo */
+/** @typedef {import("./Entrypoint")} Entrypoint */
 /** @typedef {import("./MultiCompiler").MultiCompilerOptions} MultiCompilerOptions */
 /** @typedef {import("./MultiStats")} MultiStats */
 /** @typedef {import("./NormalModuleFactory").ResolveData} ResolveData */
@@ -64,15 +75,15 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
 
 /**
- * @template {Function} T
- * @param {function(): T} factory factory function
+ * @template {EXPECTED_FUNCTION} T
+ * @param {() => T} factory factory function
  * @returns {T} function
  */
 const lazyFunction = factory => {
 	const fac = memoize(factory);
-	const f = /** @type {any} */ (
+	const f = /** @type {unknown} */ (
 		/**
-		 * @param {...any} args args
+		 * @param {...EXPECTED_ANY} args args
 		 * @returns {T} result
 		 */
 		(...args) => fac()(...args)
@@ -120,13 +131,13 @@ module.exports = mergeExports(fn, {
 		return require("./webpack");
 	},
 	/**
-	 * @returns {function(Configuration | Configuration[]): void} validate fn
+	 * @returns {(configuration: Configuration | Configuration[]) => void} validate fn
 	 */
 	get validate() {
 		const webpackOptionsSchemaCheck = require("../schemas/WebpackOptions.check.js");
 		const getRealValidate = memoize(
 			/**
-			 * @returns {function(Configuration | Configuration[]): void} validate fn
+			 * @returns {(configuration: Configuration | Configuration[]) => void} validate fn
 			 */
 			() => {
 				const validateSchema = require("./validateSchema");

@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   inject,
@@ -27,6 +28,7 @@ import { ElementKind } from 'src/app/design/atoms/_models/button';
     ReactiveFormsModule,
     NgbTooltipModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormlyFileFieldComponent
   extends FieldType<FieldTypeConfig>

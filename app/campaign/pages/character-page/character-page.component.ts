@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, Signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  Signal,
+} from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CharacterDetails,
@@ -17,6 +24,7 @@ import { CharacterStore } from './character-page.store';
   imports: [CharacterComponent],
   templateUrl: './character-page.component.html',
   styleUrl: './character-page.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterPageComponent {
   store = inject(CharacterStore);

@@ -33,13 +33,17 @@ const COMMON_LIBRARY_NAME_MESSAGE =
  */
 
 /**
+ * @typedef {object} AbstractLibraryPluginOptions
+ * @property {string} pluginName name of the plugin
+ * @property {LibraryType} type used library type
+ */
+
+/**
  * @template T
  */
 class AbstractLibraryPlugin {
 	/**
-	 * @param {object} options options
-	 * @param {string} options.pluginName name of the plugin
-	 * @param {LibraryType} options.type used library type
+	 * @param {AbstractLibraryPluginOptions} options options
 	 */
 	constructor({ pluginName, type }) {
 		this._pluginName = pluginName;
@@ -89,7 +93,7 @@ class AbstractLibraryPlugin {
 
 			/**
 			 * @param {Chunk} chunk chunk
-			 * @returns {TODO} options for the chunk
+			 * @returns {T | false} options for the chunk
 			 */
 			const getOptionsForChunk = chunk => {
 				if (compilation.chunkGraph.getNumberOfEntryModules(chunk) === 0)

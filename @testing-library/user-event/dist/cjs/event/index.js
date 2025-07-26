@@ -3,13 +3,7 @@
 var dispatchEvent = require('./dispatchEvent.js');
 var focus = require('./focus.js');
 var input = require('./input.js');
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var setSelectionPerMouse = require('./selection/setSelectionPerMouse.js');
 var modifySelectionPerMouse = require('./selection/modifySelectionPerMouse.js');
 var selectAll = require('./selection/selectAll.js');

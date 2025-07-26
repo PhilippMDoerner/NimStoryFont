@@ -8,9 +8,17 @@
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
 /** @typedef {import("./RuleSetCompiler")} RuleSetCompiler */
 
+/**
+ * @template T
+ * @template {T[keyof T]} V
+ * @typedef {import("./RuleSetCompiler").KeysOfTypes<T, V>} KeysOfTypes
+ */
+
+/** @typedef {KeysOfTypes<RuleSetRule, string | boolean | { [k: string]: EXPECTED_ANY }>} BasicEffectRuleKeys */
+
 class BasicEffectRulePlugin {
 	/**
-	 * @param {string} ruleProperty the rule property
+	 * @param {BasicEffectRuleKeys} ruleProperty the rule property
 	 * @param {string=} effectType the effect type
 	 */
 	constructor(ruleProperty, effectType) {
@@ -29,8 +37,7 @@ class BasicEffectRulePlugin {
 				if (unhandledProperties.has(this.ruleProperty)) {
 					unhandledProperties.delete(this.ruleProperty);
 
-					const value =
-						rule[/** @type {keyof RuleSetRule} */ (this.ruleProperty)];
+					const value = rule[this.ruleProperty];
 
 					result.effects.push({
 						type: this.effectType,

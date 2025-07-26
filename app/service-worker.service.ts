@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SwUpdate, UnrecoverableStateEvent } from '@angular/service-worker';
 import { switchMap, take, timer } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { ToastConfig } from './_models/toast';
 
 @Injectable({

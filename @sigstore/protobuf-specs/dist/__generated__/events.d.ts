@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Any } from "./google/protobuf/any";
 export interface CloudEvent {
     /** Required Attributes */
@@ -11,6 +10,7 @@ export interface CloudEvent {
     attributes: {
         [key: string]: CloudEvent_CloudEventAttributeValue;
     };
+    /** -- CloudEvent Data (Bytes, Text, or Proto) */
     data?: {
         $case: "binaryData";
         binaryData: Buffer;
@@ -20,7 +20,7 @@ export interface CloudEvent {
     } | {
         $case: "protoData";
         protoData: Any;
-    };
+    } | undefined;
 }
 export interface CloudEvent_AttributesEntry {
     key: string;
@@ -48,24 +48,17 @@ export interface CloudEvent_CloudEventAttributeValue {
     } | {
         $case: "ceTimestamp";
         ceTimestamp: Date;
-    };
+    } | undefined;
 }
 export interface CloudEventBatch {
     events: CloudEvent[];
 }
-export declare const CloudEvent: {
-    fromJSON(object: any): CloudEvent;
-    toJSON(message: CloudEvent): unknown;
-};
-export declare const CloudEvent_AttributesEntry: {
-    fromJSON(object: any): CloudEvent_AttributesEntry;
-    toJSON(message: CloudEvent_AttributesEntry): unknown;
-};
-export declare const CloudEvent_CloudEventAttributeValue: {
-    fromJSON(object: any): CloudEvent_CloudEventAttributeValue;
-    toJSON(message: CloudEvent_CloudEventAttributeValue): unknown;
-};
-export declare const CloudEventBatch: {
-    fromJSON(object: any): CloudEventBatch;
-    toJSON(message: CloudEventBatch): unknown;
-};
+export declare const CloudEvent: MessageFns<CloudEvent>;
+export declare const CloudEvent_AttributesEntry: MessageFns<CloudEvent_AttributesEntry>;
+export declare const CloudEvent_CloudEventAttributeValue: MessageFns<CloudEvent_CloudEventAttributeValue>;
+export declare const CloudEventBatch: MessageFns<CloudEventBatch>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

@@ -442,11 +442,8 @@ function getRouterModuleDeclaration(source) {
         return undefined;
     }
     const matchingProperties = getMetadataField(node, 'imports');
-    if (!matchingProperties) {
-        return;
-    }
     const assignment = matchingProperties[0];
-    if (assignment.initializer.kind !== ts.SyntaxKind.ArrayLiteralExpression) {
+    if (!assignment || assignment.initializer.kind !== ts.SyntaxKind.ArrayLiteralExpression) {
         return;
     }
     const arrLiteral = assignment.initializer;

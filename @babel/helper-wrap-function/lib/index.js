@@ -14,7 +14,11 @@ const {
   isFunctionDeclaration,
   isRestElement,
   returnStatement,
-  isCallExpression
+  isCallExpression,
+  memberExpression,
+  identifier,
+  thisExpression,
+  isPattern
 } = _t;
 const buildAnonymousExpressionWrapper = _template.default.expression(`
   (function () {
@@ -40,14 +44,33 @@ const buildDeclarationWrapper = _template.default.statements(`
     return REF.apply(this, arguments);
   }
 `);
-function classOrObjectMethod(path, callId) {
+function classOrObjectMethod(path, callId, ignoreFunctionLength) {
   const node = path.node;
   const body = node.body;
-  const container = functionExpression(null, [], blockStatement(body.body), true);
-  body.body = [returnStatement(callExpression(callExpression(callId, [container]), []))];
+  let params = [];
+  const shoudlForwardParams = node.params.some(p => isPattern(p));
+  if (shoudlForwardParams) {
+    params = node.params;
+    node.params = [];
+    if (!ignoreFunctionLength) {
+      for (const param of params) {
+        if (isAssignmentPattern(param) || isRestElement(param)) {
+          break;
+        }
+        node.params.push(path.scope.generateUidIdentifier("x"));
+      }
+    }
+  }
+  const container = functionExpression(null, params, blockStatement(body.body), true);
+  if (shoudlForwardParams) {
+    body.body = [returnStatement(callExpression(memberExpression(callExpression(callId, [container]), identifier("apply")), [thisExpression(), identifier("arguments")]))];
+    path.get("body.body.0.argument.callee.object.arguments.0").unwrapFunctionEnvironment();
+  } else {
+    body.body = [returnStatement(callExpression(callExpression(callId, [container]), []))];
+    path.get("body.body.0.argument.callee.arguments.0").unwrapFunctionEnvironment();
+  }
   node.async = false;
   node.generator = false;
-  path.get("body.body.0.argument.callee.arguments.0").unwrapFunctionEnvironment();
 }
 function plainFunction(inPath, callId, noNewArrows, ignoreFunctionLength, hadName) {
   let path = inPath;
@@ -106,7 +129,7 @@ function plainFunction(inPath, callId, noNewArrows, ignoreFunctionLength, hadNam
 }
 function wrapFunction(path, callId, noNewArrows = true, ignoreFunctionLength = false) {
   if (path.isMethod()) {
-    classOrObjectMethod(path, callId);
+    classOrObjectMethod(path, callId, ignoreFunctionLength);
   } else {
     const hadName = "id" in path.node && !!path.node.id;
     {

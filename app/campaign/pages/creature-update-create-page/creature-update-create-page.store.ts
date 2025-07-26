@@ -7,7 +7,7 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, shareReplay, switchMap, tap } from 'rxjs';
 import { Creature, CreatureRaw } from 'src/app/_models/creature';
 import { CreatureService } from 'src/app/_services/article/creature.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { handleError } from 'src/utils/store/toServerModel';

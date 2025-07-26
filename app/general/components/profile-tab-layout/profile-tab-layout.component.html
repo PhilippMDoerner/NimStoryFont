@@ -1,0 +1,11 @@
+<app-page-container class="page">
+  <app-link-tabs class="page__tabs" [tabs]="tabs" />
+  <app-separator />
+
+  <ng-content></ng-content>
+  <app-article-footer
+    class="page__footer"
+    [buttonLink]="backUrl()"
+    [buttonLabel]="footerLabel()"
+  />
+</app-page-container>

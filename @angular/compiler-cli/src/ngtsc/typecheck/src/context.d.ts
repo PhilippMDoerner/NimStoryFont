@@ -5,18 +5,17 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { BoundTarget, ParseError, ParseSourceFile, R3TargetBinder, SchemaMetadata, TmplAstNode } from '@angular/compiler';
+import { BoundTarget, ParseError, R3TargetBinder, SchemaMetadata, TmplAstHostElement, TmplAstNode } from '@angular/compiler';
 import ts from 'typescript';
 import { AbsoluteFsPath } from '../../file_system';
 import { Reference, ReferenceEmitter } from '../../imports';
-import { PipeMeta } from '../../metadata';
 import { PerfRecorder } from '../../perf';
 import { FileUpdate } from '../../program_driver';
 import { ClassDeclaration, ReflectionHost } from '../../reflection';
-import { TemplateDiagnostic, TemplateId, TemplateSourceMapping, TypeCheckableDirectiveMeta, TypeCheckContext, TypeCheckingConfig, TypeCtorMetadata } from '../api';
+import { HostBindingsContext, TemplateDiagnostic, TypeCheckId, SourceMapping, TypeCheckableDirectiveMeta, TypeCheckContext, TypeCheckingConfig, TypeCtorMetadata, TemplateContext } from '../api';
 import { DomSchemaChecker } from './dom';
 import { OutOfBandDiagnosticRecorder } from './oob';
-import { TemplateSourceManager } from './source';
+import { DirectiveSourceManager } from './source';
 import { TypeCheckFile } from './type_check_file';
 export interface ShimTypeCheckingData {
     /**
@@ -34,28 +33,32 @@ export interface ShimTypeCheckingData {
      */
     hasInlines: boolean;
     /**
-     * Map of `TemplateId` to information collected about the template during the template
+     * Map of `TypeCheckId` to information collected about the template during the template
      * type-checking process.
      */
-    templates: Map<TemplateId, TemplateData>;
+    data: Map<TypeCheckId, TypeCheckData>;
 }
 /**
- * Data tracked for each template processed by the template type-checking system.
+ * Data tracked for each class processed by the type-checking system.
  */
-export interface TemplateData {
+export interface TypeCheckData {
     /**
      * Template nodes for which the TCB was generated.
      */
-    template: TmplAstNode[];
+    template: TmplAstNode[] | null;
     /**
      * `BoundTarget` which was used to generate the TCB, and contains bindings for the associated
      * template nodes.
      */
     boundTarget: BoundTarget<TypeCheckableDirectiveMeta>;
     /**
-     * Errors found while parsing them template, which have been converted to diagnostics.
+     * Errors found while parsing the template, which have been converted to diagnostics.
      */
-    templateDiagnostics: TemplateDiagnostic[];
+    templateParsingDiagnostics: TemplateDiagnostic[];
+    /**
+     * Element representing the host bindings of a directive.
+     */
+    hostElement: TmplAstHostElement | null;
 }
 /**
  * Data for an input file which is still in the process of template type-checking code generation.
@@ -69,7 +72,7 @@ export interface PendingFileTypeCheckingData {
      * Source mapping information for mapping diagnostics from inlined type check blocks back to the
      * original template.
      */
-    sourceManager: TemplateSourceManager;
+    sourceManager: DirectiveSourceManager;
     /**
      * Map of in-progress shim data for shims generated from this input file.
      */
@@ -89,9 +92,9 @@ export interface PendingShimData {
      */
     file: TypeCheckFile;
     /**
-     * Map of `TemplateId` to information collected about the template as it's ingested.
+     * Map of `TypeCheckId` to information collected about the template as it's ingested.
      */
-    templates: Map<TemplateId, TemplateData>;
+    data: Map<TypeCheckId, TypeCheckData>;
 }
 /**
  * Adapts the `TypeCheckContextImpl` to the larger template type-checking system.
@@ -102,23 +105,23 @@ export interface PendingShimData {
  */
 export interface TypeCheckingHost {
     /**
-     * Retrieve the `TemplateSourceManager` responsible for components in the given input file path.
+     * Retrieve the `DirectiveSourceManager` responsible for directives in the given input file path.
      */
-    getSourceManager(sfPath: AbsoluteFsPath): TemplateSourceManager;
+    getSourceManager(sfPath: AbsoluteFsPath): DirectiveSourceManager;
     /**
-     * Whether a particular component class should be included in the current type-checking pass.
+     * Whether a particular class should be included in the current type-checking pass.
      *
-     * Not all components offered to the `TypeCheckContext` for checking may require processing. For
-     * example, the component may have results already available from a prior pass or from a previous
+     * Not all classes offered to the `TypeCheckContext` for checking may require processing. For
+     * example, the directive may have results already available from a prior pass or from a previous
      * program.
      */
-    shouldCheckComponent(node: ts.ClassDeclaration): boolean;
+    shouldCheckClass(node: ts.ClassDeclaration): boolean;
     /**
      * Report data from a shim generated from the given input file path.
      */
     recordShimData(sfPath: AbsoluteFsPath, data: ShimTypeCheckingData): void;
     /**
-     * Record that all of the components within the given input file path had code generated - that
+     * Record that all of the classes within the given input file path had code generated - that
      * is, coverage for the file can be considered complete.
      */
     recordComplete(sfPath: AbsoluteFsPath): void;
@@ -139,8 +142,7 @@ export declare enum InliningMode {
 /**
  * A template type checking context for a program.
  *
- * The `TypeCheckContext` allows registration of components and their templates which need to be
- * type checked.
+ * The `TypeCheckContext` allows registration of directives to be type checked.
  */
 export declare class TypeCheckContextImpl implements TypeCheckContext {
     private config;
@@ -167,7 +169,7 @@ export declare class TypeCheckContextImpl implements TypeCheckContext {
      *
      * Implements `TypeCheckContext.addTemplate`.
      */
-    addTemplate(ref: Reference<ClassDeclaration<ts.ClassDeclaration>>, binder: R3TargetBinder<TypeCheckableDirectiveMeta>, template: TmplAstNode[], pipes: Map<string, PipeMeta>, schemas: SchemaMetadata[], sourceMapping: TemplateSourceMapping, file: ParseSourceFile, parseErrors: ParseError[] | null, isStandalone: boolean, preserveWhitespaces: boolean): void;
+    addDirective(ref: Reference<ClassDeclaration<ts.ClassDeclaration>>, binder: R3TargetBinder<TypeCheckableDirectiveMeta>, schemas: SchemaMetadata[], templateContext: TemplateContext | null, hostBindingContext: HostBindingsContext | null, isStandalone: boolean): void;
     /**
      * Record a type constructor for the given `node` with the given `ctorMetadata`.
      */
@@ -181,7 +183,7 @@ export declare class TypeCheckContextImpl implements TypeCheckContext {
     transform(sf: ts.SourceFile): string | null;
     finalize(): Map<AbsoluteFsPath, FileUpdate>;
     private addInlineTypeCheckBlock;
-    private pendingShimForComponent;
+    private pendingShimForClass;
     private dataForFile;
 }
-export declare function getTemplateDiagnostics(parseErrors: ParseError[], templateId: TemplateId, sourceMapping: TemplateSourceMapping): TemplateDiagnostic[];
+export declare function getTemplateDiagnostics(parseErrors: ParseError[], templateId: TypeCheckId, sourceMapping: SourceMapping): TemplateDiagnostic[];

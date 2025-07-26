@@ -6,42 +6,8 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = default_1;
-exports.setPrompterForTestOnly = setPrompterForTestOnly;
 const core_1 = require("@angular-devkit/core");
 const schematics_1 = require("@angular-devkit/schematics");
 const node_path_1 = require("node:path");
@@ -52,8 +18,6 @@ const ng_ast_utils_1 = require("../utility/ng-ast-utils");
 const project_targets_1 = require("../utility/project-targets");
 const util_1 = require("../utility/standalone/util");
 const workspace_1 = require("../utility/workspace");
-const workspace_models_1 = require("../utility/workspace-models");
-const tty_1 = require("./tty");
 const SERVE_SSR_TARGET_NAME = 'serve-ssr';
 const PRERENDER_TARGET_NAME = 'prerender';
 const DEFAULT_BROWSER_DIR = 'browser';
@@ -82,10 +46,9 @@ async function getApplicationBuilderOutputPaths(host, projectName) {
     if (!architectTarget?.options) {
         throw new schematics_1.SchematicsException(`Cannot find 'options' for ${projectName} ${target} target.`);
     }
-    const { outputPath } = architectTarget.options;
-    if (outputPath === null || outputPath === undefined) {
-        throw new schematics_1.SchematicsException(`outputPath for ${projectName} ${target} target is undefined or null.`);
-    }
+    let { outputPath } = architectTarget.options;
+    // Use default if not explicitly specified
+    outputPath ??= node_path_1.posix.join('dist', projectName);
     const defaultDirs = {
         server: DEFAULT_SERVER_DIR,
         browser: DEFAULT_BROWSER_DIR,
@@ -144,6 +107,11 @@ function updateApplicationBuilderTsConfigRule(options) {
             return;
         }
         const json = new json_file_1.JSONFile(host, tsConfigPath);
+        // Skip adding the files entry if the server entry would already be included
+        const include = json.get(['include']);
+        if (Array.isArray(include) && include.includes('src/**/*.ts')) {
+            return;
+        }
         const filesPath = ['files'];
         const files = new Set(json.get(filesPath) ?? []);
         files.add('src/server.ts');
@@ -174,8 +142,7 @@ function updateApplicationBuilderWorkspaceConfigRule(projectSourceRoot, options,
         buildTarget.options = {
             ...buildTarget.options,
             outputPath,
-            outputMode: options.serverRouting ? 'server' : undefined,
-            prerender: options.serverRouting ? undefined : true,
+            outputMode: 'server',
             ssr: {
                 entry: (0, core_1.join)((0, core_1.normalize)(projectSourceRoot), 'server.ts'),
             },
@@ -263,10 +230,12 @@ function addDependencies({ skipInstall }, isUsingApplicationBuilder) {
         (0, utility_1.addDependency)('express', latest_versions_1.latestVersions['express'], {
             type: utility_1.DependencyType.Default,
             install,
+            existing: utility_1.ExistingBehavior.Replace,
         }),
         (0, utility_1.addDependency)('@types/express', latest_versions_1.latestVersions['@types/express'], {
             type: utility_1.DependencyType.Dev,
             install,
+            existing: utility_1.ExistingBehavior.Replace,
         }),
     ];
     if (!isUsingApplicationBuilder) {
@@ -285,12 +254,11 @@ function addServerFile(projectSourceRoot, options, isStandalone) {
         if (!project) {
             throw new schematics_1.SchematicsException(`Invalid project name (${projectName})`);
         }
-        const isUsingApplicationBuilder = usingApplicationBuilder(project);
-        const browserDistDirectory = isUsingApplicationBuilder
+        const usingApplicationBuilder = (0, project_targets_1.isUsingApplicationBuilder)(project);
+        const browserDistDirectory = usingApplicationBuilder
             ? (await getApplicationBuilderOutputPaths(host, projectName)).browser
             : await getLegacyOutputPaths(host, projectName, 'build');
-        const applicationBuilderFiles = 'application-builder' + (options.serverRouting ? '' : '-common-engine');
-        return (0, schematics_1.mergeWith)((0, schematics_1.apply)((0, schematics_1.url)(`./files/${isUsingApplicationBuilder ? applicationBuilderFiles : 'server-builder'}`), [
+        return (0, schematics_1.mergeWith)((0, schematics_1.apply)((0, schematics_1.url)(`./files/${usingApplicationBuilder ? 'application-builder' : 'server-builder'}`), [
             (0, schematics_1.applyTemplates)({
                 ...core_1.strings,
                 ...options,
@@ -301,25 +269,23 @@ function addServerFile(projectSourceRoot, options, isStandalone) {
         ]));
     };
 }
-function default_1(inputOptions) {
+function default_1(options) {
     return async (host, context) => {
-        const browserEntryPoint = await (0, util_1.getMainFilePath)(host, inputOptions.project);
+        const browserEntryPoint = await (0, util_1.getMainFilePath)(host, options.project);
         const isStandalone = (0, ng_ast_utils_1.isStandaloneApp)(host, browserEntryPoint);
         const workspace = await (0, workspace_1.getWorkspace)(host);
-        const clientProject = workspace.projects.get(inputOptions.project);
+        const clientProject = workspace.projects.get(options.project);
         if (!clientProject) {
             throw (0, project_targets_1.targetBuildNotFoundError)();
         }
-        const isUsingApplicationBuilder = usingApplicationBuilder(clientProject);
-        const serverRouting = await isServerRoutingEnabled(isUsingApplicationBuilder, inputOptions);
-        const options = { ...inputOptions, serverRouting };
+        const usingApplicationBuilder = (0, project_targets_1.isUsingApplicationBuilder)(clientProject);
         const sourceRoot = clientProject.sourceRoot ?? node_path_1.posix.join(clientProject.root, 'src');
         return (0, schematics_1.chain)([
             (0, schematics_1.schematic)('server', {
                 ...options,
                 skipInstall: true,
             }),
-            ...(isUsingApplicationBuilder
+            ...(usingApplicationBuilder
                 ? [
                     updateApplicationBuilderWorkspaceConfigRule(sourceRoot, options, context),
                     updateApplicationBuilderTsConfigRule(options),
@@ -329,53 +295,8 @@ function default_1(inputOptions) {
                     updateWebpackBuilderWorkspaceConfigRule(sourceRoot, options),
                 ]),
             addServerFile(sourceRoot, options, isStandalone),
-            addScriptsRule(options, isUsingApplicationBuilder),
-            addDependencies(options, isUsingApplicationBuilder),
+            addScriptsRule(options, usingApplicationBuilder),
+            addDependencies(options, usingApplicationBuilder),
         ]);
     };
-}
-function usingApplicationBuilder(project) {
-    const buildBuilder = project.targets.get('build')?.builder;
-    const isUsingApplicationBuilder = buildBuilder === workspace_models_1.Builders.Application || buildBuilder === workspace_models_1.Builders.BuildApplication;
-    return isUsingApplicationBuilder;
-}
-const defaultPrompter = async (message, defaultValue) => {
-    const { confirm } = await Promise.resolve().then(() => __importStar(require('@inquirer/prompts')));
-    return await confirm({
-        message,
-        default: defaultValue,
-    });
-};
-// Allow the prompt functionality to be overridden to facilitate testing.
-let prompt = defaultPrompter;
-function setPrompterForTestOnly(prompter) {
-    prompt = prompter ?? defaultPrompter;
-}
-/** Returns whether or not server routing is enabled, potentially prompting the user if necessary. */
-async function isServerRoutingEnabled(isUsingApplicationBuilder, options) {
-    if (!isUsingApplicationBuilder) {
-        if (options.serverRouting) {
-            throw new schematics_1.SchematicsException('Server routing APIs can only be added to a project using `application` builder.');
-        }
-        else {
-            return false;
-        }
-    }
-    // Use explicit option if provided.
-    if (options.serverRouting !== undefined) {
-        return options.serverRouting;
-    }
-    const serverRoutingDefault = false;
-    // Use the default if not in an interactive terminal.
-    if (!(0, tty_1.isTTY)()) {
-        return serverRoutingDefault;
-    }
-    // `inquirer` requires `async_hooks` which isn't supported by webcontainers, therefore we can't prompt in that context.
-    // See: https://github.com/SBoudrias/Inquirer.js/issues/1426
-    if (process.versions.webcontainer) {
-        return serverRoutingDefault;
-    }
-    // Prompt the user if in an interactive terminal and no option was provided.
-    return await prompt('Would you like to use the Server Routing and App Engine APIs (Developer Preview) for this server application?', 
-    /* defaultValue */ serverRoutingDefault);
 }

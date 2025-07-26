@@ -1,6 +1,6 @@
 {
   "name": "@angular-eslint/utils",
-  "version": "19.3.0",
+  "version": "20.1.1",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +22,7 @@
     "typescript": "*"
   },
   "dependencies": {
-    "@angular-eslint/bundled-angular-compiler": "19.3.0"
+    "@angular-eslint/bundled-angular-compiler": "20.1.1"
   },
   "nx": {
     "namedInputs": {

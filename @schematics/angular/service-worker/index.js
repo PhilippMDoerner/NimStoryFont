@@ -120,17 +120,16 @@ function default_1(options) {
             throw (0, project_targets_1.targetBuildNotFoundError)();
         }
         const buildOptions = buildTarget.options;
-        let browserEntryPoint;
+        const browserEntryPoint = await (0, util_1.getMainFilePath)(host, options.project);
         const ngswConfigPath = (0, core_1.join)((0, core_1.normalize)(project.root), 'ngsw-config.json');
-        if (buildTarget.builder === workspace_models_1.Builders.Application) {
-            browserEntryPoint = buildOptions.browser;
+        if (buildTarget.builder === workspace_models_1.Builders.Application ||
+            buildTarget.builder === workspace_models_1.Builders.BuildApplication) {
             const productionConf = buildTarget.configurations?.production;
             if (productionConf) {
                 productionConf.serviceWorker = ngswConfigPath;
             }
         }
         else {
-            browserEntryPoint = buildOptions.main;
             buildOptions.serviceWorker = true;
             buildOptions.ngswConfigPath = ngswConfigPath;
         }

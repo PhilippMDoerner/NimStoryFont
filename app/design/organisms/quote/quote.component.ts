@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -22,7 +23,7 @@ import { BadgeListComponent, BadgeListEntry } from 'src/app/design/molecules';
 import { copyToClipboard } from 'src/utils/clipboard';
 import { componentId } from 'src/utils/DOM';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
-import { ToastService } from '../toast-overlay/toast-overlay.component';
+import { ToastService } from '../toast-overlay/toast.service';
 
 type QuoteState =
   | 'CREATE'
@@ -69,6 +70,7 @@ interface QuoteControl {
     SpinnerComponent,
     NgbTooltip,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuoteComponent implements OnChanges {
   quote = input<Quote>();

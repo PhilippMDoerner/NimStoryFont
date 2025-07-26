@@ -27,7 +27,7 @@ var _default = exports.default = (0, _helperPluginUtils.declare)((api, {
         }
         let ref;
         let assignment;
-        if (pureGetters && scope.path.isPattern() && _core.types.isMemberExpression(node.left) && !node.left.computed && _core.types.isIdentifier(node.left.object) && _core.types.isIdentifier(node.left.property) || _core.types.isIdentifier(node.left) && (pureGetters || scope.hasBinding(node.left.name)) || scope.isPure(node.left)) {
+        if (pureGetters && scope.path.isPattern() && _core.types.isMemberExpression(node.left) && !node.left.computed && _core.types.isIdentifier(node.left.object) && _core.types.isIdentifier(node.left.property) || _core.types.isIdentifier(node.left) && (pureGetters || scope.hasBinding(node.left.name))) {
           ref = node.left;
           assignment = _core.types.cloneNode(node.left);
         } else if (scope.path.isPattern()) {

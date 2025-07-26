@@ -1,28 +1,33 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
-import { ANIMATION_MODULE_TYPE } from '@angular/core';
-import { AnimationDriver } from '@angular/animations/browser';
 import * as i0 from '@angular/core';
-import * as i1 from '@angular/platform-browser';
-import { ModuleWithProviders } from '@angular/core';
-import { OnDestroy } from '@angular/core';
-import { Provider } from '@angular/core';
-import { ɵAnimationEngine } from '@angular/animations/browser';
-import { ɵAnimationStyleNormalizer } from '@angular/animations/browser';
+import { ModuleWithProviders, Provider, OnDestroy } from '@angular/core';
+export { ANIMATION_MODULE_TYPE } from '@angular/core';
+import { BrowserModule } from '../browser.d-DlTxfqBL.js';
+import { ɵAnimationEngine as _AnimationEngine, AnimationDriver, ɵAnimationStyleNormalizer as _AnimationStyleNormalizer } from '@angular/animations/browser';
+import '@angular/common';
 
-export { ANIMATION_MODULE_TYPE }
-
+/**
+ * Object used to configure the behavior of {@link BrowserAnimationsModule}
+ * @publicApi
+ */
+interface BrowserAnimationsModuleConfig {
+    /**
+     *  Whether animations should be disabled. Passing this is identical to providing the
+     * `NoopAnimationsModule`, but it can be controlled based on a runtime value.
+     */
+    disableAnimations?: boolean;
+}
 /**
  * Exports `BrowserModule` with additional dependency-injection providers
  * for use with animations. See [Animations](guide/animations).
  * @publicApi
  */
-export declare class BrowserAnimationsModule {
+declare class BrowserAnimationsModule {
     /**
      * Configures the module based on the specified object.
      *
@@ -41,32 +46,9 @@ export declare class BrowserAnimationsModule {
      */
     static withConfig(config: BrowserAnimationsModuleConfig): ModuleWithProviders<BrowserAnimationsModule>;
     static ɵfac: i0.ɵɵFactoryDeclaration<BrowserAnimationsModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<BrowserAnimationsModule, never, never, [typeof i1.BrowserModule]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<BrowserAnimationsModule, never, never, [typeof BrowserModule]>;
     static ɵinj: i0.ɵɵInjectorDeclaration<BrowserAnimationsModule>;
 }
-
-/**
- * Object used to configure the behavior of {@link BrowserAnimationsModule}
- * @publicApi
- */
-export declare interface BrowserAnimationsModuleConfig {
-    /**
-     *  Whether animations should be disabled. Passing this is identical to providing the
-     * `NoopAnimationsModule`, but it can be controlled based on a runtime value.
-     */
-    disableAnimations?: boolean;
-}
-
-/**
- * A null player that must be imported to allow disabling of animations.
- * @publicApi
- */
-export declare class NoopAnimationsModule {
-    static ɵfac: i0.ɵɵFactoryDeclaration<NoopAnimationsModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<NoopAnimationsModule, never, never, [typeof i1.BrowserModule]>;
-    static ɵinj: i0.ɵɵInjectorDeclaration<NoopAnimationsModule>;
-}
-
 /**
  * Returns the set of dependency-injection providers
  * to enable animations in an application. See [animations guide](guide/animations)
@@ -89,8 +71,16 @@ export declare class NoopAnimationsModule {
  *
  * @publicApi
  */
-export declare function provideAnimations(): Provider[];
-
+declare function provideAnimations(): Provider[];
+/**
+ * A null player that must be imported to allow disabling of animations.
+ * @publicApi
+ */
+declare class NoopAnimationsModule {
+    static ɵfac: i0.ɵɵFactoryDeclaration<NoopAnimationsModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<NoopAnimationsModule, never, never, [typeof BrowserModule]>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<NoopAnimationsModule>;
+}
 /**
  * Returns the set of dependency-injection providers
  * to disable animations in an application. See [animations guide](guide/animations)
@@ -112,13 +102,14 @@ export declare function provideAnimations(): Provider[];
  *
  * @publicApi
  */
-export declare function provideNoopAnimations(): Provider[];
+declare function provideNoopAnimations(): Provider[];
 
-export declare class ɵInjectableAnimationEngine extends ɵAnimationEngine implements OnDestroy {
-    constructor(doc: Document, driver: AnimationDriver, normalizer: ɵAnimationStyleNormalizer);
+declare class InjectableAnimationEngine extends _AnimationEngine implements OnDestroy {
+    constructor(doc: Document, driver: AnimationDriver, normalizer: _AnimationStyleNormalizer);
     ngOnDestroy(): void;
-    static ɵfac: i0.ɵɵFactoryDeclaration<ɵInjectableAnimationEngine, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<ɵInjectableAnimationEngine>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<InjectableAnimationEngine, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<InjectableAnimationEngine>;
 }
 
-export { }
+export { BrowserAnimationsModule, NoopAnimationsModule, provideAnimations, provideNoopAnimations, InjectableAnimationEngine as ɵInjectableAnimationEngine };
+export type { BrowserAnimationsModuleConfig };

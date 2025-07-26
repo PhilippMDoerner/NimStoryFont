@@ -2,30 +2,33 @@ import * as readline from 'node:readline';
 import { AsyncResource } from 'node:async_hooks';
 import MuteStream from 'mute-stream';
 import { onExit as onSignalExit } from 'signal-exit';
-import ScreenManager from './screen-manager.js';
-import { PromisePolyfill } from './promise-polyfill.js';
-import { withHooks, effectScheduler } from './hook-engine.js';
-import { AbortPromptError, CancelPromptError, ExitPromptError } from './errors.js';
+import ScreenManager from "./screen-manager.js";
+import { PromisePolyfill } from "./promise-polyfill.js";
+import { withHooks, effectScheduler } from "./hook-engine.js";
+import { AbortPromptError, CancelPromptError, ExitPromptError } from "./errors.js";
 function getCallSites() {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const _prepareStackTrace = Error.prepareStackTrace;
+    let result = [];
     try {
-        let result = [];
         Error.prepareStackTrace = (_, callSites) => {
             const callSitesWithoutCurrent = callSites.slice(1);
             result = callSitesWithoutCurrent;
             return callSitesWithoutCurrent;
         };
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions, unicorn/error-message
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         new Error().stack;
+    }
+    catch {
+        // An error will occur if the Node flag --frozen-intrinsics is used.
+        // https://nodejs.org/api/cli.html#--frozen-intrinsics
         return result;
     }
-    finally {
-        Error.prepareStackTrace = _prepareStackTrace;
-    }
+    Error.prepareStackTrace = _prepareStackTrace;
+    return result;
 }
 export function createPrompt(view) {
     const callSites = getCallSites();
-    const callerFilename = callSites[1]?.getFileName?.();
     const prompt = (config, context = {}) => {
         // Default `input` to stdin
         const { input = process.stdin, signal } = context;
@@ -40,7 +43,6 @@ export function createPrompt(view) {
         });
         const screen = new ScreenManager(rl);
         const { promise, resolve, reject } = PromisePolyfill.withResolver();
-        /** @deprecated pass an AbortSignal in the context options instead. See {@link https://github.com/SBoudrias/Inquirer.js#canceling-prompt} */
         const cancel = () => reject(new CancelPromptError());
         if (signal) {
             const abort = () => reject(new AbortPromptError({ cause: signal.reason }));
@@ -54,6 +56,12 @@ export function createPrompt(view) {
         cleanups.add(onSignalExit((code, signal) => {
             reject(new ExitPromptError(`User force closed the prompt with ${code} ${signal}`));
         }));
+        // SIGINT must be explicitly handled by the prompt so the ExitPromptError can be handled.
+        // Otherwise, the prompt will stop and in some scenarios never resolve.
+        // Ref issue #1741
+        const sigint = () => reject(new ExitPromptError(`User force closed the prompt with SIGINT`));
+        rl.on('SIGINT', sigint);
+        cleanups.add(() => rl.removeListener('SIGINT', sigint));
         // Re-renders only happen when the state change; but the readline cursor could change position
         // and that also requires a re-render (and a manual one because we mute the streams).
         // We set the listener after the initial workLoop to avoid a double render if render triggered
@@ -76,6 +84,7 @@ export function createPrompt(view) {
                     // Typescript won't allow this, but not all users rely on typescript.
                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     if (nextView === undefined) {
+                        const callerFilename = callSites[1]?.getFileName();
                         throw new Error(`Prompt functions must return a string.\n    at ${callerFilename}`);
                     }
                     const [content, bottomContent] = typeof nextView === 'string' ? [nextView] : nextView;

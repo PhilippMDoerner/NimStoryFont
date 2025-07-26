@@ -5,6 +5,7 @@
 
 "use strict";
 
+const { DEFAULTS } = require("../config/defaults");
 const {
 	compareModulesByPreOrderIndexOrIdentifier
 } = require("../util/comparators");
@@ -27,6 +28,8 @@ const validate = createSchemaValidation(
 	}
 );
 
+const PLUGIN_NAME = "HashedModuleIdsPlugin";
+
 class HashedModuleIdsPlugin {
 	/**
 	 * @param {HashedModuleIdsPluginOptions=} options options object
@@ -37,7 +40,7 @@ class HashedModuleIdsPlugin {
 		/** @type {HashedModuleIdsPluginOptions} */
 		this.options = {
 			context: undefined,
-			hashFunction: "md4",
+			hashFunction: DEFAULTS.HASH_FUNCTION,
 			hashDigest: "base64",
 			hashDigestLength: 4,
 			...options
@@ -51,8 +54,8 @@ class HashedModuleIdsPlugin {
 	 */
 	apply(compiler) {
 		const options = this.options;
-		compiler.hooks.compilation.tap("HashedModuleIdsPlugin", compilation => {
-			compilation.hooks.moduleIds.tap("HashedModuleIdsPlugin", () => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+			compilation.hooks.moduleIds.tap(PLUGIN_NAME, () => {
 				const chunkGraph = compilation.chunkGraph;
 				const context = this.options.context
 					? this.options.context

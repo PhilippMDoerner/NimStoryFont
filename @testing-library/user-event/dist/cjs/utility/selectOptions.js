@@ -1,14 +1,9 @@
 'use strict';
 
 var dom = require('@testing-library/dom');
-require('../utils/click/isClickableInput.js');
-require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var isElementType = require('../utils/misc/isElementType.js');
+require('../utils/dataTransfer/Clipboard.js');
 var isDisabled = require('../utils/misc/isDisabled.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
 var wait = require('../utils/misc/wait.js');
 var cssPointerEvents = require('../utils/pointer/cssPointerEvents.js');
 require('../event/behavior/click.js');

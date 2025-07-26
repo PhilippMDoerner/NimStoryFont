@@ -40,9 +40,8 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
 /** @typedef {import("../declarations/WebpackOptions").WebpackPluginInstance} WebpackPluginInstance */
 /** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./Compilation").References} References */
+/** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./Dependency")} Dependency */
-/** @typedef {import("./FileSystemInfo").FileSystemInfoEntry} FileSystemInfoEntry */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./config/target").PlatformTargetProperties} PlatformTargetProperties */
@@ -51,13 +50,8 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/fs").IntermediateFileSystem} IntermediateFileSystem */
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
+/** @typedef {import("./util/fs").TimeInfoEntries} TimeInfoEntries */
 /** @typedef {import("./util/fs").WatchFileSystem} WatchFileSystem */
-
-/**
- * @template {any[]} T
- * @template V
- * @typedef {import("./util/WeakTupleMap")<T, V>} WeakTupleMap
- */
 
 /**
  * @typedef {object} CompilationParams
@@ -96,9 +90,11 @@ const { isSourceEqual } = require("./util/source");
  */
 
 /** @typedef {{ sizeOnlySource: SizeOnlySource | undefined, writtenTo: Map<string, number> }} CacheEntry */
-/** @typedef {{ path: string, source: Source, size: number | undefined, waiting: ({ cacheEntry: any, file: string }[] | undefined) }} SimilarEntry */
+/** @typedef {{ path: string, source: Source, size: number | undefined, waiting: ({ cacheEntry: CacheEntry, file: string }[] | undefined) }} SimilarEntry */
 
-/** @typedef {{ buildInfo: BuildInfo, references: References | undefined, memCache: WeakTupleMap<any, any> }} ModuleMemCachesItem */
+/** @typedef {WeakMap<Dependency, Module>} WeakReferences */
+/** @typedef {import("./util/WeakTupleMap")<EXPECTED_ANY[], EXPECTED_ANY>} MemCache */
+/** @typedef {{ buildInfo: BuildInfo, references: WeakReferences | undefined, memCache: MemCache }} ModuleMemCachesItem */
 
 /**
  * @param {string[]} array an array
@@ -112,13 +108,13 @@ const isSorted = array => {
 };
 
 /**
- * @param {{[key: string]: any}} obj an object
- * @param {string[]} keys the keys of the object
- * @returns {{[key: string]: any}} the object with properties sorted by property name
+ * @template {object} T
+ * @param {T} obj an object
+ * @param {(keyof T)[]} keys the keys of the object
+ * @returns {T} the object with properties sorted by property name
  */
 const sortObject = (obj, keys) => {
-	/** @type {{[key: string]: any}} */
-	const o = {};
+	const o = /** @type {T} */ ({});
 	for (const k of keys.sort()) {
 		o[k] = obj[k];
 	}
@@ -203,7 +199,7 @@ class Compiler {
 			/** @type {AsyncSeriesHook<[]>} */
 			shutdown: new AsyncSeriesHook([]),
 
-			/** @type {SyncBailHook<[string, string, any[] | undefined], true | void>} */
+			/** @type {SyncBailHook<[string, string, EXPECTED_ANY[] | undefined], true | void>} */
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 
 			// TODO the following hooks are weirdly located here
@@ -259,9 +255,9 @@ class Compiler {
 		this.modifiedFiles = undefined;
 		/** @type {ReadonlySet<string> | undefined} */
 		this.removedFiles = undefined;
-		/** @type {ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null> | undefined} */
+		/** @type {TimeInfoEntries | undefined} */
 		this.fileTimestamps = undefined;
-		/** @type {ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null> | undefined} */
+		/** @type {TimeInfoEntries | undefined} */
 		this.contextTimestamps = undefined;
 		/** @type {number | undefined} */
 		this.fsStartTime = undefined;
@@ -341,7 +337,7 @@ class Compiler {
 	}
 
 	/**
-	 * @param {string | (function(): string)} name name of the logger, or function called once to get the logger name
+	 * @param {string | (() => string)} name name of the logger, or function called once to get the logger name
 	 * @returns {Logger} a logger with that name
 	 */
 	getInfrastructureLogger(name) {
@@ -629,7 +625,8 @@ class Compiler {
 				callback(err, entries, compilation);
 			} catch (runAsChildErr) {
 				const err = new WebpackError(
-					`compiler.runAsChild callback error: ${runAsChildErr}`
+					`compiler.runAsChild callback error: ${runAsChildErr}`,
+					{ cause: runAsChildErr }
 				);
 				err.details = /** @type {Error} */ (runAsChildErr).stack;
 				/** @type {Compilation} */

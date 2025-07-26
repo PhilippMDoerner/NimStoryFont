@@ -19,8 +19,8 @@
         campaigns. This guide will walk you through how to use the app.
       </p>
       <p>
-        Press <strong>Alt + O</strong> if you want to look at it again later.
-        Now let's get started!
+        Press <strong>{{ openOnboardingKeys$ | async }}</strong> if you want to
+        look at it again later. Now let's get started!
       </p>
     </div>
   </cdk-step>
@@ -29,11 +29,11 @@
       <figure>
         <img
           class="stepper__image"
-          [src]="'assets/onboarding/articles_edit.webp'"
-          alt="The first interactable item on article pages is going to be an edit button for the articles metadata, such as its name"
+          [src]="'assets/onboarding/articles_menu.webp'"
+          alt="The first interactable item on article pages is a menu. It contains options to edit article metadata or delete the article entirely"
         />
         <figcaption aria-hidden="true">
-          Fig 2. Edit Button for metadata in a creature article
+          Fig 2. Menu for a creature article
         </figcaption>
       </figure>
       <figure>
@@ -49,21 +49,11 @@
       <figure>
         <img
           class="stepper__image"
-          [src]="'assets/onboarding/articles_delete.webp'"
-          alt="Among the last interactable items on article pages is going to be a delete button. These will always open a modal to ask you if you want to delete the article."
-        />
-        <figcaption aria-hidden="true">
-          Fig 4. Delete button in a creature article
-        </figcaption>
-      </figure>
-      <figure>
-        <img
-          class="stepper__image"
           src="assets/onboarding/articles_create.webp"
           alt="You can create article on the overview pages that you can reach directly through the sidebar navigation."
         />
         <figcaption aria-hidden="true">
-          Fig 5. Create button for creature articles
+          Fig 4. Create button for creature articles
         </figcaption>
       </figure>
       <p>
@@ -78,12 +68,10 @@
           button.
         </li>
         <li>
-          Edit the meta-data, like name of a creature or title of a character,
-          by clicking the "Edit" button in the top-right corner.
+          Edit the meta-data, like name of a creature or title of a character
+          via the edit-action in the menu.
         </li>
-        <li>
-          Delete articles if you have permission (button at the bottom-right).
-        </li>
+        <li>Delete articles via the delete-action in the menu</li>
       </ul>
     </div>
   </cdk-step>
@@ -249,37 +237,37 @@
           class="stepper__image"
         />
         <figcaption aria-hidden="true">
-          Fig 14. Hotkey tooltips show up as you hold down "Alt"
+          Fig 14. Hotkey tooltips show up as you press
+          {{ showHotkeyTooltipsKeys$ | async }}
         </figcaption>
       </figure>
       <figure>
         <img
-          src="assets/onboarding/hotkey_modal.webp"
-          alt="Example of a hotkey usage in a list. While in a list, a specific hotkey will perform the action on the item currently in focus, not all items."
+          src="assets/onboarding/hotkey_settings.webp"
+          alt="Settings for shortcuts in the profile section of the page."
           class="stepper__image"
         />
         <figcaption aria-hidden="true">
-          Fig 15. Alt + H shows an overview over hotkey actions
+          Fig 15. You can customize your shortcuts in your profile settings
         </figcaption>
       </figure>
       <p>
-        Save time with handy hotkeys! Just hold <strong>Alt</strong> to see
-        which buttons or other elements on the screen react to a hotkey. Press
-        "Alt" + the key to perform the action!
+        Save time with handy shortcuts! Just press
+        <strong>{{ openOnboardingKeys$ | async }} </strong> to see which buttons
+        or other elements on the screen react to a hotkey. Press their displayed
+        key-combination to trigger their action!
       </p>
       <p>
-        Need a cheat sheet? Press <strong>Alt + H</strong> to see all available
-        shortcuts.
+        Need a cheat sheet or want to change the default shortcuts? Check out
+        your shortcut section in your profile settings to read more about them
+        and adjust them to your wishes.
       </p>
     </div>
   </cdk-step>
   <cdk-step [label]="'Help make it better!'">
     <div role="slide" aria-roledescription="slide">
       <p>Oops! Something not working right? Let us know!</p>
-      <p>
-        You can report issues directly to the developer or file a bug report on
-        GitHub:
-      </p>
+      <p>You can report issues on GitHub:</p>
       <p>
         <a
           [externalHref]="

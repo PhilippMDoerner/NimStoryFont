@@ -81,7 +81,7 @@ const memoize = require("./util/memoize");
  * @property {boolean=} canMangle when false, referenced export can not be mangled, defaults to true
  */
 
-/** @typedef {function(ModuleGraphConnection, RuntimeSpec): ConnectionState} GetConditionFn */
+/** @typedef {(moduleGraphConnection: ModuleGraphConnection, runtime: RuntimeSpec) => ConnectionState} GetConditionFn */
 
 const TRANSITIVE = Symbol("transitive");
 
@@ -131,8 +131,10 @@ class Dependency {
 	 */
 	get loc() {
 		if (this._loc !== undefined) return this._loc;
+
 		/** @type {SyntheticDependencyLocation & RealDependencyLocation} */
 		const loc = {};
+
 		if (this._locSL > 0) {
 			loc.start = { line: this._locSL, column: this._locSC };
 		}
@@ -145,6 +147,7 @@ class Dependency {
 		if (this._locI !== undefined) {
 			loc.index = this._locI;
 		}
+
 		return (this._loc = loc);
 	}
 
@@ -288,7 +291,7 @@ class Dependency {
 
 	/**
 	 * @param {string} context context directory
-	 * @returns {Module | null} a module
+	 * @returns {Module} ignored module
 	 */
 	createIgnoredModule(context) {
 		return getIgnoredModule();
@@ -328,12 +331,11 @@ Dependency.NO_EXPORTS_REFERENCED = [];
 /** @type {string[][]} */
 Dependency.EXPORTS_OBJECT_REFERENCED = [[]];
 
-// eslint-disable-next-line no-warning-comments
-// @ts-ignore https://github.com/microsoft/TypeScript/issues/42919
+// TODO remove in webpack 6
 Object.defineProperty(Dependency.prototype, "module", {
 	/**
 	 * @deprecated
-	 * @returns {never} throws
+	 * @returns {EXPECTED_ANY} throws
 	 */
 	get() {
 		throw new Error(
@@ -352,9 +354,12 @@ Object.defineProperty(Dependency.prototype, "module", {
 	}
 });
 
-// eslint-disable-next-line no-warning-comments
-// @ts-ignore https://github.com/microsoft/TypeScript/issues/42919
+// TODO remove in webpack 6
 Object.defineProperty(Dependency.prototype, "disconnect", {
+	/**
+	 * @deprecated
+	 * @returns {EXPECTED_ANY} throws
+	 */
 	get() {
 		throw new Error(
 			"disconnect was removed from Dependency (Dependency no longer carries graph specific information)"

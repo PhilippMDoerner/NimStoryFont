@@ -1,6 +1,6 @@
 import { html } from 'parse5';
 import { SAXParser, } from 'parse5-sax-parser';
-import { escapeText, escapeAttribute } from 'entities/lib/escape.js';
+import { escapeText, escapeAttribute } from 'entities/escape';
 /**
  * Streaming [SAX](https://en.wikipedia.org/wiki/Simple_API_for_XML)-style HTML rewriter.
  * A [transform stream](https://nodejs.org/api/stream.html#stream_class_stream_transform) (which means you can pipe _through_ it, see example).
@@ -125,4 +125,3 @@ export class RewritingStream extends SAXParser {
         this.push(html);
     }
 }
-//# sourceMappingURL=index.js.map

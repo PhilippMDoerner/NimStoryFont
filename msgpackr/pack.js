@@ -523,11 +523,11 @@ export class Packr extends Unpackr {
 			} else if (type === 'boolean') {
 				target[position++] = value ? 0xc3 : 0xc2
 			} else if (type === 'bigint') {
-				if (value < (BigInt(1)<<BigInt(63)) && value >= -(BigInt(1)<<BigInt(63))) {
+				if (value < 0x8000000000000000 && value >= -0x8000000000000000) {
 					// use a signed int as long as it fits
 					target[position++] = 0xd3
 					targetView.setBigInt64(position, value)
-				} else if (value < (BigInt(1)<<BigInt(64)) && value > 0) {
+				} else if (value < 0x10000000000000000 && value > 0) {
 					// if we can fit an unsigned int, use that
 					target[position++] = 0xcf
 					targetView.setBigUint64(position, value)
@@ -538,7 +538,7 @@ export class Packr extends Unpackr {
 						targetView.setFloat64(position, Number(value))
 					} else if (this.largeBigIntToString) {
 						return pack(value.toString());
-					} else if (this.useBigIntExtension && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
+					} else if ((this.useBigIntExtension || this.moreTypes) && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
 						target[position++] = 0xc7
 						position++;
 						target[position++] = 0x42 // "B" for BigInt
@@ -857,7 +857,7 @@ export class Packr extends Unpackr {
 	}
 }
 
-extensionClasses = [ Date, Set, Error, RegExp, ArrayBuffer, Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/, C1Type ]
+extensionClasses = [ Date, Set, Error, RegExp, ArrayBuffer, Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/, DataView, C1Type ]
 extensions = [{
 	pack(date, allocateForWrite, pack) {
 		let seconds = date.getTime() / 1000
@@ -943,6 +943,13 @@ extensions = [{
 			writeExtBuffer(typedArray, typedArrays.indexOf(constructor.name), allocateForWrite)
 		else
 			writeBuffer(typedArray, allocateForWrite)
+	}
+}, {
+	pack(arrayBuffer, allocateForWrite) {
+		if (this.moreTypes)
+			writeExtBuffer(arrayBuffer, 0x11, allocateForWrite)
+		else
+			writeBuffer(hasNodeBuffer ? Buffer.from(arrayBuffer) : new Uint8Array(arrayBuffer), allocateForWrite)
 	}
 }, {
 	pack(c1, allocateForWrite) { // specific 0xC1 object

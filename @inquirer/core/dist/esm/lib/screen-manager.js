@@ -1,19 +1,18 @@
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters } from 'node:util';
 import ansiEscapes from 'ansi-escapes';
-import { breakLines, readlineWidth } from './utils.js';
+import { breakLines, readlineWidth } from "./utils.js";
 const height = (content) => content.split('\n').length;
 const lastLine = (content) => content.split('\n').pop() ?? '';
 function cursorDown(n) {
     return n > 0 ? ansiEscapes.cursorDown(n) : '';
 }
 export default class ScreenManager {
-    rl;
     // These variables are keeping information to allow correct prompt re-rendering
     height = 0;
     extraLinesUnderPrompt = 0;
     cursorPos;
+    rl;
     constructor(rl) {
-        this.rl = rl;
         this.rl = rl;
         this.cursorPos = rl.getCursorPos();
     }
@@ -25,7 +24,7 @@ export default class ScreenManager {
     render(content, bottomContent = '') {
         // Write message to screen and setPrompt to control backspace
         const promptLine = lastLine(content);
-        const rawPromptLine = stripAnsi(promptLine);
+        const rawPromptLine = stripVTControlCharacters(promptLine);
         // Remove the rl.line from our prompt. We can't rely on the content of
         // rl.line (mainly because of the password prompt), so just rely on it's
         // length.

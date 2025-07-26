@@ -1,12 +1,7 @@
-import '../../utils/click/isClickableInput.js';
+import { isElementType } from '../../utils/misc/isElementType.js';
 import '../../utils/dataTransfer/Clipboard.js';
 import { isContentEditable } from '../../utils/edit/isContentEditable.js';
 import { isEditable } from '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
-import { isElementType } from '../../utils/misc/isElementType.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { input } from '../input.js';
 import { behavior } from './registry.js';
 
@@ -18,7 +13,7 @@ behavior.keypress = (event, target, instance)=>{
             };
         } else if (isElementType(target, 'input')) {
             const form = target.form;
-            const submit = form === null || form === void 0 ? void 0 : form.querySelector('input[type="submit"], button:not([type]), button[type="submit"]');
+            const submit = form === null || form === undefined ? undefined : form.querySelector('input[type="submit"], button:not([type]), button[type="submit"]');
             if (submit) {
                 return ()=>instance.dispatchUIEvent(submit, 'click');
             } else if (form && SubmitSingleInputOnEnter.includes(target.type) && form.querySelectorAll('input').length === 1) {

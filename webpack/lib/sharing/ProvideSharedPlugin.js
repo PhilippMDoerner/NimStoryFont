@@ -36,6 +36,8 @@ const validate = createSchemaValidation(
 
 /** @typedef {Map<string, { config: ProvideOptions, version: string | undefined | false }>} ResolvedProvideMap */
 
+const PLUGIN_NAME = "ProvideSharedPlugin";
+
 class ProvideSharedPlugin {
 	/**
 	 * @param {ProvideSharedPluginOptions} options options
@@ -83,7 +85,7 @@ class ProvideSharedPlugin {
 		const compilationData = new WeakMap();
 
 		compiler.hooks.compilation.tap(
-			"ProvideSharedPlugin",
+			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				/** @type {ResolvedProvideMap} */
 				const resolvedProvideMap = new Map();
@@ -139,7 +141,9 @@ class ProvideSharedPlugin {
 							} else if (!descriptionFileData.version) {
 								details = `No version in description file (usually package.json). Add version to description file ${resourceResolveData.descriptionFilePath}, or manually specify version in shared config.`;
 							} else {
-								version = descriptionFileData.version;
+								version = /** @type {string | false | undefined} */ (
+									descriptionFileData.version
+								);
 							}
 						}
 						if (!version) {
@@ -156,7 +160,7 @@ class ProvideSharedPlugin {
 					});
 				};
 				normalModuleFactory.hooks.module.tap(
-					"ProvideSharedPlugin",
+					PLUGIN_NAME,
 					(module, { resource, resourceResolveData }, resolveData) => {
 						if (resolvedProvideMap.has(/** @type {string} */ (resource))) {
 							return module;
@@ -194,7 +198,7 @@ class ProvideSharedPlugin {
 				);
 			}
 		);
-		compiler.hooks.finishMake.tapPromise("ProvideSharedPlugin", compilation => {
+		compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, compilation => {
 			const resolvedProvideMap = compilationData.get(compilation);
 			if (!resolvedProvideMap) return Promise.resolve();
 			return Promise.all(
@@ -225,7 +229,7 @@ class ProvideSharedPlugin {
 		});
 
 		compiler.hooks.compilation.tap(
-			"ProvideSharedPlugin",
+			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
 				compilation.dependencyFactories.set(
 					ProvideForSharedDependency,

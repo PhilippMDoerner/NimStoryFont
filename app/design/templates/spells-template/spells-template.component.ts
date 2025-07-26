@@ -1,4 +1,11 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PlayerClass } from 'src/app/_models/playerclass';
 import {
@@ -23,6 +30,7 @@ import { SpellsComponent } from '../../organisms/spells/spells.component';
     RouterLink,
     ButtonLinkComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsTemplateComponent {
   campaignName = input.required<string>();

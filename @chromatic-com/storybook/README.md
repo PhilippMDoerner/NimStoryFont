@@ -56,6 +56,14 @@ This is a [known issue](https://github.com/storybookjs/storybook/issues/22431#is
 
 Alternatively, you could use a different package manager ([npm](https://www.npmjs.com/), [pnpm](https://pnpm.io/installation)).
 
+## Version compatibility
+
+| Addon Version | Storybook Version |
+| ------------- | ----------------- |
+| `^4.0.0`      | `^9.0.0`          |
+| `^3.0.0`      | `^8.2.0`          |
+| `^2.0.2`      | `8.0.0` - `8.1.x` |
+
 ### License
 
 [MIT](https://github.com/storybookjs/addon-coverage/blob/main/LICENSE)

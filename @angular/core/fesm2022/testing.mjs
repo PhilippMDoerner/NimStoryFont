@@ -1,14 +1,20 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
 import * as i0 from '@angular/core';
-import { ɵDeferBlockState, ɵtriggerResourceLoading, ɵrenderDeferBlockState, ɵCONTAINER_HEADER_OFFSET, ɵgetDeferBlocks, ɵDeferBlockBehavior, InjectionToken, inject as inject$1, NgZone, ErrorHandler, Injectable, ɵNoopNgZone, ApplicationRef, ɵPendingTasksInternal, ɵZONELESS_ENABLED, ɵChangeDetectionScheduler, ɵEffectScheduler, ɵMicrotaskEffectScheduler, getDebugNode, RendererFactory2, ɵstringify, ɵReflectionCapabilities, Directive, Component, Pipe, NgModule, ɵgetAsyncClassMetadataFn, ɵgenerateStandaloneInDeclarationsError, ɵUSE_RUNTIME_DEPS_TRACKER_FOR_JIT, ɵdepsTracker, ɵgetInjectableDef, resolveForwardRef, ɵNG_COMP_DEF, ɵisComponentDefPendingResolution, ɵresolveComponentResources, ɵRender3NgModuleRef, ApplicationInitStatus, LOCALE_ID, ɵDEFAULT_LOCALE_ID, ɵsetLocaleId, ɵRender3ComponentFactory, ɵcompileComponent, ɵNG_DIR_DEF, ɵcompileDirective, ɵNG_PIPE_DEF, ɵcompilePipe, ɵNG_MOD_DEF, ɵtransitiveScopesFor, ɵpatchComponentDefWithScope, ɵNG_INJ_DEF, ɵcompileNgModuleDefs, ɵclearResolutionOfComponentResourcesQueue, ɵrestoreComponentResolutionQueue, ɵinternalProvideZoneChangeDetection, ɵChangeDetectionSchedulerImpl, Compiler, ɵDEFER_BLOCK_CONFIG, ɵINTERNAL_APPLICATION_ERROR_HANDLER, COMPILER_OPTIONS, Injector, ɵisEnvironmentProviders, ɵNgModuleFactory, ModuleWithComponentFactories, ɵconvertToBitFlags, InjectFlags, ɵsetAllowDuplicateNgModuleIdsForTest, ɵresetCompiledComponents, ɵsetUnknownElementStrictMode, ɵsetUnknownPropertyStrictMode, ɵgetUnknownElementStrictMode, ɵgetUnknownPropertyStrictMode, runInInjectionContext, EnvironmentInjector, ɵflushModuleScopingQueueAsMuchAsPossible } from '@angular/core';
-export { ɵDeferBlockBehavior as DeferBlockBehavior, ɵDeferBlockState as DeferBlockState } from '@angular/core';
+import { NgZone, Injectable, DeferBlockState, triggerResourceLoading, renderDeferBlockState, getDeferBlocks, DeferBlockBehavior, NoopNgZone, ApplicationRef, getDebugNode, RendererFactory2, Directive, Component, Pipe, NgModule, ReflectionCapabilities, depsTracker, isComponentDefPendingResolution, resolveComponentResources, NgModuleRef, ApplicationInitStatus, LOCALE_ID, DEFAULT_LOCALE_ID, setLocaleId, ComponentFactory, getAsyncClassMetadataFn, compileComponent, compileDirective, compilePipe, patchComponentDefWithScope, compileNgModuleDefs, clearResolutionOfComponentResourcesQueue, restoreComponentResolutionQueue, internalProvideZoneChangeDetection, ChangeDetectionSchedulerImpl, COMPILER_OPTIONS, generateStandaloneInDeclarationsError, transitiveScopesFor, Compiler, DEFER_BLOCK_CONFIG, NgModuleFactory, ModuleWithComponentFactories, resetCompiledComponents, ɵsetUnknownElementStrictMode as _setUnknownElementStrictMode, ɵsetUnknownPropertyStrictMode as _setUnknownPropertyStrictMode, ɵgetUnknownElementStrictMode as _getUnknownElementStrictMode, ɵgetUnknownPropertyStrictMode as _getUnknownPropertyStrictMode, flushModuleScopingQueueAsMuchAsPossible, setAllowDuplicateNgModuleIdsForTest } from './debug_node-JnOYh9kg.mjs';
 import { Subscription } from 'rxjs';
+import { inject as inject$1, EnvironmentInjector, ErrorHandler, CONTAINER_HEADER_OFFSET, InjectionToken, PendingTasksInternal, ZONELESS_ENABLED, ChangeDetectionScheduler, EffectScheduler, stringify, getInjectableDef, resolveForwardRef, NG_COMP_DEF, NG_DIR_DEF, NG_PIPE_DEF, NG_INJ_DEF, NG_MOD_DEF, ENVIRONMENT_INITIALIZER, Injector, isEnvironmentProviders, INTERNAL_APPLICATION_ERROR_HANDLER, runInInjectionContext } from './root_effect_scheduler-DCy1y1b8.mjs';
 import { ResourceLoader } from '@angular/compiler';
+import './signal-nCiHhWf6.mjs';
+import '@angular/core/primitives/signals';
+import 'rxjs/operators';
+import './attribute-BWp59EjE.mjs';
+import './primitives/di.mjs';
+import '@angular/core/primitives/di';
 
 /**
  * Wraps a test function in an asynchronous test zone. The test will automatically
@@ -45,119 +51,18 @@ function waitForAsync(fn) {
     };
 }
 
-/**
- * Represents an individual defer block for testing purposes.
- *
- * @publicApi
- */
-class DeferBlockFixture {
-    block;
-    componentFixture;
-    /** @nodoc */
-    constructor(block, componentFixture) {
-        this.block = block;
-        this.componentFixture = componentFixture;
-    }
-    /**
-     * Renders the specified state of the defer fixture.
-     * @param state the defer state to render
-     */
-    async render(state) {
-        if (!hasStateTemplate(state, this.block)) {
-            const stateAsString = getDeferBlockStateNameFromEnum(state);
-            throw new Error(`Tried to render this defer block in the \`${stateAsString}\` state, ` +
-                `but there was no @${stateAsString.toLowerCase()} block defined in a template.`);
-        }
-        if (state === ɵDeferBlockState.Complete) {
-            await ɵtriggerResourceLoading(this.block.tDetails, this.block.lView, this.block.tNode);
-        }
-        // If the `render` method is used explicitly - skip timer-based scheduling for
-        // `@placeholder` and `@loading` blocks and render them immediately.
-        const skipTimerScheduling = true;
-        ɵrenderDeferBlockState(state, this.block.tNode, this.block.lContainer, skipTimerScheduling);
-        this.componentFixture.detectChanges();
-    }
-    /**
-     * Retrieves all nested child defer block fixtures
-     * in a given defer block.
-     */
-    getDeferBlocks() {
-        const deferBlocks = [];
-        // An LContainer that represents a defer block has at most 1 view, which is
-        // located right after an LContainer header. Get a hold of that view and inspect
-        // it for nested defer blocks.
-        const deferBlockFixtures = [];
-        if (this.block.lContainer.length >= ɵCONTAINER_HEADER_OFFSET) {
-            const lView = this.block.lContainer[ɵCONTAINER_HEADER_OFFSET];
-            ɵgetDeferBlocks(lView, deferBlocks);
-            for (const block of deferBlocks) {
-                deferBlockFixtures.push(new DeferBlockFixture(block, this.componentFixture));
-            }
-        }
-        return Promise.resolve(deferBlockFixtures);
-    }
-}
-function hasStateTemplate(state, block) {
-    switch (state) {
-        case ɵDeferBlockState.Placeholder:
-            return block.tDetails.placeholderTmplIndex !== null;
-        case ɵDeferBlockState.Loading:
-            return block.tDetails.loadingTmplIndex !== null;
-        case ɵDeferBlockState.Error:
-            return block.tDetails.errorTmplIndex !== null;
-        case ɵDeferBlockState.Complete:
-            return true;
-        default:
-            return false;
-    }
-}
-function getDeferBlockStateNameFromEnum(state) {
-    switch (state) {
-        case ɵDeferBlockState.Placeholder:
-            return 'Placeholder';
-        case ɵDeferBlockState.Loading:
-            return 'Loading';
-        case ɵDeferBlockState.Error:
-            return 'Error';
-        default:
-            return 'Main';
-    }
-}
-
-/** Whether test modules should be torn down by default. */
-const TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT = true;
-/** Whether unknown elements in templates should throw by default. */
-const THROW_ON_UNKNOWN_ELEMENTS_DEFAULT = false;
-/** Whether unknown properties in templates should throw by default. */
-const THROW_ON_UNKNOWN_PROPERTIES_DEFAULT = false;
-/** Whether defer blocks should use manual triggering or play through normally. */
-const DEFER_BLOCK_DEFAULT_BEHAVIOR = ɵDeferBlockBehavior.Playthrough;
-/**
- * An abstract class for inserting the root test component element in a platform independent way.
- *
- * @publicApi
- */
-class TestComponentRenderer {
-    insertRootElement(rootElementId) { }
-    removeAllRootElements() { }
-}
-/**
- * @publicApi
- */
-const ComponentFixtureAutoDetect = new InjectionToken('ComponentFixtureAutoDetect');
-/**
- * @publicApi
- */
-const ComponentFixtureNoNgZone = new InjectionToken('ComponentFixtureNoNgZone');
-
 const RETHROW_APPLICATION_ERRORS_DEFAULT = true;
 class TestBedApplicationErrorHandler {
     zone = inject$1(NgZone);
-    userErrorHandler = inject$1(ErrorHandler);
+    injector = inject$1(EnvironmentInjector);
+    userErrorHandler;
     whenStableRejectFunctions = new Set();
     handleError(e) {
         try {
-            this.zone.runOutsideAngular(() => this.userErrorHandler.handleError(e));
+            this.zone.runOutsideAngular(() => {
+                this.userErrorHandler ??= this.injector.get(ErrorHandler);
+                this.userErrorHandler.handleError(e);
+            });
         }
         catch (userError) {
             e = userError;
@@ -175,12 +80,117 @@ class TestBedApplicationErrorHandler {
             throw e;
         }
     }
-    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: TestBedApplicationErrorHandler, deps: [], target: i0.ɵɵFactoryTarget.Injectable });
-    static ɵprov = i0.ɵɵngDeclareInjectable({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: TestBedApplicationErrorHandler });
+    static ɵfac = function TestBedApplicationErrorHandler_Factory(__ngFactoryType__) { return new (__ngFactoryType__ || TestBedApplicationErrorHandler)(); };
+    static ɵprov = /*@__PURE__*/ i0.ɵɵdefineInjectable({ token: TestBedApplicationErrorHandler, factory: TestBedApplicationErrorHandler.ɵfac });
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: TestBedApplicationErrorHandler, decorators: [{
-            type: Injectable
-        }] });
+(() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(TestBedApplicationErrorHandler, [{
+        type: Injectable
+    }], null, null); })();
+
+/**
+ * Represents an individual defer block for testing purposes.
+ *
+ * @publicApi
+ */
+class DeferBlockFixture {
+    block;
+    componentFixture;
+    /** @docs-private */
+    constructor(block, componentFixture) {
+        this.block = block;
+        this.componentFixture = componentFixture;
+    }
+    /**
+     * Renders the specified state of the defer fixture.
+     * @param state the defer state to render
+     */
+    async render(state) {
+        if (!hasStateTemplate(state, this.block)) {
+            const stateAsString = getDeferBlockStateNameFromEnum(state);
+            throw new Error(`Tried to render this defer block in the \`${stateAsString}\` state, ` +
+                `but there was no @${stateAsString.toLowerCase()} block defined in a template.`);
+        }
+        if (state === DeferBlockState.Complete) {
+            await triggerResourceLoading(this.block.tDetails, this.block.lView, this.block.tNode);
+        }
+        // If the `render` method is used explicitly - skip timer-based scheduling for
+        // `@placeholder` and `@loading` blocks and render them immediately.
+        const skipTimerScheduling = true;
+        renderDeferBlockState(state, this.block.tNode, this.block.lContainer, skipTimerScheduling);
+        this.componentFixture.detectChanges();
+    }
+    /**
+     * Retrieves all nested child defer block fixtures
+     * in a given defer block.
+     */
+    getDeferBlocks() {
+        const deferBlocks = [];
+        // An LContainer that represents a defer block has at most 1 view, which is
+        // located right after an LContainer header. Get a hold of that view and inspect
+        // it for nested defer blocks.
+        const deferBlockFixtures = [];
+        if (this.block.lContainer.length >= CONTAINER_HEADER_OFFSET) {
+            const lView = this.block.lContainer[CONTAINER_HEADER_OFFSET];
+            getDeferBlocks(lView, deferBlocks);
+            for (const block of deferBlocks) {
+                deferBlockFixtures.push(new DeferBlockFixture(block, this.componentFixture));
+            }
+        }
+        return Promise.resolve(deferBlockFixtures);
+    }
+}
+function hasStateTemplate(state, block) {
+    switch (state) {
+        case DeferBlockState.Placeholder:
+            return block.tDetails.placeholderTmplIndex !== null;
+        case DeferBlockState.Loading:
+            return block.tDetails.loadingTmplIndex !== null;
+        case DeferBlockState.Error:
+            return block.tDetails.errorTmplIndex !== null;
+        case DeferBlockState.Complete:
+            return true;
+        default:
+            return false;
+    }
+}
+function getDeferBlockStateNameFromEnum(state) {
+    switch (state) {
+        case DeferBlockState.Placeholder:
+            return 'Placeholder';
+        case DeferBlockState.Loading:
+            return 'Loading';
+        case DeferBlockState.Error:
+            return 'Error';
+        default:
+            return 'Main';
+    }
+}
+
+/** Whether test modules should be torn down by default. */
+const TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT = true;
+/** Whether unknown elements in templates should throw by default. */
+const THROW_ON_UNKNOWN_ELEMENTS_DEFAULT = false;
+/** Whether unknown properties in templates should throw by default. */
+const THROW_ON_UNKNOWN_PROPERTIES_DEFAULT = false;
+/** Whether defer blocks should use manual triggering or play through normally. */
+const DEFER_BLOCK_DEFAULT_BEHAVIOR = DeferBlockBehavior.Playthrough;
+/**
+ * An abstract class for inserting the root test component element in a platform independent way.
+ *
+ * @publicApi
+ */
+class TestComponentRenderer {
+    insertRootElement(rootElementId) { }
+    removeAllRootElements() { }
+}
+/**
+ * @publicApi
+ */
+const ComponentFixtureAutoDetect = new InjectionToken('ComponentFixtureAutoDetect');
+/**
+ * @publicApi
+ */
+const ComponentFixtureNoNgZone = new InjectionToken('ComponentFixtureNoNgZone');
 
 /**
  * Fixture for debugging and testing a component.
@@ -214,7 +224,7 @@ class ComponentFixture {
     /** @internal */
     _noZoneOptionIsSet = inject$1(ComponentFixtureNoNgZone, { optional: true });
     /** @internal */
-    _ngZone = this._noZoneOptionIsSet ? new ɵNoopNgZone() : inject$1(NgZone);
+    _ngZone = this._noZoneOptionIsSet ? new NoopNgZone() : inject$1(NgZone);
     // Inject ApplicationRef to ensure NgZone stableness causes after render hooks to run
     // This will likely happen as a result of fixture.detectChanges because it calls ngZone.run
     // This is a crazy way of doing things but hey, it's the world we live in.
@@ -224,18 +234,17 @@ class ComponentFixture {
     /** @internal */
     _appRef = inject$1(ApplicationRef);
     _testAppRef = this._appRef;
-    pendingTasks = inject$1(ɵPendingTasksInternal);
+    pendingTasks = inject$1(PendingTasksInternal);
     appErrorHandler = inject$1(TestBedApplicationErrorHandler);
-    zonelessEnabled = inject$1(ɵZONELESS_ENABLED);
-    scheduler = inject$1(ɵChangeDetectionScheduler);
-    rootEffectScheduler = inject$1(ɵEffectScheduler);
-    microtaskEffectScheduler = inject$1(ɵMicrotaskEffectScheduler);
+    zonelessEnabled = inject$1(ZONELESS_ENABLED);
+    scheduler = inject$1(ChangeDetectionScheduler);
+    rootEffectScheduler = inject$1(EffectScheduler);
     autoDetectDefault = this.zonelessEnabled ? true : false;
     autoDetect = inject$1(ComponentFixtureAutoDetect, { optional: true }) ?? this.autoDetectDefault;
     subscriptions = new Subscription();
     // TODO(atscott): Remove this from public API
     ngZone = this._noZoneOptionIsSet ? null : this._ngZone;
-    /** @nodoc */
+    /** @docs-private */
     constructor(componentRef) {
         this.componentRef = componentRef;
         this.changeDetectorRef = componentRef.changeDetectorRef;
@@ -244,19 +253,32 @@ class ComponentFixture {
         this.componentInstance = componentRef.instance;
         this.nativeElement = this.elementRef.nativeElement;
         this.componentRef = componentRef;
+        this._testAppRef.allTestViews.add(this.componentRef.hostView);
         if (this.autoDetect) {
-            this._testAppRef.externalTestViews.add(this.componentRef.hostView);
-            this.scheduler?.notify(9 /* ɵNotificationSource.ViewAttached */);
+            this._testAppRef.autoDetectTestViews.add(this.componentRef.hostView);
+            this.scheduler?.notify(8 /* ɵNotificationSource.ViewAttached */);
             this.scheduler?.notify(0 /* ɵNotificationSource.MarkAncestorsForTraversal */);
         }
         this.componentRef.hostView.onDestroy(() => {
-            this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
+            this._testAppRef.allTestViews.delete(this.componentRef.hostView);
+            this._testAppRef.autoDetectTestViews.delete(this.componentRef.hostView);
         });
         // Create subscriptions outside the NgZone so that the callbacks run outside
         // of NgZone.
         this._ngZone.runOutsideAngular(() => {
             this.subscriptions.add(this._ngZone.onError.subscribe({
                 next: (error) => {
+                    // The rethrow here is to ensure that errors don't go unreported. Since `NgZone.onHandleError` returns `false`,
+                    // ZoneJS will not throw the error coming out of a task. Instead, the handling is defined by
+                    // the chain of parent delegates and whether they indicate the error is handled in some way (by returning `false`).
+                    // Unfortunately, 'onError' does not forward the information about whether the error was handled by a parent zone
+                    // so cannot know here whether throwing is appropriate. As a half-solution, we can check to see if we're inside
+                    // a fakeAsync context, which we know has its own error handling.
+                    // https://github.com/angular/angular/blob/db2f2d99c82aae52d8a0ae46616c6411d070b35e/packages/zone.js/lib/zone-spec/fake-async-test.ts#L783-L784
+                    // https://github.com/angular/angular/blob/db2f2d99c82aae52d8a0ae46616c6411d070b35e/packages/zone.js/lib/zone-spec/fake-async-test.ts#L473-L478
+                    if (typeof Zone === 'undefined' || Zone.current.get('FakeAsyncTestZoneSpec')) {
+                        return;
+                    }
                     throw error;
                 },
             }));
@@ -266,7 +288,6 @@ class ComponentFixture {
      * Trigger a change detection cycle for the component.
      */
     detectChanges(checkNoChanges = true) {
-        this.microtaskEffectScheduler.flush();
         const originalCheckNoChanges = this.componentRef.changeDetectorRef.checkNoChanges;
         try {
             if (!checkNoChanges) {
@@ -274,13 +295,11 @@ class ComponentFixture {
             }
             if (this.zonelessEnabled) {
                 try {
-                    this._testAppRef.externalTestViews.add(this.componentRef.hostView);
+                    this._testAppRef.includeAllTestViews = true;
                     this._appRef.tick();
                 }
                 finally {
-                    if (!this.autoDetect) {
-                        this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
-                    }
+                    this._testAppRef.includeAllTestViews = false;
                 }
             }
             else {
@@ -297,7 +316,6 @@ class ComponentFixture {
         finally {
             this.componentRef.changeDetectorRef.checkNoChanges = originalCheckNoChanges;
         }
-        this.microtaskEffectScheduler.flush();
     }
     /**
      * Do a change detection run to make sure there were no changes.
@@ -305,24 +323,18 @@ class ComponentFixture {
     checkNoChanges() {
         this.changeDetectorRef.checkNoChanges();
     }
-    /**
-     * Set whether the fixture should autodetect changes.
-     *
-     * Also runs detectChanges once so that any existing change is detected.
-     *
-     * @param autoDetect Whether to autodetect changes. By default, `true`.
-     */
     autoDetectChanges(autoDetect = true) {
+        if (!autoDetect && this.zonelessEnabled) {
+            throw new Error('Cannot set autoDetect to false with zoneless change detection.');
+        }
         if (this._noZoneOptionIsSet && !this.zonelessEnabled) {
             throw new Error('Cannot call autoDetectChanges when ComponentFixtureNoNgZone is set.');
         }
-        if (autoDetect !== this.autoDetect) {
-            if (autoDetect) {
-                this._testAppRef.externalTestViews.add(this.componentRef.hostView);
-            }
-            else {
-                this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
-            }
+        if (autoDetect) {
+            this._testAppRef.autoDetectTestViews.add(this.componentRef.hostView);
+        }
+        else {
+            this._testAppRef.autoDetectTestViews.delete(this.componentRef.hostView);
         }
         this.autoDetect = autoDetect;
         this.detectChanges();
@@ -332,7 +344,7 @@ class ComponentFixture {
      * yet.
      */
     isStable() {
-        return !this.pendingTasks.hasPendingTasks.value;
+        return !this.pendingTasks.hasPendingTasks;
     }
     /**
      * Get a promise that resolves when the fixture is stable.
@@ -358,7 +370,7 @@ class ComponentFixture {
     getDeferBlocks() {
         const deferBlocks = [];
         const lView = this.componentRef.hostView['_lView'];
-        ɵgetDeferBlocks(lView, deferBlocks);
+        getDeferBlocks(lView, deferBlocks);
         const deferBlockFixtures = [];
         for (const block of deferBlocks) {
             deferBlockFixtures.push(new DeferBlockFixture(block, this));
@@ -386,7 +398,8 @@ class ComponentFixture {
      */
     destroy() {
         this.subscriptions.unsubscribe();
-        this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
+        this._testAppRef.autoDetectTestViews.delete(this.componentRef.hostView);
+        this._testAppRef.allTestViews.delete(this.componentRef.hostView);
         if (!this._isDestroyed) {
             this.componentRef.destroy();
             this._isDestroyed = true;
@@ -411,7 +424,7 @@ function resetFakeAsyncZone() {
     throw new Error(fakeAsyncTestModuleNotLoadedErrorMessage);
 }
 function resetFakeAsyncZoneIfExists() {
-    if (fakeAsyncTestModule) {
+    if (fakeAsyncTestModule && Zone['ProxyZoneSpec']?.isLoaded()) {
         fakeAsyncTestModule.resetFakeAsyncZone();
     }
 }
@@ -571,7 +584,7 @@ class MetadataOverrider {
         }
         if (override.set) {
             if (override.remove || override.add) {
-                throw new Error(`Cannot set and add/remove ${ɵstringify(metadataClass)} at the same time!`);
+                throw new Error(`Cannot set and add/remove ${stringify(metadataClass)} at the same time!`);
             }
             setMetadata(props, override.set);
         }
@@ -650,7 +663,7 @@ function _propHashKey(propName, propValue, references) {
 function _serializeReference(ref, references) {
     let id = references.get(ref);
     if (!id) {
-        id = `${ɵstringify(ref)}${_nextReferenceId++}`;
+        id = `${stringify(ref)}${_nextReferenceId++}`;
         references.set(ref, id);
     }
     return id;
@@ -676,7 +689,7 @@ function _valueProps(obj) {
     return props;
 }
 
-const reflection = new ɵReflectionCapabilities();
+const reflection = new ReflectionCapabilities();
 /**
  * Allows to override ivy metadata for tests (via the `TestBed`).
  */
@@ -763,10 +776,10 @@ function isTestingModuleOverride(value) {
 }
 function assertNoStandaloneComponents(types, resolver, location) {
     types.forEach((type) => {
-        if (!ɵgetAsyncClassMetadataFn(type)) {
+        if (!getAsyncClassMetadataFn(type)) {
             const component = resolver.resolve(type);
             if (component && (component.standalone == null || component.standalone)) {
-                throw new Error(ɵgenerateStandaloneInDeclarationsError(type, location));
+                throw new Error(generateStandaloneInDeclarationsError(type, location));
             }
         }
     });
@@ -861,9 +874,7 @@ class TestBedCompiler {
             moduleDef.rethrowApplicationErrors ?? RETHROW_APPLICATION_ERRORS_DEFAULT;
     }
     overrideModule(ngModule, override) {
-        if (ɵUSE_RUNTIME_DEPS_TRACKER_FOR_JIT) {
-            ɵdepsTracker.clearScopeCacheFor(ngModule);
-        }
+        depsTracker.clearScopeCacheFor(ngModule);
         this.overriddenModules.add(ngModule);
         // Compile the module right away.
         this.resolvers.module.addOverride(ngModule, override);
@@ -919,7 +930,7 @@ class TestBedCompiler {
         else {
             providerDef = { provide: token };
         }
-        const injectableDef = typeof token !== 'string' ? ɵgetInjectableDef(token) : null;
+        const injectableDef = typeof token !== 'string' ? getInjectableDef(token) : null;
         const providedIn = injectableDef === null ? null : resolveForwardRef(injectableDef.providedIn);
         const overridesBucket = providedIn === 'root' ? this.rootProviderOverrides : this.providerOverrides;
         overridesBucket.push(providerDef);
@@ -936,12 +947,12 @@ class TestBedCompiler {
         }
     }
     overrideTemplateUsingTestingModule(type, template) {
-        const def = type[ɵNG_COMP_DEF];
+        const def = type[NG_COMP_DEF];
         const hasStyleUrls = () => {
             const metadata = this.resolvers.component.resolve(type);
             return !!metadata.styleUrl || !!metadata.styleUrls?.length;
         };
-        const overrideStyleUrls = !!def && !ɵisComponentDefPendingResolution(type) && hasStyleUrls();
+        const overrideStyleUrls = !!def && !isComponentDefPendingResolution(type) && hasStyleUrls();
         // In Ivy, compiling a component does not require knowing the module providing the
         // component's scope, so overrideTemplateUsingTestingModule can be implemented purely via
         // overrideComponent. Important: overriding template requires full Component re-compilation,
@@ -964,7 +975,7 @@ class TestBedCompiler {
             return;
         const promises = [];
         for (const component of this.componentsWithAsyncMetadata) {
-            const asyncMetadataFn = ɵgetAsyncClassMetadataFn(component);
+            const asyncMetadataFn = getAsyncClassMetadataFn(component);
             if (asyncMetadataFn) {
                 promises.push(asyncMetadataFn());
             }
@@ -1001,7 +1012,7 @@ class TestBedCompiler {
                 }
                 return Promise.resolve(resourceLoader.get(url));
             };
-            await ɵresolveComponentResources(resolver);
+            await resolveComponentResources(resolver);
         }
     }
     finalize() {
@@ -1018,15 +1029,15 @@ class TestBedCompiler {
         // every component.
         this.componentToModuleScope.clear();
         const parentInjector = this.platform.injector;
-        this.testModuleRef = new ɵRender3NgModuleRef(this.testModuleType, parentInjector, []);
+        this.testModuleRef = new NgModuleRef(this.testModuleType, parentInjector, []);
         // ApplicationInitStatus.runInitializers() is marked @internal to core.
         // Cast it to any before accessing it.
         this.testModuleRef.injector.get(ApplicationInitStatus).runInitializers();
         // Set locale ID after running app initializers, since locale information might be updated while
         // running initializers. This is also consistent with the execution order while bootstrapping an
         // app (see `packages/core/src/application_ref.ts` file).
-        const localeId = this.testModuleRef.injector.get(LOCALE_ID, ɵDEFAULT_LOCALE_ID);
-        ɵsetLocaleId(localeId);
+        const localeId = this.testModuleRef.injector.get(LOCALE_ID, DEFAULT_LOCALE_ID);
+        setLocaleId(localeId);
         return this.testModuleRef;
     }
     /**
@@ -1061,7 +1072,7 @@ class TestBedCompiler {
     _getComponentFactories(moduleType) {
         return maybeUnwrapFn(moduleType.ɵmod.declarations).reduce((factories, declaration) => {
             const componentDef = declaration.ɵcmp;
-            componentDef && factories.push(new ɵRender3ComponentFactory(componentDef, this.testModuleRef));
+            componentDef && factories.push(new ComponentFactory(componentDef, this.testModuleRef));
             return factories;
         }, []);
     }
@@ -1069,20 +1080,18 @@ class TestBedCompiler {
         // Compile all queued components, directives, pipes.
         let needsAsyncResources = false;
         this.pendingComponents.forEach((declaration) => {
-            if (ɵgetAsyncClassMetadataFn(declaration)) {
+            if (getAsyncClassMetadataFn(declaration)) {
                 throw new Error(`Component '${declaration.name}' has unresolved metadata. ` +
                     `Please call \`await TestBed.compileComponents()\` before running this test.`);
             }
-            needsAsyncResources = needsAsyncResources || ɵisComponentDefPendingResolution(declaration);
+            needsAsyncResources = needsAsyncResources || isComponentDefPendingResolution(declaration);
             const metadata = this.resolvers.component.resolve(declaration);
             if (metadata === null) {
                 throw invalidTypeError(declaration.name, 'Component');
             }
-            this.maybeStoreNgDef(ɵNG_COMP_DEF, declaration);
-            if (ɵUSE_RUNTIME_DEPS_TRACKER_FOR_JIT) {
-                ɵdepsTracker.clearScopeCacheFor(declaration);
-            }
-            ɵcompileComponent(declaration, metadata);
+            this.maybeStoreNgDef(NG_COMP_DEF, declaration);
+            depsTracker.clearScopeCacheFor(declaration);
+            compileComponent(declaration, metadata);
         });
         this.pendingComponents.clear();
         this.pendingDirectives.forEach((declaration) => {
@@ -1090,8 +1099,8 @@ class TestBedCompiler {
             if (metadata === null) {
                 throw invalidTypeError(declaration.name, 'Directive');
             }
-            this.maybeStoreNgDef(ɵNG_DIR_DEF, declaration);
-            ɵcompileDirective(declaration, metadata);
+            this.maybeStoreNgDef(NG_DIR_DEF, declaration);
+            compileDirective(declaration, metadata);
         });
         this.pendingDirectives.clear();
         this.pendingPipes.forEach((declaration) => {
@@ -1099,8 +1108,8 @@ class TestBedCompiler {
             if (metadata === null) {
                 throw invalidTypeError(declaration.name, 'Pipe');
             }
-            this.maybeStoreNgDef(ɵNG_PIPE_DEF, declaration);
-            ɵcompilePipe(declaration, metadata);
+            this.maybeStoreNgDef(NG_PIPE_DEF, declaration);
+            compilePipe(declaration, metadata);
         });
         this.pendingPipes.clear();
         return needsAsyncResources;
@@ -1110,17 +1119,11 @@ class TestBedCompiler {
             // Module overrides (via `TestBed.overrideModule`) might affect scopes that were previously
             // calculated and stored in `transitiveCompileScopes`. If module overrides are present,
             // collect all affected modules and reset scopes to force their re-calculation.
-            const testingModuleDef = this.testModuleType[ɵNG_MOD_DEF];
+            const testingModuleDef = this.testModuleType[NG_MOD_DEF];
             const affectedModules = this.collectModulesAffectedByOverrides(testingModuleDef.imports);
             if (affectedModules.size > 0) {
                 affectedModules.forEach((moduleType) => {
-                    if (!ɵUSE_RUNTIME_DEPS_TRACKER_FOR_JIT) {
-                        this.storeFieldOfDefOnType(moduleType, ɵNG_MOD_DEF, 'transitiveCompileScopes');
-                        moduleType[ɵNG_MOD_DEF].transitiveCompileScopes = null;
-                    }
-                    else {
-                        ɵdepsTracker.clearScopeCacheFor(moduleType);
-                    }
+                    depsTracker.clearScopeCacheFor(moduleType);
                 });
             }
         }
@@ -1129,16 +1132,16 @@ class TestBedCompiler {
             if (!moduleToScope.has(moduleType)) {
                 const isTestingModule = isTestingModuleOverride(moduleType);
                 const realType = isTestingModule ? this.testModuleType : moduleType;
-                moduleToScope.set(moduleType, ɵtransitiveScopesFor(realType));
+                moduleToScope.set(moduleType, transitiveScopesFor(realType));
             }
             return moduleToScope.get(moduleType);
         };
         this.componentToModuleScope.forEach((moduleType, componentType) => {
             if (moduleType !== null) {
                 const moduleScope = getScopeOfModule(moduleType);
-                this.storeFieldOfDefOnType(componentType, ɵNG_COMP_DEF, 'directiveDefs');
-                this.storeFieldOfDefOnType(componentType, ɵNG_COMP_DEF, 'pipeDefs');
-                ɵpatchComponentDefWithScope(getComponentDef(componentType), moduleScope);
+                this.storeFieldOfDefOnType(componentType, NG_COMP_DEF, 'directiveDefs');
+                this.storeFieldOfDefOnType(componentType, NG_COMP_DEF, 'pipeDefs');
+                patchComponentDefWithScope(getComponentDef(componentType), moduleScope);
             }
             // `tView` that is stored on component def contains information about directives and pipes
             // that are in the scope of this component. Patching component scope will cause `tView` to be
@@ -1147,20 +1150,20 @@ class TestBedCompiler {
             // Resetting `tView` is also needed for cases when we apply provider overrides and those
             // providers are defined on component's level, in which case they may end up included into
             // `tView.blueprint`.
-            this.storeFieldOfDefOnType(componentType, ɵNG_COMP_DEF, 'tView');
+            this.storeFieldOfDefOnType(componentType, NG_COMP_DEF, 'tView');
         });
         this.componentToModuleScope.clear();
     }
     applyProviderOverrides() {
         const maybeApplyOverrides = (field) => (type) => {
-            const resolver = field === ɵNG_COMP_DEF ? this.resolvers.component : this.resolvers.directive;
+            const resolver = field === NG_COMP_DEF ? this.resolvers.component : this.resolvers.directive;
             const metadata = resolver.resolve(type);
             if (this.hasProviderOverrides(metadata.providers)) {
                 this.patchDefWithProviderOverrides(type, field);
             }
         };
-        this.seenComponents.forEach(maybeApplyOverrides(ɵNG_COMP_DEF));
-        this.seenDirectives.forEach(maybeApplyOverrides(ɵNG_DIR_DEF));
+        this.seenComponents.forEach(maybeApplyOverrides(NG_COMP_DEF));
+        this.seenDirectives.forEach(maybeApplyOverrides(NG_DIR_DEF));
         this.seenComponents.clear();
         this.seenDirectives.clear();
     }
@@ -1183,7 +1186,7 @@ class TestBedCompiler {
         // detailed error messages. The fact that the code relies on this line being
         // present here is suspicious and should be refactored in a way that the line
         // below can be moved (for ex. after an early exit check below).
-        const injectorDef = type[ɵNG_INJ_DEF];
+        const injectorDef = type[NG_INJ_DEF];
         // No provider overrides, exit early.
         if (this.providerOverridesByToken.size === 0)
             return;
@@ -1201,12 +1204,12 @@ class TestBedCompiler {
                 ...(this.providerOverridesByModule.get(type) || []),
             ];
             if (this.hasProviderOverrides(providers)) {
-                this.maybeStoreNgDef(ɵNG_INJ_DEF, type);
-                this.storeFieldOfDefOnType(type, ɵNG_INJ_DEF, 'providers');
+                this.maybeStoreNgDef(NG_INJ_DEF, type);
+                this.storeFieldOfDefOnType(type, NG_INJ_DEF, 'providers');
                 injectorDef.providers = this.getOverriddenProviders(providers);
             }
             // Apply provider overrides to imported modules recursively
-            const moduleDef = type[ɵNG_MOD_DEF];
+            const moduleDef = type[NG_MOD_DEF];
             const imports = maybeUnwrapFn(moduleDef.imports);
             for (const importedModule of imports) {
                 this.applyProviderOverridesInScope(importedModule);
@@ -1226,7 +1229,7 @@ class TestBedCompiler {
         }
     }
     patchComponentsWithExistingStyles() {
-        this.existingComponentStyles.forEach((styles, type) => (type[ɵNG_COMP_DEF].styles = styles));
+        this.existingComponentStyles.forEach((styles, type) => (type[NG_COMP_DEF].styles = styles));
         this.existingComponentStyles.clear();
     }
     queueTypeArray(arr, moduleType) {
@@ -1241,12 +1244,12 @@ class TestBedCompiler {
     }
     recompileNgModule(ngModule, metadata) {
         // Cache the initial ngModuleDef as it will be overwritten.
-        this.maybeStoreNgDef(ɵNG_MOD_DEF, ngModule);
-        this.maybeStoreNgDef(ɵNG_INJ_DEF, ngModule);
-        ɵcompileNgModuleDefs(ngModule, metadata);
+        this.maybeStoreNgDef(NG_MOD_DEF, ngModule);
+        this.maybeStoreNgDef(NG_INJ_DEF, ngModule);
+        compileNgModuleDefs(ngModule, metadata);
     }
     maybeRegisterComponentWithAsyncMetadata(type) {
-        const asyncMetadataFn = ɵgetAsyncClassMetadataFn(type);
+        const asyncMetadataFn = getAsyncClassMetadataFn(type);
         if (asyncMetadataFn) {
             this.componentsWithAsyncMetadata.add(type);
         }
@@ -1260,7 +1263,7 @@ class TestBedCompiler {
             // Check whether a give Type has respective NG def (ɵcmp) and compile if def is
             // missing. That might happen in case a class without any Angular decorators extends another
             // class where Component/Directive/Pipe decorator is defined.
-            if (ɵisComponentDefPendingResolution(type) || !type.hasOwnProperty(ɵNG_COMP_DEF)) {
+            if (isComponentDefPendingResolution(type) || !type.hasOwnProperty(NG_COMP_DEF)) {
                 this.pendingComponents.add(type);
             }
             this.seenComponents.add(type);
@@ -1287,14 +1290,14 @@ class TestBedCompiler {
         }
         const directive = this.resolvers.directive.resolve(type);
         if (directive) {
-            if (!type.hasOwnProperty(ɵNG_DIR_DEF)) {
+            if (!type.hasOwnProperty(NG_DIR_DEF)) {
                 this.pendingDirectives.add(type);
             }
             this.seenDirectives.add(type);
             return;
         }
         const pipe = this.resolvers.pipe.resolve(type);
-        if (pipe && !type.hasOwnProperty(ɵNG_PIPE_DEF)) {
+        if (pipe && !type.hasOwnProperty(NG_PIPE_DEF)) {
             this.pendingPipes.add(type);
             return;
         }
@@ -1382,7 +1385,7 @@ class TestBedCompiler {
                         path.forEach((item) => affectedModules.add(item));
                     }
                     // Examine module imports recursively to look for overridden modules.
-                    const moduleDef = value[ɵNG_MOD_DEF];
+                    const moduleDef = value[NG_MOD_DEF];
                     calcAffectedModulesRecur(maybeUnwrapFn(moduleDef.imports), path.concat(value));
                 }
             }
@@ -1420,7 +1423,7 @@ class TestBedCompiler {
         if (this.originalComponentResolutionQueue === null) {
             this.originalComponentResolutionQueue = new Map();
         }
-        ɵclearResolutionOfComponentResourcesQueue().forEach((value, key) => this.originalComponentResolutionQueue.set(key, value));
+        clearResolutionOfComponentResourcesQueue().forEach((value, key) => this.originalComponentResolutionQueue.set(key, value));
     }
     /*
      * Restores component resolution queue to the previously saved state. This operation is performed
@@ -1429,7 +1432,7 @@ class TestBedCompiler {
      */
     restoreComponentResolutionQueue() {
         if (this.originalComponentResolutionQueue !== null) {
-            ɵrestoreComponentResolutionQueue(this.originalComponentResolutionQueue);
+            restoreComponentResolutionQueue(this.originalComponentResolutionQueue);
             this.originalComponentResolutionQueue = null;
         }
     }
@@ -1441,9 +1444,7 @@ class TestBedCompiler {
         });
         // Restore initial component/directive/pipe defs
         this.initialNgDefs.forEach((defs, type) => {
-            if (ɵUSE_RUNTIME_DEPS_TRACKER_FOR_JIT) {
-                ɵdepsTracker.clearScopeCacheFor(type);
-            }
+            depsTracker.clearScopeCacheFor(type);
             defs.forEach((descriptor, prop) => {
                 if (!descriptor) {
                     // Delete operations are generally undesirable since they have performance
@@ -1463,24 +1464,31 @@ class TestBedCompiler {
         this.scopesWithOverriddenProviders.clear();
         this.restoreComponentResolutionQueue();
         // Restore the locale ID to the default value, this shouldn't be necessary but we never know
-        ɵsetLocaleId(ɵDEFAULT_LOCALE_ID);
+        setLocaleId(DEFAULT_LOCALE_ID);
     }
     compileTestModule() {
         class RootScopeModule {
         }
-        ɵcompileNgModuleDefs(RootScopeModule, {
+        compileNgModuleDefs(RootScopeModule, {
             providers: [
                 ...this.rootProviderOverrides,
-                ɵinternalProvideZoneChangeDetection({}),
+                internalProvideZoneChangeDetection({}),
                 TestBedApplicationErrorHandler,
-                { provide: ɵChangeDetectionScheduler, useExisting: ɵChangeDetectionSchedulerImpl },
+                { provide: ChangeDetectionScheduler, useExisting: ChangeDetectionSchedulerImpl },
+                {
+                    provide: ENVIRONMENT_INITIALIZER,
+                    multi: true,
+                    useValue: () => {
+                        inject$1(ErrorHandler);
+                    },
+                },
             ],
         });
         const providers = [
             { provide: Compiler, useFactory: () => new R3TestCompiler(this) },
-            { provide: ɵDEFER_BLOCK_CONFIG, useValue: { behavior: this.deferBlockBehavior } },
+            { provide: DEFER_BLOCK_CONFIG, useValue: { behavior: this.deferBlockBehavior } },
             {
-                provide: ɵINTERNAL_APPLICATION_ERROR_HANDLER,
+                provide: INTERNAL_APPLICATION_ERROR_HANDLER,
                 useFactory: () => {
                     if (this.rethrowApplicationTickErrors) {
                         const handler = inject$1(TestBedApplicationErrorHandler);
@@ -1499,7 +1507,7 @@ class TestBedCompiler {
             ...this.providerOverrides,
         ];
         const imports = [RootScopeModule, this.additionalModuleTypes, this.imports || []];
-        ɵcompileNgModuleDefs(this.testModuleType, {
+        compileNgModuleDefs(this.testModuleType, {
             declarations: this.declarations,
             imports,
             schemas: this.schemas,
@@ -1513,7 +1521,7 @@ class TestBedCompiler {
             return this._injector;
         }
         const providers = [];
-        const compilerOptions = this.platform.injector.get(COMPILER_OPTIONS);
+        const compilerOptions = this.platform.injector.get(COMPILER_OPTIONS, []);
         compilerOptions.forEach((opts) => {
             if (opts.providers) {
                 providers.push(opts.providers);
@@ -1625,7 +1633,7 @@ function identityFn(value) {
 function flattenProviders(providers, mapFn = identityFn) {
     const out = [];
     for (let provider of providers) {
-        if (ɵisEnvironmentProviders(provider)) {
+        if (isEnvironmentProviders(provider)) {
             provider = provider.ɵproviders;
         }
         if (Array.isArray(provider)) {
@@ -1661,11 +1669,11 @@ class R3TestCompiler {
     }
     compileModuleSync(moduleType) {
         this.testBed._compileNgModuleSync(moduleType);
-        return new ɵNgModuleFactory(moduleType);
+        return new NgModuleFactory(moduleType);
     }
     async compileModuleAsync(moduleType) {
         await this.testBed._compileNgModuleAsync(moduleType);
-        return new ɵNgModuleFactory(moduleType);
+        return new NgModuleFactory(moduleType);
     }
     compileModuleAndAllComponentsSync(moduleType) {
         const ngModuleFactory = this.compileModuleSync(moduleType);
@@ -1686,6 +1694,8 @@ class R3TestCompiler {
 }
 
 // The formatter and CI disagree on how this import statement should be formatted. Both try to keep
+// it on one line, too, which has gotten very hard to read & manage. So disable the formatter for
+// this statement only.
 let _nextRootElementId = 0;
 /**
  * Returns a singleton of the `TestBed` class.
@@ -1823,17 +1833,13 @@ class TestBedImpl {
     static overrideProvider(token, provider) {
         return TestBedImpl.INSTANCE.overrideProvider(token, provider);
     }
-    static inject(token, notFoundValue, flags) {
-        return TestBedImpl.INSTANCE.inject(token, notFoundValue, ɵconvertToBitFlags(flags));
-    }
-    /** @deprecated from v9.0.0 use TestBed.inject */
-    static get(token, notFoundValue = Injector.THROW_IF_NOT_FOUND, flags = InjectFlags.Default) {
-        return TestBedImpl.INSTANCE.inject(token, notFoundValue, flags);
+    static inject(token, notFoundValue, options) {
+        return TestBedImpl.INSTANCE.inject(token, notFoundValue, options);
     }
     /**
      * Runs the given function in the `EnvironmentInjector` context of `TestBed`.
      *
-     * @see {@link EnvironmentInjector#runInContext}
+     * @see {@link https://angular.dev/api/core/EnvironmentInjector#runInContext}
      */
     static runInInjectionContext(fn) {
         return TestBedImpl.INSTANCE.runInInjectionContext(fn);
@@ -1854,7 +1860,10 @@ class TestBedImpl {
         return TestBedImpl.INSTANCE.ngModule;
     }
     static flushEffects() {
-        return TestBedImpl.INSTANCE.flushEffects();
+        return TestBedImpl.INSTANCE.tick();
+    }
+    static tick() {
+        return TestBedImpl.INSTANCE.tick();
     }
     // Properties
     platform = null;
@@ -1865,7 +1874,7 @@ class TestBedImpl {
     /**
      * Internal-only flag to indicate whether a module
      * scoping queue has been checked and flushed already.
-     * @nodoc
+     * @docs-private
      */
     globalCompilationChecked = false;
     /**
@@ -1895,7 +1904,7 @@ class TestBedImpl {
         // used to track the state of the NgModule registry and reset it correctly. Instead, when we
         // know we're in a testing scenario, we disable the check for duplicate NgModule registration
         // completely.
-        ɵsetAllowDuplicateNgModuleIdsForTest(true);
+        setAllowDuplicateNgModuleIdsForTest(true);
     }
     /**
      * Reset the providers for the test injector.
@@ -1908,19 +1917,19 @@ class TestBedImpl {
         this.platform = null;
         this.ngModule = null;
         TestBedImpl._environmentTeardownOptions = undefined;
-        ɵsetAllowDuplicateNgModuleIdsForTest(false);
+        setAllowDuplicateNgModuleIdsForTest(false);
     }
     resetTestingModule() {
         this.checkGlobalCompilationFinished();
-        ɵresetCompiledComponents();
+        resetCompiledComponents();
         if (this._compiler !== null) {
             this.compiler.restoreOriginalState();
         }
         this._compiler = new TestBedCompiler(this.platform, this.ngModule);
         // Restore the previous value of the "error on unknown elements" option
-        ɵsetUnknownElementStrictMode(this._previousErrorOnUnknownElementsOption ?? THROW_ON_UNKNOWN_ELEMENTS_DEFAULT);
+        _setUnknownElementStrictMode(this._previousErrorOnUnknownElementsOption ?? THROW_ON_UNKNOWN_ELEMENTS_DEFAULT);
         // Restore the previous value of the "error on unknown properties" option
-        ɵsetUnknownPropertyStrictMode(this._previousErrorOnUnknownPropertiesOption ?? THROW_ON_UNKNOWN_PROPERTIES_DEFAULT);
+        _setUnknownPropertyStrictMode(this._previousErrorOnUnknownPropertiesOption ?? THROW_ON_UNKNOWN_PROPERTIES_DEFAULT);
         // We have to chain a couple of try/finally blocks, because each step can
         // throw errors and we don't want it to interrupt the next step and we also
         // want an error to be thrown at the end.
@@ -1967,29 +1976,25 @@ class TestBedImpl {
         this._instanceDeferBlockBehavior = moduleDef.deferBlockBehavior ?? DEFER_BLOCK_DEFAULT_BEHAVIOR;
         // Store the current value of the strict mode option,
         // so we can restore it later
-        this._previousErrorOnUnknownElementsOption = ɵgetUnknownElementStrictMode();
-        ɵsetUnknownElementStrictMode(this.shouldThrowErrorOnUnknownElements());
-        this._previousErrorOnUnknownPropertiesOption = ɵgetUnknownPropertyStrictMode();
-        ɵsetUnknownPropertyStrictMode(this.shouldThrowErrorOnUnknownProperties());
+        this._previousErrorOnUnknownElementsOption = _getUnknownElementStrictMode();
+        _setUnknownElementStrictMode(this.shouldThrowErrorOnUnknownElements());
+        this._previousErrorOnUnknownPropertiesOption = _getUnknownPropertyStrictMode();
+        _setUnknownPropertyStrictMode(this.shouldThrowErrorOnUnknownProperties());
         this.compiler.configureTestingModule(moduleDef);
         return this;
     }
     compileComponents() {
         return this.compiler.compileComponents();
     }
-    inject(token, notFoundValue, flags) {
+    inject(token, notFoundValue, options) {
         if (token === TestBed) {
             return this;
         }
         const UNDEFINED = {};
-        const result = this.testModuleRef.injector.get(token, UNDEFINED, ɵconvertToBitFlags(flags));
+        const result = this.testModuleRef.injector.get(token, UNDEFINED, options);
         return result === UNDEFINED
-            ? this.compiler.injector.get(token, notFoundValue, flags)
+            ? this.compiler.injector.get(token, notFoundValue, options)
             : result;
-    }
-    /** @deprecated from v9.0.0 use TestBed.inject */
-    get(token, notFoundValue = Injector.THROW_IF_NOT_FOUND, flags = InjectFlags.Default) {
-        return this.inject(token, notFoundValue, flags);
     }
     runInInjectionContext(fn) {
         return runInInjectionContext(this.inject(EnvironmentInjector), fn);
@@ -2038,15 +2043,15 @@ class TestBedImpl {
         const testComponentRenderer = this.inject(TestComponentRenderer);
         const rootElId = `root${_nextRootElementId++}`;
         testComponentRenderer.insertRootElement(rootElId);
-        if (ɵgetAsyncClassMetadataFn(type)) {
+        if (getAsyncClassMetadataFn(type)) {
             throw new Error(`Component '${type.name}' has unresolved metadata. ` +
                 `Please call \`await TestBed.compileComponents()\` before running this test.`);
         }
         const componentDef = type.ɵcmp;
         if (!componentDef) {
-            throw new Error(`It looks like '${ɵstringify(type)}' has not been compiled.`);
+            throw new Error(`It looks like '${stringify(type)}' has not been compiled.`);
         }
-        const componentFactory = new ɵRender3ComponentFactory(componentDef);
+        const componentFactory = new ComponentFactory(componentDef);
         const initComponent = () => {
             const componentRef = componentFactory.create(Injector.NULL, [], `#${rootElId}`, this.testModuleRef);
             return this.runInInjectionContext(() => new ComponentFixture(componentRef));
@@ -2099,7 +2104,7 @@ class TestBedImpl {
         // Checking _testNgModuleRef is null should not be necessary, but is left in as an additional
         // guard that compilations queued in tests (after instantiation) are never flushed accidentally.
         if (!this.globalCompilationChecked && this._testModuleRef === null) {
-            ɵflushModuleScopingQueueAsMuchAsPossible();
+            flushModuleScopingQueueAsMuchAsPossible();
         }
         this.globalCompilationChecked = true;
     }
@@ -2182,13 +2187,31 @@ class TestBedImpl {
         }
     }
     /**
-     * Execute any pending effects.
+     * Execute any pending effects by executing any pending work required to synchronize model to the UI.
      *
-     * @developerPreview
+     * @deprecated use `TestBed.tick()` instead
      */
     flushEffects() {
-        this.inject(ɵMicrotaskEffectScheduler).flush();
-        this.inject(ɵEffectScheduler).flush();
+        this.tick();
+    }
+    /**
+     * Execute any pending work required to synchronize model to the UI.
+     *
+     * @publicApi
+     */
+    tick() {
+        const appRef = this.inject(ApplicationRef);
+        try {
+            // TODO(atscott): ApplicationRef.tick should set includeAllTestViews to true itself rather than doing this here and in ComponentFixture
+            // The behavior should be that TestBed.tick, ComponentFixture.detectChanges, and ApplicationRef.tick all result in the test fixtures
+            // getting synchronized, regardless of whether they are autoDetect: true.
+            // Automatic scheduling (zone or zoneless) will call _tick which will _not_ include fixtures with autoDetect: false
+            appRef.includeAllTestViews = true;
+            appRef.tick();
+        }
+        finally {
+            appRef.includeAllTestViews = false;
+        }
     }
 }
 /**
@@ -2268,6 +2291,928 @@ function withModule(moduleDef, fn) {
 }
 
 /**
+ * Fake implementation of user agent history and navigation behavior. This is a
+ * high-fidelity implementation of browser behavior that attempts to emulate
+ * things like traversal delay.
+ */
+class FakeNavigation {
+    /**
+     * The fake implementation of an entries array. Only same-document entries
+     * allowed.
+     */
+    entriesArr = [];
+    /**
+     * The current active entry index into `entriesArr`.
+     */
+    currentEntryIndex = 0;
+    /**
+     * The current navigate event.
+     * @internal
+     */
+    navigateEvent = null;
+    /**
+     * A Map of pending traversals, so that traversals to the same entry can be
+     * re-used.
+     */
+    traversalQueue = new Map();
+    /**
+     * A Promise that resolves when the previous traversals have finished. Used to
+     * simulate the cross-process communication necessary for traversals.
+     */
+    nextTraversal = Promise.resolve();
+    /**
+     * A prospective current active entry index, which includes unresolved
+     * traversals. Used by `go` to determine where navigations are intended to go.
+     */
+    prospectiveEntryIndex = 0;
+    /**
+     * A test-only option to make traversals synchronous, rather than emulate
+     * cross-process communication.
+     */
+    synchronousTraversals = false;
+    /** Whether to allow a call to setInitialEntryForTesting. */
+    canSetInitialEntry = true;
+    /**
+     * `EventTarget` to dispatch events.
+     * @internal
+     */
+    eventTarget;
+    /** The next unique id for created entries. Replace recreates this id. */
+    nextId = 0;
+    /** The next unique key for created entries. Replace inherits this id. */
+    nextKey = 0;
+    /** Whether this fake is disposed. */
+    disposed = false;
+    /** Equivalent to `navigation.currentEntry`. */
+    get currentEntry() {
+        return this.entriesArr[this.currentEntryIndex];
+    }
+    get canGoBack() {
+        return this.currentEntryIndex > 0;
+    }
+    get canGoForward() {
+        return this.currentEntryIndex < this.entriesArr.length - 1;
+    }
+    createEventTarget;
+    _window;
+    get window() {
+        return this._window;
+    }
+    constructor(doc, startURL) {
+        this.createEventTarget = () => {
+            try {
+                // `document.createElement` because NodeJS `EventTarget` is
+                // incompatible with Domino's `Event`. That is, attempting to
+                // dispatch an event created by Domino's patched `Event` will
+                // throw an error since it is not an instance of a real Node
+                // `Event`.
+                return doc.createElement('div');
+            }
+            catch {
+                // Fallback to a basic EventTarget if `document.createElement`
+                // fails. This can happen with tests that pass in a value for document
+                // that is stubbed.
+                return new EventTarget();
+            }
+        };
+        this._window = document.defaultView ?? this.createEventTarget();
+        this.eventTarget = this.createEventTarget();
+        // First entry.
+        this.setInitialEntryForTesting(startURL);
+    }
+    /**
+     * Sets the initial entry.
+     */
+    setInitialEntryForTesting(url, options = { historyState: null }) {
+        if (!this.canSetInitialEntry) {
+            throw new Error('setInitialEntryForTesting can only be called before any ' + 'navigation has occurred');
+        }
+        const currentInitialEntry = this.entriesArr[0];
+        this.entriesArr[0] = new FakeNavigationHistoryEntry(this.eventTarget, new URL(url).toString(), {
+            index: 0,
+            key: currentInitialEntry?.key ?? String(this.nextKey++),
+            id: currentInitialEntry?.id ?? String(this.nextId++),
+            sameDocument: true,
+            historyState: options?.historyState,
+            state: options.state,
+        });
+    }
+    /** Returns whether the initial entry is still eligible to be set. */
+    canSetInitialEntryForTesting() {
+        return this.canSetInitialEntry;
+    }
+    /**
+     * Sets whether to emulate traversals as synchronous rather than
+     * asynchronous.
+     */
+    setSynchronousTraversalsForTesting(synchronousTraversals) {
+        this.synchronousTraversals = synchronousTraversals;
+    }
+    /** Equivalent to `navigation.entries()`. */
+    entries() {
+        return this.entriesArr.slice();
+    }
+    /** Equivalent to `navigation.navigate()`. */
+    navigate(url, options) {
+        const fromUrl = new URL(this.currentEntry.url);
+        const toUrl = new URL(url, this.currentEntry.url);
+        let navigationType;
+        if (!options?.history || options.history === 'auto') {
+            // Auto defaults to push, but if the URLs are the same, is a replace.
+            if (fromUrl.toString() === toUrl.toString()) {
+                navigationType = 'replace';
+            }
+            else {
+                navigationType = 'push';
+            }
+        }
+        else {
+            navigationType = options.history;
+        }
+        const hashChange = isHashChange(fromUrl, toUrl);
+        const destination = new FakeNavigationDestination({
+            url: toUrl.toString(),
+            state: options?.state,
+            sameDocument: hashChange,
+            historyState: null,
+        });
+        const result = new InternalNavigationResult(this);
+        const intercepted = this.userAgentNavigate(destination, result, {
+            navigationType,
+            cancelable: true,
+            canIntercept: true,
+            // Always false for navigate().
+            userInitiated: false,
+            hashChange,
+            info: options?.info,
+        });
+        if (!intercepted) {
+            this.updateNavigationEntriesForSameDocumentNavigation(this.navigateEvent);
+        }
+        return {
+            committed: result.committed,
+            finished: result.finished,
+        };
+    }
+    /** Equivalent to `history.pushState()`. */
+    pushState(data, title, url) {
+        this.pushOrReplaceState('push', data, title, url);
+    }
+    /** Equivalent to `history.replaceState()`. */
+    replaceState(data, title, url) {
+        this.pushOrReplaceState('replace', data, title, url);
+    }
+    pushOrReplaceState(navigationType, data, _title, url) {
+        const fromUrl = new URL(this.currentEntry.url);
+        const toUrl = url ? new URL(url, this.currentEntry.url) : fromUrl;
+        const hashChange = isHashChange(fromUrl, toUrl);
+        const destination = new FakeNavigationDestination({
+            url: toUrl.toString(),
+            sameDocument: true,
+            historyState: data,
+        });
+        const result = new InternalNavigationResult(this);
+        const intercepted = this.userAgentNavigate(destination, result, {
+            navigationType,
+            cancelable: true,
+            canIntercept: true,
+            // Always false for pushState() or replaceState().
+            userInitiated: false,
+            hashChange,
+        });
+        if (intercepted) {
+            return;
+        }
+        this.updateNavigationEntriesForSameDocumentNavigation(this.navigateEvent);
+    }
+    /** Equivalent to `navigation.traverseTo()`. */
+    traverseTo(key, options) {
+        const fromUrl = new URL(this.currentEntry.url);
+        const entry = this.findEntry(key);
+        if (!entry) {
+            const domException = new DOMException('Invalid key', 'InvalidStateError');
+            const committed = Promise.reject(domException);
+            const finished = Promise.reject(domException);
+            committed.catch(() => { });
+            finished.catch(() => { });
+            return {
+                committed,
+                finished,
+            };
+        }
+        if (entry === this.currentEntry) {
+            return {
+                committed: Promise.resolve(this.currentEntry),
+                finished: Promise.resolve(this.currentEntry),
+            };
+        }
+        if (this.traversalQueue.has(entry.key)) {
+            const existingResult = this.traversalQueue.get(entry.key);
+            return {
+                committed: existingResult.committed,
+                finished: existingResult.finished,
+            };
+        }
+        const hashChange = isHashChange(fromUrl, new URL(entry.url, this.currentEntry.url));
+        const destination = new FakeNavigationDestination({
+            url: entry.url,
+            state: entry.getState(),
+            historyState: entry.getHistoryState(),
+            key: entry.key,
+            id: entry.id,
+            index: entry.index,
+            sameDocument: entry.sameDocument,
+        });
+        this.prospectiveEntryIndex = entry.index;
+        const result = new InternalNavigationResult(this);
+        this.traversalQueue.set(entry.key, result);
+        this.runTraversal(() => {
+            this.traversalQueue.delete(entry.key);
+            const intercepted = this.userAgentNavigate(destination, result, {
+                navigationType: 'traverse',
+                cancelable: true,
+                canIntercept: true,
+                // Always false for traverseTo().
+                userInitiated: false,
+                hashChange,
+                info: options?.info,
+            });
+            if (!intercepted) {
+                this.userAgentTraverse(this.navigateEvent);
+            }
+        });
+        return {
+            committed: result.committed,
+            finished: result.finished,
+        };
+    }
+    /** Equivalent to `navigation.back()`. */
+    back(options) {
+        if (this.currentEntryIndex === 0) {
+            const domException = new DOMException('Cannot go back', 'InvalidStateError');
+            const committed = Promise.reject(domException);
+            const finished = Promise.reject(domException);
+            committed.catch(() => { });
+            finished.catch(() => { });
+            return {
+                committed,
+                finished,
+            };
+        }
+        const entry = this.entriesArr[this.currentEntryIndex - 1];
+        return this.traverseTo(entry.key, options);
+    }
+    /** Equivalent to `navigation.forward()`. */
+    forward(options) {
+        if (this.currentEntryIndex === this.entriesArr.length - 1) {
+            const domException = new DOMException('Cannot go forward', 'InvalidStateError');
+            const committed = Promise.reject(domException);
+            const finished = Promise.reject(domException);
+            committed.catch(() => { });
+            finished.catch(() => { });
+            return {
+                committed,
+                finished,
+            };
+        }
+        const entry = this.entriesArr[this.currentEntryIndex + 1];
+        return this.traverseTo(entry.key, options);
+    }
+    /**
+     * Equivalent to `history.go()`.
+     * Note that this method does not actually work precisely to how Chrome
+     * does, instead choosing a simpler model with less unexpected behavior.
+     * Chrome has a few edge case optimizations, for instance with repeated
+     * `back(); forward()` chains it collapses certain traversals.
+     */
+    go(direction) {
+        const targetIndex = this.prospectiveEntryIndex + direction;
+        if (targetIndex >= this.entriesArr.length || targetIndex < 0) {
+            return;
+        }
+        this.prospectiveEntryIndex = targetIndex;
+        this.runTraversal(() => {
+            // Check again that destination is in the entries array.
+            if (targetIndex >= this.entriesArr.length || targetIndex < 0) {
+                return;
+            }
+            const fromUrl = new URL(this.currentEntry.url);
+            const entry = this.entriesArr[targetIndex];
+            const hashChange = isHashChange(fromUrl, new URL(entry.url, this.currentEntry.url));
+            const destination = new FakeNavigationDestination({
+                url: entry.url,
+                state: entry.getState(),
+                historyState: entry.getHistoryState(),
+                key: entry.key,
+                id: entry.id,
+                index: entry.index,
+                sameDocument: entry.sameDocument,
+            });
+            const result = new InternalNavigationResult(this);
+            const intercepted = this.userAgentNavigate(destination, result, {
+                navigationType: 'traverse',
+                cancelable: true,
+                canIntercept: true,
+                // Always false for go().
+                userInitiated: false,
+                hashChange,
+            });
+            if (!intercepted) {
+                this.userAgentTraverse(this.navigateEvent);
+            }
+        });
+    }
+    /** Runs a traversal synchronously or asynchronously */
+    runTraversal(traversal) {
+        if (this.synchronousTraversals) {
+            traversal();
+            return;
+        }
+        // Each traversal occupies a single timeout resolution.
+        // This means that Promises added to commit and finish should resolve
+        // before the next traversal.
+        this.nextTraversal = this.nextTraversal.then(() => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                    traversal();
+                });
+            });
+        });
+    }
+    /** Equivalent to `navigation.addEventListener()`. */
+    addEventListener(type, callback, options) {
+        this.eventTarget.addEventListener(type, callback, options);
+    }
+    /** Equivalent to `navigation.removeEventListener()`. */
+    removeEventListener(type, callback, options) {
+        this.eventTarget.removeEventListener(type, callback, options);
+    }
+    /** Equivalent to `navigation.dispatchEvent()` */
+    dispatchEvent(event) {
+        return this.eventTarget.dispatchEvent(event);
+    }
+    /** Cleans up resources. */
+    dispose() {
+        // Recreate eventTarget to release current listeners.
+        this.eventTarget = this.createEventTarget();
+        this.disposed = true;
+    }
+    /** Returns whether this fake is disposed. */
+    isDisposed() {
+        return this.disposed;
+    }
+    /**
+     * Implementation for all navigations and traversals.
+     * @returns true if the event was intercepted, otherwise false
+     */
+    userAgentNavigate(destination, result, options) {
+        // The first navigation should disallow any future calls to set the initial
+        // entry.
+        this.canSetInitialEntry = false;
+        if (this.navigateEvent) {
+            this.navigateEvent.cancel(new DOMException('Navigation was aborted', 'AbortError'));
+            this.navigateEvent = null;
+        }
+        return dispatchNavigateEvent({
+            navigationType: options.navigationType,
+            cancelable: options.cancelable,
+            canIntercept: options.canIntercept,
+            userInitiated: options.userInitiated,
+            hashChange: options.hashChange,
+            signal: result.signal,
+            destination,
+            info: options.info,
+            sameDocument: destination.sameDocument,
+            result,
+        });
+    }
+    /**
+     * Implementation for a push or replace navigation.
+     * https://whatpr.org/html/10919/browsing-the-web.html#url-and-history-update-steps
+     * https://whatpr.org/html/10919/nav-history-apis.html#update-the-navigation-api-entries-for-a-same-document-navigation
+     * @internal
+     */
+    urlAndHistoryUpdateSteps(navigateEvent) {
+        this.updateNavigationEntriesForSameDocumentNavigation(navigateEvent);
+    }
+    /**
+     * Implementation for a traverse navigation.
+     *
+     * https://whatpr.org/html/10919/browsing-the-web.html#apply-the-traverse-history-step
+     * ...
+     * > Let updateDocument be an algorithm step which performs update document for history step application given targetEntry's document, targetEntry, changingNavigableContinuation's update-only, scriptHistoryLength, scriptHistoryIndex, navigationType, entriesForNavigationAPI, and previousEntry.
+     * > If targetEntry's document is equal to displayedDocument, then perform updateDocument.
+     * https://whatpr.org/html/10919/browsing-the-web.html#update-document-for-history-step-application
+     * which then goes to https://whatpr.org/html/10919/nav-history-apis.html#update-the-navigation-api-entries-for-a-same-document-navigation
+     * @internal
+     */
+    userAgentTraverse(navigateEvent) {
+        const oldUrl = this.currentEntry.url;
+        this.updateNavigationEntriesForSameDocumentNavigation(navigateEvent);
+        // Happens as part of "updating the document" steps https://whatpr.org/html/10919/browsing-the-web.html#updating-the-document
+        const popStateEvent = createPopStateEvent({
+            state: navigateEvent.destination.getHistoryState(),
+        });
+        this._window.dispatchEvent(popStateEvent);
+        if (navigateEvent.hashChange) {
+            const hashchangeEvent = createHashChangeEvent(oldUrl, this.currentEntry.url);
+            this._window.dispatchEvent(hashchangeEvent);
+        }
+    }
+    /**
+     * https://whatpr.org/html/10919/nav-history-apis.html#update-the-navigation-api-entries-for-a-same-document-navigation
+     * @internal
+     */
+    updateNavigationEntriesForSameDocumentNavigation({ destination, navigationType, result, }) {
+        const oldCurrentNHE = this.currentEntry;
+        const disposedNHEs = [];
+        if (navigationType === 'traverse') {
+            this.currentEntryIndex = destination.index;
+            if (this.currentEntryIndex === -1) {
+                throw new Error('unexpected current entry index');
+            }
+        }
+        else if (navigationType === 'push') {
+            this.currentEntryIndex++;
+            this.prospectiveEntryIndex = this.currentEntryIndex; // prospectiveEntryIndex isn't in the spec but is an implementation detail
+            disposedNHEs.push(...this.entriesArr.splice(this.currentEntryIndex));
+        }
+        else if (navigationType === 'replace') {
+            disposedNHEs.push(oldCurrentNHE);
+        }
+        if (navigationType === 'push' || navigationType === 'replace') {
+            const index = this.currentEntryIndex;
+            const key = navigationType === 'push' ? String(this.nextKey++) : this.currentEntry.key;
+            const newNHE = new FakeNavigationHistoryEntry(this.eventTarget, destination.url, {
+                id: String(this.nextId++),
+                key,
+                index,
+                sameDocument: true,
+                state: destination.getState(),
+                historyState: destination.getHistoryState(),
+            });
+            this.entriesArr[this.currentEntryIndex] = newNHE;
+        }
+        result.committedResolve(this.currentEntry);
+        const currentEntryChangeEvent = createFakeNavigationCurrentEntryChangeEvent({
+            from: oldCurrentNHE,
+            navigationType: navigationType,
+        });
+        this.eventTarget.dispatchEvent(currentEntryChangeEvent);
+        for (const disposedNHE of disposedNHEs) {
+            disposedNHE.dispose();
+        }
+    }
+    /** Utility method for finding entries with the given `key`. */
+    findEntry(key) {
+        for (const entry of this.entriesArr) {
+            if (entry.key === key)
+                return entry;
+        }
+        return undefined;
+    }
+    set onnavigate(
+    // tslint:disable-next-line:no-any
+    _handler) {
+        throw new Error('unimplemented');
+    }
+    // tslint:disable-next-line:no-any
+    get onnavigate() {
+        throw new Error('unimplemented');
+    }
+    set oncurrententrychange(_handler) {
+        throw new Error('unimplemented');
+    }
+    get oncurrententrychange() {
+        throw new Error('unimplemented');
+    }
+    set onnavigatesuccess(
+    // tslint:disable-next-line:no-any
+    _handler) {
+        throw new Error('unimplemented');
+    }
+    // tslint:disable-next-line:no-any
+    get onnavigatesuccess() {
+        throw new Error('unimplemented');
+    }
+    set onnavigateerror(
+    // tslint:disable-next-line:no-any
+    _handler) {
+        throw new Error('unimplemented');
+    }
+    // tslint:disable-next-line:no-any
+    get onnavigateerror() {
+        throw new Error('unimplemented');
+    }
+    _transition = null;
+    /** @internal */
+    set transition(t) {
+        this._transition = t;
+    }
+    get transition() {
+        return this._transition;
+    }
+    updateCurrentEntry(_options) {
+        throw new Error('unimplemented');
+    }
+    reload(_options) {
+        throw new Error('unimplemented');
+    }
+}
+/**
+ * Fake equivalent of `NavigationHistoryEntry`.
+ */
+class FakeNavigationHistoryEntry {
+    eventTarget;
+    url;
+    sameDocument;
+    id;
+    key;
+    index;
+    state;
+    historyState;
+    // tslint:disable-next-line:no-any
+    ondispose = null;
+    constructor(eventTarget, url, { id, key, index, sameDocument, state, historyState, }) {
+        this.eventTarget = eventTarget;
+        this.url = url;
+        this.id = id;
+        this.key = key;
+        this.index = index;
+        this.sameDocument = sameDocument;
+        this.state = state;
+        this.historyState = historyState;
+    }
+    getState() {
+        // Budget copy.
+        return this.state ? JSON.parse(JSON.stringify(this.state)) : this.state;
+    }
+    getHistoryState() {
+        // Budget copy.
+        return this.historyState
+            ? JSON.parse(JSON.stringify(this.historyState))
+            : this.historyState;
+    }
+    addEventListener(type, callback, options) {
+        this.eventTarget.addEventListener(type, callback, options);
+    }
+    removeEventListener(type, callback, options) {
+        this.eventTarget.removeEventListener(type, callback, options);
+    }
+    dispatchEvent(event) {
+        return this.eventTarget.dispatchEvent(event);
+    }
+    /** internal */
+    dispose() {
+        const disposeEvent = new Event('disposed');
+        this.dispatchEvent(disposeEvent);
+        // release current listeners
+        this.eventTarget = null;
+    }
+}
+/**
+ * Create a fake equivalent of `NavigateEvent`. This is not a class because ES5
+ * transpiled JavaScript cannot extend native Event.
+ *
+ * https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigate-event-firing
+ */
+function dispatchNavigateEvent({ cancelable, canIntercept, userInitiated, hashChange, navigationType, signal, destination, info, sameDocument, result, }) {
+    const { navigation } = result;
+    const event = new Event('navigate', { bubbles: false, cancelable });
+    event.focusResetBehavior = null;
+    event.scrollBehavior = null;
+    event.interceptionState = 'none';
+    event.canIntercept = canIntercept;
+    event.userInitiated = userInitiated;
+    event.hashChange = hashChange;
+    event.navigationType = navigationType;
+    event.signal = signal;
+    event.destination = destination;
+    event.info = info;
+    event.downloadRequest = null;
+    event.formData = null;
+    event.result = result;
+    event.sameDocument = sameDocument;
+    let precommitHandlers = [];
+    let handlers = [];
+    // https://whatpr.org/html/10919/nav-history-apis.html#dom-navigateevent-intercept
+    event.intercept = function (options) {
+        if (!this.canIntercept) {
+            throw new DOMException(`Cannot intercept when canIntercept is 'false'`, 'SecurityError');
+        }
+        this.interceptionState = 'intercepted';
+        event.sameDocument = true;
+        const precommitHandler = options?.precommitHandler;
+        if (precommitHandler) {
+            if (!this.cancelable) {
+                throw new DOMException(`Cannot use precommitHandler when cancelable is 'false'`, 'InvalidStateError');
+            }
+            precommitHandlers.push(precommitHandler);
+        }
+        if (event.interceptionState !== 'none' && event.interceptionState !== 'intercepted') {
+            throw new Error('Event interceptionState should be "none" or "intercepted"');
+        }
+        event.interceptionState = 'intercepted';
+        const handler = options?.handler;
+        if (handler) {
+            handlers.push(handler);
+        }
+        // override old options with new ones. UA _may_ report a console warning if new options differ from previous
+        event.focusResetBehavior = options?.focusReset ?? event.focusResetBehavior;
+        event.scrollBehavior = options?.scroll ?? event.scrollBehavior;
+    };
+    // https://whatpr.org/html/10919/nav-history-apis.html#dom-navigateevent-scroll
+    event.scroll = function () {
+        if (event.interceptionState !== 'committed') {
+            throw new DOMException(`Failed to execute 'scroll' on 'NavigateEvent': scroll() must be ` +
+                `called after commit() and interception options must specify manual scroll.`, 'InvalidStateError');
+        }
+        processScrollBehavior(event);
+    };
+    // https://whatpr.org/html/10919/nav-history-apis.html#dom-navigationprecommitcontroller-redirect
+    function redirect(url) {
+        if (event.interceptionState === 'none') {
+            throw new Error('cannot redirect when event is not intercepted');
+        }
+        if (event.interceptionState !== 'intercepted') {
+            throw new DOMException(`cannot redirect when event is not in 'intercepted' state`, 'InvalidStateError');
+        }
+        if (event.navigationType !== 'push' && event.navigationType !== 'replace') {
+            throw new DOMException(`cannot redirect when navigationType is not 'push' or 'replace`, 'InvalidStateError');
+        }
+        const toUrl = new URL(url, navigation.currentEntry.url);
+        event.destination.url = toUrl.href;
+    }
+    // https://whatpr.org/html/10919/nav-history-apis.html#inner-navigate-event-firing-algorithm
+    // "Let commit be the following steps:"
+    function commit() {
+        if (result.signal.aborted) {
+            return;
+        }
+        if (event.interceptionState !== 'none') {
+            event.interceptionState = 'committed';
+            if (!navigation.currentEntry) {
+                throw new Error('from history entry should not be null');
+            }
+            navigation.transition = new InternalNavigationTransition(navigation.currentEntry, navigationType);
+            switch (event.navigationType) {
+                case 'push':
+                case 'replace': {
+                    navigation.urlAndHistoryUpdateSteps(event);
+                    break;
+                }
+                case 'reload': {
+                    navigation.updateNavigationEntriesForSameDocumentNavigation(event);
+                    break;
+                }
+                case 'traverse': {
+                    navigation.userAgentTraverse(event);
+                    break;
+                }
+            }
+        }
+        const promisesList = handlers.map((handler) => handler());
+        if (promisesList.length === 0) {
+            promisesList.push(Promise.resolve());
+        }
+        Promise.all(promisesList)
+            .then(() => {
+            // Follows steps outlined under "Wait for all of promisesList, with the following success steps:"
+            // in the spec https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigate-event-firing.
+            if (result.signal.aborted) {
+                return;
+            }
+            if (event !== navigation.navigateEvent) {
+                throw new Error("Navigation's ongoing event not equal to resolved event");
+            }
+            navigation.navigateEvent = null;
+            finishNavigationEvent(event, true);
+            const navigatesuccessEvent = new Event('navigatesuccess', { bubbles: false, cancelable });
+            navigation.eventTarget.dispatchEvent(navigatesuccessEvent);
+            result.finishedResolve();
+            if (navigation.transition !== null) {
+                navigation.transition.finishedResolve();
+            }
+            navigation.transition = null;
+        })
+            .catch((reason) => event.cancel(reason));
+    }
+    // Internal only.
+    // https://whatpr.org/html/10919/nav-history-apis.html#inner-navigate-event-firing-algorithm
+    // "Let cancel be the following steps given reason"
+    event.cancel = function (reason) {
+        if (result.signal.aborted) {
+            return;
+        }
+        if (event !== navigation.navigateEvent) {
+            throw new Error("Navigation's ongoing event not equal to resolved event");
+        }
+        navigation.navigateEvent = null;
+        if (event.interceptionState !== 'intercepted') {
+            finishNavigationEvent(event, false);
+        }
+        const navigateerrorEvent = new Event('navigateerror', { bubbles: false, cancelable });
+        navigation.eventTarget.dispatchEvent(navigateerrorEvent);
+        result.finishedReject(reason);
+        if (navigation.transition !== null) {
+            navigation.transition.finishedReject(reason);
+        }
+        navigation.transition = null;
+    };
+    function dispatch() {
+        navigation.navigateEvent = event;
+        navigation.eventTarget.dispatchEvent(event);
+        if (precommitHandlers.length === 0) {
+            commit();
+        }
+        else {
+            const precommitController = { redirect };
+            const precommitPromisesList = precommitHandlers.map((handler) => handler(precommitController));
+            Promise.all(precommitPromisesList)
+                .then(() => commit())
+                .catch((reason) => event.cancel(reason));
+        }
+    }
+    dispatch();
+    return event.interceptionState !== 'none';
+}
+/** https://whatpr.org/html/10919/nav-history-apis.html#navigateevent-finish */
+function finishNavigationEvent(event, didFulfill) {
+    if (event.interceptionState === 'finished') {
+        throw new Error('Attempting to finish navigation event that was already finished');
+    }
+    if (event.interceptionState === 'intercepted') {
+        if (didFulfill === true) {
+            throw new Error('didFulfill should be false');
+        }
+        // assert precommit handlers is not empty
+        event.interceptionState = 'finished';
+        return;
+    }
+    if (event.interceptionState === 'none') {
+        return;
+    }
+    potentiallyResetFocus(event);
+    if (didFulfill) {
+        potentiallyResetScroll(event);
+    }
+    event.interceptionState = 'finished';
+}
+/** https://whatpr.org/html/10919/nav-history-apis.html#potentially-reset-the-focus */
+function potentiallyResetFocus(event) {
+    if (event.interceptionState !== 'committed' && event.interceptionState !== 'scrolled') {
+        throw new Error('cannot reset focus if navigation event is not committed or scrolled');
+    }
+    // TODO(atscott): The rest of the steps
+}
+function potentiallyResetScroll(event) {
+    if (event.interceptionState !== 'committed' && event.interceptionState !== 'scrolled') {
+        throw new Error('cannot reset scroll if navigation event is not committed or scrolled');
+    }
+    if (event.interceptionState === 'scrolled' || event.scrollBehavior === 'manual') {
+        return;
+    }
+    processScrollBehavior(event);
+}
+/* https://whatpr.org/html/10919/nav-history-apis.html#process-scroll-behavior */
+function processScrollBehavior(event) {
+    if (event.interceptionState !== 'committed') {
+        throw new Error('invalid event interception state when processing scroll behavior');
+    }
+    event.interceptionState = 'scrolled';
+    // TODO(atscott): the rest of the steps
+}
+/**
+ * Create a fake equivalent of `NavigationCurrentEntryChange`. This does not use
+ * a class because ES5 transpiled JavaScript cannot extend native Event.
+ */
+function createFakeNavigationCurrentEntryChangeEvent({ from, navigationType, }) {
+    const event = new Event('currententrychange', {
+        bubbles: false,
+        cancelable: false,
+    });
+    event.from = from;
+    event.navigationType = navigationType;
+    return event;
+}
+/**
+ * Create a fake equivalent of `PopStateEvent`. This does not use a class
+ * because ES5 transpiled JavaScript cannot extend native Event.
+ */
+function createPopStateEvent({ state }) {
+    const event = new Event('popstate', {
+        bubbles: false,
+        cancelable: false,
+    });
+    event.state = state;
+    return event;
+}
+function createHashChangeEvent(newURL, oldURL) {
+    const event = new Event('hashchange', {
+        bubbles: false,
+        cancelable: false,
+    });
+    event.newURL = newURL;
+    event.oldURL = oldURL;
+    return event;
+}
+/**
+ * Fake equivalent of `NavigationDestination`.
+ */
+class FakeNavigationDestination {
+    url;
+    sameDocument;
+    key;
+    id;
+    index;
+    state;
+    historyState;
+    constructor({ url, sameDocument, historyState, state, key = null, id = null, index = -1, }) {
+        this.url = url;
+        this.sameDocument = sameDocument;
+        this.state = state;
+        this.historyState = historyState;
+        this.key = key;
+        this.id = id;
+        this.index = index;
+    }
+    getState() {
+        return this.state;
+    }
+    getHistoryState() {
+        return this.historyState;
+    }
+}
+/** Utility function to determine whether two UrlLike have the same hash. */
+function isHashChange(from, to) {
+    return (to.hash !== from.hash &&
+        to.hostname === from.hostname &&
+        to.pathname === from.pathname &&
+        to.search === from.search);
+}
+class InternalNavigationTransition {
+    from;
+    navigationType;
+    finished;
+    finishedResolve;
+    finishedReject;
+    constructor(from, navigationType) {
+        this.from = from;
+        this.navigationType = navigationType;
+        this.finished = new Promise((resolve, reject) => {
+            this.finishedReject = reject;
+            this.finishedResolve = resolve;
+        });
+        // All rejections are handled.
+        this.finished.catch(() => { });
+    }
+}
+/**
+ * Internal utility class for representing the result of a navigation.
+ * Generally equivalent to the "apiMethodTracker" in the spec.
+ */
+class InternalNavigationResult {
+    navigation;
+    committedTo = null;
+    committedResolve;
+    committedReject;
+    finishedResolve;
+    finishedReject;
+    committed;
+    finished;
+    get signal() {
+        return this.abortController.signal;
+    }
+    abortController = new AbortController();
+    constructor(navigation) {
+        this.navigation = navigation;
+        this.committed = new Promise((resolve, reject) => {
+            this.committedResolve = (entry) => {
+                this.committedTo = entry;
+                resolve(entry);
+            };
+            this.committedReject = reject;
+        });
+        this.finished = new Promise(async (resolve, reject) => {
+            this.finishedResolve = () => {
+                if (this.committedTo === null) {
+                    throw new Error('NavigateEvent should have been committed before resolving finished promise.');
+                }
+                resolve(this.committedTo);
+            };
+            this.finishedReject = (reason) => {
+                reject(reason);
+                this.abortController.abort(reason);
+            };
+        });
+        // All rejections are handled.
+        this.committed.catch(() => { });
+        this.finished.catch(() => { });
+    }
+}
+
+/**
  * Public Test Library for unit testing Angular applications. Assumes that you are running
  * with Jasmine, Mocha, or a similar framework which exports a beforeEach function and
  * allows tests to be asynchronous by either returning a promise or using a 'done' parameter.
@@ -2291,31 +3236,32 @@ function getCleanupHook(expectedTeardownValue) {
         }
     };
 }
-/**
- * This API should be removed. But doing so seems to break `google3` and so it requires a bit of
- * investigation.
- *
- * A work around is to mark it as `@codeGenApi` for now and investigate later.
- *
- * @codeGenApi
- */
-// TODO(iminar): Remove this code in a safe way.
-const __core_private_testing_placeholder__ = '';
 
-/**
- * @module
- * @description
- * Entry point for all public APIs of the core/testing package.
- */
+class Log {
+    logItems;
+    constructor() {
+        this.logItems = [];
+    }
+    add(value) {
+        this.logItems.push(value);
+    }
+    fn(value) {
+        return () => {
+            this.logItems.push(value);
+        };
+    }
+    clear() {
+        this.logItems = [];
+    }
+    result() {
+        return this.logItems.join('; ');
+    }
+    static ɵfac = function Log_Factory(__ngFactoryType__) { return new (__ngFactoryType__ || Log)(); };
+    static ɵprov = /*@__PURE__*/ i0.ɵɵdefineInjectable({ token: Log, factory: Log.ɵfac });
+}
+(() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(Log, [{
+        type: Injectable
+    }], () => [], null); })();
 
-/// <reference types="jasmine" />
-// This file only reexports content of the `src` folder. Keep it that way.
-
-// This file is not used to build this module. It is only used during editing
-
-/**
- * Generated bundle index. Do not edit.
- */
-
-export { ComponentFixture, ComponentFixtureAutoDetect, ComponentFixtureNoNgZone, DeferBlockFixture, InjectSetupWrapper, TestBed, TestComponentRenderer, __core_private_testing_placeholder__, discardPeriodicTasks, fakeAsync, flush, flushMicrotasks, getTestBed, inject, resetFakeAsyncZone, tick, waitForAsync, withModule, MetadataOverrider as ɵMetadataOverrider };
+export { ComponentFixture, ComponentFixtureAutoDetect, ComponentFixtureNoNgZone, DeferBlockBehavior, DeferBlockFixture, DeferBlockState, InjectSetupWrapper, TestBed, TestComponentRenderer, discardPeriodicTasks, fakeAsync, flush, flushMicrotasks, getTestBed, inject, resetFakeAsyncZone, tick, waitForAsync, withModule, FakeNavigation as ɵFakeNavigation, Log as ɵLog, MetadataOverrider as ɵMetadataOverrider, getCleanupHook as ɵgetCleanupHook };
 //# sourceMappingURL=testing.mjs.map

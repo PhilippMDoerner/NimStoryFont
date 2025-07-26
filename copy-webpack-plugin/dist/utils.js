@@ -43,7 +43,7 @@ function readFile(inputFileSystem, path) {
         reject(err);
         return;
       }
-      resolve( /** @type {string | Buffer} */data);
+      resolve(/** @type {string | Buffer} */data);
     });
   });
 }
@@ -79,7 +79,7 @@ function throttleAll(limit, tasks) {
       if (done) {
         const isLast = !result.includes(notSettled);
         if (isLast) {
-          resolve( /** @type{T[]} **/result);
+          resolve(/** @type{T[]} **/result);
         }
         return;
       }

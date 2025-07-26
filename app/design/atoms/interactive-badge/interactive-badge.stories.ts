@@ -1,5 +1,5 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { Meta, moduleMetadata, StoryFn } from '@storybook/angular';
 import { InteractiveBadgeComponent } from './interactive-badge.component';
 

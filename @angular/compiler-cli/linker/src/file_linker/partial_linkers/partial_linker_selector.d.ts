@@ -6,10 +6,10 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import semver from 'semver';
-import { AbsoluteFsPath } from '../../../../src/ngtsc/file_system';
 import { Logger } from '../../../../src/ngtsc/logging';
 import { LinkerEnvironment } from '../linker_environment';
 import { PartialLinker } from './partial_linker';
+import { AbsoluteFsPath } from '../../../../src/ngtsc/file_system/src/types';
 export declare const ɵɵngDeclareDirective = "\u0275\u0275ngDeclareDirective";
 export declare const ɵɵngDeclareClassMetadata = "\u0275\u0275ngDeclareClassMetadata";
 export declare const ɵɵngDeclareComponent = "\u0275\u0275ngDeclareComponent";

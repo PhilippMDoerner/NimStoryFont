@@ -44,10 +44,10 @@ exports.considerSettingUpAutocompletion = considerSettingUpAutocompletion;
 exports.initializeAutocomplete = initializeAutocomplete;
 exports.hasGlobalCliInstall = hasGlobalCliInstall;
 const core_1 = require("@angular-devkit/core");
-const child_process_1 = require("child_process");
-const fs_1 = require("fs");
-const path = __importStar(require("path"));
-const process_1 = require("process");
+const node_child_process_1 = require("node:child_process");
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
+const node_process_1 = require("node:process");
 const color_1 = require("../utilities/color");
 const config_1 = require("../utilities/config");
 const environment_options_1 = require("../utilities/environment-options");
@@ -142,12 +142,12 @@ async function shouldPromptForAutocompletionSetup(command, config) {
         return false;
     }
     // `$HOME` variable is necessary to find RC files to modify.
-    const home = process_1.env['HOME'];
+    const home = node_process_1.env['HOME'];
     if (!home) {
         return false;
     }
     // Get possible RC files for the current shell.
-    const shell = process_1.env['SHELL'];
+    const shell = node_process_1.env['SHELL'];
     if (!shell) {
         return false;
     }
@@ -162,7 +162,7 @@ async function shouldPromptForAutocompletionSetup(command, config) {
     }
     // Check each RC file if they already use `ng completion script` in any capacity and don't prompt.
     for (const rcFile of rcFiles) {
-        const contents = await fs_1.promises.readFile(rcFile, 'utf-8').catch(() => undefined);
+        const contents = await fs.readFile(rcFile, 'utf-8').catch(() => undefined);
         if (contents?.includes('ng completion script')) {
             return false;
         }
@@ -188,14 +188,14 @@ will modify configuration files in your home directory.)
  */
 async function initializeAutocomplete() {
     // Get the currently active `$SHELL` and `$HOME` environment variables.
-    const shell = process_1.env['SHELL'];
+    const shell = node_process_1.env['SHELL'];
     if (!shell) {
         throw new Error('`$SHELL` environment variable not set. Angular CLI autocompletion only supports Bash or' +
             " Zsh. If you're on Windows, Cmd and Powershell don't support command autocompletion," +
             ' but Git Bash or Windows Subsystem for Linux should work, so please try again in one of' +
             ' those environments.');
     }
-    const home = process_1.env['HOME'];
+    const home = node_process_1.env['HOME'];
     if (!home) {
         throw new Error('`$HOME` environment variable not set. Setting up autocompletion modifies configuration files' +
             ' in the home directory and must be set.');
@@ -206,11 +206,11 @@ async function initializeAutocomplete() {
         throw new Error(`Unknown \`$SHELL\` environment variable value (${shell}). Angular CLI autocompletion only supports Bash or Zsh.`);
     }
     // Get the first file that already exists or fallback to a new file of the first candidate.
-    const candidates = await Promise.allSettled(runCommandCandidates.map((rcFile) => fs_1.promises.access(rcFile).then(() => rcFile)));
+    const candidates = await Promise.allSettled(runCommandCandidates.map((rcFile) => fs.access(rcFile).then(() => rcFile)));
     const rcFile = candidates.find((result) => result.status === 'fulfilled')?.value ?? runCommandCandidates[0];
     // Append Angular autocompletion setup to RC file.
     try {
-        await fs_1.promises.appendFile(rcFile, '\n\n# Load Angular CLI autocompletion.\nsource <(ng completion script)\n');
+        await fs.appendFile(rcFile, '\n\n# Load Angular CLI autocompletion.\nsource <(ng completion script)\n');
     }
     catch (err) {
         (0, error_1.assertIsError)(err);
@@ -240,7 +240,7 @@ function getShellRunCommandCandidates(shell, home) {
 function hasGlobalCliInstall() {
     // List all binaries with the `ng` name on the user's `$PATH`.
     return new Promise((resolve) => {
-        (0, child_process_1.execFile)('which', ['-a', 'ng'], (error, stdout) => {
+        (0, node_child_process_1.execFile)('which', ['-a', 'ng'], (error, stdout) => {
             if (error) {
                 // No instances of `ng` on the user's `$PATH`
                 // `which` returns exit code 2 if an invalid option is specified and `-a` doesn't appear to be

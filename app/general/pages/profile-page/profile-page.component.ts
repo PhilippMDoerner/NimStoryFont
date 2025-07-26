@@ -1,5 +1,10 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { AuthData, CampaignRole } from 'src/app/_models/token';
@@ -17,6 +22,7 @@ import { ProfilePageStore } from './profile-page.store';
   styleUrls: ['./profile-page.component.scss'],
   providers: [ProfilePageStore],
   imports: [ProfileComponent, AsyncPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfilePageComponent {
   authStore = inject(AuthStore);

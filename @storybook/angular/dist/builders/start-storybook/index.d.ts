@@ -1,5 +1,5 @@
 import { CLIOptions } from 'storybook/internal/types';
-import { BuilderOutput } from '@angular-devkit/architect';
+import { BuilderOutput, Builder as DevkitBuilder } from '@angular-devkit/architect';
 import { StylePreprocessorOptions } from '@angular-devkit/build-angular';
 import { AssetPattern, SourceMapUnion, StyleElement } from '@angular-devkit/build-angular/src/builders/browser/schema';
 import { JsonObject } from '@angular-devkit/core';
@@ -17,17 +17,5 @@ export type StorybookBuilderOptions = JsonObject & {
     experimentalZoneless?: boolean;
 } & Pick<CLIOptions, 'port' | 'host' | 'configDir' | 'https' | 'sslCa' | 'sslCert' | 'sslKey' | 'smokeTest' | 'ci' | 'quiet' | 'disableTelemetry' | 'initialPath' | 'open' | 'docs' | 'debugWebpack' | 'webpackStatsJson' | 'statsJson' | 'loglevel' | 'previewUrl'>;
 export type StorybookBuilderOutput = JsonObject & BuilderOutput & {};
-declare const _default: import("@angular-devkit/architect").Builder<JsonObject & {
-    browserTarget?: string | null;
-    tsConfig?: string;
-    compodoc: boolean;
-    compodocArgs: string[];
-    enableProdMode?: boolean;
-    styles?: StyleElement[];
-    stylePreprocessorOptions?: StylePreprocessorOptions;
-    assets?: AssetPattern[];
-    preserveSymlinks?: boolean;
-    sourceMap?: SourceMapUnion;
-    experimentalZoneless?: boolean;
-} & Pick<CLIOptions, "docs" | "statsJson" | "configDir" | "loglevel" | "quiet" | "webpackStatsJson" | "disableTelemetry" | "debugWebpack" | "previewUrl" | "port" | "host" | "initialPath" | "https" | "sslCa" | "sslCert" | "sslKey" | "smokeTest" | "open" | "ci">>;
+declare const _default: DevkitBuilder<StorybookBuilderOptions & JsonObject>;
 export default _default;

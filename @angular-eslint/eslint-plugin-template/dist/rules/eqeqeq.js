@@ -5,6 +5,7 @@ const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-comp
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const get_nearest_node_from_1 = require("../utils/get-nearest-node-from");
+const literal_primitive_1 = require("../utils/literal-primitive");
 exports.RULE_NAME = 'eqeqeq';
 const DEFAULT_OPTIONS = { allowNullOrUndefined: false };
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
@@ -97,9 +98,6 @@ function isLeadingTriviaChar(char) {
 function isASTWithSource(node) {
     return node instanceof bundled_angular_compiler_1.ASTWithSource;
 }
-function isLiteralPrimitive(node) {
-    return node instanceof bundled_angular_compiler_1.LiteralPrimitive;
-}
 function isInterpolation(node) {
     return node instanceof bundled_angular_compiler_1.Interpolation;
 }
@@ -107,12 +105,9 @@ function isNumeric(value) {
     return (!Number.isNaN(Number.parseFloat(String(value))) &&
         Number.isFinite(Number(value)));
 }
-function isString(value) {
-    return typeof value === 'string';
-}
 function isStringNonNumericValue(ast) {
-    return (isLiteralPrimitive(ast) && isString(ast.value) && !isNumeric(ast.value));
+    return (0, literal_primitive_1.isStringLiteralPrimitive)(ast) && !isNumeric(ast.value);
 }
 function isNilValue(ast) {
-    return (isLiteralPrimitive(ast) && (ast.value === null || ast.value === undefined));
+    return ((0, literal_primitive_1.isLiteralPrimitive)(ast) && (ast.value === null || ast.value === undefined));
 }

@@ -15,6 +15,7 @@ const selectTheme = {
         description: (text) => yoctocolors_cjs_1.default.cyan(text),
     },
     helpMode: 'auto',
+    indexMode: 'hidden',
 };
 function isSelectable(item) {
     return !core_1.Separator.isSeparator(item) && !item.disabled;
@@ -32,13 +33,16 @@ function normalizeChoices(choices) {
             };
         }
         const name = choice.name ?? String(choice.value);
-        return {
+        const normalizedChoice = {
             value: choice.value,
             name,
-            description: choice.description,
             short: choice.short ?? name,
             disabled: choice.disabled ?? false,
         };
+        if (choice.description) {
+            normalizedChoice.description = choice.description;
+        }
+        return normalizedChoice;
     });
 }
 exports.default = (0, core_1.createPrompt)((config, done) => {
@@ -84,13 +88,15 @@ exports.default = (0, core_1.createPrompt)((config, done) => {
                 setActive(next);
             }
         }
-        else if ((0, core_1.isNumberKey)(key)) {
-            rl.clearLine(0);
-            const position = Number(key.name) - 1;
+        else if ((0, core_1.isNumberKey)(key) && !Number.isNaN(Number(rl.line))) {
+            const position = Number(rl.line) - 1;
             const item = items[position];
             if (item != null && isSelectable(item)) {
                 setActive(position);
             }
+            searchTimeoutRef.current = setTimeout(() => {
+                rl.clearLine(0);
+            }, 700);
         }
         else if ((0, core_1.isBackspaceKey)(key)) {
             rl.clearLine(0);
@@ -121,26 +127,27 @@ exports.default = (0, core_1.createPrompt)((config, done) => {
         (theme.helpMode === 'auto' && firstRender.current)) {
         firstRender.current = false;
         if (items.length > pageSize) {
-            helpTipBottom = `\n${theme.style.help('(Use arrow keys to reveal more choices)')}`;
+            helpTipBottom = `\n${theme.style.help(`(${config.instructions?.pager ?? 'Use arrow keys to reveal more choices'})`)}`;
         }
         else {
-            helpTipTop = theme.style.help('(Use arrow keys)');
+            helpTipTop = theme.style.help(`(${config.instructions?.navigation ?? 'Use arrow keys'})`);
         }
     }
     const page = (0, core_1.usePagination)({
         items,
         active,
-        renderItem({ item, isActive }) {
+        renderItem({ item, isActive, index }) {
             if (core_1.Separator.isSeparator(item)) {
                 return ` ${item.separator}`;
             }
+            const indexLabel = theme.indexMode === 'number' ? `${index + 1}. ` : '';
             if (item.disabled) {
                 const disabledLabel = typeof item.disabled === 'string' ? item.disabled : '(disabled)';
-                return theme.style.disabled(`${item.name} ${disabledLabel}`);
+                return theme.style.disabled(`${indexLabel}${item.name} ${disabledLabel}`);
             }
             const color = isActive ? theme.style.highlight : (x) => x;
             const cursor = isActive ? theme.icon.cursor : ` `;
-            return color(`${cursor} ${item.name}`);
+            return color(`${cursor} ${indexLabel}${item.name}`);
         },
         pageSize,
         loop,

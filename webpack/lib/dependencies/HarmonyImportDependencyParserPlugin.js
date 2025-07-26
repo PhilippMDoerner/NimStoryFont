@@ -17,6 +17,7 @@ const { ExportPresenceModes } = require("./HarmonyImportDependency");
 const HarmonyImportSideEffectDependency = require("./HarmonyImportSideEffectDependency");
 const HarmonyImportSpecifierDependency = require("./HarmonyImportSpecifierDependency");
 
+/** @typedef {import("estree").Expression} Expression */
 /** @typedef {import("estree").Identifier} Identifier */
 /** @typedef {import("estree").Literal} Literal */
 /** @typedef {import("estree").MemberExpression} MemberExpression */
@@ -33,6 +34,7 @@ const HarmonyImportSpecifierDependency = require("./HarmonyImportSpecifierDepend
 /** @typedef {import("../javascript/JavascriptParser").ImportDeclaration} ImportDeclaration */
 /** @typedef {import("../javascript/JavascriptParser").ImportExpression} ImportExpression */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("../javascript/JavascriptParser").TagData} TagData */
 /** @typedef {import("../optimize/InnerGraph").InnerGraph} InnerGraph */
 /** @typedef {import("../optimize/InnerGraph").TopLevelSymbol} TopLevelSymbol */
 /** @typedef {import("./HarmonyImportDependency")} HarmonyImportDependency */
@@ -46,7 +48,7 @@ const harmonySpecifierTag = Symbol("harmony import");
  * @property {number} sourceOrder
  * @property {string} name
  * @property {boolean} await
- * @property {Record<string, any> | undefined} assertions
+ * @property {ImportAttributes=} attributes
  */
 
 module.exports = class HarmonyImportDependencyParserPlugin {
@@ -86,7 +88,7 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 		/**
 		 * @param {TODO} node member expression
 		 * @param {number} count count
-		 * @returns {TODO} member expression
+		 * @returns {Expression} member expression
 		 */
 		function getNonOptionalMemberChain(node, count) {
 			while (count--) node = node.object;
@@ -138,7 +140,7 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 					source,
 					ids,
 					sourceOrder: parser.state.lastHarmonyImportOrder,
-					assertions: getImportAttributes(statement)
+					attributes: getImportAttributes(statement)
 				});
 				return true;
 			}
@@ -164,7 +166,7 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 					rootInfo.tagInfo.tag !== harmonySpecifierTag
 				)
 					return;
-				const settings = rootInfo.tagInfo.data;
+				const settings = /** @type {TagData} */ (rootInfo.tagInfo.data);
 				const members =
 					/** @type {(() => string[])} */
 					(rightPart.getMembers)();
@@ -174,7 +176,7 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 					settings.ids.concat(members).concat([leftPart]),
 					settings.name,
 					/** @type {Range} */ (expression.range),
-					settings.assertions,
+					settings.attributes,
 					"in"
 				);
 				dep.directImport = members.length === 0;
@@ -196,9 +198,10 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 					settings.sourceOrder,
 					settings.ids,
 					settings.name,
-					/** @type {Range} */ (expr.range),
+					/** @type {Range} */
+					(expr.range),
 					exportPresenceMode,
-					settings.assertions,
+					settings.attributes,
 					[]
 				);
 				dep.referencedPropertiesInDestructuring =
@@ -219,9 +222,9 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 			.tap(
 				"HarmonyImportDependencyParserPlugin",
 				(expression, members, membersOptionals, memberRanges) => {
-					const settings = /** @type {HarmonySettings} */ (
-						parser.currentTagData
-					);
+					const settings =
+						/** @type {HarmonySettings} */
+						(parser.currentTagData);
 					const nonOptionalMembers = getNonOptionalPart(
 						members,
 						membersOptionals
@@ -244,15 +247,17 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 						settings.sourceOrder,
 						ids,
 						settings.name,
-						/** @type {Range} */ (expr.range),
+						/** @type {Range} */
+						(expr.range),
 						exportPresenceMode,
-						settings.assertions,
+						settings.attributes,
 						ranges
 					);
 					dep.referencedPropertiesInDestructuring =
 						parser.destructuringAssignmentPropertiesFor(expr);
 					dep.asiSafe = !parser.isAsiPosition(
-						/** @type {Range} */ (expr.range)[0]
+						/** @type {Range} */
+						(expr.range)[0]
 					);
 					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
 					parser.state.module.addDependency(dep);
@@ -293,7 +298,7 @@ module.exports = class HarmonyImportDependencyParserPlugin {
 						settings.name,
 						/** @type {Range} */ (expr.range),
 						exportPresenceMode,
-						settings.assertions,
+						settings.attributes,
 						ranges
 					);
 					dep.directImport = members.length === 0;

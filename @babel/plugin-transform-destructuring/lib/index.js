@@ -74,7 +74,7 @@ class DestructuringTransformer {
       node = core.types.expressionStatement(core.types.assignmentExpression(op, id, core.types.cloneNode(init) || this.scope.buildUndefinedNode()));
     } else {
       let nodeInit;
-      if ((this.kind === "const" || this.kind === "using") && init === null) {
+      if (this.kind === "const" && init === null) {
         nodeInit = this.scope.buildUndefinedNode();
       } else {
         nodeInit = core.types.cloneNode(init);
@@ -154,7 +154,7 @@ class DestructuringTransformer {
     if (core.types.isPattern(left)) {
       let patternId;
       let node;
-      if (this.kind === "const" || this.kind === "let" || this.kind === "using") {
+      if (this.kind === "const" || this.kind === "let") {
         patternId = this.scope.generateUidIdentifier(tempId.name);
         node = this.buildVariableDeclaration(patternId, tempConditional);
       } else {
@@ -458,9 +458,9 @@ function convertAssignmentExpression(path, addHelper, arrayLikeIsIterable, itera
   scope.crawl();
 }
 
-function variableDeclarationHasPattern(node) {
+function variableDeclarationHasDestructuringPattern(node) {
   for (const declar of node.declarations) {
-    if (core.types.isPattern(declar.id)) {
+    if (core.types.isPattern(declar.id) && declar.id.type !== "VoidPattern") {
       return true;
     }
   }
@@ -481,14 +481,12 @@ var index = helperPluginUtils.declare((api, options) => {
       ExportNamedDeclaration(path) {
         const declaration = path.get("declaration");
         if (!declaration.isVariableDeclaration()) return;
-        if (!variableDeclarationHasPattern(declaration.node)) return;
-        const specifiers = [];
-        for (const name of Object.keys(path.getOuterBindingIdentifiers())) {
-          specifiers.push(core.types.exportSpecifier(core.types.identifier(name), core.types.identifier(name)));
+        if (!variableDeclarationHasDestructuringPattern(declaration.node)) return;
+        {
+          var _path$splitExportDecl;
+          (_path$splitExportDecl = path.splitExportDeclaration) != null ? _path$splitExportDecl : path.splitExportDeclaration = require("@babel/traverse").NodePath.prototype.splitExportDeclaration;
         }
-        path.replaceWith(declaration.node);
-        path.insertAfter(core.types.exportNamedDeclaration(null, specifiers));
-        path.scope.crawl();
+        path.splitExportDeclaration();
       },
       ForXStatement(path) {
         const {
@@ -512,7 +510,7 @@ var index = helperPluginUtils.declare((api, options) => {
         }
         if (!core.types.isVariableDeclaration(left)) return;
         const pattern = left.declarations[0].id;
-        if (!core.types.isPattern(pattern)) return;
+        if (!core.types.isPattern(pattern) || pattern.type === "VoidPattern") return;
         const key = scope.generateUidIdentifier("ref");
         node.left = core.types.variableDeclaration(left.kind, [core.types.variableDeclarator(key, null)]);
         const nodes = [];
@@ -564,7 +562,7 @@ var index = helperPluginUtils.declare((api, options) => {
         } = path;
         if (core.types.isForXStatement(parent)) return;
         if (!parent || !path.container) return;
-        if (!variableDeclarationHasPattern(node)) return;
+        if (!variableDeclarationHasDestructuringPattern(node)) return;
         convertVariableDeclaration(path, name => state.addHelper(name), arrayLikeIsIterable, iterableIsArray, objectRestNoSymbols, useBuiltIns);
       }
     }

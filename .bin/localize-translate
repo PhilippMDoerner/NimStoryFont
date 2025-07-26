@@ -12,26 +12,26 @@ import {
   makeEs2015TranslatePlugin,
   makeEs5TranslatePlugin,
   makeLocalePlugin
-} from "../../chunk-7VEU2OGJ.js";
+} from "../../chunk-YGTHV3U7.js";
 import {
   Diagnostics
-} from "../../chunk-7G4W4ZDI.js";
+} from "../../chunk-EZ3BW4XG.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/cli.js
 import { NodeJSFileSystem, setFileSystem } from "@angular/compiler-cli/private/localize";
-import glob from "fast-glob";
+import { globSync } from "tinyglobby";
 import yargs from "yargs";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/output_path.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/output_path.js
 function getOutputPathFn(fs2, outputFolder) {
   const [pre, post] = outputFolder.split("{{LOCALE}}");
   return post === void 0 ? (_locale, relativePath) => fs2.join(pre, relativePath) : (locale, relativePath) => fs2.join(pre + locale + post, relativePath);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/index.js
 import { getFileSystem, relativeFrom } from "@angular/compiler-cli/private/localize";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/asset_files/asset_translation_handler.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/asset_files/asset_translation_handler.js
 import { absoluteFrom } from "@angular/compiler-cli/private/localize";
 var AssetTranslationHandler = class {
   fs;
@@ -60,7 +60,7 @@ var AssetTranslationHandler = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/source_files/source_file_translation_handler.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/source_files/source_file_translation_handler.js
 import { absoluteFrom as absoluteFrom2 } from "@angular/compiler-cli/private/localize";
 import babel from "@babel/core";
 var SourceFileTranslationHandler = class {
@@ -134,7 +134,7 @@ var SourceFileTranslationHandler = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/translation_files/translation_loader.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/translation_files/translation_loader.js
 var TranslationLoader = class {
   fs;
   translationParsers;
@@ -196,9 +196,8 @@ ${parser.constructor.name} cannot parse translation file.`));
         }
       }
       Object.keys(nextBundle.translations).forEach((messageId) => {
-        var _a;
         if (bundle.translations[messageId] !== void 0) {
-          (_a = this.diagnostics) == null ? void 0 : _a.add(this.duplicateTranslation, `Duplicate translations for message "${messageId}" when merging "${filePaths[i]}".`);
+          this.diagnostics?.add(this.duplicateTranslation, `Duplicate translations for message "${messageId}" when merging "${filePaths[i]}".`);
         } else {
           bundle.translations[messageId] = nextBundle.translations[messageId];
         }
@@ -208,7 +207,7 @@ ${parser.constructor.name} cannot parse translation file.`));
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/translator.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/translator.js
 var Translator = class {
   fs;
   resourceHandlers;
@@ -233,7 +232,7 @@ var Translator = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/index.js
 function translateFiles({ sourceRootPath: sourceRootPath2, sourceFilePaths: sourceFilePaths2, translationFilePaths: translationFilePaths2, translationFileLocales: translationFileLocales2, outputPathFn: outputPathFn2, diagnostics: diagnostics2, missingTranslation: missingTranslation2, duplicateTranslation: duplicateTranslation2, sourceLocale: sourceLocale2 }) {
   const fs2 = getFileSystem();
   const translationLoader = new TranslationLoader(fs2, [
@@ -250,7 +249,7 @@ function translateFiles({ sourceRootPath: sourceRootPath2, sourceFilePaths: sour
   resourceProcessor.translateFiles(sourceFilePaths2.map(relativeFrom), fs2.resolve(sourceRootPath2), outputPathFn2, translations, sourceLocale2);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/translate/cli.js
 process.title = "Angular Localization Message Translator (localize-translate)";
 var args = process.argv.slice(2);
 var options = yargs(args).option("r", {
@@ -298,7 +297,7 @@ var options = yargs(args).option("r", {
 var fs = new NodeJSFileSystem();
 setFileSystem(fs);
 var sourceRootPath = options.r;
-var sourceFilePaths = glob.sync(options.s, { cwd: sourceRootPath, onlyFiles: true });
+var sourceFilePaths = globSync(options.s, { cwd: sourceRootPath, onlyFiles: true });
 var translationFilePaths = convertArraysFromArgs(options.t);
 var outputPathFn = getOutputPathFn(fs, fs.resolve(options.o));
 var diagnostics = new Diagnostics();

@@ -6,11 +6,11 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { json } from '@angular-devkit/core';
-import yargs, { Argv } from 'yargs';
+import type { Argv, Options as YargsOptions } from 'yargs';
 /**
  * An option description.
  */
-export interface Option extends yargs.Options {
+export interface Option extends YargsOptions {
     /**
      * The name of the option.
      */

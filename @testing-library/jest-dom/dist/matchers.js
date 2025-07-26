@@ -1,6 +1,6 @@
 'use strict';
 
-var matchers = require('./matchers-4fe91ec3.js');
+var matchers = require('./matchers-7fb38cd4.js');
 require('redent');
 require('@adobe/css-tools');
 require('dom-accessibility-api');
@@ -36,6 +36,7 @@ exports.toHaveErrorMessage = matchers.toHaveErrorMessage;
 exports.toHaveFocus = matchers.toHaveFocus;
 exports.toHaveFormValues = matchers.toHaveFormValues;
 exports.toHaveRole = matchers.toHaveRole;
+exports.toHaveSelection = matchers.toHaveSelection;
 exports.toHaveStyle = matchers.toHaveStyle;
 exports.toHaveTextContent = matchers.toHaveTextContent;
 exports.toHaveValue = matchers.toHaveValue;

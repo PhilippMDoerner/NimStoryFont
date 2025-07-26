@@ -1,12 +1,7 @@
 import { getConfig } from '@testing-library/dom';
-import '../utils/click/isClickableInput.js';
-import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
 import { isElementType } from '../utils/misc/isElementType.js';
+import '../utils/dataTransfer/Clipboard.js';
 import { isDisabled } from '../utils/misc/isDisabled.js';
-import '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
 import { wait } from '../utils/misc/wait.js';
 import { hasPointerEvents } from '../utils/pointer/cssPointerEvents.js';
 import '../event/behavior/click.js';

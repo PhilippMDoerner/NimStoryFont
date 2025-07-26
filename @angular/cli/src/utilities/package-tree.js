@@ -43,8 +43,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.readPackageJson = readPackageJson;
 exports.findPackageJson = findPackageJson;
 exports.getProjectDependencies = getProjectDependencies;
-const fs = __importStar(require("fs"));
-const path_1 = require("path");
+const fs = __importStar(require("node:fs"));
+const node_path_1 = require("node:path");
 const resolve = __importStar(require("resolve"));
 function getAllDependencies(pkg) {
     return new Set([
@@ -73,7 +73,7 @@ function findPackageJson(workspaceDir, packageName) {
     }
 }
 async function getProjectDependencies(dir) {
-    const pkg = await readPackageJson((0, path_1.join)(dir, 'package.json'));
+    const pkg = await readPackageJson((0, node_path_1.join)(dir, 'package.json'));
     if (!pkg) {
         throw new Error('Could not find package.json');
     }
@@ -86,7 +86,7 @@ async function getProjectDependencies(dir) {
         results.set(name, {
             name,
             version,
-            path: (0, path_1.dirname)(packageJsonPath),
+            path: (0, node_path_1.dirname)(packageJsonPath),
             package: await readPackageJson(packageJsonPath),
         });
     }

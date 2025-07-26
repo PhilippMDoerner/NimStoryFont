@@ -40,6 +40,11 @@ export type Schema = {
      * The scope for the new routing module.
      */
     routingScope?: RoutingScope;
+    /**
+     * The separator character to use before the type within the generated file's name. For
+     * example, if you set the option to `.`, the file will be named `example.module.ts`.
+     */
+    typeSeparator?: TypeSeparator;
 };
 /**
  * The scope for the new routing module.
@@ -47,4 +52,12 @@ export type Schema = {
 export declare enum RoutingScope {
     Child = "Child",
     Root = "Root"
+}
+/**
+ * The separator character to use before the type within the generated file's name. For
+ * example, if you set the option to `.`, the file will be named `example.module.ts`.
+ */
+export declare enum TypeSeparator {
+    Empty = "-",
+    TypeSeparator = "."
 }

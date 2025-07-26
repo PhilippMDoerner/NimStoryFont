@@ -36,6 +36,8 @@ function default_1(options) {
             options.path = (0, workspace_1.buildDefaultPath)(project);
         }
         options.module = (0, find_module_1.findModuleFromOptions)(host, options);
+        // Schematic templates require a defined type value
+        options.type ??= '';
         const parsedPath = (0, parse_name_1.parseName)(options.path, options.name);
         options.name = parsedPath.name;
         options.path = parsedPath.path;
@@ -51,6 +53,7 @@ function default_1(options) {
             (0, schematics_1.applyTemplates)({
                 ...schematics_1.strings,
                 'if-flat': (s) => (options.flat ? '' : s),
+                'ngext': options.ngHtml ? '.ng' : '',
                 ...options,
             }),
             !options.type

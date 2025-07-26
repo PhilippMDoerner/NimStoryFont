@@ -1,16 +1,11 @@
 'use strict';
 
 var UI = require('../document/UI.js');
-require('../utils/click/isClickableInput.js');
+var isElementType = require('../utils/misc/isElementType.js');
 require('../utils/dataTransfer/Clipboard.js');
 var timeValue = require('../utils/edit/timeValue.js');
-require('../utils/edit/isEditable.js');
 var maxLength = require('../utils/edit/maxLength.js');
 var cursor = require('../utils/focus/cursor.js');
-var isElementType = require('../utils/misc/isElementType.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var trackValue = require('../document/trackValue.js');
 var getInputRange = require('./selection/getInputRange.js');
 var setSelection = require('./selection/setSelection.js');
@@ -156,7 +151,7 @@ function isValidNumberInput(value) {
     // it allows up to two '-' at any place before any 'e' or one directly following 'e'
     // it allows one '.' at any place before e
     const valueParts = value.split('e', 2);
-    return !(/[^\d.\-e]/.test(value) || Number((_value_match = value.match(/-/g)) === null || _value_match === void 0 ? void 0 : _value_match.length) > 2 || Number((_value_match1 = value.match(/\./g)) === null || _value_match1 === void 0 ? void 0 : _value_match1.length) > 1 || valueParts[1] && !/^-?\d*$/.test(valueParts[1]));
+    return !(/[^\d.\-e]/.test(value) || Number((_value_match = value.match(/-/g)) === null || _value_match === undefined ? undefined : _value_match.length) > 2 || Number((_value_match1 = value.match(/\./g)) === null || _value_match1 === undefined ? undefined : _value_match1.length) > 1 || valueParts[1] && !/^-?\d*$/.test(valueParts[1]));
 }
 
 exports.input = input;

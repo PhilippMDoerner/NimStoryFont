@@ -10,34 +10,67 @@ const { concatComparators, keepOriginalOrder } = require("../util/comparators");
 const smartGrouping = require("../util/smartGrouping");
 
 /** @typedef {import("../Chunk")} Chunk */
+/** @typedef {import("../ChunkGroup").OriginRecord} OriginRecord */
 /** @typedef {import("../Compilation")} Compilation */
+/** @typedef {import("../Compilation").Asset} Asset */
 /** @typedef {import("../Compilation").NormalizedStatsOptions} NormalizedStatsOptions */
+/** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../ModuleGraph").ModuleProfile} ModuleProfile */
+/** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../WebpackError")} WebpackError */
-/** @typedef {import("../util/comparators").Comparator<any>} Comparator */
+/** @typedef {import("../util/comparators").Comparator<EXPECTED_ANY>} Comparator */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
-/** @typedef {import("../util/smartGrouping").GroupConfig<any, object>} GroupConfig */
+/** @typedef {import("../util/smartGrouping").GroupConfig<EXPECTED_ANY, EXPECTED_OBJECT>} GroupConfig */
+/** @typedef {import("./DefaultStatsFactoryPlugin").ChunkGroupInfoWithName} ChunkGroupInfoWithName */
+/** @typedef {import("./DefaultStatsFactoryPlugin").ModuleIssuerPath} ModuleIssuerPath */
+/** @typedef {import("./DefaultStatsFactoryPlugin").ModuleTrace} ModuleTrace */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsAsset} StatsAsset */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsChunk} StatsChunk */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsChunkGroup} StatsChunkGroup */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsChunkOrigin} StatsChunkOrigin */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsCompilation} StatsCompilation */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsError} StatsError */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsModule} StatsModule */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsModuleIssuer} StatsModuleIssuer */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsModuleReason} StatsModuleReason */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsModuleTraceDependency} StatsModuleTraceDependency */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsModuleTraceItem} StatsModuleTraceItem */
+/** @typedef {import("./DefaultStatsFactoryPlugin").StatsProfile} StatsProfile */
 
 /**
  * @typedef {object} KnownStatsFactoryContext
  * @property {string} type
- * @property {function(string): string} makePathsRelative
+ * @property {(path: string) => string} makePathsRelative
  * @property {Compilation} compilation
  * @property {Set<Module>} rootModules
- * @property {Map<string,Chunk[]>} compilationFileToChunks
- * @property {Map<string,Chunk[]>} compilationAuxiliaryFileToChunks
+ * @property {Map<string, Chunk[]>} compilationFileToChunks
+ * @property {Map<string, Chunk[]>} compilationAuxiliaryFileToChunks
  * @property {RuntimeSpec} runtime
- * @property {function(Compilation): WebpackError[]} cachedGetErrors
- * @property {function(Compilation): WebpackError[]} cachedGetWarnings
+ * @property {(compilation: Compilation) => WebpackError[]} cachedGetErrors
+ * @property {(compilation: Compilation) => WebpackError[]} cachedGetWarnings
  */
 
-/** @typedef {Record<string, any> & KnownStatsFactoryContext} StatsFactoryContext */
+/** @typedef {KnownStatsFactoryContext & Record<string, EXPECTED_ANY>} StatsFactoryContext */
 
-/** @typedef {any} CreatedObject */
-/** @typedef {any} FactoryData */
-/** @typedef {any} FactoryDataItem */
-/** @typedef {any} Result */
-/** @typedef {Record<string, any>} ObjectForExtract */
+// StatsLogging StatsLoggingEntry
+
+/**
+ * @template T
+ * @template F
+ * @typedef {T extends Compilation ? StatsCompilation : T extends ChunkGroupInfoWithName ? StatsChunkGroup : T extends Chunk ? StatsChunk : T extends OriginRecord ? StatsChunkOrigin : T extends Module ? StatsModule : T extends ModuleGraphConnection ? StatsModuleReason : T extends Asset ? StatsAsset : T extends ModuleTrace ? StatsModuleTraceItem : T extends Dependency ? StatsModuleTraceDependency : T extends Error ? StatsError : T extends ModuleProfile ? StatsProfile : F} StatsObject
+ */
+
+/**
+ * @template T
+ * @template F
+ * @typedef {T extends ChunkGroupInfoWithName[] ? Record<string, StatsObject<ChunkGroupInfoWithName, F>> : T extends (infer V)[] ? StatsObject<V, F>[] : StatsObject<T, F>} CreatedObject
+ */
+
+/** @typedef {TODO} FactoryData */
+/** @typedef {TODO} FactoryDataItem */
+/** @typedef {TODO} Result */
+/** @typedef {Record<string, TODO>} ObjectForExtract */
 
 /**
  * @typedef {object} StatsFactoryHooks
@@ -128,7 +161,7 @@ class StatsFactory {
 	 * @param {HM} hookMap hook map
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
-	 * @param {function(H): R | void} fn fn
+	 * @param {(hook: H) => R | void} fn fn
 	 * @returns {R | void} hook
 	 * @private
 	 */
@@ -146,7 +179,7 @@ class StatsFactory {
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
 	 * @param {FactoryData} data data
-	 * @param {function(H, FactoryData): FactoryData} fn fn
+	 * @param {(hook: H, factoryData: FactoryData) => FactoryData} fn fn
 	 * @returns {FactoryData} data
 	 * @private
 	 */
@@ -165,7 +198,7 @@ class StatsFactory {
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
 	 * @param {Array<FactoryData>} items items
-	 * @param {function(H, R, number, number): R | undefined} fn fn
+	 * @param {(hook: H, item: R, idx: number, i: number) => R | undefined} fn fn
 	 * @param {boolean} forceClone force clone
 	 * @returns {R[]} result for each level
 	 * @private
@@ -188,10 +221,12 @@ class StatsFactory {
 	}
 
 	/**
+	 * @template FactoryData
+	 * @template FallbackCreatedObject
 	 * @param {string} type type
 	 * @param {FactoryData} data factory data
 	 * @param {Omit<StatsFactoryContext, "type">} baseContext context used as base
-	 * @returns {CreatedObject} created object
+	 * @returns {CreatedObject<FactoryData, FallbackCreatedObject>} created object
 	 */
 	create(type, data, baseContext) {
 		if (this._inCreate) {
@@ -208,11 +243,13 @@ class StatsFactory {
 	}
 
 	/**
+	 * @private
+	 * @template FactoryData
+	 * @template FallbackCreatedObject
 	 * @param {string} type type
 	 * @param {FactoryData} data factory data
 	 * @param {Omit<StatsFactoryContext, "type">} baseContext context used as base
-	 * @returns {CreatedObject} created object
-	 * @private
+	 * @returns {CreatedObject<FactoryData, FallbackCreatedObject>} created object
 	 */
 	_create(type, data, baseContext) {
 		const context = /** @type {StatsFactoryContext} */ ({

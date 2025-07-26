@@ -10,7 +10,7 @@ import ts from 'typescript';
 import { AbsoluteFsPath } from '../../file_system';
 import { ComponentScopeReader } from '../../scope';
 import { ElementSymbol, LetDeclarationSymbol, ReferenceSymbol, Symbol, TemplateSymbol, VariableSymbol } from '../api';
-import { TemplateData } from './context';
+import { TypeCheckData } from './context';
 /**
  * Generates and caches `Symbol`s for various template structures for a given component.
  *
@@ -21,11 +21,11 @@ export declare class SymbolBuilder {
     private readonly tcbPath;
     private readonly tcbIsShim;
     private readonly typeCheckBlock;
-    private readonly templateData;
+    private readonly typeCheckData;
     private readonly componentScopeReader;
     private readonly getTypeChecker;
     private symbolCache;
-    constructor(tcbPath: AbsoluteFsPath, tcbIsShim: boolean, typeCheckBlock: ts.Node, templateData: TemplateData, componentScopeReader: ComponentScopeReader, getTypeChecker: () => ts.TypeChecker);
+    constructor(tcbPath: AbsoluteFsPath, tcbIsShim: boolean, typeCheckBlock: ts.Node, typeCheckData: TypeCheckData, componentScopeReader: ComponentScopeReader, getTypeChecker: () => ts.TypeChecker);
     getSymbol(node: TmplAstTemplate | TmplAstElement): TemplateSymbol | ElementSymbol | null;
     getSymbol(node: TmplAstReference | TmplAstVariable | TmplAstLetDeclaration): ReferenceSymbol | VariableSymbol | LetDeclarationSymbol | null;
     getSymbol(node: AST | TmplAstNode): Symbol | null;

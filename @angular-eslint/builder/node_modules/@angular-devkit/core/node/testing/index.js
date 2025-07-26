@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TempScopedNodeJsSyncHost = void 0;
+const crypto = __importStar(require("node:crypto"));
 const fs = __importStar(require("node:fs"));
 const os = __importStar(require("node:os"));
 const path = __importStar(require("node:path"));
@@ -53,7 +54,7 @@ class TempScopedNodeJsSyncHost extends src_1.virtualFs.ScopedHost {
     _sync;
     _root;
     constructor() {
-        const root = (0, src_1.normalize)(path.join(os.tmpdir(), `devkit-host-${+Date.now()}-${process.pid}`));
+        const root = (0, src_1.normalize)(path.join(os.tmpdir(), `devkit-host-${crypto.randomUUID()}-${process.pid}`));
         fs.mkdirSync((0, src_1.getSystemPath)(root));
         super(new host_1.NodeJsSyncHost(), root);
         this._root = root;

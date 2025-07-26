@@ -14,6 +14,7 @@ const numberHash = require("../util/numberHash");
 /** @typedef {import("../Compilation")} Compilation */
 /** @typedef {import("../Module")} Module */
 /** @typedef {typeof import("../util/Hash")} Hash */
+/** @typedef {import("../util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 
 /**
  * @param {string} str string to hash
@@ -75,7 +76,7 @@ const shortenLongString = (string, delimiter, hashFunction) => {
 /**
  * @param {Module} module the module
  * @param {string} context context directory
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} short module name
  */
 const getShortModuleName = (module, context, associatedObjectForCache) => {
@@ -95,7 +96,7 @@ module.exports.getShortModuleName = getShortModuleName;
  * @param {Module} module the module
  * @param {string} context context directory
  * @param {string | Hash} hashFunction hash function to use
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} long module name
  */
 const getLongModuleName = (
@@ -113,7 +114,7 @@ module.exports.getLongModuleName = getLongModuleName;
 /**
  * @param {Module} module the module
  * @param {string} context context directory
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} full module name
  */
 const getFullModuleName = (module, context, associatedObjectForCache) =>
@@ -126,7 +127,7 @@ module.exports.getFullModuleName = getFullModuleName;
  * @param {string} context context directory
  * @param {string} delimiter delimiter for names
  * @param {string | Hash} hashFunction hash function to use
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} short chunk name
  */
 const getShortChunkName = (
@@ -156,7 +157,7 @@ module.exports.getShortChunkName = getShortChunkName;
  * @param {string} context context directory
  * @param {string} delimiter delimiter for names
  * @param {string | Hash} hashFunction hash function to use
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} short chunk name
  */
 const getLongChunkName = (
@@ -189,7 +190,7 @@ module.exports.getLongChunkName = getLongChunkName;
  * @param {Chunk} chunk the chunk
  * @param {ChunkGraph} chunkGraph the chunk graph
  * @param {string} context context directory
- * @param {object=} associatedObjectForCache an object to which the cache will be attached
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
  * @returns {string} full chunk name
  */
 const getFullChunkName = (
@@ -226,7 +227,7 @@ const addToMapOfItems = (map, key, value) => {
 
 /**
  * @param {Compilation} compilation the compilation
- * @param {function(Module): boolean=} filter filter modules
+ * @param {((module: Module) => boolean)=} filter filter modules
  * @returns {[Set<string>, Module[]]} used module ids as strings and modules without id matching the filter
  */
 const getUsedModuleIdsAndModules = (compilation, filter) => {
@@ -286,11 +287,11 @@ module.exports.getUsedChunkIds = getUsedChunkIds;
 /**
  * @template T
  * @param {Iterable<T>} items list of items to be named
- * @param {function(T): string} getShortName get a short name for an item
- * @param {function(T, string): string} getLongName get a long name for an item
- * @param {function(T, T): -1|0|1} comparator order of items
+ * @param {(item: T) => string} getShortName get a short name for an item
+ * @param {(item: T, name: string) => string} getLongName get a long name for an item
+ * @param {(a: T, b: T) => -1 | 0 | 1} comparator order of items
  * @param {Set<string>} usedIds already used ids, will not be assigned
- * @param {function(T, string): void} assignName assign a name to an item
+ * @param {(item: T, name: string) => void} assignName assign a name to an item
  * @returns {T[]} list of items without a name
  */
 const assignNames = (
@@ -354,9 +355,9 @@ module.exports.assignNames = assignNames;
 /**
  * @template T
  * @param {T[]} items list of items to be named
- * @param {function(T): string} getName get a name for an item
- * @param {function(T, T): -1|0|1} comparator order of items
- * @param {function(T, number): boolean} assignId assign an id to an item
+ * @param {(item: T) => string} getName get a name for an item
+ * @param {(a: T, n: T) => -1 | 0 | 1} comparator order of items
+ * @param {(item: T, id: number) => boolean} assignId assign an id to an item
  * @param {number[]} ranges usable ranges for ids
  * @param {number} expandFactor factor to create more ranges
  * @param {number} extraSpace extra space to allocate, i. e. when some ids are already used

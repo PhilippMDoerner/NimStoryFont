@@ -108,6 +108,9 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     cacheOptions: import("../../utils/normalize-cache").NormalizedCachedOptions;
     crossOrigin: import("./schema").CrossOrigin | undefined;
     externalDependencies: string[] | undefined;
+    externalPackages: boolean | {
+        exclude: string[] | undefined;
+    } | undefined;
     extractLicenses: boolean | undefined;
     inlineStyleLanguage: string;
     jit: boolean;
@@ -115,9 +118,6 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     polyfills: string[] | undefined;
     poll: number | undefined;
     progress: boolean;
-    externalPackages: boolean | {
-        exclude: string[];
-    } | undefined;
     preserveSymlinks: boolean;
     stylePreprocessorOptions: import("./schema").StylePreprocessorOptions | undefined;
     subresourceIntegrity: boolean | undefined;
@@ -196,9 +196,15 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     partialSSRBuild: boolean;
     externalRuntimeStyles: boolean | undefined;
     instrumentForCoverage: ((filename: string) => boolean) | undefined;
-    security: import("./schema").Security | undefined;
+    security: {
+        autoCsp: {
+            unsafeEval: boolean;
+        } | undefined;
+    };
     templateUpdates: boolean;
     incrementalResults: boolean;
+    customConditions: string[] | undefined;
+    frameworkVersion: string;
 }>;
 export declare function getLocaleBaseHref(baseHref: string | undefined, i18n: NormalizedApplicationBuildOptions['i18nOptions'], locale: string): string | undefined;
 export {};

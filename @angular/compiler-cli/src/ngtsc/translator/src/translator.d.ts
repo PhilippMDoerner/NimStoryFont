@@ -34,7 +34,8 @@ export declare class ExpressionTranslatorVisitor<TFile, TStatement, TExpression>
     visitWriteKeyExpr(expr: o.WriteKeyExpr, context: Context): TExpression;
     visitWritePropExpr(expr: o.WritePropExpr, context: Context): TExpression;
     visitInvokeFunctionExpr(ast: o.InvokeFunctionExpr, context: Context): TExpression;
-    visitTaggedTemplateExpr(ast: o.TaggedTemplateExpr, context: Context): TExpression;
+    visitTaggedTemplateLiteralExpr(ast: o.TaggedTemplateLiteralExpr, context: Context): TExpression;
+    visitTemplateLiteralExpr(ast: o.TemplateLiteralExpr, context: Context): TExpression;
     visitInstantiateExpr(ast: o.InstantiateExpr, context: Context): TExpression;
     visitLiteralExpr(ast: o.LiteralExpr, _context: Context): TExpression;
     visitLocalizedString(ast: o.LocalizedString, context: Context): TExpression;
@@ -56,10 +57,14 @@ export declare class ExpressionTranslatorVisitor<TFile, TStatement, TExpression>
     visitLiteralArrayExpr(ast: o.LiteralArrayExpr, context: Context): TExpression;
     visitLiteralMapExpr(ast: o.LiteralMapExpr, context: Context): TExpression;
     visitCommaExpr(ast: o.CommaExpr, context: Context): never;
+    visitTemplateLiteralElementExpr(ast: o.TemplateLiteralElementExpr, context: any): void;
     visitWrappedNodeExpr(ast: o.WrappedNodeExpr<any>, _context: Context): any;
     visitTypeofExpr(ast: o.TypeofExpr, context: Context): TExpression;
+    visitVoidExpr(ast: o.VoidExpr, context: Context): TExpression;
     visitUnaryOperatorExpr(ast: o.UnaryOperatorExpr, context: Context): TExpression;
+    visitParenthesizedExpr(ast: o.ParenthesizedExpr, context: any): TExpression;
     private visitStatements;
     private setSourceMapRange;
     private attachComments;
+    private getTemplateLiteralFromAst;
 }

@@ -1,5 +1,6 @@
 import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
@@ -57,6 +58,7 @@ import {
     EncounterCardComponent,
   ],
   animations: [slideUpFromBottom],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryEncountersComponent {
   state = input<EncounterCardState>('READ');
@@ -209,7 +211,7 @@ export class DiaryentryEncountersComponent {
     );
 
     this.hotkeyService
-      .watch('f')
+      .watchAction('focus')
       .pipe(withLatestFrom(focusedEncounter$), takeUntilDestroyed())
       .subscribe(([, element]) => {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -219,8 +221,12 @@ export class DiaryentryEncountersComponent {
 
   private startHotkeyNavigation() {
     const arrowPress$ = merge(
-      this.hotkeyService.watch('ArrowDown').pipe(map(() => 'down' as const)),
-      this.hotkeyService.watch('ArrowUp').pipe(map(() => 'up' as const)),
+      this.hotkeyService
+        .watchAction('jump-to-next-entry')
+        .pipe(map(() => 'down' as const)),
+      this.hotkeyService
+        .watchAction('jump-to-prior-entry')
+        .pipe(map(() => 'up' as const)),
     );
 
     const htmlElements$ = this.encounterElements$.pipe(

@@ -39,6 +39,15 @@ function SyncBailHook() {
 
 
 
+function _typeof(o) {
+  "@babel/helpers - typeof";
+
+  return _typeof = "function" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && "symbol" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }).iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && o.constructor === (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && o !== (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }).prototype ? "symbol" : typeof o;
+  }, _typeof(o);
+}
 function _toConsumableArray(r) {
   return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
 }
@@ -79,14 +88,14 @@ function _createClass(e, r, t) {
 }
 function _toPropertyKey(t) {
   var i = _toPrimitive(t, "string");
-  return "symbol" == typeof i ? i : i + "";
+  return "symbol" == _typeof(i) ? i : i + "";
 }
 function _toPrimitive(t, r) {
-  if ("object" != typeof t || !t) return t;
+  if ("object" != _typeof(t) || !t) return t;
   var e = t[(typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }).toPrimitive];
   if (void 0 !== e) {
     var i = e.call(t, r || "default");
-    if ("object" != typeof i) return i;
+    if ("object" != _typeof(i)) return i;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
   return ("string" === r ? String : Number)(t);
@@ -134,8 +143,8 @@ var TIMERS_SYMBOL = (typeof Symbol !== "undefined" ? Symbol : function (i) { ret
 var TIMERS_AGGREGATES_SYMBOL = (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; })("webpack logger aggregated times");
 var WebpackLogger = /*#__PURE__*/function () {
   /**
-   * @param {function(LogTypeEnum, EXPECTED_ANY[]=): void} log log function
-   * @param {function(string | function(): string): WebpackLogger} getChildLogger function to create child logger
+   * @param {(type: LogTypeEnum, args?: EXPECTED_ANY[]) => void} log log function
+   * @param {(name: string | (() => string)) => WebpackLogger} getChildLogger function to create child logger
    */
   function WebpackLogger(log, getChildLogger) {
     _classCallCheck(this, WebpackLogger);
@@ -447,6 +456,15 @@ function _arrayLikeToArray(r, a) {
   for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
   return n;
 }
+function _typeof(o) {
+  "@babel/helpers - typeof";
+
+  return _typeof = "function" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && "symbol" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }).iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && o.constructor === (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }) && o !== (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; }).prototype ? "symbol" : typeof o;
+  }, _typeof(o);
+}
 var _require = __webpack_require__(/*! ./Logger */ "./node_modules/webpack/lib/logging/Logger.js"),
   LogType = _require.LogType;
 
@@ -454,13 +472,13 @@ var _require = __webpack_require__(/*! ./Logger */ "./node_modules/webpack/lib/l
 /** @typedef {import("../../declarations/WebpackOptions").FilterTypes} FilterTypes */
 /** @typedef {import("./Logger").LogTypeEnum} LogTypeEnum */
 
-/** @typedef {function(string): boolean} FilterFunction */
-/** @typedef {function(string, LogTypeEnum, EXPECTED_ANY[]=): void} LoggingFunction */
+/** @typedef {(item: string) => boolean} FilterFunction */
+/** @typedef {(value: string, type: LogTypeEnum, args?: EXPECTED_ANY[]) => void} LoggingFunction */
 
 /**
  * @typedef {object} LoggerConsole
- * @property {function(): void} clear
- * @property {function(): void} trace
+ * @property {() => void} clear
+ * @property {() => void} trace
  * @property {(...args: EXPECTED_ANY[]) => void} info
  * @property {(...args: EXPECTED_ANY[]) => void} log
  * @property {(...args: EXPECTED_ANY[]) => void} warn
@@ -493,7 +511,7 @@ var filterToFunction = function filterToFunction(item) {
       return regExp.test(ident);
     };
   }
-  if (item && typeof item === "object" && typeof item.test === "function") {
+  if (item && _typeof(item) === "object" && typeof item.test === "function") {
     return function (ident) {
       return item.test(ident);
     };
@@ -537,7 +555,6 @@ module.exports = function (_ref) {
   typeof debug === "boolean" ? [function () {
     return debug;
   }] : /** @type {FilterItemTypes[]} */[].concat(debug).map(filterToFunction);
-  /** @type {number} */
   var loglevel = LogLevel["".concat(level)] || 0;
 
   /**

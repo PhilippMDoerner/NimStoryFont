@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { AbsoluteFsPath, PathManipulation } from '@angular/compiler-cli/private/localize';
-import { ɵParsedMessage } from '@angular/localize';
+import { ɵParsedMessage } from '../../../../index';
 import { TranslationSerializer } from './translation_serializer';
 /**
  * A translation serializer that can write files in XMB format.

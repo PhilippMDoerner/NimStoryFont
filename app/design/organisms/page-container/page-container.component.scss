@@ -1,4 +1,4 @@
-@import "/src/screens.scss";
+@use "/src/screens.scss" as screen;
 
 .page {
   width: 100%;
@@ -22,11 +22,11 @@
     margin-bottom: var(--spacer-4);
     color: white;
 
-    @include media-breakpoint-up(md) {
+    @include screen.media-breakpoint-up(md) {
       border-radius: var(--bs-border-radius);
     }
 
-    @include media-breakpoint-up(lg) {
+    @include screen.media-breakpoint-up(lg) {
       padding: var(--spacer-4);
     }
   }

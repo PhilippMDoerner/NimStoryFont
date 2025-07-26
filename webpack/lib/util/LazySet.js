@@ -148,8 +148,9 @@ class LazySet {
 	}
 
 	/**
-	 * @param {function(T, T, Set<T>): void} callbackFn function called for each entry
-	 * @param {any} thisArg this argument for the callbackFn
+	 * @template K
+	 * @param {(value: T, value2: T, set: Set<T>) => void} callbackFn function called for each entry
+	 * @param {K} thisArg this argument for the callbackFn
 	 * @returns {void}
 	 */
 	forEach(callbackFn, thisArg) {

@@ -1,5 +1,5 @@
 @let separator = separatorTemplate();
-<ul>
+<ul [attr.aria-label]="listLabel()">
   @for (entry of entries(); track entry.id) {
     @let entryData =
       {

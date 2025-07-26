@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { types as t } from '@babel/core';
-import { AstFactory, BinaryOperator, LeadingComment, ObjectLiteralProperty, SourceMapRange, TemplateLiteral, VariableDeclarationType } from '../../../../src/ngtsc/translator';
+import { AstFactory, BinaryOperator, LeadingComment, ObjectLiteralProperty, SourceMapRange, TemplateLiteral, VariableDeclarationType } from '../../../../src/ngtsc/translator/src/api/ast_factory';
 /**
  * A Babel flavored implementation of the AstFactory.
  */
@@ -38,8 +38,10 @@ export declare class BabelAstFactory implements AstFactory<t.Statement, t.Expres
     createPropertyAccess(expression: t.Expression, propertyName: string): t.Expression;
     createReturnStatement: typeof t.returnStatement;
     createTaggedTemplate(tag: t.Expression, template: TemplateLiteral<t.Expression>): t.Expression;
+    createTemplateLiteral(template: TemplateLiteral<t.Expression>): t.TemplateLiteral;
     createThrowStatement: typeof t.throwStatement;
     createTypeOfExpression(expression: t.Expression): t.Expression;
+    createVoidExpression(expression: t.Expression): t.Expression;
     createUnaryExpression: typeof t.unaryExpression;
     createVariableDeclaration(variableName: string, initializer: t.Expression | null, type: VariableDeclarationType): t.Statement;
     setSourceMapRange<T extends t.Statement | t.Expression | t.TemplateElement>(node: T, sourceMapRange: SourceMapRange | null): T;

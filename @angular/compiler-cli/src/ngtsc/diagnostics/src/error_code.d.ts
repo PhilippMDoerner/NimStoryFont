@@ -19,6 +19,7 @@ export declare enum ErrorCode {
     DECORATOR_COLLISION = 1006,
     VALUE_HAS_WRONG_TYPE = 1010,
     VALUE_NOT_LITERAL = 1011,
+    DUPLICATE_DECORATED_PROPERTIES = 1012,
     /**
      * Raised when an initializer API is annotated with an unexpected decorator.
      *
@@ -131,6 +132,15 @@ export declare enum ErrorCode {
      * Raised when a `standalone: false` component is declared but `strictStandalone` is set.
      */
     NON_STANDALONE_NOT_ALLOWED = 2023,
+    /**
+     * Raised when a named template dependency isn't defined in the component's source file.
+     */
+    MISSING_NAMED_TEMPLATE_DEPENDENCY = 2024,
+    /**
+     * Raised if an incorrect type is used for a named template dependency (e.g. directive
+     * class used as a component).
+     */
+    INCORRECT_NAMED_TEMPLATE_DEPENDENCY_TYPE = 2025,
     SYMBOL_NOT_EXPORTED = 3001,
     /**
      * Raised when a relationship between directives and/or pipes would cause a cyclic import to be
@@ -311,6 +321,35 @@ export declare enum ErrorCode {
     /** A `@let` declaration conflicts with another symbol in the same scope. */
     CONFLICTING_LET_DECLARATION = 8017,
     /**
+     * A binding inside selectorless directive syntax did
+     * not match any inputs/outputs of the directive.
+     */
+    UNCLAIMED_DIRECTIVE_BINDING = 8018,
+    /**
+     * An `@defer` block with an implicit trigger does not have a placeholder, for example:
+     *
+     * ```
+     * @defer(on viewport) {
+     *   Hello
+     * }
+     * ```
+     */
+    DEFER_IMPLICIT_TRIGGER_MISSING_PLACEHOLDER = 8019,
+    /**
+     * The `@placeholder` for an implicit `@defer` trigger is not set up correctly, for example:
+     *
+     * ```
+     * @defer(on viewport) {
+     *   Hello
+     * } @placeholder {
+     *   <!-- Multiple root nodes. -->
+     *   <button></button>
+     *   <div></div>
+     * }
+     * ```
+     */
+    DEFER_IMPLICIT_TRIGGER_INVALID_PLACEHOLDER = 8020,
+    /**
      * A two way binding in a template has an incorrect syntax,
      * parentheses outside brackets. For example:
      *
@@ -444,6 +483,30 @@ export declare enum ErrorCode {
      * A symbol referenced in `@Component.imports` isn't being used within the template.
      */
     UNUSED_STANDALONE_IMPORTS = 8113,
+    /**
+     * An expression mixes nullish coalescing and logical and/or without parentheses.
+     */
+    UNPARENTHESIZED_NULLISH_COALESCING = 8114,
+    /**
+     * The function passed to `@for` track is not invoked.
+     *
+     * For example:
+     * ```angular-html
+     * @for (item of items; track trackByName) {}
+     * ```
+     *
+     * For the track function to work properly, it must be invoked.
+     *
+     * For example:
+     * ```angular-html
+     * @for (item of items; track trackByName(item)) {}
+     * ```
+     */
+    UNINVOKED_TRACK_FUNCTION = 8115,
+    /**
+     * A structural directive is used in a template, but the directive is not imported.
+     */
+    MISSING_STRUCTURAL_DIRECTIVE = 8116,
     /**
      * The template type-checking engine would need to generate an inline type check block for a
      * component, but the current type-checking environment doesn't support it.

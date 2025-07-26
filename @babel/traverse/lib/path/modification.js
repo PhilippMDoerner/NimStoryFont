@@ -13,11 +13,11 @@ exports.pushContainer = pushContainer;
 exports.unshiftContainer = unshiftContainer;
 exports.updateSiblingKeys = updateSiblingKeys;
 var _cache = require("../cache.js");
-var _hoister = require("./lib/hoister.js");
 var _index = require("./index.js");
 var _context = require("./context.js");
 var _removal = require("./removal.js");
 var _t = require("@babel/types");
+var _hoister = require("./lib/hoister.js");
 const {
   arrowFunctionExpression,
   assertExpression,
@@ -161,7 +161,8 @@ function insertAfter(nodes_) {
 }
 function updateSiblingKeys(fromIndex, incrementBy) {
   if (!this.parent) return;
-  const paths = (0, _cache.getCachedPaths)(this.hub, this.parent) || [];
+  const paths = (0, _cache.getCachedPaths)(this);
+  if (!paths) return;
   for (const [, path] of paths) {
     if (typeof path.key === "number" && path.container === this.container && path.key >= fromIndex) {
       path.key += incrementBy;

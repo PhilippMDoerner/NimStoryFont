@@ -1,5 +1,4 @@
 import * as core_dist_types from 'storybook/internal/types';
-export * from '@storybook/blocks';
 import { Renderer, DocsRenderFunction, ModuleExports, ModuleExport } from 'storybook/internal/types';
 
 declare class DocsRenderer<TRenderer extends Renderer> {
@@ -65,7 +64,7 @@ type CanvasBlockParameters = {
         className?: string;
         disabled?: boolean;
         onClick: () => void;
-        title: string | JSX.Element;
+        title: string | React.JSX.Element;
     }[];
     /** Provide HTML class(es) to the preview element, for custom styling. */
     className?: string;

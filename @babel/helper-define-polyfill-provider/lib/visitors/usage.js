@@ -10,7 +10,8 @@ function isRemoved(path) {
     var _path$parentPath$node;
     if (!((_path$parentPath$node = path.parentPath.node) != null && (_path$parentPath$node = _path$parentPath$node[path.listKey]) != null && _path$parentPath$node.includes(path.node))) return true;
   } else {
-    if (path.parentPath.node[path.key] !== path.node) return true;
+    var _path$parentPath$node2;
+    if (((_path$parentPath$node2 = path.parentPath.node) == null ? void 0 : _path$parentPath$node2[path.key]) !== path.node) return true;
   }
   return isRemoved(path.parentPath);
 }

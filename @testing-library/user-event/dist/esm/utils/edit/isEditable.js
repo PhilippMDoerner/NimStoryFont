@@ -4,8 +4,7 @@ import { isContentEditable } from './isContentEditable.js';
 function isEditable(element) {
     return isEditableInputOrTextArea(element) && !element.readOnly || isContentEditable(element);
 }
-var editableInputTypes;
-(function(editableInputTypes) {
+var editableInputTypes = /*#__PURE__*/ function(editableInputTypes) {
     editableInputTypes["text"] = "text";
     editableInputTypes["date"] = "date";
     editableInputTypes["datetime-local"] = "datetime-local";
@@ -18,7 +17,8 @@ var editableInputTypes;
     editableInputTypes["time"] = "time";
     editableInputTypes["url"] = "url";
     editableInputTypes["week"] = "week";
-})(editableInputTypes || (editableInputTypes = {}));
+    return editableInputTypes;
+}(editableInputTypes || {});
 function isEditableInputOrTextArea(element) {
     return isElementType(element, 'textarea') || isElementType(element, 'input') && element.type in editableInputTypes;
 }

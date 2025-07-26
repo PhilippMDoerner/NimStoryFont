@@ -33,7 +33,8 @@ var parseCopyProperties = [
     // context
     'processImports',
     // Used by the import manager to stop multiple import visitors being created.
-    'pluginManager' // Used as the plugin manager for the session
+    'pluginManager',
+    'quiet', // option - whether to log warnings
 ];
 contexts.Parse = function (options) {
     copyFromOriginal(options, this, parseCopyProperties);

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeTheme = makeTheme;
-const theme_js_1 = require("./theme.js");
+const theme_ts_1 = require("./theme.js");
 function isPlainObject(value) {
     if (typeof value !== 'object' || value === null)
         return false;
@@ -26,7 +26,7 @@ function deepMerge(...objects) {
 }
 function makeTheme(...themes) {
     const themesToMerge = [
-        theme_js_1.defaultTheme,
+        theme_ts_1.defaultTheme,
         ...themes.filter((theme) => theme != null),
     ];
     return deepMerge(...themesToMerge);

@@ -41,7 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AngularWebpackPlugin = exports.imageDomains = void 0;
-const assert_1 = require("assert");
+const node_assert_1 = require("node:assert");
 const ts = __importStar(require("typescript"));
 const paths_plugin_1 = require("../paths-plugin");
 const resource_loader_1 = require("../resource_loader");
@@ -91,14 +91,14 @@ class AngularWebpackPlugin {
         // The compilerCliModule field is guaranteed to be defined during a compilation
         // due to the `beforeCompile` hook. Usage of this property accessor prior to the
         // hook execution is an implementation error.
-        assert_1.strict.ok(this.compilerCliModule, `'@angular/compiler-cli' used prior to Webpack compilation.`);
+        node_assert_1.strict.ok(this.compilerCliModule, `'@angular/compiler-cli' used prior to Webpack compilation.`);
         return this.compilerCliModule;
     }
     get compilerCliTooling() {
         // The compilerCliToolingModule field is guaranteed to be defined during a compilation
         // due to the `beforeCompile` hook. Usage of this property accessor prior to the
         // hook execution is an implementation error.
-        assert_1.strict.ok(this.compilerCliToolingModule, `'@angular/compiler-cli' used prior to Webpack compilation.`);
+        node_assert_1.strict.ok(this.compilerCliToolingModule, `'@angular/compiler-cli' used prior to Webpack compilation.`);
         return this.compilerCliToolingModule;
     }
     get options() {
@@ -308,6 +308,7 @@ class AngularWebpackPlugin {
     }
     loadConfiguration() {
         const { options: compilerOptions, rootNames, errors, } = this.compilerCli.readConfiguration(this.pluginOptions.tsconfig, this.pluginOptions.compilerOptions);
+        compilerOptions.composite = false;
         compilerOptions.noEmitOnError = false;
         compilerOptions.suppressOutputPathCheck = true;
         compilerOptions.outDir = undefined;
@@ -527,7 +528,7 @@ class AngularWebpackPlugin {
         this.compilerCliToolingModule ??= await new Function(`return import('@angular/compiler-cli/private/tooling');`)();
     }
     async addFileEmitHistory(filePath, content) {
-        assert_1.strict.ok(this.webpackCreateHash, 'File emitter is used prior to Webpack compilation');
+        node_assert_1.strict.ok(this.webpackCreateHash, 'File emitter is used prior to Webpack compilation');
         const historyData = {
             length: content.length,
             hash: this.webpackCreateHash('xxhash64').update(content).digest(),

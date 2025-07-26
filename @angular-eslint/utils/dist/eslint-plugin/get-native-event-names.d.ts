@@ -6,7 +6,7 @@
 /**
  * Check MDN events page for details https://developer.mozilla.org/en-US/docs/Web/Events
  *
- * Event names sourced from @mdn/browser-compat-data@5.7.5
+ * Event names sourced from @mdn/browser-compat-data@6.0.24
  */
 export declare function getNativeEventNames(): ReadonlySet<string>;
 //# sourceMappingURL=get-native-event-names.d.ts.map

@@ -1,6 +1,6 @@
 {
   "name": "@inquirer/checkbox",
-  "version": "4.0.4",
+  "version": "4.1.8",
   "description": "Inquirer checkbox prompt",
   "keywords": [
     "answer",
@@ -74,16 +74,15 @@
     "tsc": "tshy"
   },
   "dependencies": {
-    "@inquirer/core": "^10.1.2",
-    "@inquirer/figures": "^1.0.9",
-    "@inquirer/type": "^3.0.2",
+    "@inquirer/core": "^10.1.13",
+    "@inquirer/figures": "^1.0.12",
+    "@inquirer/type": "^3.0.7",
     "ansi-escapes": "^4.3.2",
     "yoctocolors-cjs": "^2.1.2"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.17.2",
-    "@inquirer/testing": "^2.1.39",
-    "@repo/tsconfig": "workspace:*",
+    "@arethetypeswrong/cli": "^0.18.1",
+    "@inquirer/testing": "^2.1.47",
     "tshy": "^3.0.2"
   },
   "engines": {
@@ -104,5 +103,10 @@
   "peerDependencies": {
     "@types/node": ">=18"
   },
-  "gitHead": "7613d7474f1f17a18019b89f208f46be10c5b02f"
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    }
+  },
+  "gitHead": "dc0770cf6344140b19b2e6b82330fc51084653d1"
 }

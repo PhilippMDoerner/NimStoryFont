@@ -10,7 +10,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = require("path");
+const node_path_1 = require("node:path");
 const yargs_1 = __importDefault(require("yargs"));
 const command_module_1 = require("../../command-builder/command-module");
 const command_1 = require("../../command-builder/utilities/command");
@@ -20,7 +20,7 @@ const error_1 = require("../../utilities/error");
 class CompletionCommandModule extends command_module_1.CommandModule {
     command = 'completion';
     describe = 'Set up Angular CLI autocompletion for your terminal.';
-    longDescriptionPath = (0, path_1.join)(__dirname, 'long-description.md');
+    longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     builder(localYargs) {
         return (0, command_1.addCommandModuleToYargs)(localYargs, CompletionScriptCommandModule, this.context);
     }

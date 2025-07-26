@@ -3,22 +3,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const strip_ansi_1 = __importDefault(require("strip-ansi"));
+const node_util_1 = require("node:util");
 const ansi_escapes_1 = __importDefault(require("ansi-escapes"));
-const utils_js_1 = require("./utils.js");
+const utils_ts_1 = require("./utils.js");
 const height = (content) => content.split('\n').length;
 const lastLine = (content) => content.split('\n').pop() ?? '';
 function cursorDown(n) {
     return n > 0 ? ansi_escapes_1.default.cursorDown(n) : '';
 }
 class ScreenManager {
-    rl;
     // These variables are keeping information to allow correct prompt re-rendering
     height = 0;
     extraLinesUnderPrompt = 0;
     cursorPos;
+    rl;
     constructor(rl) {
-        this.rl = rl;
         this.rl = rl;
         this.cursorPos = rl.getCursorPos();
     }
@@ -30,7 +29,7 @@ class ScreenManager {
     render(content, bottomContent = '') {
         // Write message to screen and setPrompt to control backspace
         const promptLine = lastLine(content);
-        const rawPromptLine = (0, strip_ansi_1.default)(promptLine);
+        const rawPromptLine = (0, node_util_1.stripVTControlCharacters)(promptLine);
         // Remove the rl.line from our prompt. We can't rely on the content of
         // rl.line (mainly because of the password prompt), so just rely on it's
         // length.
@@ -41,9 +40,9 @@ class ScreenManager {
         this.rl.setPrompt(prompt);
         // SetPrompt will change cursor position, now we can get correct value
         this.cursorPos = this.rl.getCursorPos();
-        const width = (0, utils_js_1.readlineWidth)();
-        content = (0, utils_js_1.breakLines)(content, width);
-        bottomContent = (0, utils_js_1.breakLines)(bottomContent, width);
+        const width = (0, utils_ts_1.readlineWidth)();
+        content = (0, utils_ts_1.breakLines)(content, width);
+        bottomContent = (0, utils_ts_1.breakLines)(bottomContent, width);
         // Manually insert an extra line if we're at the end of the line.
         // This prevent the cursor from appearing at the beginning of the
         // current line.

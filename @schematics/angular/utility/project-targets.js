@@ -8,7 +8,14 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.targetBuildNotFoundError = targetBuildNotFoundError;
+exports.isUsingApplicationBuilder = isUsingApplicationBuilder;
 const schematics_1 = require("@angular-devkit/schematics");
+const workspace_models_1 = require("./workspace-models");
 function targetBuildNotFoundError() {
     return new schematics_1.SchematicsException(`Project target "build" not found.`);
+}
+function isUsingApplicationBuilder(project) {
+    const buildBuilder = project.targets.get('build')?.builder;
+    const isUsingApplicationBuilder = buildBuilder === workspace_models_1.Builders.Application || buildBuilder === workspace_models_1.Builders.BuildApplication;
+    return isUsingApplicationBuilder;
 }

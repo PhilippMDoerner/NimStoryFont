@@ -4,6 +4,7 @@ exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
+const unwrap_parenthesized_expression_1 = require("../utils/unwrap-parenthesized-expression");
 exports.RULE_NAME = 'conditional-complexity';
 const DEFAULT_MAX_COMPLEXITY = 5;
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
@@ -74,7 +75,8 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     },
 });
 function extractPossibleBinaryOrConditionalFrom(node) {
-    return node instanceof bundled_angular_compiler_1.BindingPipe ? node.exp : node;
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    return unwrapped instanceof bundled_angular_compiler_1.BindingPipe ? unwrapped.exp : unwrapped;
 }
 let parser = null;
 // Instantiate the `Parser` class lazily only when this rule is applied.
@@ -89,10 +91,14 @@ function getTotalComplexity(ast) {
     }
     let total = 1;
     if (possibleBinaryOrConditional instanceof bundled_angular_compiler_1.Binary) {
-        if (possibleBinaryOrConditional.left instanceof bundled_angular_compiler_1.Binary) {
+        const leftUnwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(possibleBinaryOrConditional.left);
+        const rightUnwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(possibleBinaryOrConditional.right);
+        if (leftUnwrapped instanceof bundled_angular_compiler_1.Binary ||
+            leftUnwrapped instanceof bundled_angular_compiler_1.Conditional) {
             total += getTotalComplexity(possibleBinaryOrConditional.left);
         }
-        if (possibleBinaryOrConditional.right instanceof bundled_angular_compiler_1.Binary) {
+        if (rightUnwrapped instanceof bundled_angular_compiler_1.Binary ||
+            rightUnwrapped instanceof bundled_angular_compiler_1.Conditional) {
             total += getTotalComplexity(possibleBinaryOrConditional.right);
         }
     }

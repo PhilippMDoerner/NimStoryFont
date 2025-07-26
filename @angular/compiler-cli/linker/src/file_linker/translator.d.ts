@@ -6,7 +6,9 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import * as o from '@angular/compiler';
-import { AstFactory, ImportGenerator, TranslatorOptions } from '../../../src/ngtsc/translator';
+import { TranslatorOptions } from '../../../src/ngtsc/translator/src/translator';
+import { ImportGenerator } from '../../../src/ngtsc/translator/src/api/import_generator';
+import { AstFactory } from '../../../src/ngtsc/translator/src/api/ast_factory';
 /**
  * Generic translator helper class, which exposes methods for translating expressions and
  * statements.

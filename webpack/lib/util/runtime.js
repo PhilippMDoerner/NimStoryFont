@@ -52,7 +52,7 @@ module.exports.getEntryRuntime = (compilation, name, options) => {
 
 /**
  * @param {RuntimeSpec} runtime runtime
- * @param {function(string | undefined): void} fn functor
+ * @param {(runtime: string | undefined) => void} fn functor
  * @param {boolean} deterministicOrder enforce a deterministic order
  * @returns {void}
  */
@@ -394,7 +394,7 @@ module.exports.subtractRuntimeCondition = (a, b, runtime) => {
 
 /**
  * @param {RuntimeSpec} runtime runtime
- * @param {function(RuntimeSpec=): boolean} filter filter function
+ * @param {(runtime?: RuntimeSpec) => boolean} filter filter function
  * @returns {boolean | RuntimeSpec} true/false if filter is constant for all runtimes, otherwise runtimes that are active
  */
 module.exports.filterRuntime = (runtime, filter) => {
@@ -424,24 +424,26 @@ module.exports.filterRuntime = (runtime, filter) => {
 
 /**
  * @template T
+ * @template [R=T]
  */
 class RuntimeSpecMap {
 	/**
-	 * @param {RuntimeSpecMap<T>=} clone copy form this
+	 * @param {RuntimeSpecMap<T, R>=} clone copy form this
 	 */
 	constructor(clone) {
+		/** @type {0 | 1 | 2} */
 		this._mode = clone ? clone._mode : 0; // 0 = empty, 1 = single entry, 2 = map
 		/** @type {RuntimeSpec} */
 		this._singleRuntime = clone ? clone._singleRuntime : undefined;
-		/** @type {T | undefined} */
+		/** @type {R | undefined} */
 		this._singleValue = clone ? clone._singleValue : undefined;
-		/** @type {RuntimeSpecMapInnerMap<T> | undefined} */
+		/** @type {RuntimeSpecMapInnerMap<R> | undefined} */
 		this._map = clone && clone._map ? new Map(clone._map) : undefined;
 	}
 
 	/**
 	 * @param {RuntimeSpec} runtime the runtimes
-	 * @returns {T | undefined} value
+	 * @returns {R | undefined} value
 	 */
 	get(runtime) {
 		switch (this._mode) {
@@ -452,7 +454,7 @@ class RuntimeSpecMap {
 					? this._singleValue
 					: undefined;
 			default:
-				return /** @type {RuntimeSpecMapInnerMap<T>} */ (this._map).get(
+				return /** @type {RuntimeSpecMapInnerMap<R>} */ (this._map).get(
 					getRuntimeKey(runtime)
 				);
 		}
@@ -469,7 +471,7 @@ class RuntimeSpecMap {
 			case 1:
 				return runtimeEqual(this._singleRuntime, runtime);
 			default:
-				return /** @type {RuntimeSpecMapInnerMap<T>} */ (this._map).has(
+				return /** @type {RuntimeSpecMapInnerMap<R>} */ (this._map).has(
 					getRuntimeKey(runtime)
 				);
 		}
@@ -477,7 +479,7 @@ class RuntimeSpecMap {
 
 	/**
 	 * @param {RuntimeSpec} runtime the runtimes
-	 * @param {T} value the value
+	 * @param {R} value the value
 	 */
 	set(runtime, value) {
 		switch (this._mode) {
@@ -495,21 +497,21 @@ class RuntimeSpecMap {
 				this._map = new Map();
 				this._map.set(
 					getRuntimeKey(this._singleRuntime),
-					/** @type {T} */ (this._singleValue)
+					/** @type {R} */ (this._singleValue)
 				);
 				this._singleRuntime = undefined;
 				this._singleValue = undefined;
 			/* falls through */
 			default:
-				/** @type {RuntimeSpecMapInnerMap<T>} */
+				/** @type {RuntimeSpecMapInnerMap<R>} */
 				(this._map).set(getRuntimeKey(runtime), value);
 		}
 	}
 
 	/**
 	 * @param {RuntimeSpec} runtime the runtimes
-	 * @param {() => TODO} computer function to compute the value
-	 * @returns {TODO} true, when the runtime was deleted
+	 * @param {() => R} computer function to compute the value
+	 * @returns {R} the new value
 	 */
 	provide(runtime, computer) {
 		switch (this._mode) {
@@ -519,13 +521,14 @@ class RuntimeSpecMap {
 				return (this._singleValue = computer());
 			case 1: {
 				if (runtimeEqual(this._singleRuntime, runtime)) {
-					return /** @type {T} */ (this._singleValue);
+					return /** @type {R} */ (this._singleValue);
 				}
 				this._mode = 2;
 				this._map = new Map();
 				this._map.set(
 					getRuntimeKey(this._singleRuntime),
-					/** @type {T} */ (this._singleValue)
+					/** @type {R} */
+					(this._singleValue)
 				);
 				this._singleRuntime = undefined;
 				this._singleValue = undefined;
@@ -535,10 +538,12 @@ class RuntimeSpecMap {
 			}
 			default: {
 				const key = getRuntimeKey(runtime);
-				const value = /** @type {Map<string, T>} */ (this._map).get(key);
+				const value =
+					/** @type {RuntimeSpecMapInnerMap<R>} */
+					(this._map).get(key);
 				if (value !== undefined) return value;
 				const newValue = computer();
-				/** @type {Map<string, T>} */
+				/** @type {RuntimeSpecMapInnerMap<R>} */
 				(this._map).set(key, newValue);
 				return newValue;
 			}
@@ -560,14 +565,14 @@ class RuntimeSpecMap {
 				}
 				return;
 			default:
-				/** @type {RuntimeSpecMapInnerMap<T>} */
+				/** @type {RuntimeSpecMapInnerMap<R>} */
 				(this._map).delete(getRuntimeKey(runtime));
 		}
 	}
 
 	/**
 	 * @param {RuntimeSpec} runtime the runtimes
-	 * @param {function(T | undefined): T} fn function to update the value
+	 * @param {(value: R | undefined) => R} fn function to update the value
 	 */
 	update(runtime, fn) {
 		switch (this._mode) {
@@ -584,7 +589,8 @@ class RuntimeSpecMap {
 					this._map = new Map();
 					this._map.set(
 						getRuntimeKey(this._singleRuntime),
-						/** @type {T} */ (this._singleValue)
+						/** @type {R} */
+						(this._singleValue)
 					);
 					this._singleRuntime = undefined;
 					this._singleValue = undefined;
@@ -594,10 +600,12 @@ class RuntimeSpecMap {
 			}
 			default: {
 				const key = getRuntimeKey(runtime);
-				const oldValue = /** @type {Map<string, T>} */ (this._map).get(key);
+				const oldValue =
+					/** @type {RuntimeSpecMapInnerMap<R>} */
+					(this._map).get(key);
 				const newValue = fn(oldValue);
 				if (newValue !== oldValue)
-					/** @type {RuntimeSpecMapInnerMap<T>} */
+					/** @type {RuntimeSpecMapInnerMap<R>} */
 					(this._map).set(key, newValue);
 			}
 		}
@@ -611,7 +619,7 @@ class RuntimeSpecMap {
 				return [this._singleRuntime];
 			default:
 				return Array.from(
-					/** @type {RuntimeSpecMapInnerMap<T>} */
+					/** @type {RuntimeSpecMapInnerMap<R>} */
 					(this._map).keys(),
 					keyToRuntime
 				);
@@ -619,16 +627,16 @@ class RuntimeSpecMap {
 	}
 
 	/**
-	 * @returns {IterableIterator<T>} values
+	 * @returns {IterableIterator<R>} values
 	 */
 	values() {
 		switch (this._mode) {
 			case 0:
 				return [][Symbol.iterator]();
 			case 1:
-				return [/** @type {T} */ (this._singleValue)][Symbol.iterator]();
+				return [/** @type {R} */ (this._singleValue)][Symbol.iterator]();
 			default:
-				return /** @type {Map<string, T>} */ (this._map).values();
+				return /** @type {RuntimeSpecMapInnerMap<R>} */ (this._map).values();
 		}
 	}
 
@@ -637,7 +645,7 @@ class RuntimeSpecMap {
 			return /** @type {number} */ (this._mode);
 		}
 
-		return /** @type {Map<string, T>} */ (this._map).size;
+		return /** @type {RuntimeSpecMapInnerMap<R>} */ (this._map).size;
 	}
 }
 

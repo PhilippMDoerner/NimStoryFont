@@ -1,6 +1,6 @@
 {
   "name": "@storybook/angular",
-  "version": "8.6.12",
+  "version": "9.0.18",
   "description": "Storybook for Angular: Develop Angular components in isolation with hot reloading.",
   "keywords": [
     "storybook",
@@ -52,24 +52,15 @@
     "prep": "rimraf dist && jiti ../../../scripts/prepare/tsc.ts"
   },
   "dependencies": {
-    "@storybook/builder-webpack5": "8.6.12",
-    "@storybook/components": "8.6.12",
-    "@storybook/core-webpack": "8.6.12",
+    "@storybook/builder-webpack5": "9.0.18",
+    "@storybook/core-webpack": "9.0.18",
     "@storybook/global": "^5.0.0",
-    "@storybook/manager-api": "8.6.12",
-    "@storybook/preview-api": "8.6.12",
-    "@storybook/theming": "8.6.12",
-    "@types/react": "^18.0.37",
-    "@types/react-dom": "^18.0.11",
-    "@types/semver": "^7.3.4",
     "@types/webpack-env": "^1.18.0",
     "fd-package-json": "^1.2.0",
-    "find-up": "^5.0.0",
-    "semver": "^7.3.7",
-    "telejson": "^7.2.0",
+    "find-up": "^7.0.0",
+    "telejson": "8.0.0",
     "ts-dedent": "^2.0.0",
     "tsconfig-paths-webpack-plugin": "^4.0.1",
-    "util-deprecate": "^1.0.2",
     "webpack": "5"
   },
   "devDependencies": {
@@ -78,7 +69,6 @@
     "@angular-devkit/build-angular": "^19.1.1",
     "@angular-devkit/core": "^19.1.1",
     "@angular/animations": "^19.1.1",
-    "@angular/cli": "^19.1.1",
     "@angular/common": "^19.1.1",
     "@angular/compiler": "^19.1.1",
     "@angular/compiler-cli": "^19.1.1",
@@ -86,33 +76,29 @@
     "@angular/forms": "^19.1.1",
     "@angular/platform-browser": "^19.1.1",
     "@angular/platform-browser-dynamic": "^19.1.1",
-    "@types/cross-spawn": "^6.0.2",
     "@types/node": "^22.0.0",
-    "@types/tmp": "^0.2.3",
-    "cross-spawn": "^7.0.3",
     "rimraf": "^6.0.1",
-    "tmp": "^0.2.1",
-    "typescript": "^5.7.3",
+    "typescript": "^5.8.3",
     "webpack": "5",
     "zone.js": "^0.15.0"
   },
   "peerDependencies": {
-    "@angular-devkit/architect": ">=0.1500.0 < 0.2000.0",
-    "@angular-devkit/build-angular": ">=15.0.0 < 20.0.0",
-    "@angular-devkit/core": ">=15.0.0 < 20.0.0",
-    "@angular/animations": ">=15.0.0 < 20.0.0",
-    "@angular/cli": ">=15.0.0 < 20.0.0",
-    "@angular/common": ">=15.0.0 < 20.0.0",
-    "@angular/compiler": ">=15.0.0 < 20.0.0",
-    "@angular/compiler-cli": ">=15.0.0 < 20.0.0",
-    "@angular/core": ">=15.0.0 < 20.0.0",
-    "@angular/forms": ">=15.0.0 < 20.0.0",
-    "@angular/platform-browser": ">=15.0.0 < 20.0.0",
-    "@angular/platform-browser-dynamic": ">=15.0.0 < 20.0.0",
-    "rxjs": "^6.0.0 || ^7.4.0",
-    "storybook": "^8.6.12",
-    "typescript": "^4.0.0 || ^5.0.0",
-    "zone.js": ">= 0.11.1 < 1.0.0"
+    "@angular-devkit/architect": ">=0.1800.0 < 0.2100.0",
+    "@angular-devkit/build-angular": ">=18.0.0 < 21.0.0",
+    "@angular-devkit/core": ">=18.0.0 < 21.0.0",
+    "@angular/animations": ">=18.0.0 < 21.0.0",
+    "@angular/cli": ">=18.0.0 < 21.0.0",
+    "@angular/common": ">=18.0.0 < 21.0.0",
+    "@angular/compiler": ">=18.0.0 < 21.0.0",
+    "@angular/compiler-cli": ">=18.0.0 < 21.0.0",
+    "@angular/core": ">=18.0.0 < 21.0.0",
+    "@angular/forms": ">=18.0.0 < 21.0.0",
+    "@angular/platform-browser": ">=18.0.0 < 21.0.0",
+    "@angular/platform-browser-dynamic": ">=18.0.0 < 21.0.0",
+    "rxjs": "^6.5.3 || ^7.4.0",
+    "storybook": "^9.0.18",
+    "typescript": "^4.9.0 || ^5.0.0",
+    "zone.js": ">=0.14.0"
   },
   "peerDependenciesMeta": {
     "@angular/animations": {
@@ -126,7 +112,7 @@
     }
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
-import { useRef } from './use-ref.js';
-import { useEffect } from './use-effect.js';
-import { withUpdates } from './hook-engine.js';
+import { useRef } from "./use-ref.js";
+import { useEffect } from "./use-effect.js";
+import { withUpdates } from "./hook-engine.js";
 export function useKeypress(userHandler) {
     const signal = useRef(userHandler);
     signal.current = userHandler;

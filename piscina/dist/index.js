@@ -13,7 +13,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _DirectlyTransferable_value, _ArrayBufferViewTransferable_view, _Piscina_pool;
+var _DirectlyTransferable_value, _ArrayBufferViewTransferable_view, _Piscina_pool, _Piscina_histogram;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FixedQueue = exports.version = exports.queueOptionsSymbol = exports.valueSymbol = exports.transferableSymbol = exports.Piscina = exports.workerData = exports.isWorkerThread = exports.move = void 0;
 const node_worker_threads_1 = require("node:worker_threads");
@@ -33,6 +33,7 @@ const task_queue_1 = require("./task_queue");
 Object.defineProperty(exports, "FixedQueue", { enumerable: true, get: function () { return task_queue_1.FixedQueue; } });
 const worker_pool_1 = require("./worker_pool");
 const abort_1 = require("./abort");
+const histogram_1 = require("./histogram");
 const errors_1 = require("./errors");
 const common_1 = require("./common");
 const cpuParallelism = (0, common_1.getAvailableParallelism)();
@@ -44,12 +45,13 @@ const kDefaultOptions = {
     idleTimeout: 0,
     maxQueue: Infinity,
     concurrentTasksPerWorker: 1,
-    useAtomics: true,
+    atomics: 'sync',
     taskQueue: new task_queue_1.ArrayTaskQueue(),
     niceIncrement: 0,
     trackUnmanagedFds: true,
     closeTimeout: 30000,
-    recordTiming: true
+    recordTiming: true,
+    workerHistogram: false
 };
 const kDefaultRunOptions = {
     transferList: undefined,
@@ -78,9 +80,10 @@ class ArrayBufferViewTransferable {
 }
 class ThreadPool {
     constructor(publicInterface, options) {
-        var _a;
+        var _a, _b, _c;
         this.skipQueue = [];
         this.completed = 0;
+        this.histogram = null;
         this.start = node_perf_hooks_1.performance.now();
         this.inProcessPendingMessages = false;
         this.startingUp = false;
@@ -88,12 +91,11 @@ class ThreadPool {
         this.workerFailsDuringBootstrap = false;
         this.destroying = false;
         this.publicInterface = publicInterface;
-        this.taskQueue = options.taskQueue || new task_queue_1.ArrayTaskQueue();
+        this.taskQueue = (_a = options.taskQueue) !== null && _a !== void 0 ? _a : new task_queue_1.FixedQueue();
         const filename = options.filename ? (0, common_1.maybeFileURLToPath)(options.filename) : null;
         this.options = { ...kDefaultOptions, ...options, filename, maxQueue: 0 };
         if (this.options.recordTiming) {
-            this.runTime = (0, node_perf_hooks_1.createHistogram)();
-            this.waitTime = (0, node_perf_hooks_1.createHistogram)();
+            this.histogram = new histogram_1.PiscinaHistogramHandler();
         }
         // The >= and <= could be > and < but this way we get 100 % coverage 🙃
         if (options.maxThreads !== undefined &&
@@ -108,14 +110,16 @@ class ThreadPool {
             this.options.maxQueue = this.options.maxThreads ** 2;
         }
         else {
-            this.options.maxQueue = (_a = options.maxQueue) !== null && _a !== void 0 ? _a : kDefaultOptions.maxQueue;
+            this.options.maxQueue = (_b = options.maxQueue) !== null && _b !== void 0 ? _b : kDefaultOptions.maxQueue;
         }
+        this.balancer = (_c = this.options.loadBalancer) !== null && _c !== void 0 ? _c : (0, worker_pool_1.LeastBusyBalancer)({ maximumUsage: this.options.concurrentTasksPerWorker });
         this.workers = new worker_pool_1.AsynchronouslyCreatedResourcePool(this.options.concurrentTasksPerWorker);
-        this.workers.onAvailable((w) => this._onWorkerAvailable(w));
+        this.workers.onTaskDone((w) => this._onWorkerTaskDone(w));
+        this.maxCapacity = this.options.maxThreads * this.options.concurrentTasksPerWorker;
         this.startingUp = true;
         this._ensureMinimumWorkers();
         this.startingUp = false;
-        this.needsDrain = false;
+        this._needsDrain = false;
     }
     _ensureMinimumWorkers() {
         if (this.closingUp || this.destroying) {
@@ -126,6 +130,8 @@ class ThreadPool {
         }
     }
     _addNewWorker() {
+        if (this.closingUp)
+            return;
         const pool = this;
         const worker = new node_worker_threads_1.Worker((0, node_path_1.resolve)(__dirname, 'worker.js'), {
             env: this.options.env,
@@ -136,18 +142,33 @@ class ThreadPool {
             trackUnmanagedFds: this.options.trackUnmanagedFds
         });
         const { port1, port2 } = new node_worker_threads_1.MessageChannel();
-        const workerInfo = new worker_pool_1.WorkerInfo(worker, port1, onMessage);
+        const workerInfo = new worker_pool_1.WorkerInfo(worker, port1, onMessage, this.options.workerHistogram);
+        workerInfo.onDestroy(() => {
+            this.publicInterface.emit('workerDestroy', workerInfo.interface);
+        });
         if (this.startingUp) {
             // There is no point in waiting for the initial set of Workers to indicate
             // that they are ready, we just mark them as such from the start.
             workerInfo.markAsReady();
+            // We need to emit the event in the next microtask, so that the user can
+            // attach event listeners before the event is emitted.
+            queueMicrotask(() => {
+                this.publicInterface.emit('workerCreate', workerInfo.interface);
+                this._onWorkerReady(workerInfo);
+            });
+        }
+        else {
+            workerInfo.onReady(() => {
+                this.publicInterface.emit('workerCreate', workerInfo.interface);
+                this._onWorkerReady(workerInfo);
+            });
         }
         const message = {
             filename: this.options.filename,
             name: this.options.name,
             port: port2,
             sharedBuffer: workerInfo.sharedBuffer,
-            useAtomics: this.options.useAtomics,
+            atomics: this.options.atomics,
             niceIncrement: this.options.niceIncrement
         };
         worker.postMessage(message, [port2]);
@@ -158,7 +179,9 @@ class ThreadPool {
             // free again.
             const taskInfo = workerInfo.taskInfos.get(taskId);
             workerInfo.taskInfos.delete(taskId);
-            pool.workers.maybeAvailable(workerInfo);
+            // TODO: we can abstract the task info handling
+            // right into the pool.workers.taskDone method
+            pool.workers.taskDone(workerInfo);
             /* istanbul ignore if */
             if (taskInfo === undefined) {
                 const err = new Error(`Unexpected message from Worker: ${(0, node_util_1.inspect)(message)}`);
@@ -233,7 +256,7 @@ class ThreadPool {
         }
     }
     _processPendingMessages() {
-        if (this.inProcessPendingMessages || !this.options.useAtomics) {
+        if (this.inProcessPendingMessages || this.options.atomics === 'disabled') {
             return;
         }
         this.inProcessPendingMessages = true;
@@ -250,40 +273,81 @@ class ThreadPool {
         workerInfo.destroy();
         this.workers.delete(workerInfo);
     }
+    _onWorkerReady(workerInfo) {
+        this._onWorkerAvailable(workerInfo);
+    }
+    _onWorkerTaskDone(workerInfo) {
+        this._onWorkerAvailable(workerInfo);
+    }
     _onWorkerAvailable(workerInfo) {
-        var _a;
-        while ((this.taskQueue.size > 0 || this.skipQueue.length > 0) &&
-            workerInfo.currentUsage() < this.options.concurrentTasksPerWorker) {
+        let workers = null;
+        while ((this.taskQueue.size > 0 || this.skipQueue.length > 0)) {
             // The skipQueue will have tasks that we previously shifted off
             // the task queue but had to skip over... we have to make sure
             // we drain that before we drain the taskQueue.
             const taskInfo = this.skipQueue.shift() ||
                 this.taskQueue.shift();
-            // If the task has an abortSignal and the worker has any other
-            // tasks, we cannot distribute the task to it. Skip for now.
-            if (taskInfo.abortSignal && workerInfo.taskInfos.size > 0) {
-                this.skipQueue.push(taskInfo);
+            if (workers == null) {
+                workers = [...this.workers].map(workerInfo => workerInfo.interface);
+            }
+            const distributed = this._distributeTask(taskInfo, workers);
+            if (distributed) {
+                // If task was distributed, we should continue to distribute more tasks
+                continue;
+            }
+            else if (this.workers.size < this.options.maxThreads) {
+                // We spawn if possible
+                // TODO: scheduler will intercept this.
+                this._addNewWorker();
+                continue;
+            }
+            else {
+                // If balancer states that pool is busy, we should stop trying to distribute tasks
                 break;
             }
-            const now = node_perf_hooks_1.performance.now();
-            (_a = this.waitTime) === null || _a === void 0 ? void 0 : _a.record((0, common_1.toHistogramIntegerNano)(now - taskInfo.created));
-            taskInfo.started = now;
-            workerInfo.postTask(taskInfo);
-            this._maybeDrain();
+        }
+        //If Infinity was sent as a parameter, we skip setting the Timeout that clears the worker
+        if (this.options.idleTimeout === Infinity) {
             return;
         }
-        if (workerInfo.taskInfos.size === 0 &&
+        // If more workers than minThreads, we can remove idle workers
+        if (workerInfo.currentUsage() === 0 &&
             this.workers.size > this.options.minThreads) {
             workerInfo.idleTimeout = setTimeout(() => {
-                node_assert_1.default.strictEqual(workerInfo.taskInfos.size, 0);
+                node_assert_1.default.strictEqual(workerInfo.currentUsage(), 0);
                 if (this.workers.size > this.options.minThreads) {
                     this._removeWorker(workerInfo);
                 }
             }, this.options.idleTimeout).unref();
         }
     }
+    _distributeTask(task, workers) {
+        var _a;
+        // We need to verify if the task is aborted already or not
+        // otherwise we might be distributing aborted tasks to workers
+        if (task.aborted)
+            return false;
+        const candidate = this.balancer(task.interface, workers);
+        // Seeking for a real worker instead of customized one
+        if (candidate != null && candidate[symbols_1.kWorkerData] != null) {
+            const now = node_perf_hooks_1.performance.now();
+            (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.recordWaitTime(now - task.created);
+            task.started = now;
+            candidate[symbols_1.kWorkerData].postTask(task);
+            this._maybeDrain();
+            // If candidate, let's try to distribute more tasks
+            return true;
+        }
+        if (task.abortSignal) {
+            this.skipQueue.push(task);
+        }
+        else {
+            this.taskQueue.push(task);
+        }
+        return false;
+    }
     runTask(task, options) {
-        var _a, _b;
+        var _a;
         let { filename, name } = options;
         const { transferList = [] } = options;
         if (filename == null) {
@@ -297,9 +361,9 @@ class ThreadPool {
         }
         filename = (0, common_1.maybeFileURLToPath)(filename);
         let signal;
-        if (this.closingUp) {
+        if (this.closingUp || this.destroying) {
             const closingUpAbortController = new AbortController();
-            closingUpAbortController.abort('queue is closing up');
+            closingUpAbortController.abort('queue is being terminated');
             signal = closingUpAbortController.signal;
         }
         else {
@@ -313,7 +377,7 @@ class ThreadPool {
             var _a;
             this.completed++;
             if (taskInfo.started) {
-                (_a = this.runTime) === null || _a === void 0 ? void 0 : _a.record((0, common_1.toHistogramIntegerNano)(node_perf_hooks_1.performance.now() - taskInfo.started));
+                (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.recordRunTime(node_perf_hooks_1.performance.now() - taskInfo.started);
             }
             if (err !== null) {
                 reject(err);
@@ -327,7 +391,8 @@ class ThreadPool {
             // If the AbortSignal has an aborted property and it's truthy,
             // reject immediately.
             if (signal.aborted) {
-                return Promise.reject(new abort_1.AbortError(signal.reason));
+                reject(new abort_1.AbortError(signal.reason));
+                return ret;
             }
             taskInfo.abortListener = () => {
                 // Call reject() first to make sure we always reject with the AbortError
@@ -341,51 +406,21 @@ class ThreadPool {
                 }
                 else {
                     // Not yet running: Remove it from the queue.
+                    // Call should be idempotent
                     this.taskQueue.remove(taskInfo);
                 }
             };
             (0, abort_1.onabort)(signal, taskInfo.abortListener);
         }
-        // If there is a task queue, there's no point in looking for an available
-        // Worker thread. Add this task to the queue, if possible.
         if (this.taskQueue.size > 0) {
             const totalCapacity = this.options.maxQueue + this.pendingCapacity();
             if (this.taskQueue.size >= totalCapacity) {
                 if (this.options.maxQueue === 0) {
-                    return Promise.reject(errors_1.Errors.NoTaskQueueAvailable());
+                    reject(errors_1.Errors.NoTaskQueueAvailable());
                 }
                 else {
-                    return Promise.reject(errors_1.Errors.TaskQueueAtLimit());
+                    reject(errors_1.Errors.TaskQueueAtLimit());
                 }
-            }
-            else {
-                if (this.workers.size < this.options.maxThreads) {
-                    this._addNewWorker();
-                }
-                this.taskQueue.push(taskInfo);
-            }
-            this._maybeDrain();
-            return ret;
-        }
-        // Look for a Worker with a minimum number of tasks it is currently running.
-        let workerInfo = this.workers.findAvailable();
-        // If we want the ability to abort this task, use only workers that have
-        // no running tasks.
-        if (workerInfo !== null && workerInfo.currentUsage() > 0 && signal) {
-            workerInfo = null;
-        }
-        // If no Worker was found, or that Worker was handling another task in some
-        // way, and we still have the ability to spawn new threads, do so.
-        let waitingForNewWorker = false;
-        if ((workerInfo === null || workerInfo.currentUsage() > 0) &&
-            this.workers.size < this.options.maxThreads) {
-            this._addNewWorker();
-            waitingForNewWorker = true;
-        }
-        // If no Worker is found, try to put the task into the queue.
-        if (workerInfo === null) {
-            if (this.options.maxQueue <= 0 && !waitingForNewWorker) {
-                return Promise.reject(errors_1.Errors.NoTaskQueueAvailable());
             }
             else {
                 this.taskQueue.push(taskInfo);
@@ -393,11 +428,20 @@ class ThreadPool {
             this._maybeDrain();
             return ret;
         }
-        // TODO(addaleax): Clean up the waitTime/runTime recording.
-        const now = node_perf_hooks_1.performance.now();
-        (_b = this.waitTime) === null || _b === void 0 ? void 0 : _b.record((0, common_1.toHistogramIntegerNano)(now - taskInfo.created));
-        taskInfo.started = now;
-        workerInfo.postTask(taskInfo);
+        const workers = [...this.workers.readyItems].map(workerInfo => workerInfo.interface);
+        const distributed = this._distributeTask(taskInfo, workers);
+        if (!distributed) {
+            // We spawn if possible
+            // TODO: scheduler will intercept this.
+            if (this.workers.size < this.options.maxThreads) {
+                this._addNewWorker();
+            }
+            // We reject if no task queue set and no more pending capacity.
+            if (this.options.maxQueue <= 0 && this.pendingCapacity() === 0) {
+                reject(errors_1.Errors.NoTaskQueueAvailable());
+            }
+        }
+        ;
         this._maybeDrain();
         return ret;
     }
@@ -406,15 +450,21 @@ class ThreadPool {
             this.options.concurrentTasksPerWorker;
     }
     _maybeDrain() {
-        const totalCapacity = this.options.maxQueue + this.pendingCapacity();
-        const totalQueueSize = this.taskQueue.size + this.skipQueue.length;
-        if (totalQueueSize === 0) {
-            this.needsDrain = false;
-            this.publicInterface.emit('drain');
-        }
-        if (totalQueueSize >= totalCapacity) {
-            this.needsDrain = true;
+        /**
+         * Our goal is to make it possible for user space to use the pool
+         * in a way where always waiting === 0,
+         * since we want to avoid creating tasks that can't execute
+         * immediately in order to provide back pressure to the task source.
+         */
+        const { maxCapacity } = this;
+        const currentUsage = this.workers.getCurrentUsage();
+        if (maxCapacity === currentUsage) {
+            this._needsDrain = true;
             this.publicInterface.emit('needsDrain');
+        }
+        else if (maxCapacity > currentUsage && this._needsDrain) {
+            this._needsDrain = false;
+            this.publicInterface.emit('drain');
         }
     }
     async destroy() {
@@ -481,11 +531,11 @@ class ThreadPool {
             };
             for (const workerInfo of this.workers) {
                 checkIfWorkerIsDone(workerInfo);
-                workerInfo.port.on('message', () => checkIfWorkerIsDone(workerInfo));
+                this.workers.onTaskDone(checkIfWorkerIsDone);
             }
         });
         const throwOnTimeOut = async (timeout) => {
-            await (0, promises_1.setTimeout)(timeout);
+            await (0, promises_1.setTimeout)(timeout, null, { ref: false });
             throw errors_1.Errors.CloseTimeout();
         };
         try {
@@ -508,6 +558,7 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
     constructor(options = {}) {
         super({ ...options, name: 'Piscina' });
         _Piscina_pool.set(this, void 0);
+        _Piscina_histogram.set(this, null);
         if (typeof options.filename !== 'string' && options.filename != null) {
             throw new TypeError('options.filename must be a string or null');
         }
@@ -540,9 +591,9 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
                 options.concurrentTasksPerWorker < 1)) {
             throw new TypeError('options.concurrentTasksPerWorker must be a positive integer');
         }
-        if (options.useAtomics !== undefined &&
-            typeof options.useAtomics !== 'boolean') {
-            throw new TypeError('options.useAtomics must be a boolean value');
+        if (options.atomics != null && (typeof options.atomics !== 'string' ||
+            !['sync', 'async', 'disabled'].includes(options.atomics))) {
+            throw new TypeError('options.atomics should be a value of sync, sync or disabled.');
         }
         if (options.resourceLimits !== undefined &&
             (typeof options.resourceLimits !== 'object' ||
@@ -563,37 +614,13 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
         if (options.closeTimeout !== undefined && (typeof options.closeTimeout !== 'number' || options.closeTimeout < 0)) {
             throw new TypeError('options.closeTimeout must be a non-negative integer');
         }
+        if (options.loadBalancer !== undefined && (typeof options.loadBalancer !== 'function' || options.loadBalancer.length < 1)) {
+            throw new TypeError('options.loadBalancer must be a function with at least two args');
+        }
+        if (options.workerHistogram !== undefined && (typeof options.workerHistogram !== 'boolean')) {
+            throw new TypeError('options.workerHistogram must be a boolean');
+        }
         __classPrivateFieldSet(this, _Piscina_pool, new ThreadPool(this, options), "f");
-    }
-    /** @deprecated Use run(task, options) instead **/
-    runTask(task, transferList, filename, signal) {
-        // If transferList is a string or AbortSignal, shift it.
-        if ((typeof transferList === 'object' && !Array.isArray(transferList)) ||
-            typeof transferList === 'string') {
-            signal = filename;
-            filename = transferList;
-            transferList = undefined;
-        }
-        // If filename is an AbortSignal, shift it.
-        if (typeof filename === 'object' && !Array.isArray(filename)) {
-            signal = filename;
-            filename = undefined;
-        }
-        if (transferList !== undefined && !Array.isArray(transferList)) {
-            return Promise.reject(new TypeError('transferList argument must be an Array'));
-        }
-        if (filename !== undefined && typeof filename !== 'string') {
-            return Promise.reject(new TypeError('filename argument must be a string'));
-        }
-        if (signal !== undefined && typeof signal !== 'object') {
-            return Promise.reject(new TypeError('signal argument must be an object'));
-        }
-        return __classPrivateFieldGet(this, _Piscina_pool, "f").runTask(task, {
-            transferList,
-            filename: filename || null,
-            name: 'default',
-            signal: signal || null
-        });
     }
     run(task, options = kDefaultRunOptions) {
         if (options === null || typeof options !== 'object') {
@@ -653,24 +680,41 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
     get completed() {
         return __classPrivateFieldGet(this, _Piscina_pool, "f").completed;
     }
-    get waitTime() {
-        if (!__classPrivateFieldGet(this, _Piscina_pool, "f").waitTime) {
-            return null;
+    get histogram() {
+        if (__classPrivateFieldGet(this, _Piscina_histogram, "f") == null) {
+            const piscinahistogram = {
+                // @ts-expect-error
+                get runTime() { var _a; return (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.runTimeSummary; },
+                // @ts-expect-error
+                get waitTime() { var _a; return (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.waitTimeSummary; },
+                resetRunTime() {
+                    var _a;
+                    // @ts-expect-error
+                    (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.resetRunTime();
+                },
+                resetWaitTime() {
+                    var _a;
+                    // @ts-expect-error
+                    (_a = this.histogram) === null || _a === void 0 ? void 0 : _a.resetWaitTime();
+                },
+            };
+            Object.defineProperty(piscinahistogram, 'histogram', {
+                value: __classPrivateFieldGet(this, _Piscina_pool, "f").histogram,
+                writable: false,
+                enumerable: false,
+                configurable: false,
+            });
+            __classPrivateFieldSet(this, _Piscina_histogram, piscinahistogram, "f");
         }
-        return (0, common_1.createHistogramSummary)(__classPrivateFieldGet(this, _Piscina_pool, "f").waitTime);
-    }
-    get runTime() {
-        if (!__classPrivateFieldGet(this, _Piscina_pool, "f").runTime) {
-            return null;
-        }
-        return (0, common_1.createHistogramSummary)(__classPrivateFieldGet(this, _Piscina_pool, "f").runTime);
+        ;
+        return __classPrivateFieldGet(this, _Piscina_histogram, "f");
     }
     get utilization() {
-        if (!__classPrivateFieldGet(this, _Piscina_pool, "f").runTime) {
+        if (__classPrivateFieldGet(this, _Piscina_pool, "f").histogram == null) {
             return 0;
         }
         // count is available as of Node.js v16.14.0 but not present in the types
-        const count = __classPrivateFieldGet(this, _Piscina_pool, "f").runTime.count;
+        const count = __classPrivateFieldGet(this, _Piscina_pool, "f").histogram.runTimeCount;
         if (count === 0) {
             return 0;
         }
@@ -679,7 +723,7 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
         // of time the pool has been running multiplied by the
         // maximum number of threads.
         const capacity = this.duration * __classPrivateFieldGet(this, _Piscina_pool, "f").options.maxThreads;
-        const totalMeanRuntime = (__classPrivateFieldGet(this, _Piscina_pool, "f").runTime.mean / 1000) * count;
+        const totalMeanRuntime = (__classPrivateFieldGet(this, _Piscina_pool, "f").histogram.runTimeSummary.mean / 1000) * count;
         // We calculate the appoximate pool utilization by multiplying
         // the mean run time of all tasks by the number of runtime
         // samples taken and dividing that by the capacity. The
@@ -696,7 +740,7 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
         return node_perf_hooks_1.performance.now() - __classPrivateFieldGet(this, _Piscina_pool, "f").start;
     }
     get needsDrain() {
-        return __classPrivateFieldGet(this, _Piscina_pool, "f").needsDrain;
+        return __classPrivateFieldGet(this, _Piscina_pool, "f")._needsDrain;
     }
     static get isWorkerThread() {
         return common_1.commonState.isWorkerThread;
@@ -735,7 +779,7 @@ class Piscina extends node_events_1.EventEmitterAsyncResource {
     static get queueOptionsSymbol() { return symbols_1.kQueueOptions; }
 }
 exports.Piscina = Piscina;
-_Piscina_pool = new WeakMap();
+_Piscina_pool = new WeakMap(), _Piscina_histogram = new WeakMap();
 exports.default = Piscina;
 exports.move = Piscina.move;
 exports.isWorkerThread = Piscina.isWorkerThread;

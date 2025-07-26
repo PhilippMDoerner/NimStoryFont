@@ -36,6 +36,14 @@ declare class Beasties {
    * Overriding this method requires doing your own URL normalization, so it's generally better to override `readFile()`.
    */
   getCssAsset(href: string): Promise<string | undefined> | string | undefined
+  /**
+   * Override this method to customise how beasties prunes the content of source files.
+   */
+  pruneSource(style: Node, before: string, sheetInverse: string): boolean
+  /**
+   * Override this method to customise how beasties prunes the content of source files.
+   */
+  checkInlineThreshold(link: Node, style: Node, sheet: string): boolean
 }
 
 interface Options {
@@ -47,10 +55,11 @@ interface Options {
   pruneSource?: boolean
   mergeStylesheets?: boolean
   additionalStylesheets?: string[]
-  preload?: 'body' | 'media' | 'swap' | 'swap-high' | 'js' | 'js-lazy'
+  preload?: 'body' | 'media' | 'swap' | 'swap-high' | 'swap-low' | 'js' | 'js-lazy'
   noscriptFallback?: boolean
   inlineFonts?: boolean
   preloadFonts?: boolean
+  allowRules?: Array<string | RegExp>
   fonts?: boolean
   keyframes?: string
   compress?: boolean
@@ -67,4 +76,6 @@ interface Logger {
   error?: (message: string) => void
 }
 
-export { type Logger, type Options, Beasties as default };
+// @ts-ignore
+export = Beasties;
+export type { Logger, Options };

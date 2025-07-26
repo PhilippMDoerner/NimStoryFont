@@ -84,5 +84,4 @@ function addAbsolutePathKeyword(ajv) {
   });
   return ajv;
 }
-var _default = addAbsolutePathKeyword;
-exports.default = _default;
+var _default = exports.default = addAbsolutePathKeyword;

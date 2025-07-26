@@ -14,9 +14,7 @@ exports.default = (plugin, parser) => [
     {
         name: 'angular-eslint/ts-recommended',
         rules: {
-            '@angular-eslint/component-class-suffix': 'error',
             '@angular-eslint/contextual-lifecycle': 'error',
-            '@angular-eslint/directive-class-suffix': 'error',
             '@angular-eslint/no-empty-lifecycle-method': 'error',
             '@angular-eslint/no-input-rename': 'error',
             '@angular-eslint/no-inputs-metadata-property': 'error',
@@ -24,6 +22,7 @@ exports.default = (plugin, parser) => [
             '@angular-eslint/no-output-on-prefix': 'error',
             '@angular-eslint/no-output-rename': 'error',
             '@angular-eslint/no-outputs-metadata-property': 'error',
+            '@angular-eslint/prefer-inject': 'error',
             '@angular-eslint/prefer-standalone': 'error',
             '@angular-eslint/use-pipe-transform-interface': 'error',
             '@angular-eslint/use-lifecycle-interface': 'warn',

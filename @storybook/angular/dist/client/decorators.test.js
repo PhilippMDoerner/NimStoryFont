@@ -37,6 +37,7 @@ const defaultContext = {
     step: undefined,
     context: undefined,
     canvas: undefined,
+    userEvent: undefined,
     mount: undefined,
 };
 defaultContext.context = defaultContext;

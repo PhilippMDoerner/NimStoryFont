@@ -1,12 +1,10 @@
 'use strict';
 
+var patchFocus = require('../document/patchFocus.js');
 var prepareDocument = require('../document/prepareDocument.js');
 var dispatchEvent = require('../event/dispatchEvent.js');
-require('../utils/click/isClickableInput.js');
 var Clipboard = require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
-require('../utils/keyDef/readNextDescriptor.js');
+var getWindow = require('../utils/misc/getWindow.js');
 var getDocumentFromNode = require('../utils/misc/getDocumentFromNode.js');
 var level = require('../utils/misc/level.js');
 var wait = require('../utils/misc/wait.js');
@@ -54,8 +52,9 @@ function createConfig(options = {}, defaults = defaultOptionsSetup, node) {
  */ function setupMain(options = {}) {
     const config = createConfig(options);
     prepareDocument.prepareDocument(config.document);
+    patchFocus.patchFocus(getWindow.getWindow(config.document).HTMLElement);
     var _config_document_defaultView;
-    const view = (_config_document_defaultView = config.document.defaultView) !== null && _config_document_defaultView !== void 0 ? _config_document_defaultView : /* istanbul ignore next */ globalThis.window;
+    const view = (_config_document_defaultView = config.document.defaultView) !== null && _config_document_defaultView !== undefined ? _config_document_defaultView : /* istanbul ignore next */ globalThis.window;
     Clipboard.attachClipboardStubToView(view);
     return createInstance(config).api;
 }
@@ -64,8 +63,9 @@ function createConfig(options = {}, defaults = defaultOptionsSetup, node) {
  */ function setupDirect({ keyboardState, pointerState, ...options } = {}, node) {
     const config = createConfig(options, defaultOptionsDirect, node);
     prepareDocument.prepareDocument(config.document);
+    patchFocus.patchFocus(getWindow.getWindow(config.document).HTMLElement);
     var _ref;
-    const system = (_ref = pointerState !== null && pointerState !== void 0 ? pointerState : keyboardState) !== null && _ref !== void 0 ? _ref : new index.System();
+    const system = (_ref = pointerState !== null && pointerState !== undefined ? pointerState : keyboardState) !== null && _ref !== undefined ? _ref : new index.System();
     return {
         api: createInstance(config, system).api,
         system
@@ -115,7 +115,7 @@ function createInstance(config, system = new index.System()) {
 }
 function getDocument(options, node, defaults) {
     var _options_document, _ref;
-    return (_ref = (_options_document = options.document) !== null && _options_document !== void 0 ? _options_document : node && getDocumentFromNode.getDocumentFromNode(node)) !== null && _ref !== void 0 ? _ref : defaults.document;
+    return (_ref = (_options_document = options.document) !== null && _options_document !== undefined ? _options_document : node && getDocumentFromNode.getDocumentFromNode(node)) !== null && _ref !== undefined ? _ref : defaults.document;
 }
 
 exports.createConfig = createConfig;

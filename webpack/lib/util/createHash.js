@@ -7,6 +7,8 @@
 
 const Hash = require("./Hash");
 
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
+
 const BULK_SIZE = 2000;
 
 // We are using an object instead of a Map as this will stay static during the runtime
@@ -14,7 +16,7 @@ const BULK_SIZE = 2000;
 /** @type {{[key: string]: Map<string, string>}} */
 const digestCaches = {};
 
-/** @typedef {function(): Hash} HashFactory */
+/** @typedef {() => Hash} HashFactory */
 
 class BulkUpdateDecorator extends Hash {
 	/**
@@ -141,11 +143,9 @@ let createMd4;
 /** @type {typeof import("./hash/BatchedHash") | undefined} */
 let BatchedHash;
 
-/** @typedef {string | typeof Hash} Algorithm */
-
 /**
  * Creates a hash by name or function
- * @param {Algorithm} algorithm the algorithm name or a constructor creating a hash
+ * @param {HashFunction} algorithm the algorithm name or a constructor creating a hash
  * @returns {Hash} the hash
  */
 module.exports = algorithm => {

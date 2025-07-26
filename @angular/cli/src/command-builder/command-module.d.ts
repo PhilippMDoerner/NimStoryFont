@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { logging } from '@angular-devkit/core';
-import { ArgumentsCamelCase, Argv, CamelCaseKey, CommandModule as YargsCommandModule } from 'yargs';
+import type { ArgumentsCamelCase, Argv, CamelCaseKey, CommandModule as YargsCommandModule } from 'yargs' with { 'resolution-mode': 'require' };
 import { AnalyticsCollector } from '../analytics/analytics-collector';
 import { EventCustomDimension, EventCustomMetric } from '../analytics/analytics-parameters';
 import { AngularWorkspace } from '../utilities/config';

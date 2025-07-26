@@ -41,12 +41,15 @@ var eventProperties = [
 var customEventSpecificProperties = ["detail"];
 function extractEventHiddenProperties(event) {
   const rebuildEvent = eventProperties.filter((value) => event[value] !== void 0).reduce((acc, value) => {
-    return { ...acc, [value]: event[value] };
+    acc[value] = event[value];
+    return acc;
   }, {});
   if (event instanceof CustomEvent) {
-    customEventSpecificProperties.filter((value) => event[value] !== void 0).forEach((value) => {
+    for (const value of customEventSpecificProperties.filter(
+      (value2) => event[value2] !== void 0
+    )) {
       rebuildEvent[value] = event[value];
-    });
+    }
   }
   return rebuildEvent;
 }

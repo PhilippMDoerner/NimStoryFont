@@ -13,6 +13,7 @@ export declare class StreamingOctetReader {
     bufXor(size: number, mask: [number, number, number, number], maskIndex: number): Uint8Array;
     skipUnsafe(n: number): void;
     skip(n: number): void;
+    peek(): number;
     peak(): number;
     utf8(length: number, mask: [number, number, number, number], maskIndex: number): string;
 }

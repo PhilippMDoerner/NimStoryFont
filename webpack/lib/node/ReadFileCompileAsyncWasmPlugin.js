@@ -15,14 +15,14 @@ const AsyncWasmLoadingRuntimeModule = require("../wasm-async/AsyncWasmLoadingRun
 
 /**
  * @typedef {object} ReadFileCompileAsyncWasmPluginOptions
- * @property {boolean} [import] use import?
+ * @property {boolean=} import use import?
  */
 
 const PLUGIN_NAME = "ReadFileCompileAsyncWasmPlugin";
 
 class ReadFileCompileAsyncWasmPlugin {
 	/**
-	 * @param {ReadFileCompileAsyncWasmPluginOptions} [options] options object
+	 * @param {ReadFileCompileAsyncWasmPluginOptions=} options options object
 	 */
 	constructor({ import: useImport = false } = {}) {
 		this._import = useImport;
@@ -50,8 +50,7 @@ class ReadFileCompileAsyncWasmPlugin {
 			};
 
 			/**
-			 * @param {string} path path to wasm file
-			 * @returns {string} generated code to load the wasm file
+			 * @type {(path: string) => string} callback to generate code to load the wasm file
 			 */
 			const generateLoadBinaryCode = this._import
 				? path =>

@@ -5,7 +5,7 @@
         <app-context-menu
           [menuButtonKind]="'SECONDARY'"
           [menuButtonIcon]="'pencil'"
-          [menuButtonHotkey]="'e'"
+          [menuButtonHotkey]="'update'"
           [menuButtonAriaLabel]="'Edit actions for diaryentry'"
           [placement]="['bottom-end', 'top-end']"
           [menuItems]="[
@@ -21,14 +21,14 @@
                 state() === 'DISPLAY' ? 'Edit Encounters' : 'Read Encounters',
               icon: state() === 'DISPLAY' ? 'rectangle-list' : 'times',
               actionName: 'toggleState',
-              hotkey: 'r',
+              hotkeyAction: 'toggle',
             },
             {
               kind: 'BUTTON',
               label: 'Delete Diaryentry',
               icon: 'trash',
               actionName: 'deletionRequested',
-              hotkey: 'd',
+              hotkeyAction: 'delete',
             },
           ]"
           (actionTriggered)="toggleState($event, deleteModal)"

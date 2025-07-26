@@ -14,5 +14,5 @@ key.name === 'down' ||
     (key.ctrl && key.name === 'n');
 export const isSpaceKey = (key) => key.name === 'space';
 export const isBackspaceKey = (key) => key.name === 'backspace';
-export const isNumberKey = (key) => '123456789'.includes(key.name);
+export const isNumberKey = (key) => '1234567890'.includes(key.name);
 export const isEnterKey = (key) => key.name === 'enter' || key.name === 'return';

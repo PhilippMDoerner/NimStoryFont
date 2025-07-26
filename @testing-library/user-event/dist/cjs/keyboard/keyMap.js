@@ -5,7 +5,7 @@ var keyboard = require('../system/keyboard.js');
 /**
  * Mapping for a default US-104-QWERTY keyboard
  */ const defaultKeyMap = [
-    // alphanumeric keys
+    // alphanumeric block - writing system
     ...'0123456789'.split('').map((c)=>({
             code: `Digit${c}`,
             key: c
@@ -24,6 +24,24 @@ var keyboard = require('../system/keyboard.js');
             key: c,
             shiftKey: true
         })),
+    {
+        code: 'BracketLeft',
+        key: '['
+    },
+    {
+        code: 'BracketLeft',
+        key: '{',
+        shiftKey: true
+    },
+    {
+        code: 'BracketRight',
+        key: ']'
+    },
+    {
+        code: 'BracketRight',
+        key: '}',
+        shiftKey: true
+    },
     // alphanumeric block - functional
     {
         code: 'Space',
@@ -78,6 +96,10 @@ var keyboard = require('../system/keyboard.js');
         code: 'OSRight',
         key: 'OS',
         location: keyboard.DOM_KEY_LOCATION.RIGHT
+    },
+    {
+        code: 'ContextMenu',
+        key: 'ContextMenu'
     },
     {
         code: 'Tab',

@@ -1,5 +1,11 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Quest } from 'src/app/_models/quest';
 import { RoutingService } from 'src/app/_services/routing.service';
@@ -20,6 +26,7 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
     ArticleFooterComponent,
     ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestComponent {
   quest = input.required<Quest>();

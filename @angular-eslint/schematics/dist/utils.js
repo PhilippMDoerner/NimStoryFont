@@ -29,6 +29,9 @@ exports.supportedFlatConfigNames = [
     'eslint.config.js',
     'eslint.config.mjs',
     'eslint.config.cjs',
+    'eslint.config.ts',
+    'eslint.config.mts',
+    'eslint.config.cts',
 ];
 /**
  * This method is specifically for reading JSON files in a Tree
@@ -122,8 +125,9 @@ function addESLintTargetToProject(projectName, targetName) {
         if (existingProjectConfig.root !== '') {
             if (shouldUseFlatConfig(tree)) {
                 const rootConfigPath = resolveRootESLintConfigPath(tree);
-                if (!rootConfigPath || !rootConfigPath.endsWith('js')) {
-                    throw new Error('Root ESLint config must be a JavaScript file (.js,.mjs,.cjs) when using Flat Config');
+                if (!rootConfigPath ||
+                    (!rootConfigPath.endsWith('js') && !rootConfigPath.endsWith('ts'))) {
+                    throw new Error('Root ESLint config must be a JavaScript/TypeScript file (.js,.mjs,.cjs,.ts,.mts,.cts) when using Flat Config');
                 }
                 const { ext } = determineNewProjectESLintConfigContentAndExtension(tree, rootConfigPath, existingProjectConfig.root);
                 const flatConfigPath = (0, core_1.join)(existingProjectConfig.root, `eslint.config.${ext}`);
@@ -169,7 +173,6 @@ function visitNotIgnoredFiles(visitor, dir = (0, core_1.normalize)('')) {
         visit(dir);
     };
 }
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function setESLintProjectBasedOnProjectType(projectRoot, projectType, hasE2e) {
     let project;
     if (projectType === 'application') {
@@ -184,7 +187,6 @@ function setESLintProjectBasedOnProjectType(projectRoot, projectType, hasE2e) {
     }
     return project;
 }
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createRootESLintConfig(prefix) {
     let codeRules;
     if (prefix) {
@@ -227,7 +229,6 @@ function createRootESLintConfig(prefix) {
         ],
     };
 }
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createStringifiedRootESLintConfig(prefix, isESM) {
     return `// @ts-check
 ${isESM ? 'import eslint from "@eslint/js";' : 'const eslint = require("@eslint/js");'}
@@ -425,7 +426,7 @@ function determineTargetProjectName(tree, maybeProject) {
  * Method will check if angular project architect has e2e configuration to determine if e2e setup
  */
 function determineTargetProjectHasE2E(
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 angularJSON, projectName) {
     return !!getTargetsConfigFromProject(angularJSON.projects[projectName])?.e2e;
 }
@@ -500,6 +501,15 @@ function resolveRootESLintConfigPath(tree) {
     }
     if (tree.exists('eslint.config.cjs')) {
         return 'eslint.config.cjs';
+    }
+    if (tree.exists('eslint.config.ts')) {
+        return 'eslint.config.ts';
+    }
+    if (tree.exists('eslint.config.mts')) {
+        return 'eslint.config.mts';
+    }
+    if (tree.exists('eslint.config.cts')) {
+        return 'eslint.config.cts';
     }
     return null;
 }

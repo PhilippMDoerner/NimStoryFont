@@ -1,6 +1,5 @@
 import { loginGuard } from '../_guards/login.guard';
 import { onlyOnlineGuard } from '../_guards/only-online.guard';
-import { SiteAdministrationPageStore } from '../administration/pages/site-administration-page/site-administration-page.store';
 import { registrationGuard } from './pages/registration/registration.guard';
 
 export const generalRoutes = [
@@ -36,18 +35,32 @@ export const generalRoutes = [
       ),
     data: { name: 'registration' },
     canActivate: [loginGuard, registrationGuard, onlyOnlineGuard],
-    providers: [SiteAdministrationPageStore],
     title: 'Registration',
   },
   //User Routes
   {
     path: `profile/me`,
-    loadComponent: () =>
-      import('./pages/profile-page/profile-page.component').then(
-        (m) => m.ProfilePageComponent,
-      ),
-    data: { name: 'direct-profile' },
-    canActivate: [loginGuard, onlyOnlineGuard],
-    title: 'Your Profile',
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/profile-page/profile-page.component').then(
+            (m) => m.ProfilePageComponent,
+          ),
+        data: { name: 'direct-profile' },
+        canActivate: [loginGuard, onlyOnlineGuard],
+        title: 'Your Profile',
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import(
+            './pages/user-settings-page/user-settings-page.component'
+          ).then((m) => m.UserSettingsPageComponent),
+        data: { name: 'user-settings' },
+        canActivate: [loginGuard, onlyOnlineGuard],
+        title: 'Your Settings',
+      },
+    ],
   },
 ];

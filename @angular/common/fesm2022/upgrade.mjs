@@ -1,18 +1,16 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
 import * as i0 from '@angular/core';
-import { ɵisPromise, InjectionToken, Inject, Optional, NgModule } from '@angular/core';
+import { ɵisPromise as _isPromise, InjectionToken, Inject, Optional, NgModule } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
-import { Location, PlatformLocation, LocationStrategy, APP_BASE_HREF, CommonModule, HashLocationStrategy, PathLocationStrategy } from '@angular/common';
 import { UpgradeModule } from '@angular/upgrade/static';
+import { Location, PlatformLocation, LocationStrategy, APP_BASE_HREF, PathLocationStrategy } from './location-BIEtBxGx.mjs';
+import { CommonModule, HashLocationStrategy } from './common_module-D4mHDfs1.mjs';
 
-function stripPrefix(val, prefix) {
-    return val.startsWith(prefix) ? val.substring(prefix.length) : val;
-}
 function deepEqual(a, b) {
     if (a === b) {
         return true;
@@ -72,6 +70,7 @@ class $locationShim {
     $$changeListeners = [];
     cachedState = null;
     urlChanges = new ReplaySubject(1);
+    removeOnUrlChangeFn;
     constructor($injector, location, platformLocation, urlCodec, locationStrategy) {
         this.location = location;
         this.platformLocation = platformLocation;
@@ -88,10 +87,10 @@ class $locationShim {
         this.$$parseLinkUrl(initialUrl, initialUrl);
         this.cacheState();
         this.$$state = this.browserState();
-        this.location.onUrlChange((newUrl, newState) => {
+        this.removeOnUrlChangeFn = this.location.onUrlChange((newUrl, newState) => {
             this.urlChanges.next({ newUrl, newState });
         });
-        if (ɵisPromise($injector)) {
+        if (_isPromise($injector)) {
             $injector.then(($i) => this.initialize($i));
         }
         else {
@@ -167,7 +166,10 @@ class $locationShim {
                 $rootScope.$digest();
             }
         });
-        // update browser
+        // Synchronize the browser's URL and state with the application.
+        // Note: There is no need to save the `$watch` return value (deregister listener)
+        // into a variable because `$scope.$$watchers` is automatically cleaned up when
+        // the root scope is destroyed.
         $rootScope.$watch(() => {
             if (this.initializing || this.updateBrowser) {
                 this.updateBrowser = false;
@@ -210,6 +212,14 @@ class $locationShim {
                 }
             }
             this.$$replace = false;
+        });
+        $rootScope.$on('$destroy', () => {
+            this.removeOnUrlChangeFn();
+            // Complete the subject to release all active observers when the root
+            // scope is destroyed. Before this change, we subscribed to the `urlChanges`
+            // subject, and the subscriber captured `this`, leading to a memory leak
+            // after the root scope was destroyed.
+            this.urlChanges.complete();
         });
     }
     resetBrowserUpdate() {
@@ -854,11 +864,11 @@ class LocationUpgradeModule {
             ],
         };
     }
-    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: LocationUpgradeModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
-    static ɵmod = i0.ɵɵngDeclareNgModule({ minVersion: "14.0.0", version: "19.1.6", ngImport: i0, type: LocationUpgradeModule, imports: [CommonModule] });
-    static ɵinj = i0.ɵɵngDeclareInjector({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: LocationUpgradeModule, imports: [CommonModule] });
+    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LocationUpgradeModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
+    static ɵmod = i0.ɵɵngDeclareNgModule({ minVersion: "14.0.0", version: "20.0.3", ngImport: i0, type: LocationUpgradeModule, imports: [CommonModule] });
+    static ɵinj = i0.ɵɵngDeclareInjector({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LocationUpgradeModule, imports: [CommonModule] });
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: LocationUpgradeModule, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LocationUpgradeModule, decorators: [{
             type: NgModule,
             args: [{ imports: [CommonModule] }]
         }] });
@@ -884,19 +894,6 @@ function provide$location(ngUpgrade, location, platformLocation, urlCodec, locat
     const $locationProvider = new $locationShimProvider(ngUpgrade, location, platformLocation, urlCodec, locationStrategy);
     return $locationProvider.$get();
 }
-
-/**
- * @module
- * @description
- * Entry point for all public APIs of this package.
- */
-// This file only reexports content of the `src` folder. Keep it that way.
-
-// This file is not used to build this module. It is only used during editing
-
-/**
- * Generated bundle index. Do not edit.
- */
 
 export { $locationShim, $locationShimProvider, AngularJSUrlCodec, LOCATION_UPGRADE_CONFIGURATION, LocationUpgradeModule, UrlCodec };
 //# sourceMappingURL=upgrade.mjs.map

@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { AbsoluteFsPath, PathManipulation } from '@angular/compiler-cli/private/localize';
-import { ɵParsedMessage } from '@angular/localize';
+import { ɵParsedMessage } from '../../../index';
 import { DiagnosticHandlingStrategy, Diagnostics } from '../diagnostics';
 /**
  * Check each of the given `messages` to find those that have the same id but different message

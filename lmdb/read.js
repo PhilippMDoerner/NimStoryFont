@@ -416,6 +416,7 @@ export function addReadMethods(
 		},
 
 		attemptLock(id, version, callback) {
+			if (!env.address) throw new Error('Can not operate on a closed database');
 			keyBytes.dataView.setUint32(0, this.db.dbi);
 			keyBytes.dataView.setFloat64(4, version);
 			let keySize = this.writeKey(id, keyBytes, 12);
@@ -423,6 +424,7 @@ export function addReadMethods(
 		},
 
 		unlock(id, version, onlyCheck) {
+			if (!env.address) throw new Error('Can not operate on a closed database');
 			keyBytes.dataView.setUint32(0, this.db.dbi);
 			keyBytes.dataView.setFloat64(4, version);
 			let keySize = this.writeKey(id, keyBytes, 12);
@@ -742,8 +744,8 @@ export function addReadMethods(
 								if (store.encoding === 'binary') bytes = Buffer.from(bytes);
 							} else {
 								bytes = compression ? compression.getValueBytes : getValueBytes;
+								store.lastSize = lastSize;
 								if (lastSize > bytes.maxLength) {
-									store.lastSize = lastSize;
 									asSafeBuffer = store.encoding === 'binary';
 									try {
 										bytes = store._returnLargeBuffer(() =>

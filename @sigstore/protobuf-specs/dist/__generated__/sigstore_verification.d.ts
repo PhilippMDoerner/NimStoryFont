@@ -1,6 +1,5 @@
-/// <reference types="node" />
 import { Bundle } from "./sigstore_bundle";
-import { ObjectIdentifierValuePair, PublicKey, SubjectAlternativeName } from "./sigstore_common";
+import { HashOutput, ObjectIdentifierValuePair, PublicKey, SubjectAlternativeName } from "./sigstore_common";
 import { TrustedRoot } from "./sigstore_trustroot";
 /** The identity of a X.509 Certificate signer. */
 export interface CertificateIdentity {
@@ -25,13 +24,30 @@ export interface PublicKeyIdentities {
  * used during verification of a single artifact.
  */
 export interface ArtifactVerificationOptions {
+    /**
+     * At least one identity MUST be provided. Providing zero identities
+     * is an error. If at least one provided identity is found as a
+     * signer, the verification is considered successful.
+     */
     signers?: {
         $case: "certificateIdentities";
         certificateIdentities: CertificateIdentities;
-    } | {
+    } | //
+    /**
+     * To simplify verification implementation, the logic for
+     * bundle verification should be implemented as a
+     * higher-order function, where one of argument should be an
+     * interface over the set of trusted public keys, like this:
+     * `Verify(bytes artifact, bytes signature, string key_id)`.
+     * This way the caller is in full control of mapping the
+     * identified (or hinted) key in the bundle to one of the
+     * trusted keys, as this process is inherently application
+     * specific.
+     */
+    {
         $case: "publicKeys";
         publicKeys: PublicKeyIdentities;
-    };
+    } | undefined;
     /**
      * Optional options for artifact transparency log verification.
      * If none is provided, the default verification options are:
@@ -111,13 +127,27 @@ export interface ArtifactVerificationOptions_ObserverTimestampOptions {
     disable: boolean;
 }
 export interface Artifact {
-    data?: {
+    data?: //
+    /** Location of the artifact */
+    {
         $case: "artifactUri";
         artifactUri: string;
-    } | {
+    } | //
+    /** The raw bytes of the artifact */
+    {
         $case: "artifact";
         artifact: Buffer;
-    };
+    } | //
+    /**
+     * Digest of the artifact. SHOULD NOT be used when verifying an
+     * in-toto attestation as the subject digest cannot be
+     * reconstructed. This option will not work with Ed25519
+     * signatures, use Ed25519Ph or another algorithm instead.
+     */
+    {
+        $case: "artifactDigest";
+        artifactDigest: HashOutput;
+    } | undefined;
 }
 /**
  * Input captures all that is needed to call the bundle verification method,
@@ -143,47 +173,19 @@ export interface Input {
      */
     artifact?: Artifact | undefined;
 }
-export declare const CertificateIdentity: {
-    fromJSON(object: any): CertificateIdentity;
-    toJSON(message: CertificateIdentity): unknown;
-};
-export declare const CertificateIdentities: {
-    fromJSON(object: any): CertificateIdentities;
-    toJSON(message: CertificateIdentities): unknown;
-};
-export declare const PublicKeyIdentities: {
-    fromJSON(object: any): PublicKeyIdentities;
-    toJSON(message: PublicKeyIdentities): unknown;
-};
-export declare const ArtifactVerificationOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions;
-    toJSON(message: ArtifactVerificationOptions): unknown;
-};
-export declare const ArtifactVerificationOptions_TlogOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions_TlogOptions;
-    toJSON(message: ArtifactVerificationOptions_TlogOptions): unknown;
-};
-export declare const ArtifactVerificationOptions_CtlogOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions_CtlogOptions;
-    toJSON(message: ArtifactVerificationOptions_CtlogOptions): unknown;
-};
-export declare const ArtifactVerificationOptions_TimestampAuthorityOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions_TimestampAuthorityOptions;
-    toJSON(message: ArtifactVerificationOptions_TimestampAuthorityOptions): unknown;
-};
-export declare const ArtifactVerificationOptions_TlogIntegratedTimestampOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions_TlogIntegratedTimestampOptions;
-    toJSON(message: ArtifactVerificationOptions_TlogIntegratedTimestampOptions): unknown;
-};
-export declare const ArtifactVerificationOptions_ObserverTimestampOptions: {
-    fromJSON(object: any): ArtifactVerificationOptions_ObserverTimestampOptions;
-    toJSON(message: ArtifactVerificationOptions_ObserverTimestampOptions): unknown;
-};
-export declare const Artifact: {
-    fromJSON(object: any): Artifact;
-    toJSON(message: Artifact): unknown;
-};
-export declare const Input: {
-    fromJSON(object: any): Input;
-    toJSON(message: Input): unknown;
-};
+export declare const CertificateIdentity: MessageFns<CertificateIdentity>;
+export declare const CertificateIdentities: MessageFns<CertificateIdentities>;
+export declare const PublicKeyIdentities: MessageFns<PublicKeyIdentities>;
+export declare const ArtifactVerificationOptions: MessageFns<ArtifactVerificationOptions>;
+export declare const ArtifactVerificationOptions_TlogOptions: MessageFns<ArtifactVerificationOptions_TlogOptions>;
+export declare const ArtifactVerificationOptions_CtlogOptions: MessageFns<ArtifactVerificationOptions_CtlogOptions>;
+export declare const ArtifactVerificationOptions_TimestampAuthorityOptions: MessageFns<ArtifactVerificationOptions_TimestampAuthorityOptions>;
+export declare const ArtifactVerificationOptions_TlogIntegratedTimestampOptions: MessageFns<ArtifactVerificationOptions_TlogIntegratedTimestampOptions>;
+export declare const ArtifactVerificationOptions_ObserverTimestampOptions: MessageFns<ArtifactVerificationOptions_ObserverTimestampOptions>;
+export declare const Artifact: MessageFns<Artifact>;
+export declare const Input: MessageFns<Input>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

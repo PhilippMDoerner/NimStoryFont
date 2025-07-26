@@ -8,11 +8,11 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { shareReplay, switchMap, take } from 'rxjs';
+import { map, shareReplay, switchMap, take } from 'rxjs';
 import { Rule, RuleRaw } from 'src/app/_models/rule';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { RuleService } from 'src/app/_services/article/rule.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem, sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
@@ -55,7 +55,9 @@ export const RulesPageStore = signalStore(
         campaignName$.pipe(
           take(1),
           switchMap((campaignName) =>
-            ruleService.campaignDetailList(campaignName),
+            ruleService
+              .campaignDetailList(campaignName)
+              .pipe(map((rules) => sortByProp(rules, 'name'))),
           ),
         ),
     };

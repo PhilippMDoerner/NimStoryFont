@@ -1,5 +1,5 @@
 import { AbstractControl, ValidationErrors } from '@angular/forms';
-import { ValidatorOption } from '@ngx-formly/core/lib/models';
+import { ValidatorOption } from 'node_modules/@ngx-formly/core/lib/models';
 /***
  * This is how Validators work:
  * 1) You have a validation function. That takes in a control:Formcontrol and returns ValidationErrors (when sync)
@@ -55,8 +55,8 @@ export const fieldsDontMatchMessage = {
 export const sessionAlreadyHasAuthor = {
   name: 'isInvalidSessionAuthorPair',
   message: `
-    The author you selected already has a diaryentry in the session you selected. You 
-    can't have 2 diaryentries from the same author in the same session. Consider writing 
+    The author you selected already has a diaryentry in the session you selected. You
+    can't have 2 diaryentries from the same author in the same session. Consider writing
     your diaryentry as an encounter instead into the diaryentry at the spot you just considered.`,
 };
 

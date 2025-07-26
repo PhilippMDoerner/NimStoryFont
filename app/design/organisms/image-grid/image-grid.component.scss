@@ -4,6 +4,10 @@
 
 .container-fluid {
   height: var(--image-height);
+
+  &--empty {
+    padding: 0;
+  }
 }
 
 .image-grid {
@@ -73,4 +77,13 @@
     width: var(--spacer-5);
     border-radius: var(--bs-border-radius);
   }
+}
+
+.frame-text {
+  bottom: 5%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  background-color: var(--bs-dark);
+  padding: var(--spacer-2) var(--spacer-4);
+  border-radius: var(--bs-border-radius);
 }

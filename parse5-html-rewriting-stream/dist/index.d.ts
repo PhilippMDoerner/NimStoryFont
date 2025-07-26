@@ -87,4 +87,3 @@ export interface RewritingStream {
      */
     on(event: string, handler: (...args: any[]) => void): this;
 }
-//# sourceMappingURL=index.d.ts.map

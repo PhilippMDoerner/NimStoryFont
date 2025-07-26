@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -11,8 +11,8 @@ import { getAugmentedNamespace, fseventsImporter, getDefaultExportFromCjs, creat
 import path from 'node:path';
 import process$1 from 'node:process';
 import require$$0$1 from 'path';
-import require$$0$2 from 'fs';
 import require$$2 from 'util';
+import require$$0$2 from 'fs';
 import require$$1 from 'stream';
 import require$$2$1 from 'os';
 import require$$0$3 from 'events';
@@ -1558,7 +1558,7 @@ function requireParse$2 () {
 	      }
 
 	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
-	        const end = rest[1] !== undefined ? '|$' : '';
+	        const end = rest[1] !== void 0 ? '|$' : '';
 
 	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
 	        prior.output = `(?:${prior.output}`;
@@ -3969,7 +3969,7 @@ function requireParse$1 () {
 	      }
 
 	      if (prior.type === 'slash' && prior.prev.type !== 'bos' && rest[0] === '/') {
-	        const end = rest[1] !== undefined ? '|$' : '';
+	        const end = rest[1] !== void 0 ? '|$' : '';
 
 	        state.output = state.output.slice(0, -(prior.output + prev.output).length);
 	        prior.output = `(?:${prior.output}`;
@@ -5163,7 +5163,7 @@ function requireToRegexRange () {
 	    throw new TypeError('toRegexRange: expected the first argument to be a number');
 	  }
 
-	  if (max === undefined || min === max) {
+	  if (max === void 0 || min === max) {
 	    return String(min);
 	  }
 
@@ -5235,9 +5235,9 @@ function requireToRegexRange () {
 	};
 
 	function collatePatterns(neg, pos, options) {
-	  let onlyNegative = filterPatterns(neg, pos, '-', false);
-	  let onlyPositive = filterPatterns(pos, neg, '', false);
-	  let intersected = filterPatterns(neg, pos, '-?', true);
+	  let onlyNegative = filterPatterns(neg, pos, '-', false) || [];
+	  let onlyPositive = filterPatterns(pos, neg, '', false) || [];
+	  let intersected = filterPatterns(neg, pos, '-?', true) || [];
 	  let subpatterns = onlyNegative.concat(intersected).concat(onlyPositive);
 	  return subpatterns.join('|');
 	}
@@ -9183,10 +9183,10 @@ class Task {
                 return path.resolve(output.file || output.dir);
             return undefined;
         });
-        const watchOptions = this.options.watch || {};
-        this.filter = createFilter(watchOptions.include, watchOptions.exclude);
+        this.watchOptions = this.options.watch || {};
+        this.filter = createFilter(this.watchOptions.include, this.watchOptions.exclude);
         this.fileWatcher = new FileWatcher(this, {
-            ...watchOptions.chokidar,
+            ...this.watchOptions.chokidar,
             disableGlobbing: true,
             ignoreInitial: true
         });
@@ -9206,6 +9206,7 @@ class Task {
             }
         }
         this.watcher.invalidate({ event: details.event, id });
+        this.watchOptions.onInvalidate?.(id);
     }
     async run() {
         if (!this.invalidated)

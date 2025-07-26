@@ -13,6 +13,10 @@ type CheckboxTheme = {
     };
     helpMode: 'always' | 'never' | 'auto';
 };
+type CheckboxShortcuts = {
+    all?: string | null;
+    invert?: string | null;
+};
 type Choice<Value> = {
     value: Value;
     name?: string;
@@ -34,12 +38,13 @@ declare const _default: <Value>(config: {
     message: string;
     prefix?: string | undefined;
     pageSize?: number | undefined;
-    instructions?: (string | boolean) | undefined;
+    instructions?: string | boolean | undefined;
     choices: readonly (string | Separator)[] | readonly (Separator | Choice<Value>)[];
     loop?: boolean | undefined;
     required?: boolean | undefined;
     validate?: ((choices: readonly Choice<Value>[]) => boolean | string | Promise<string | boolean>) | undefined;
     theme?: PartialDeep<Theme<CheckboxTheme>> | undefined;
+    shortcuts?: CheckboxShortcuts | undefined;
 }, context?: import("@inquirer/type").Context) => Promise<Value[]> & {
     cancel: () => void;
 };

@@ -4,20 +4,19 @@
     
 import {
   DynamicValue,
+  ImportManager,
   PartialEvaluator,
   PotentialImportKind,
   PotentialImportMode,
-  StaticInterpreter,
-  forwardRefResolver
-} from "../chunk-K3P5YJTN.js";
-import {
-  ImportManager,
   Reference,
+  StaticInterpreter,
   TypeScriptReflectionHost,
+  createForwardRefResolver,
   reflectObjectLiteral
-} from "../chunk-WKHF7UQD.js";
-import "../chunk-I6R3GL3L.js";
-import "../chunk-STORTTKY.js";
+} from "../chunk-NPUFVONQ.js";
+import "../chunk-M3WWDK6S.js";
+import "../chunk-3AHGFMNS.js";
+import "../chunk-U5SKOFKE.js";
 import "../chunk-KPQ72R34.js";
 export {
   DynamicValue,
@@ -28,7 +27,7 @@ export {
   Reference,
   StaticInterpreter,
   TypeScriptReflectionHost,
-  forwardRefResolver,
+  createForwardRefResolver,
   reflectObjectLiteral
 };
 /**

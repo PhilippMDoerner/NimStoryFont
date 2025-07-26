@@ -1,59 +1,30 @@
 <div class="container-fluid">
-  @if (entries() != null) {
-    @if (entries().length > 0) {
-      <ul class="row image-grid">
-        @for (entry of entries(); track $index) {
-          <li
-            class="image-grid__container"
-            [ngClass]="{
-              'col-lg-12': columnCount() === 1,
-              'col-sm-6': columnCount() === 2,
-              'col-md-6 col-lg-4': columnCount() === 3,
-            }"
-          >
-            <a
-              class="image-grid__entry entry"
-              [style.background-image]="'url(' + entry.imageUrl + ')'"
-              [routerLink]="entry.link"
-              [attr.aria-label]="entry.ariaLabel"
-            >
-              <div class="entry__overlay">
-                <div class="fs-4 entry__heading heading">
-                  @if (entry.icon) {
-                    <img class="heading__icon" [src]="entry.icon" [alt]="''" />
-                  }
-                  {{ entry.label }}
-                </div>
-              </div>
-            </a>
-          </li>
-        }
-      </ul>
-    } @else {
-      <ng-container *ngTemplateOutlet="noEntries" />
+  <ul class="row image-grid">
+    @for (entry of entries(); track $index) {
+      <li
+        class="image-grid__container"
+        [ngClass]="{
+          'col-lg-12': columnCount() === 1,
+          'col-sm-6': columnCount() === 2,
+          'col-md-6 col-lg-4': columnCount() === 3,
+        }"
+      >
+        <a
+          class="image-grid__entry entry"
+          [style.background-image]="'url(' + entry.imageUrl + ')'"
+          [routerLink]="entry.link"
+          [attr.aria-label]="entry.ariaLabel"
+        >
+          <div class="entry__overlay">
+            <div class="fs-4 entry__heading heading">
+              @if (entry.icon) {
+                <img class="heading__icon" [src]="entry.icon" [alt]="''" />
+              }
+              {{ entry.label }}
+            </div>
+          </div>
+        </a>
+      </li>
     }
-  } @else {
-    <ng-container *ngTemplateOutlet="loading" />
-  }
+  </ul>
 </div>
-
-<ng-template #loading> </ng-template>
-
-<ng-template #noEntries>
-  <div class="w-100 h-100 position-relative d-flex justify-content-center">
-    <img
-      class="w-100 h-100"
-      [ngSrc]="EMPTY_IMAGE_URL"
-      alt="Image of a red dragon frame"
-      priority
-      fill
-    />
-    <div class="position-absolute frame-text">
-      <h4 class="mb-1">You have not yet been invited into any campaign.</h4>
-      <div>
-        Please inform your DM or the person within your group administrating the
-        webserver to add you to the required permission group.
-      </div>
-    </div>
-  </div>
-</ng-template>

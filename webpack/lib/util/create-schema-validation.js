@@ -14,18 +14,18 @@ const getValidate = memoize(() => require("schema-utils").validate);
 
 /**
  * @template {object | object[]} T
- * @param {(function(T): boolean) | undefined} check check
+ * @param {((value: T) => boolean) | undefined} check check
  * @param {() => JsonObject} getSchema get schema fn
  * @param {ValidationErrorConfiguration} options options
- * @returns {function(T=): void} validate
+ * @returns {(value?: T) => void} validate
  */
 const createSchemaValidation = (check, getSchema, options) => {
 	getSchema = memoize(getSchema);
 	return value => {
-		if (check && !check(/** @type {T} */ (value))) {
+		if (check && value && !check(value)) {
 			getValidate()(
 				getSchema(),
-				/** @type {object | object[]} */
+				/** @type {EXPECTED_OBJECT | EXPECTED_OBJECT[]} */
 				(value),
 				options
 			);

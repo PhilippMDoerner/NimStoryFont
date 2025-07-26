@@ -13,7 +13,7 @@ import { Resource } from '../../../metadata';
 import { PartialEvaluator } from '../../../partial_evaluator';
 import { ClassDeclaration, DeclarationNode, Decorator } from '../../../reflection';
 import { CompilationMode } from '../../../transform';
-import { TemplateSourceMapping } from '../../../typecheck/api';
+import { SourceMapping } from '../../../typecheck/api';
 import { ResourceLoader } from '../../common';
 /**
  * The literal style url extracted from the decorator, along with metadata for diagnostics.
@@ -58,7 +58,7 @@ export interface ParsedComponentTemplate extends ParsedTemplate {
 export interface ParsedTemplateWithSource extends ParsedComponentTemplate {
     /** The string contents of the template. */
     content: string;
-    sourceMapping: TemplateSourceMapping;
+    sourceMapping: SourceMapping;
     declaration: TemplateDeclaration;
 }
 /**
@@ -101,9 +101,11 @@ export interface ExtractTemplateOptions {
     i18nNormalizeLineEndingsInICUs: boolean;
     enableBlockSyntax: boolean;
     enableLetSyntax: boolean;
+    enableSelectorless: boolean;
     preserveSignificantWhitespace?: boolean;
 }
 export declare function extractTemplate(node: ClassDeclaration, template: TemplateDeclaration, evaluator: PartialEvaluator, depTracker: DependencyTracker | null, resourceLoader: ResourceLoader, options: ExtractTemplateOptions, compilationMode: CompilationMode): ParsedTemplateWithSource;
+export declare function createEmptyTemplate(componentClass: ClassDeclaration, component: Map<string, ts.Expression>, containingFile: string): ParsedTemplateWithSource;
 export declare function parseTemplateDeclaration(node: ClassDeclaration, decorator: Decorator, component: Map<string, ts.Expression>, containingFile: string, evaluator: PartialEvaluator, depTracker: DependencyTracker | null, resourceLoader: ResourceLoader, defaultPreserveWhitespaces: boolean): TemplateDeclaration;
 export declare function preloadAndParseTemplate(evaluator: PartialEvaluator, resourceLoader: ResourceLoader, depTracker: DependencyTracker | null, preanalyzeTemplateCache: Map<DeclarationNode, ParsedTemplateWithSource>, node: ClassDeclaration, decorator: Decorator, component: Map<string, ts.Expression>, containingFile: string, defaultPreserveWhitespaces: boolean, options: ExtractTemplateOptions, compilationMode: CompilationMode): Promise<ParsedTemplateWithSource | null>;
 export declare function makeResourceNotFoundError(file: string, nodeForError: ts.Node, resourceType: ResourceTypeForDiagnostics): FatalDiagnosticError;

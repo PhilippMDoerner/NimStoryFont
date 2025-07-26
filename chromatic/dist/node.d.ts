@@ -1305,6 +1305,7 @@ interface Logger {
     setInteractive: (value: boolean) => void;
     setLogFile: (path: string | undefined) => void;
 }
+declare const createLogger: (flags?: Flags, options?: Partial<Options>) => Logger;
 
 type FilePath = string;
 interface Flags {
@@ -1428,7 +1429,7 @@ interface Options extends Configuration {
     env?: Environment;
     skipUpdateCheck: Flags['skipUpdateCheck'];
 }
-type TaskName = 'auth' | 'gitInfo' | 'storybookInfo' | 'initialize' | 'build' | 'upload' | 'verify' | 'snapshot' | 'report' | 'prepareWorkspace' | 'restoreWorkspace';
+type TaskName = 'auth' | 'gitInfo' | 'storybookInfo' | 'initialize' | 'build' | 'prepare' | 'upload' | 'verify' | 'snapshot' | 'report' | 'prepareWorkspace' | 'restoreWorkspace';
 interface Context {
     env: Environment;
     log: Logger;
@@ -1480,6 +1481,8 @@ interface Context {
     client: GraphQLClient;
     git: {
         version?: string;
+        /** The absolute location on disk of the git project */
+        rootPath?: string;
         /** The current user's email as pre git config */
         gitUserEmail?: string;
         branch: string;
@@ -1504,6 +1507,7 @@ interface Context {
     };
     storybook: {
         version: string;
+        baseDir?: string;
         configDir: string;
         staticDir: string[];
         viewLayer: string;
@@ -1518,6 +1522,13 @@ interface Context {
             packageVersion?: string;
         };
         mainConfigFilePath?: string;
+    };
+    projectMetadata: {
+        hasRouter?: boolean;
+        creationDate?: Date;
+        storybookCreationDate?: Date;
+        numberOfCommitters?: number;
+        numberOfAppFiles?: number;
     };
     storybookUrl?: string;
     announcedBuild: {
@@ -1546,6 +1557,7 @@ interface Context {
         testCount: number;
         changeCount: number;
         errorCount: number;
+        accessibilityChangeCount: number;
         interactionTestFailuresCount: number;
         inProgressCount?: number;
         autoAcceptChanges: boolean;
@@ -1592,6 +1604,15 @@ interface Context {
         status: string;
         webUrl: string;
         storybookUrl: string;
+        specCount: number;
+        componentCount: number;
+        testCount: number;
+        changeCount: number;
+        errorCount: number;
+        actualTestCount: number;
+        actualCaptureCount: number;
+        inheritedCaptureCount: number;
+        interactionTestFailuresCount: number;
     };
     sourceDir: string;
     buildCommand?: string;
@@ -1701,8 +1722,10 @@ interface GitInfo {
  * Although this function may not be used directly in this project, it can be used externally (such
  * as https://github.com/chromaui/addon-visual-tests).
  *
+ * @param ctx The context set when executing the CLI.
+ *
  * @returns Any git information we were able to gather.
  */
-declare function getGitInfo(): Promise<GitInfo>;
+declare function getGitInfo(ctx: Pick<Context, 'log'>): Promise<GitInfo>;
 
-export { Configuration, Context, Flags, GitInfo, InitialContext, Logger, Options, TaskName, getConfiguration, getGitInfo, run, runAll };
+export { Configuration, Context, Flags, GitInfo, InitialContext, Logger, Options, TaskName, createLogger, getConfiguration, getGitInfo, run, runAll };

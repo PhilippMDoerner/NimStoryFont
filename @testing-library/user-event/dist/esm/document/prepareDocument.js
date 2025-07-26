@@ -1,12 +1,6 @@
 import { dispatchDOMEvent } from '../event/dispatchEvent.js';
-import '../utils/click/isClickableInput.js';
-import '../utils/dataTransfer/Clipboard.js';
-import '../utils/edit/isEditable.js';
-import '../utils/edit/maxLength.js';
 import { isElementType } from '../utils/misc/isElementType.js';
-import '../utils/keyDef/readNextDescriptor.js';
-import '../utils/misc/level.js';
-import '../options.js';
+import '../utils/dataTransfer/Clipboard.js';
 import { getInitialValue, clearInitialValue } from './UI.js';
 import '@testing-library/dom';
 import { prepareValueInterceptor, prepareSelectionInterceptor, prepareRangeTextInterceptor } from './interceptor.js';

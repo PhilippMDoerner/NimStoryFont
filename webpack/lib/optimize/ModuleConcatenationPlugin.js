@@ -8,6 +8,7 @@
 const asyncLib = require("neo-async");
 const ChunkGraph = require("../ChunkGraph");
 const ModuleGraph = require("../ModuleGraph");
+const { JS_TYPE } = require("../ModuleSourceTypesConstants");
 const { STAGE_DEFAULT } = require("../OptimizationStages");
 const HarmonyImportDependency = require("../dependencies/HarmonyImportDependency");
 const { compareModulesByIdentifier } = require("../util/comparators");
@@ -47,6 +48,8 @@ const ConcatenatedModule = require("./ConcatenatedModule");
  */
 const formatBailoutReason = msg => `ModuleConcatenation bailout: ${msg}`;
 
+const PLUGIN_NAME = "ModuleConcatenationPlugin";
+
 class ModuleConcatenationPlugin {
 	/**
 	 * Apply the plugin
@@ -55,7 +58,7 @@ class ModuleConcatenationPlugin {
 	 */
 	apply(compiler) {
 		const { _backCompat: backCompat } = compiler;
-		compiler.hooks.compilation.tap("ModuleConcatenationPlugin", compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 			if (compilation.moduleMemCaches) {
 				throw new Error(
 					"optimization.concatenateModules can't be used with cacheUnaffected as module concatenation is a global effect"
@@ -101,7 +104,7 @@ class ModuleConcatenationPlugin {
 
 			/**
 			 * @param {Module} module the module
-			 * @param {Module | function(RequestShortener): string} problem the problem
+			 * @param {Module | ((requestShortener: RequestShortener) => string)} problem the problem
 			 * @returns {(requestShortener: RequestShortener) => string} the reason
 			 */
 			const formatBailoutWarning = (module, problem) => requestShortener => {
@@ -132,7 +135,7 @@ class ModuleConcatenationPlugin {
 
 			compilation.hooks.optimizeChunkModules.tapAsync(
 				{
-					name: "ModuleConcatenationPlugin",
+					name: PLUGIN_NAME,
 					stage: STAGE_DEFAULT
 				},
 				(allChunks, modules, callback) => {
@@ -395,9 +398,9 @@ class ModuleConcatenationPlugin {
 								newModule.build(
 									compiler.options,
 									compilation,
-									/** @type {TODO} */
+									/** @type {EXPECTED_ANY} */
 									(null),
-									/** @type {TODO} */
+									/** @type {EXPECTED_ANY} */
 									(null),
 									err => {
 										if (err) {
@@ -452,7 +455,7 @@ class ModuleConcatenationPlugin {
 												chunkGraph.disconnectChunkAndModule(chunk, m);
 											} else {
 												const newSourceTypes = new Set(sourceTypes);
-												newSourceTypes.delete("javascript");
+												newSourceTypes.delete(JS_TYPE);
 												chunkGraph.setChunkModuleSourceTypes(
 													chunk,
 													m,
@@ -543,11 +546,11 @@ class ModuleConcatenationPlugin {
 	 * @param {RuntimeSpec} activeRuntime the runtime scope of the root module
 	 * @param {Set<Module>} possibleModules modules that are candidates
 	 * @param {Set<Module>} candidates list of potential candidates (will be added to)
-	 * @param {Map<Module, Module | function(RequestShortener): string>} failureCache cache for problematic modules to be more performant
+	 * @param {Map<Module, Module | ((requestShortener: RequestShortener) => string)>} failureCache cache for problematic modules to be more performant
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @param {boolean} avoidMutateOnFailure avoid mutating the config when adding fails
 	 * @param {Statistics} statistics gathering metrics
-	 * @returns {null | Module | function(RequestShortener): string} the problematic module
+	 * @returns {null | Module | ((requestShortener: RequestShortener) => string)} the problematic module
 	 */
 	_tryToAdd(
 		compilation,
@@ -846,6 +849,8 @@ class ModuleConcatenationPlugin {
 	}
 }
 
+/** @typedef {Module | ((requestShortener: RequestShortener) => string)} Problem */
+
 class ConcatConfiguration {
 	/**
 	 * @param {Module} rootModule the root module
@@ -857,7 +862,7 @@ class ConcatConfiguration {
 		/** @type {Set<Module>} */
 		this.modules = new Set();
 		this.modules.add(rootModule);
-		/** @type {Map<Module, Module | function(RequestShortener): string>} */
+		/** @type {Map<Module, Problem>} */
 		this.warnings = new Map();
 	}
 
@@ -882,14 +887,14 @@ class ConcatConfiguration {
 
 	/**
 	 * @param {Module} module the module
-	 * @param {Module | function(RequestShortener): string} problem the problem
+	 * @param {Problem} problem the problem
 	 */
 	addWarning(module, problem) {
 		this.warnings.set(module, problem);
 	}
 
 	/**
-	 * @returns {Map<Module, Module | function(RequestShortener): string>} warnings
+	 * @returns {Map<Module, Problem>} warnings
 	 */
 	getWarningsSorted() {
 		return new Map(

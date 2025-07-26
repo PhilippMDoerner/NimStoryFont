@@ -1,5 +1,11 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Image } from 'src/app/_models/image';
 import { Organization, OrganizationMember } from 'src/app/_models/organization';
@@ -28,6 +34,7 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
     BadgeListComponent,
     ArticleContextMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationComponent {
   organization = input.required<Organization>();

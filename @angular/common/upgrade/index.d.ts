@@ -1,18 +1,135 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
-import * as i0 from '@angular/core';
-import * as i1 from '@angular/common';
-import { InjectionToken } from '@angular/core';
-import { Location as Location_2 } from '@angular/common';
-import { LocationStrategy } from '@angular/common';
-import { ModuleWithProviders } from '@angular/core';
-import { PlatformLocation } from '@angular/common';
+import { Location, LocationStrategy, CommonModule } from '../common_module.d-Cpp8wYHt.js';
+import { PlatformLocation } from '../platform_location.d-Lbv6Ueec.js';
 import { UpgradeModule } from '@angular/upgrade/static';
+import * as i0 from '@angular/core';
+import { InjectionToken, ModuleWithProviders } from '@angular/core';
+import 'rxjs';
+
+/**
+ * A codec for encoding and decoding URL parts.
+ *
+ * @publicApi
+ **/
+declare abstract class UrlCodec {
+    /**
+     * Encodes the path from the provided string
+     *
+     * @param path The path string
+     */
+    abstract encodePath(path: string): string;
+    /**
+     * Decodes the path from the provided string
+     *
+     * @param path The path string
+     */
+    abstract decodePath(path: string): string;
+    /**
+     * Encodes the search string from the provided string or object
+     *
+     * @param path The path string or object
+     */
+    abstract encodeSearch(search: string | {
+        [k: string]: unknown;
+    }): string;
+    /**
+     * Decodes the search objects from the provided string
+     *
+     * @param path The path string
+     */
+    abstract decodeSearch(search: string): {
+        [k: string]: unknown;
+    };
+    /**
+     * Encodes the hash from the provided string
+     *
+     * @param path The hash string
+     */
+    abstract encodeHash(hash: string): string;
+    /**
+     * Decodes the hash from the provided string
+     *
+     * @param path The hash string
+     */
+    abstract decodeHash(hash: string): string;
+    /**
+     * Normalizes the URL from the provided string
+     *
+     * @param path The URL string
+     */
+    abstract normalize(href: string): string;
+    /**
+     * Normalizes the URL from the provided string, search, hash, and base URL parameters
+     *
+     * @param path The URL path
+     * @param search The search object
+     * @param hash The has string
+     * @param baseUrl The base URL for the URL
+     */
+    abstract normalize(path: string, search: {
+        [k: string]: unknown;
+    }, hash: string, baseUrl?: string): string;
+    /**
+     * Checks whether the two strings are equal
+     * @param valA First string for comparison
+     * @param valB Second string for comparison
+     */
+    abstract areEqual(valA: string, valB: string): boolean;
+    /**
+     * Parses the URL string based on the base URL
+     *
+     * @param url The full URL string
+     * @param base The base for the URL
+     */
+    abstract parse(url: string, base?: string): {
+        href: string;
+        protocol: string;
+        host: string;
+        search: string;
+        hash: string;
+        hostname: string;
+        port: string;
+        pathname: string;
+    };
+}
+/**
+ * A `UrlCodec` that uses logic from AngularJS to serialize and parse URLs
+ * and URL parameters.
+ *
+ * @publicApi
+ */
+declare class AngularJSUrlCodec implements UrlCodec {
+    encodePath(path: string): string;
+    encodeSearch(search: string | {
+        [k: string]: unknown;
+    }): string;
+    encodeHash(hash: string): string;
+    decodePath(path: string, html5Mode?: boolean): string;
+    decodeSearch(search: string): {
+        [k: string]: unknown;
+    };
+    decodeHash(hash: string): string;
+    normalize(href: string): string;
+    normalize(path: string, search: {
+        [k: string]: unknown;
+    }, hash: string, baseUrl?: string): string;
+    areEqual(valA: string, valB: string): boolean;
+    parse(url: string, base?: string): {
+        href: string;
+        protocol: string;
+        host: string;
+        search: string;
+        hash: string;
+        hostname: string;
+        port: string;
+        pathname: string;
+    };
+}
 
 /**
  * Location service that provides a drop-in replacement for the $location service
@@ -22,7 +139,7 @@ import { UpgradeModule } from '@angular/upgrade/static';
  *
  * @publicApi
  */
-export declare class $locationShim {
+declare class $locationShim {
     private location;
     private platformLocation;
     private urlCodec;
@@ -42,7 +159,8 @@ export declare class $locationShim {
     private $$changeListeners;
     private cachedState;
     private urlChanges;
-    constructor($injector: any, location: Location_2, platformLocation: PlatformLocation, urlCodec: UrlCodec, locationStrategy: LocationStrategy);
+    private readonly removeOnUrlChangeFn;
+    constructor($injector: any, location: Location, platformLocation: PlatformLocation, urlCodec: UrlCodec, locationStrategy: LocationStrategy);
     private initialize;
     private resetBrowserUpdate;
     private lastHistoryState;
@@ -245,20 +363,19 @@ export declare class $locationShim {
     state(): unknown;
     state(state: unknown): this;
 }
-
 /**
  * The factory function used to create an instance of the `$locationShim` in Angular,
  * and provides an API-compatible `$locationProvider` for AngularJS.
  *
  * @publicApi
  */
-export declare class $locationShimProvider {
+declare class $locationShimProvider {
     private ngUpgrade;
     private location;
     private platformLocation;
     private urlCodec;
     private locationStrategy;
-    constructor(ngUpgrade: UpgradeModule, location: Location_2, platformLocation: PlatformLocation, urlCodec: UrlCodec, locationStrategy: LocationStrategy);
+    constructor(ngUpgrade: UpgradeModule, location: Location, platformLocation: PlatformLocation, urlCodec: UrlCodec, locationStrategy: LocationStrategy);
     /**
      * Factory method that returns an instance of the $locationShim
      */
@@ -276,52 +393,11 @@ export declare class $locationShimProvider {
 }
 
 /**
- * A `UrlCodec` that uses logic from AngularJS to serialize and parse URLs
- * and URL parameters.
- *
- * @publicApi
- */
-export declare class AngularJSUrlCodec implements UrlCodec {
-    encodePath(path: string): string;
-    encodeSearch(search: string | {
-        [k: string]: unknown;
-    }): string;
-    encodeHash(hash: string): string;
-    decodePath(path: string, html5Mode?: boolean): string;
-    decodeSearch(search: string): {
-        [k: string]: unknown;
-    };
-    decodeHash(hash: string): string;
-    normalize(href: string): string;
-    normalize(path: string, search: {
-        [k: string]: unknown;
-    }, hash: string, baseUrl?: string): string;
-    areEqual(valA: string, valB: string): boolean;
-    parse(url: string, base?: string): {
-        href: string;
-        protocol: string;
-        host: string;
-        search: string;
-        hash: string;
-        hostname: string;
-        port: string;
-        pathname: string;
-    };
-}
-
-/**
- * A provider token used to configure the location upgrade module.
- *
- * @publicApi
- */
-export declare const LOCATION_UPGRADE_CONFIGURATION: InjectionToken<LocationUpgradeConfig>;
-
-/**
  * Configuration options for LocationUpgrade.
  *
  * @publicApi
  */
-export declare interface LocationUpgradeConfig {
+interface LocationUpgradeConfig {
     /**
      * Configures whether the location upgrade module should use the `HashLocationStrategy`
      * or the `PathLocationStrategy`
@@ -344,7 +420,12 @@ export declare interface LocationUpgradeConfig {
      */
     appBaseHref?: string;
 }
-
+/**
+ * A provider token used to configure the location upgrade module.
+ *
+ * @publicApi
+ */
+declare const LOCATION_UPGRADE_CONFIGURATION: InjectionToken<LocationUpgradeConfig>;
 /**
  * `NgModule` used for providing and configuring Angular's Unified Location Service for upgrading.
  *
@@ -352,99 +433,12 @@ export declare interface LocationUpgradeConfig {
  *
  * @publicApi
  */
-export declare class LocationUpgradeModule {
+declare class LocationUpgradeModule {
     static config(config?: LocationUpgradeConfig): ModuleWithProviders<LocationUpgradeModule>;
     static ɵfac: i0.ɵɵFactoryDeclaration<LocationUpgradeModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDeclaration<LocationUpgradeModule, never, [typeof i1.CommonModule], never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<LocationUpgradeModule, never, [typeof CommonModule], never>;
     static ɵinj: i0.ɵɵInjectorDeclaration<LocationUpgradeModule>;
 }
 
-
-/**
- * A codec for encoding and decoding URL parts.
- *
- * @publicApi
- **/
-export declare abstract class UrlCodec {
-    /**
-     * Encodes the path from the provided string
-     *
-     * @param path The path string
-     */
-    abstract encodePath(path: string): string;
-    /**
-     * Decodes the path from the provided string
-     *
-     * @param path The path string
-     */
-    abstract decodePath(path: string): string;
-    /**
-     * Encodes the search string from the provided string or object
-     *
-     * @param path The path string or object
-     */
-    abstract encodeSearch(search: string | {
-        [k: string]: unknown;
-    }): string;
-    /**
-     * Decodes the search objects from the provided string
-     *
-     * @param path The path string
-     */
-    abstract decodeSearch(search: string): {
-        [k: string]: unknown;
-    };
-    /**
-     * Encodes the hash from the provided string
-     *
-     * @param path The hash string
-     */
-    abstract encodeHash(hash: string): string;
-    /**
-     * Decodes the hash from the provided string
-     *
-     * @param path The hash string
-     */
-    abstract decodeHash(hash: string): string;
-    /**
-     * Normalizes the URL from the provided string
-     *
-     * @param path The URL string
-     */
-    abstract normalize(href: string): string;
-    /**
-     * Normalizes the URL from the provided string, search, hash, and base URL parameters
-     *
-     * @param path The URL path
-     * @param search The search object
-     * @param hash The has string
-     * @param baseUrl The base URL for the URL
-     */
-    abstract normalize(path: string, search: {
-        [k: string]: unknown;
-    }, hash: string, baseUrl?: string): string;
-    /**
-     * Checks whether the two strings are equal
-     * @param valA First string for comparison
-     * @param valB Second string for comparison
-     */
-    abstract areEqual(valA: string, valB: string): boolean;
-    /**
-     * Parses the URL string based on the base URL
-     *
-     * @param url The full URL string
-     * @param base The base for the URL
-     */
-    abstract parse(url: string, base?: string): {
-        href: string;
-        protocol: string;
-        host: string;
-        search: string;
-        hash: string;
-        hostname: string;
-        port: string;
-        pathname: string;
-    };
-}
-
-export { }
+export { $locationShim, $locationShimProvider, AngularJSUrlCodec, LOCATION_UPGRADE_CONFIGURATION, LocationUpgradeModule, UrlCodec };
+export type { LocationUpgradeConfig };

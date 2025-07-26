@@ -86,17 +86,18 @@ const BasicEvaluatedExpression = require("./BasicEvaluatedExpression");
 /** @typedef {import("estree").TaggedTemplateExpression} TaggedTemplateExpression */
 /** @typedef {import("estree").TemplateLiteral} TemplateLiteral */
 /** @typedef {import("estree").AssignmentProperty} AssignmentProperty */
+/** @typedef {import("estree").MaybeNamedFunctionDeclaration} MaybeNamedFunctionDeclaration */
+/** @typedef {import("estree").MaybeNamedClassDeclaration} MaybeNamedClassDeclaration */
 /**
  * @template T
  * @typedef {import("tapable").AsArray<T>} AsArray<T>
  */
 /** @typedef {import("../Parser").ParserState} ParserState */
 /** @typedef {import("../Parser").PreparsedAst} PreparsedAst */
-/** @typedef {{declaredScope: ScopeInfo, freeName: string | true | undefined, tagInfo: TagInfo | undefined}} VariableInfoInterface */
 /** @typedef {{ name: string | VariableInfo, rootInfo: string | VariableInfo, getMembers: () => string[], getMembersOptionals: () => boolean[], getMemberRanges: () => Range[] }} GetInfoResult */
-/** @typedef {Statement | ModuleDeclaration | Expression} StatementPathItem */
-/** @typedef {function(string): void} OnIdentString */
-/** @typedef {function(string, Identifier): void} OnIdent */
+/** @typedef {Statement | ModuleDeclaration | Expression | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} StatementPathItem */
+/** @typedef {(ident: string) => void} OnIdentString */
+/** @typedef {(ident: string, identifier: Identifier) => void} OnIdent */
 /** @typedef {StatementPathItem[]} StatementPath */
 
 // TODO remove cast when @types/estree has been updated to import assertions
@@ -115,66 +116,68 @@ const ALLOWED_MEMBER_TYPES_ALL = 0b11;
 
 const LEGACY_ASSERT_ATTRIBUTES = Symbol("assert");
 
-/**
- * @param {any} Parser parser
- * @returns {typeof AcornParser} extender acorn parser
- */
+/** @type {(BaseParser: typeof AcornParser) => typeof AcornParser} */
 const importAssertions = Parser =>
-	/** @type {typeof AcornParser} */ (
-		/** @type {unknown} */ (
-			class extends Parser {
-				parseWithClause() {
-					const nodes = [];
+	class extends Parser {
+		/**
+		 * @this {TODO}
+		 * @returns {ImportAttribute[]} import attributes
+		 */
+		parseWithClause() {
+			/** @type {ImportAttribute[]} */
+			const nodes = [];
 
-					const isAssertLegacy = this.value === "assert";
+			const isAssertLegacy = this.value === "assert";
 
-					if (isAssertLegacy) {
-						if (!this.eat(tokTypes.name)) {
-							return nodes;
-						}
-					} else if (!this.eat(tokTypes._with)) {
-						return nodes;
-					}
-
-					this.expect(tokTypes.braceL);
-
-					const attributeKeys = {};
-					let first = true;
-
-					while (!this.eat(tokTypes.braceR)) {
-						if (!first) {
-							this.expect(tokTypes.comma);
-							if (this.afterTrailingComma(tokTypes.braceR)) {
-								break;
-							}
-						} else {
-							first = false;
-						}
-
-						const attr = this.parseImportAttribute();
-						const keyName =
-							attr.key.type === "Identifier" ? attr.key.name : attr.key.value;
-
-						if (Object.prototype.hasOwnProperty.call(attributeKeys, keyName)) {
-							this.raiseRecoverable(
-								attr.key.start,
-								`Duplicate attribute key '${keyName}'`
-							);
-						}
-
-						attributeKeys[keyName] = true;
-						nodes.push(attr);
-					}
-
-					if (isAssertLegacy) {
-						nodes[LEGACY_ASSERT_ATTRIBUTES] = true;
-					}
-
+			if (isAssertLegacy) {
+				if (!this.eat(tokTypes.name)) {
 					return nodes;
 				}
+			} else if (!this.eat(tokTypes._with)) {
+				return nodes;
 			}
-		)
-	);
+
+			this.expect(tokTypes.braceL);
+
+			/** @type {Record<string, boolean>} */
+			const attributeKeys = {};
+			let first = true;
+
+			while (!this.eat(tokTypes.braceR)) {
+				if (!first) {
+					this.expect(tokTypes.comma);
+					if (this.afterTrailingComma(tokTypes.braceR)) {
+						break;
+					}
+				} else {
+					first = false;
+				}
+
+				const attr =
+					/** @type {ImportAttribute} */
+					this.parseImportAttribute();
+				const keyName =
+					attr.key.type === "Identifier" ? attr.key.name : attr.key.value;
+
+				if (Object.prototype.hasOwnProperty.call(attributeKeys, keyName)) {
+					this.raiseRecoverable(
+						attr.key.start,
+						`Duplicate attribute key '${keyName}'`
+					);
+				}
+
+				attributeKeys[keyName] = true;
+				nodes.push(attr);
+			}
+
+			if (isAssertLegacy) {
+				/** @type {EXPECTED_ANY} */
+				(nodes)[LEGACY_ASSERT_ATTRIBUTES] = true;
+			}
+
+			return nodes;
+		}
+	};
 
 // Syntax: https://developer.mozilla.org/en/SpiderMonkey/Parser_API
 const parser = AcornParser.extend(importAssertions);
@@ -247,7 +250,7 @@ const getImportAttributes = node => {
 		result[key] = /** @type {string} */ (attribute.value.value);
 	}
 
-	if (node.attributes[LEGACY_ASSERT_ATTRIBUTES]) {
+	if (/** @type {EXPECTED_ANY} */ (node.attributes)[LEGACY_ASSERT_ATTRIBUTES]) {
 		result._isLegacyAssert = true;
 	}
 
@@ -271,12 +274,18 @@ class VariableInfo {
 /** @typedef {Literal | string | null | undefined} ImportSource */
 /** @typedef {Omit<AcornOptions, "sourceType" | "ecmaVersion"> & { sourceType: "module" | "script" | "auto", ecmaVersion?: AcornOptions["ecmaVersion"] }} ParseOptions */
 
+/** @typedef {symbol} Tag */
+/** @typedef {Record<string, TODO>} TagData */
+
 /**
  * @typedef {object} TagInfo
- * @property {any} tag
- * @property {any} data
+ * @property {Tag} tag
+ * @property {TagData=} data
  * @property {TagInfo | undefined} next
  */
+
+const SCOPE_INFO_TERMINATED_RETURN = 1;
+const SCOPE_INFO_TERMINATED_THROW = 2;
 
 /**
  * @typedef {object} ScopeInfo
@@ -287,6 +296,7 @@ class VariableInfo {
  * @property {boolean} inTry
  * @property {boolean} isStrict
  * @property {boolean} isAsmJs
+ * @property {undefined | 1 | 2} terminated
  */
 
 /** @typedef {[number, number]} Range */
@@ -302,9 +312,9 @@ class VariableInfo {
  * Helper function for joining two ranges into a single range. This is useful
  * when working with AST nodes, as it allows you to combine the ranges of child nodes
  * to create the range of the _parent node_.
- * @param {[number, number]} startRange start range to join
- * @param {[number, number]} endRange end range to join
- * @returns {[number, number]} joined range
+ * @param {Range} startRange start range to join
+ * @param {Range} endRange end range to join
+ * @returns {Range} joined range
  * @example
  * ```js
  * 	const startRange = [0, 5];
@@ -379,6 +389,8 @@ const EMPTY_COMMENT_OPTIONS = {
 	errors: null
 };
 
+const CLASS_NAME = "JavascriptParser";
+
 class JavascriptParser extends Parser {
 	/**
 	 * @param {"module" | "script" | "auto"} sourceType default source type
@@ -388,7 +400,7 @@ class JavascriptParser extends Parser {
 		this.hooks = Object.freeze({
 			/** @type {HookMap<SyncBailHook<[UnaryExpression], BasicEvaluatedExpression | null | undefined>>} */
 			evaluateTypeof: new HookMap(() => new SyncBailHook(["expression"])),
-			/** @type {HookMap<SyncBailHook<[Expression | SpreadElement | PrivateIdentifier], BasicEvaluatedExpression | null | undefined>>} */
+			/** @type {HookMap<SyncBailHook<[Expression | SpreadElement | PrivateIdentifier | Super], BasicEvaluatedExpression | null | undefined>>} */
 			evaluate: new HookMap(() => new SyncBailHook(["expression"])),
 			/** @type {HookMap<SyncBailHook<[Identifier | ThisExpression | MemberExpression | MetaProperty], BasicEvaluatedExpression | null | undefined>>} */
 			evaluateIdentifier: new HookMap(() => new SyncBailHook(["expression"])),
@@ -408,27 +420,27 @@ class JavascriptParser extends Parser {
 			evaluateCallExpressionMember: new HookMap(
 				() => new SyncBailHook(["expression", "param"])
 			),
-			/** @type {HookMap<SyncBailHook<[Expression | Declaration | PrivateIdentifier, number], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[Expression | Declaration | PrivateIdentifier | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration, number], boolean | void>>} */
 			isPure: new HookMap(
 				() => new SyncBailHook(["expression", "commentsStartPosition"])
 			),
-			/** @type {SyncBailHook<[Statement | ModuleDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>} */
 			preStatement: new SyncBailHook(["statement"]),
 
-			/** @type {SyncBailHook<[Statement | ModuleDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>} */
 			blockPreStatement: new SyncBailHook(["declaration"]),
-			/** @type {SyncBailHook<[Statement | ModuleDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			statement: new SyncBailHook(["statement"]),
 			/** @type {SyncBailHook<[IfStatement], boolean | void>} */
 			statementIf: new SyncBailHook(["statement"]),
-			/** @type {SyncBailHook<[Expression, ClassExpression | ClassDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[Expression, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			classExtendsExpression: new SyncBailHook([
 				"expression",
 				"classDefinition"
 			]),
-			/** @type {SyncBailHook<[MethodDefinition | PropertyDefinition | StaticBlock, ClassExpression | ClassDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[MethodDefinition | PropertyDefinition | StaticBlock, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			classBodyElement: new SyncBailHook(["element", "classDefinition"]),
-			/** @type {SyncBailHook<[Expression, MethodDefinition | PropertyDefinition, ClassExpression | ClassDeclaration], boolean | void>} */
+			/** @type {SyncBailHook<[Expression, MethodDefinition | PropertyDefinition, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			classBodyValue: new SyncBailHook([
 				"expression",
 				"element",
@@ -451,8 +463,8 @@ class JavascriptParser extends Parser {
 			exportImport: new SyncBailHook(["statement", "source"]),
 			/** @type {SyncBailHook<[ExportDefaultDeclaration | ExportNamedDeclaration | ExportAllDeclaration, Declaration], boolean | void>} */
 			exportDeclaration: new SyncBailHook(["statement", "declaration"]),
-			/** @type {SyncBailHook<[ExportDefaultDeclaration, FunctionDeclaration | ClassDeclaration], boolean | void>} */
-			exportExpression: new SyncBailHook(["statement", "declaration"]),
+			/** @type {SyncBailHook<[ExportDefaultDeclaration, MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration | Expression], boolean | void>} */
+			exportExpression: new SyncBailHook(["statement", "node"]),
 			/** @type {SyncBailHook<[ExportDefaultDeclaration | ExportNamedDeclaration | ExportAllDeclaration, string, string, number | undefined], boolean | void>} */
 			exportSpecifier: new SyncBailHook([
 				"statement",
@@ -563,31 +575,36 @@ class JavascriptParser extends Parser {
 			expressionLogicalOperator: new SyncBailHook(["expression"]),
 			/** @type {SyncBailHook<[Program, Comment[]], boolean | void>} */
 			program: new SyncBailHook(["ast", "comments"]),
+			/** @type {SyncBailHook<[ThrowStatement | ReturnStatement], boolean | void>} */
+			terminate: new SyncBailHook(["statement"]),
 			/** @type {SyncBailHook<[Program, Comment[]], boolean | void>} */
-			finish: new SyncBailHook(["ast", "comments"])
+			finish: new SyncBailHook(["ast", "comments"]),
+			/** @type {SyncBailHook<[Statement], boolean | void>} */
+			unusedStatement: new SyncBailHook(["statement"])
 		});
 		this.sourceType = sourceType;
 		/** @type {ScopeInfo} */
-		this.scope = undefined;
+		this.scope = /** @type {TODO} */ (undefined);
 		/** @type {ParserState} */
-		this.state = undefined;
+		this.state = /** @type {TODO} */ (undefined);
 		/** @type {Comment[] | undefined} */
 		this.comments = undefined;
 		/** @type {Set<number> | undefined} */
 		this.semicolons = undefined;
 		/** @type {StatementPath | undefined} */
 		this.statementPath = undefined;
-		/** @type {Statement | ModuleDeclaration | Expression | undefined} */
+		/** @type {Statement | ModuleDeclaration | Expression | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration | undefined} */
 		this.prevStatement = undefined;
 		/** @type {WeakMap<Expression, Set<DestructuringAssignmentProperty>> | undefined} */
 		this.destructuringAssignmentProperties = undefined;
+		/** @type {TagData | undefined} */
 		this.currentTagData = undefined;
 		this.magicCommentContext = createMagicCommentContext();
 		this._initializeEvaluating();
 	}
 
 	_initializeEvaluating() {
-		this.hooks.evaluate.for("Literal").tap("JavascriptParser", _expr => {
+		this.hooks.evaluate.for("Literal").tap(CLASS_NAME, _expr => {
 			const expr = /** @type {Literal} */ (_expr);
 
 			switch (typeof expr.value) {
@@ -619,7 +636,7 @@ class JavascriptParser extends Parser {
 					.setRange(/** @type {Range} */ (expr.range));
 			}
 		});
-		this.hooks.evaluate.for("NewExpression").tap("JavascriptParser", _expr => {
+		this.hooks.evaluate.for("NewExpression").tap(CLASS_NAME, _expr => {
 			const expr = /** @type {NewExpression} */ (_expr);
 			const callee = expr.callee;
 			if (callee.type !== "Identifier") return;
@@ -682,52 +699,50 @@ class JavascriptParser extends Parser {
 				.setRegExp(flags ? new RegExp(regExp, flags) : new RegExp(regExp))
 				.setRange(/** @type {Range} */ (expr.range));
 		});
-		this.hooks.evaluate
-			.for("LogicalExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {LogicalExpression} */ (_expr);
+		this.hooks.evaluate.for("LogicalExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {LogicalExpression} */ (_expr);
 
-				const left = this.evaluateExpression(expr.left);
-				let returnRight = false;
-				/** @type {boolean | undefined} */
-				let allowedRight;
-				if (expr.operator === "&&") {
-					const leftAsBool = left.asBool();
-					if (leftAsBool === false)
-						return left.setRange(/** @type {Range} */ (expr.range));
-					returnRight = leftAsBool === true;
-					allowedRight = false;
-				} else if (expr.operator === "||") {
-					const leftAsBool = left.asBool();
-					if (leftAsBool === true)
-						return left.setRange(/** @type {Range} */ (expr.range));
-					returnRight = leftAsBool === false;
-					allowedRight = true;
-				} else if (expr.operator === "??") {
-					const leftAsNullish = left.asNullish();
-					if (leftAsNullish === false)
-						return left.setRange(/** @type {Range} */ (expr.range));
-					if (leftAsNullish !== true) return;
-					returnRight = true;
-				} else return;
-				const right = this.evaluateExpression(expr.right);
-				if (returnRight) {
-					if (left.couldHaveSideEffects()) right.setSideEffects();
-					return right.setRange(/** @type {Range} */ (expr.range));
-				}
+			const left = this.evaluateExpression(expr.left);
+			let returnRight = false;
+			/** @type {boolean | undefined} */
+			let allowedRight;
+			if (expr.operator === "&&") {
+				const leftAsBool = left.asBool();
+				if (leftAsBool === false)
+					return left.setRange(/** @type {Range} */ (expr.range));
+				returnRight = leftAsBool === true;
+				allowedRight = false;
+			} else if (expr.operator === "||") {
+				const leftAsBool = left.asBool();
+				if (leftAsBool === true)
+					return left.setRange(/** @type {Range} */ (expr.range));
+				returnRight = leftAsBool === false;
+				allowedRight = true;
+			} else if (expr.operator === "??") {
+				const leftAsNullish = left.asNullish();
+				if (leftAsNullish === false)
+					return left.setRange(/** @type {Range} */ (expr.range));
+				if (leftAsNullish !== true) return;
+				returnRight = true;
+			} else return;
+			const right = this.evaluateExpression(expr.right);
+			if (returnRight) {
+				if (left.couldHaveSideEffects()) right.setSideEffects();
+				return right.setRange(/** @type {Range} */ (expr.range));
+			}
 
-				const asBool = right.asBool();
+			const asBool = right.asBool();
 
-				if (allowedRight === true && asBool === true) {
-					return new BasicEvaluatedExpression()
-						.setRange(/** @type {Range} */ (expr.range))
-						.setTruthy();
-				} else if (allowedRight === false && asBool === false) {
-					return new BasicEvaluatedExpression()
-						.setRange(/** @type {Range} */ (expr.range))
-						.setFalsy();
-				}
-			});
+			if (allowedRight === true && asBool === true) {
+				return new BasicEvaluatedExpression()
+					.setRange(/** @type {Range} */ (expr.range))
+					.setTruthy();
+			} else if (allowedRight === false && asBool === false) {
+				return new BasicEvaluatedExpression()
+					.setRange(/** @type {Range} */ (expr.range))
+					.setFalsy();
+			}
+		});
 
 		/**
 		 * In simple logical cases, we can use valueAsExpression to assist us in evaluating the expression on
@@ -797,550 +812,539 @@ class JavascriptParser extends Parser {
 			}
 		};
 
-		this.hooks.evaluate
-			.for("BinaryExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {BinaryExpression} */ (_expr);
+		this.hooks.evaluate.for("BinaryExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {BinaryExpression} */ (_expr);
 
+			/**
+			 * Evaluates a binary expression if and only if it is a const operation (e.g. 1 + 2, "a" + "b", etc.).
+			 * @template T
+			 * @param {(leftOperand: T, rightOperand: T) => boolean | number | bigint | string} operandHandler the handler for the operation (e.g. (a, b) => a + b)
+			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
+			 */
+			const handleConstOperation = operandHandler => {
+				const left = this.evaluateExpression(expr.left);
+				if (!left.isCompileTimeValue()) return;
+
+				const right = this.evaluateExpression(expr.right);
+				if (!right.isCompileTimeValue()) return;
+
+				const result = operandHandler(
+					/** @type {T} */ (left.asCompileTimeValue()),
+					/** @type {T} */ (right.asCompileTimeValue())
+				);
+				return valueAsExpression(
+					result,
+					expr,
+					left.couldHaveSideEffects() || right.couldHaveSideEffects()
+				);
+			};
+
+			/**
+			 * Helper function to determine if two booleans are always different. This is used in `handleStrictEqualityComparison`
+			 * to determine if an expressions boolean or nullish conversion is equal or not.
+			 * @param {boolean} a first boolean to compare
+			 * @param {boolean} b second boolean to compare
+			 * @returns {boolean} true if the two booleans are always different, false otherwise
+			 */
+			const isAlwaysDifferent = (a, b) =>
+				(a === true && b === false) || (a === false && b === true);
+
+			/**
+			 * @param {BasicEvaluatedExpression} left left
+			 * @param {BasicEvaluatedExpression} right right
+			 * @param {BasicEvaluatedExpression} res res
+			 * @param {boolean} eql true for "===" and false for "!=="
+			 * @returns {BasicEvaluatedExpression | undefined} result
+			 */
+			const handleTemplateStringCompare = (left, right, res, eql) => {
 				/**
-				 * Evaluates a binary expression if and only if it is a const operation (e.g. 1 + 2, "a" + "b", etc.).
-				 * @template T
-				 * @param {(leftOperand: T, rightOperand: T) => boolean | number | bigint | string} operandHandler the handler for the operation (e.g. (a, b) => a + b)
-				 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
+				 * @param {BasicEvaluatedExpression[]} parts parts
+				 * @returns {string} value
 				 */
-				const handleConstOperation = operandHandler => {
-					const left = this.evaluateExpression(expr.left);
-					if (!left.isCompileTimeValue()) return;
-
-					const right = this.evaluateExpression(expr.right);
-					if (!right.isCompileTimeValue()) return;
-
-					const result = operandHandler(
-						left.asCompileTimeValue(),
-						right.asCompileTimeValue()
-					);
-					return valueAsExpression(
-						result,
-						expr,
-						left.couldHaveSideEffects() || right.couldHaveSideEffects()
-					);
+				const getPrefix = parts => {
+					let value = "";
+					for (const p of parts) {
+						const v = p.asString();
+						if (v !== undefined) value += v;
+						else break;
+					}
+					return value;
 				};
-
 				/**
-				 * Helper function to determine if two booleans are always different. This is used in `handleStrictEqualityComparison`
-				 * to determine if an expressions boolean or nullish conversion is equal or not.
-				 * @param {boolean} a first boolean to compare
-				 * @param {boolean} b second boolean to compare
-				 * @returns {boolean} true if the two booleans are always different, false otherwise
+				 * @param {BasicEvaluatedExpression[]} parts parts
+				 * @returns {string} value
 				 */
-				const isAlwaysDifferent = (a, b) =>
-					(a === true && b === false) || (a === false && b === true);
-
-				/**
-				 * @param {BasicEvaluatedExpression} left left
-				 * @param {BasicEvaluatedExpression} right right
-				 * @param {BasicEvaluatedExpression} res res
-				 * @param {boolean} eql true for "===" and false for "!=="
-				 * @returns {BasicEvaluatedExpression | undefined} result
-				 */
-				const handleTemplateStringCompare = (left, right, res, eql) => {
-					/**
-					 * @param {BasicEvaluatedExpression[]} parts parts
-					 * @returns {string} value
-					 */
-					const getPrefix = parts => {
-						let value = "";
-						for (const p of parts) {
-							const v = p.asString();
-							if (v !== undefined) value += v;
-							else break;
-						}
-						return value;
-					};
-					/**
-					 * @param {BasicEvaluatedExpression[]} parts parts
-					 * @returns {string} value
-					 */
-					const getSuffix = parts => {
-						let value = "";
-						for (let i = parts.length - 1; i >= 0; i--) {
-							const v = parts[i].asString();
-							if (v !== undefined) value = v + value;
-							else break;
-						}
-						return value;
-					};
-					const leftPrefix = getPrefix(
-						/** @type {BasicEvaluatedExpression[]} */ (left.parts)
-					);
-					const rightPrefix = getPrefix(
-						/** @type {BasicEvaluatedExpression[]} */ (right.parts)
-					);
-					const leftSuffix = getSuffix(
-						/** @type {BasicEvaluatedExpression[]} */ (left.parts)
-					);
-					const rightSuffix = getSuffix(
-						/** @type {BasicEvaluatedExpression[]} */ (right.parts)
-					);
-					const lenPrefix = Math.min(leftPrefix.length, rightPrefix.length);
-					const lenSuffix = Math.min(leftSuffix.length, rightSuffix.length);
-					const prefixMismatch =
-						lenPrefix > 0 &&
-						leftPrefix.slice(0, lenPrefix) !== rightPrefix.slice(0, lenPrefix);
-					const suffixMismatch =
-						lenSuffix > 0 &&
-						leftSuffix.slice(-lenSuffix) !== rightSuffix.slice(-lenSuffix);
-					if (prefixMismatch || suffixMismatch) {
-						return res
-							.setBoolean(!eql)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
+				const getSuffix = parts => {
+					let value = "";
+					for (let i = parts.length - 1; i >= 0; i--) {
+						const v = parts[i].asString();
+						if (v !== undefined) value = v + value;
+						else break;
 					}
+					return value;
 				};
+				const leftPrefix = getPrefix(
+					/** @type {BasicEvaluatedExpression[]} */ (left.parts)
+				);
+				const rightPrefix = getPrefix(
+					/** @type {BasicEvaluatedExpression[]} */ (right.parts)
+				);
+				const leftSuffix = getSuffix(
+					/** @type {BasicEvaluatedExpression[]} */ (left.parts)
+				);
+				const rightSuffix = getSuffix(
+					/** @type {BasicEvaluatedExpression[]} */ (right.parts)
+				);
+				const lenPrefix = Math.min(leftPrefix.length, rightPrefix.length);
+				const lenSuffix = Math.min(leftSuffix.length, rightSuffix.length);
+				const prefixMismatch =
+					lenPrefix > 0 &&
+					leftPrefix.slice(0, lenPrefix) !== rightPrefix.slice(0, lenPrefix);
+				const suffixMismatch =
+					lenSuffix > 0 &&
+					leftSuffix.slice(-lenSuffix) !== rightSuffix.slice(-lenSuffix);
+				if (prefixMismatch || suffixMismatch) {
+					return res
+						.setBoolean(!eql)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+			};
 
-				/**
-				 * Helper function to handle BinaryExpressions using strict equality comparisons (e.g. "===" and "!==").
-				 * @param {boolean} eql true for "===" and false for "!=="
-				 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
-				 */
-				const handleStrictEqualityComparison = eql => {
-					const left = this.evaluateExpression(expr.left);
-					const right = this.evaluateExpression(expr.right);
-					const res = new BasicEvaluatedExpression();
-					res.setRange(/** @type {Range} */ (expr.range));
+			/**
+			 * Helper function to handle BinaryExpressions using strict equality comparisons (e.g. "===" and "!==").
+			 * @param {boolean} eql true for "===" and false for "!=="
+			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
+			 */
+			const handleStrictEqualityComparison = eql => {
+				const left = this.evaluateExpression(expr.left);
+				const right = this.evaluateExpression(expr.right);
+				const res = new BasicEvaluatedExpression();
+				res.setRange(/** @type {Range} */ (expr.range));
 
-					const leftConst = left.isCompileTimeValue();
-					const rightConst = right.isCompileTimeValue();
+				const leftConst = left.isCompileTimeValue();
+				const rightConst = right.isCompileTimeValue();
 
-					if (leftConst && rightConst) {
-						return res
-							.setBoolean(
-								eql ===
-									(left.asCompileTimeValue() === right.asCompileTimeValue())
-							)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
-					}
-
-					if (left.isArray() && right.isArray()) {
-						return res
-							.setBoolean(!eql)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
-					}
-					if (left.isTemplateString() && right.isTemplateString()) {
-						return handleTemplateStringCompare(left, right, res, eql);
-					}
-
-					const leftPrimitive = left.isPrimitiveType();
-					const rightPrimitive = right.isPrimitiveType();
-
-					if (
-						// Primitive !== Object or
-						// compile-time object types are never equal to something at runtime
-						(leftPrimitive === false &&
-							(leftConst || rightPrimitive === true)) ||
-						(rightPrimitive === false &&
-							(rightConst || leftPrimitive === true)) ||
-						// Different nullish or boolish status also means not equal
-						isAlwaysDifferent(
-							/** @type {boolean} */ (left.asBool()),
-							/** @type {boolean} */ (right.asBool())
-						) ||
-						isAlwaysDifferent(
-							/** @type {boolean} */ (left.asNullish()),
-							/** @type {boolean} */ (right.asNullish())
+				if (leftConst && rightConst) {
+					return res
+						.setBoolean(
+							eql === (left.asCompileTimeValue() === right.asCompileTimeValue())
 						)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+
+				if (left.isArray() && right.isArray()) {
+					return res
+						.setBoolean(!eql)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+				if (left.isTemplateString() && right.isTemplateString()) {
+					return handleTemplateStringCompare(left, right, res, eql);
+				}
+
+				const leftPrimitive = left.isPrimitiveType();
+				const rightPrimitive = right.isPrimitiveType();
+
+				if (
+					// Primitive !== Object or
+					// compile-time object types are never equal to something at runtime
+					(leftPrimitive === false && (leftConst || rightPrimitive === true)) ||
+					(rightPrimitive === false &&
+						(rightConst || leftPrimitive === true)) ||
+					// Different nullish or boolish status also means not equal
+					isAlwaysDifferent(
+						/** @type {boolean} */ (left.asBool()),
+						/** @type {boolean} */ (right.asBool())
+					) ||
+					isAlwaysDifferent(
+						/** @type {boolean} */ (left.asNullish()),
+						/** @type {boolean} */ (right.asNullish())
+					)
+				) {
+					return res
+						.setBoolean(!eql)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+			};
+
+			/**
+			 * Helper function to handle BinaryExpressions using abstract equality comparisons (e.g. "==" and "!=").
+			 * @param {boolean} eql true for "==" and false for "!="
+			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
+			 */
+			const handleAbstractEqualityComparison = eql => {
+				const left = this.evaluateExpression(expr.left);
+				const right = this.evaluateExpression(expr.right);
+				const res = new BasicEvaluatedExpression();
+				res.setRange(/** @type {Range} */ (expr.range));
+
+				const leftConst = left.isCompileTimeValue();
+				const rightConst = right.isCompileTimeValue();
+
+				if (leftConst && rightConst) {
+					return res
+						.setBoolean(
+							eql ===
+								// eslint-disable-next-line eqeqeq
+								(left.asCompileTimeValue() == right.asCompileTimeValue())
+						)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+
+				if (left.isArray() && right.isArray()) {
+					return res
+						.setBoolean(!eql)
+						.setSideEffects(
+							left.couldHaveSideEffects() || right.couldHaveSideEffects()
+						);
+				}
+				if (left.isTemplateString() && right.isTemplateString()) {
+					return handleTemplateStringCompare(left, right, res, eql);
+				}
+			};
+
+			if (expr.operator === "+") {
+				const left = this.evaluateExpression(expr.left);
+				const right = this.evaluateExpression(expr.right);
+				const res = new BasicEvaluatedExpression();
+				if (left.isString()) {
+					if (right.isString()) {
+						res.setString(
+							/** @type {string} */ (left.string) +
+								/** @type {string} */ (right.string)
+						);
+					} else if (right.isNumber()) {
+						res.setString(/** @type {string} */ (left.string) + right.number);
+					} else if (
+						right.isWrapped() &&
+						right.prefix &&
+						right.prefix.isString()
 					) {
-						return res
-							.setBoolean(!eql)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
-					}
-				};
-
-				/**
-				 * Helper function to handle BinaryExpressions using abstract equality comparisons (e.g. "==" and "!=").
-				 * @param {boolean} eql true for "==" and false for "!="
-				 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
-				 */
-				const handleAbstractEqualityComparison = eql => {
-					const left = this.evaluateExpression(expr.left);
-					const right = this.evaluateExpression(expr.right);
-					const res = new BasicEvaluatedExpression();
-					res.setRange(/** @type {Range} */ (expr.range));
-
-					const leftConst = left.isCompileTimeValue();
-					const rightConst = right.isCompileTimeValue();
-
-					if (leftConst && rightConst) {
-						return res
-							.setBoolean(
-								eql ===
-									// eslint-disable-next-line eqeqeq
-									(left.asCompileTimeValue() == right.asCompileTimeValue())
-							)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
-					}
-
-					if (left.isArray() && right.isArray()) {
-						return res
-							.setBoolean(!eql)
-							.setSideEffects(
-								left.couldHaveSideEffects() || right.couldHaveSideEffects()
-							);
-					}
-					if (left.isTemplateString() && right.isTemplateString()) {
-						return handleTemplateStringCompare(left, right, res, eql);
-					}
-				};
-
-				if (expr.operator === "+") {
-					const left = this.evaluateExpression(expr.left);
-					const right = this.evaluateExpression(expr.right);
-					const res = new BasicEvaluatedExpression();
-					if (left.isString()) {
-						if (right.isString()) {
-							res.setString(
-								/** @type {string} */ (left.string) +
-									/** @type {string} */ (right.string)
-							);
-						} else if (right.isNumber()) {
-							res.setString(/** @type {string} */ (left.string) + right.number);
-						} else if (
-							right.isWrapped() &&
-							right.prefix &&
-							right.prefix.isString()
-						) {
-							// "left" + ("prefix" + inner + "postfix")
-							// => ("leftPrefix" + inner + "postfix")
-							res.setWrapped(
-								new BasicEvaluatedExpression()
-									.setString(
-										/** @type {string} */ (left.string) +
-											/** @type {string} */ (right.prefix.string)
-									)
-									.setRange(
-										joinRanges(
-											/** @type {Range} */ (left.range),
-											/** @type {Range} */ (right.prefix.range)
-										)
-									),
-								right.postfix,
-								right.wrappedInnerExpressions
-							);
-						} else if (right.isWrapped()) {
-							// "left" + ([null] + inner + "postfix")
-							// => ("left" + inner + "postfix")
-							res.setWrapped(
-								left,
-								right.postfix,
-								right.wrappedInnerExpressions
-							);
-						} else {
-							// "left" + expr
-							// => ("left" + expr + "")
-							res.setWrapped(left, null, [right]);
-						}
-					} else if (left.isNumber()) {
-						if (right.isString()) {
-							res.setString(left.number + /** @type {string} */ (right.string));
-						} else if (right.isNumber()) {
-							res.setNumber(
-								/** @type {number} */ (left.number) +
-									/** @type {number} */ (right.number)
-							);
-						} else {
-							return;
-						}
-					} else if (left.isBigInt()) {
-						if (right.isBigInt()) {
-							res.setBigInt(
-								/** @type {bigint} */ (left.bigint) +
-									/** @type {bigint} */ (right.bigint)
-							);
-						}
-					} else if (left.isWrapped()) {
-						if (left.postfix && left.postfix.isString() && right.isString()) {
-							// ("prefix" + inner + "postfix") + "right"
-							// => ("prefix" + inner + "postfixRight")
-							res.setWrapped(
-								left.prefix,
-								new BasicEvaluatedExpression()
-									.setString(
-										/** @type {string} */ (left.postfix.string) +
-											/** @type {string} */ (right.string)
-									)
-									.setRange(
-										joinRanges(
-											/** @type {Range} */ (left.postfix.range),
-											/** @type {Range} */ (right.range)
-										)
-									),
-								left.wrappedInnerExpressions
-							);
-						} else if (
-							left.postfix &&
-							left.postfix.isString() &&
-							right.isNumber()
-						) {
-							// ("prefix" + inner + "postfix") + 123
-							// => ("prefix" + inner + "postfix123")
-							res.setWrapped(
-								left.prefix,
-								new BasicEvaluatedExpression()
-									.setString(
-										/** @type {string} */ (left.postfix.string) +
-											/** @type {number} */ (right.number)
-									)
-									.setRange(
-										joinRanges(
-											/** @type {Range} */ (left.postfix.range),
-											/** @type {Range} */ (right.range)
-										)
-									),
-								left.wrappedInnerExpressions
-							);
-						} else if (right.isString()) {
-							// ("prefix" + inner + [null]) + "right"
-							// => ("prefix" + inner + "right")
-							res.setWrapped(left.prefix, right, left.wrappedInnerExpressions);
-						} else if (right.isNumber()) {
-							// ("prefix" + inner + [null]) + 123
-							// => ("prefix" + inner + "123")
-							res.setWrapped(
-								left.prefix,
-								new BasicEvaluatedExpression()
-									.setString(String(right.number))
-									.setRange(/** @type {Range} */ (right.range)),
-								left.wrappedInnerExpressions
-							);
-						} else if (right.isWrapped()) {
-							// ("prefix1" + inner1 + "postfix1") + ("prefix2" + inner2 + "postfix2")
-							// ("prefix1" + inner1 + "postfix1" + "prefix2" + inner2 + "postfix2")
-							res.setWrapped(
-								left.prefix,
-								right.postfix,
-								left.wrappedInnerExpressions &&
-									right.wrappedInnerExpressions &&
-									left.wrappedInnerExpressions
-										.concat(left.postfix ? [left.postfix] : [])
-										.concat(right.prefix ? [right.prefix] : [])
-										.concat(right.wrappedInnerExpressions)
-							);
-						} else {
-							// ("prefix" + inner + postfix) + expr
-							// => ("prefix" + inner + postfix + expr + [null])
-							res.setWrapped(
-								left.prefix,
-								null,
-								left.wrappedInnerExpressions &&
-									left.wrappedInnerExpressions.concat(
-										left.postfix ? [left.postfix, right] : [right]
-									)
-							);
-						}
-					} else if (right.isString()) {
-						// left + "right"
-						// => ([null] + left + "right")
-						res.setWrapped(null, right, [left]);
-					} else if (right.isWrapped()) {
-						// left + (prefix + inner + "postfix")
-						// => ([null] + left + prefix + inner + "postfix")
+						// "left" + ("prefix" + inner + "postfix")
+						// => ("leftPrefix" + inner + "postfix")
 						res.setWrapped(
-							null,
-							right.postfix,
-							right.wrappedInnerExpressions &&
-								(right.prefix ? [left, right.prefix] : [left]).concat(
-									right.wrappedInnerExpressions
+							new BasicEvaluatedExpression()
+								.setString(
+									/** @type {string} */ (left.string) +
+										/** @type {string} */ (right.prefix.string)
 								)
+								.setRange(
+									joinRanges(
+										/** @type {Range} */ (left.range),
+										/** @type {Range} */ (right.prefix.range)
+									)
+								),
+							right.postfix,
+							right.wrappedInnerExpressions
+						);
+					} else if (right.isWrapped()) {
+						// "left" + ([null] + inner + "postfix")
+						// => ("left" + inner + "postfix")
+						res.setWrapped(left, right.postfix, right.wrappedInnerExpressions);
+					} else {
+						// "left" + expr
+						// => ("left" + expr + "")
+						res.setWrapped(left, null, [right]);
+					}
+				} else if (left.isNumber()) {
+					if (right.isString()) {
+						res.setString(left.number + /** @type {string} */ (right.string));
+					} else if (right.isNumber()) {
+						res.setNumber(
+							/** @type {number} */ (left.number) +
+								/** @type {number} */ (right.number)
 						);
 					} else {
 						return;
 					}
-					if (left.couldHaveSideEffects() || right.couldHaveSideEffects())
-						res.setSideEffects();
-					res.setRange(/** @type {Range} */ (expr.range));
-					return res;
-				} else if (expr.operator === "-") {
-					return handleConstOperation((l, r) => l - r);
-				} else if (expr.operator === "*") {
-					return handleConstOperation((l, r) => l * r);
-				} else if (expr.operator === "/") {
-					return handleConstOperation((l, r) => l / r);
-				} else if (expr.operator === "**") {
-					return handleConstOperation((l, r) => l ** r);
-				} else if (expr.operator === "===") {
-					return handleStrictEqualityComparison(true);
-				} else if (expr.operator === "==") {
-					return handleAbstractEqualityComparison(true);
-				} else if (expr.operator === "!==") {
-					return handleStrictEqualityComparison(false);
-				} else if (expr.operator === "!=") {
-					return handleAbstractEqualityComparison(false);
-				} else if (expr.operator === "&") {
-					return handleConstOperation((l, r) => l & r);
-				} else if (expr.operator === "|") {
-					return handleConstOperation((l, r) => l | r);
-				} else if (expr.operator === "^") {
-					return handleConstOperation((l, r) => l ^ r);
-				} else if (expr.operator === ">>>") {
-					return handleConstOperation((l, r) => l >>> r);
-				} else if (expr.operator === ">>") {
-					return handleConstOperation((l, r) => l >> r);
-				} else if (expr.operator === "<<") {
-					return handleConstOperation((l, r) => l << r);
-				} else if (expr.operator === "<") {
-					return handleConstOperation((l, r) => l < r);
-				} else if (expr.operator === ">") {
-					return handleConstOperation((l, r) => l > r);
-				} else if (expr.operator === "<=") {
-					return handleConstOperation((l, r) => l <= r);
-				} else if (expr.operator === ">=") {
-					return handleConstOperation((l, r) => l >= r);
-				}
-			});
-		this.hooks.evaluate
-			.for("UnaryExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {UnaryExpression} */ (_expr);
-
-				/**
-				 * Evaluates a UnaryExpression if and only if it is a basic const operator (e.g. +a, -a, ~a).
-				 * @template T
-				 * @param {(operand: T) => boolean | number | bigint | string} operandHandler handler for the operand
-				 * @returns {BasicEvaluatedExpression | undefined} evaluated expression
-				 */
-				const handleConstOperation = operandHandler => {
-					const argument = this.evaluateExpression(expr.argument);
-					if (!argument.isCompileTimeValue()) return;
-					const result = operandHandler(argument.asCompileTimeValue());
-					return valueAsExpression(
-						result,
-						expr,
-						argument.couldHaveSideEffects()
+				} else if (left.isBigInt()) {
+					if (right.isBigInt()) {
+						res.setBigInt(
+							/** @type {bigint} */ (left.bigint) +
+								/** @type {bigint} */ (right.bigint)
+						);
+					}
+				} else if (left.isWrapped()) {
+					if (left.postfix && left.postfix.isString() && right.isString()) {
+						// ("prefix" + inner + "postfix") + "right"
+						// => ("prefix" + inner + "postfixRight")
+						res.setWrapped(
+							left.prefix,
+							new BasicEvaluatedExpression()
+								.setString(
+									/** @type {string} */ (left.postfix.string) +
+										/** @type {string} */ (right.string)
+								)
+								.setRange(
+									joinRanges(
+										/** @type {Range} */ (left.postfix.range),
+										/** @type {Range} */ (right.range)
+									)
+								),
+							left.wrappedInnerExpressions
+						);
+					} else if (
+						left.postfix &&
+						left.postfix.isString() &&
+						right.isNumber()
+					) {
+						// ("prefix" + inner + "postfix") + 123
+						// => ("prefix" + inner + "postfix123")
+						res.setWrapped(
+							left.prefix,
+							new BasicEvaluatedExpression()
+								.setString(
+									/** @type {string} */ (left.postfix.string) +
+										/** @type {number} */ (right.number)
+								)
+								.setRange(
+									joinRanges(
+										/** @type {Range} */ (left.postfix.range),
+										/** @type {Range} */ (right.range)
+									)
+								),
+							left.wrappedInnerExpressions
+						);
+					} else if (right.isString()) {
+						// ("prefix" + inner + [null]) + "right"
+						// => ("prefix" + inner + "right")
+						res.setWrapped(left.prefix, right, left.wrappedInnerExpressions);
+					} else if (right.isNumber()) {
+						// ("prefix" + inner + [null]) + 123
+						// => ("prefix" + inner + "123")
+						res.setWrapped(
+							left.prefix,
+							new BasicEvaluatedExpression()
+								.setString(String(right.number))
+								.setRange(/** @type {Range} */ (right.range)),
+							left.wrappedInnerExpressions
+						);
+					} else if (right.isWrapped()) {
+						// ("prefix1" + inner1 + "postfix1") + ("prefix2" + inner2 + "postfix2")
+						// ("prefix1" + inner1 + "postfix1" + "prefix2" + inner2 + "postfix2")
+						res.setWrapped(
+							left.prefix,
+							right.postfix,
+							left.wrappedInnerExpressions &&
+								right.wrappedInnerExpressions &&
+								left.wrappedInnerExpressions
+									.concat(left.postfix ? [left.postfix] : [])
+									.concat(right.prefix ? [right.prefix] : [])
+									.concat(right.wrappedInnerExpressions)
+						);
+					} else {
+						// ("prefix" + inner + postfix) + expr
+						// => ("prefix" + inner + postfix + expr + [null])
+						res.setWrapped(
+							left.prefix,
+							null,
+							left.wrappedInnerExpressions &&
+								left.wrappedInnerExpressions.concat(
+									left.postfix ? [left.postfix, right] : [right]
+								)
+						);
+					}
+				} else if (right.isString()) {
+					// left + "right"
+					// => ([null] + left + "right")
+					res.setWrapped(null, right, [left]);
+				} else if (right.isWrapped()) {
+					// left + (prefix + inner + "postfix")
+					// => ([null] + left + prefix + inner + "postfix")
+					res.setWrapped(
+						null,
+						right.postfix,
+						right.wrappedInnerExpressions &&
+							(right.prefix ? [left, right.prefix] : [left]).concat(
+								right.wrappedInnerExpressions
+							)
 					);
-				};
-
-				if (expr.operator === "typeof") {
-					switch (expr.argument.type) {
-						case "Identifier": {
-							const res = this.callHooksForName(
-								this.hooks.evaluateTypeof,
-								expr.argument.name,
-								expr
-							);
-							if (res !== undefined) return res;
-							break;
-						}
-						case "MetaProperty": {
-							const res = this.callHooksForName(
-								this.hooks.evaluateTypeof,
-								/** @type {string} */ (getRootName(expr.argument)),
-								expr
-							);
-							if (res !== undefined) return res;
-							break;
-						}
-						case "MemberExpression": {
-							const res = this.callHooksForExpression(
-								this.hooks.evaluateTypeof,
-								expr.argument,
-								expr
-							);
-							if (res !== undefined) return res;
-							break;
-						}
-						case "ChainExpression": {
-							const res = this.callHooksForExpression(
-								this.hooks.evaluateTypeof,
-								expr.argument.expression,
-								expr
-							);
-							if (res !== undefined) return res;
-							break;
-						}
-						case "FunctionExpression": {
-							return new BasicEvaluatedExpression()
-								.setString("function")
-								.setRange(/** @type {Range} */ (expr.range));
-						}
-					}
-					const arg = this.evaluateExpression(expr.argument);
-					if (arg.isUnknown()) return;
-					if (arg.isString()) {
-						return new BasicEvaluatedExpression()
-							.setString("string")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isWrapped()) {
-						return new BasicEvaluatedExpression()
-							.setString("string")
-							.setSideEffects()
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isUndefined()) {
-						return new BasicEvaluatedExpression()
-							.setString("undefined")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isNumber()) {
-						return new BasicEvaluatedExpression()
-							.setString("number")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isBigInt()) {
-						return new BasicEvaluatedExpression()
-							.setString("bigint")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isBoolean()) {
-						return new BasicEvaluatedExpression()
-							.setString("boolean")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isConstArray() || arg.isRegExp() || arg.isNull()) {
-						return new BasicEvaluatedExpression()
-							.setString("object")
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-					if (arg.isArray()) {
-						return new BasicEvaluatedExpression()
-							.setString("object")
-							.setSideEffects(arg.couldHaveSideEffects())
-							.setRange(/** @type {Range} */ (expr.range));
-					}
-				} else if (expr.operator === "!") {
-					const argument = this.evaluateExpression(expr.argument);
-					const bool = argument.asBool();
-					if (typeof bool !== "boolean") return;
-					return new BasicEvaluatedExpression()
-						.setBoolean(!bool)
-						.setSideEffects(argument.couldHaveSideEffects())
-						.setRange(/** @type {Range} */ (expr.range));
-				} else if (expr.operator === "~") {
-					return handleConstOperation(v => ~v);
-				} else if (expr.operator === "+") {
-					// eslint-disable-next-line no-implicit-coercion
-					return handleConstOperation(v => +v);
-				} else if (expr.operator === "-") {
-					return handleConstOperation(v => -v);
+				} else {
+					return;
 				}
-			});
+				if (left.couldHaveSideEffects() || right.couldHaveSideEffects())
+					res.setSideEffects();
+				res.setRange(/** @type {Range} */ (expr.range));
+				return res;
+			} else if (expr.operator === "-") {
+				return handleConstOperation((l, r) => l - r);
+			} else if (expr.operator === "*") {
+				return handleConstOperation((l, r) => l * r);
+			} else if (expr.operator === "/") {
+				return handleConstOperation((l, r) => l / r);
+			} else if (expr.operator === "**") {
+				return handleConstOperation((l, r) => l ** r);
+			} else if (expr.operator === "===") {
+				return handleStrictEqualityComparison(true);
+			} else if (expr.operator === "==") {
+				return handleAbstractEqualityComparison(true);
+			} else if (expr.operator === "!==") {
+				return handleStrictEqualityComparison(false);
+			} else if (expr.operator === "!=") {
+				return handleAbstractEqualityComparison(false);
+			} else if (expr.operator === "&") {
+				return handleConstOperation((l, r) => l & r);
+			} else if (expr.operator === "|") {
+				return handleConstOperation((l, r) => l | r);
+			} else if (expr.operator === "^") {
+				return handleConstOperation((l, r) => l ^ r);
+			} else if (expr.operator === ">>>") {
+				return handleConstOperation((l, r) => l >>> r);
+			} else if (expr.operator === ">>") {
+				return handleConstOperation((l, r) => l >> r);
+			} else if (expr.operator === "<<") {
+				return handleConstOperation((l, r) => l << r);
+			} else if (expr.operator === "<") {
+				return handleConstOperation((l, r) => l < r);
+			} else if (expr.operator === ">") {
+				return handleConstOperation((l, r) => l > r);
+			} else if (expr.operator === "<=") {
+				return handleConstOperation((l, r) => l <= r);
+			} else if (expr.operator === ">=") {
+				return handleConstOperation((l, r) => l >= r);
+			}
+		});
+		this.hooks.evaluate.for("UnaryExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {UnaryExpression} */ (_expr);
+
+			/**
+			 * Evaluates a UnaryExpression if and only if it is a basic const operator (e.g. +a, -a, ~a).
+			 * @template T
+			 * @param {(operand: T) => boolean | number | bigint | string} operandHandler handler for the operand
+			 * @returns {BasicEvaluatedExpression | undefined} evaluated expression
+			 */
+			const handleConstOperation = operandHandler => {
+				const argument = this.evaluateExpression(expr.argument);
+				if (!argument.isCompileTimeValue()) return;
+				const result = operandHandler(
+					/** @type {T} */ (argument.asCompileTimeValue())
+				);
+				return valueAsExpression(result, expr, argument.couldHaveSideEffects());
+			};
+
+			if (expr.operator === "typeof") {
+				switch (expr.argument.type) {
+					case "Identifier": {
+						const res = this.callHooksForName(
+							this.hooks.evaluateTypeof,
+							expr.argument.name,
+							expr
+						);
+						if (res !== undefined) return res;
+						break;
+					}
+					case "MetaProperty": {
+						const res = this.callHooksForName(
+							this.hooks.evaluateTypeof,
+							/** @type {string} */
+							(getRootName(expr.argument)),
+							expr
+						);
+						if (res !== undefined) return res;
+						break;
+					}
+					case "MemberExpression": {
+						const res = this.callHooksForExpression(
+							this.hooks.evaluateTypeof,
+							expr.argument,
+							expr
+						);
+						if (res !== undefined) return res;
+						break;
+					}
+					case "ChainExpression": {
+						const res = this.callHooksForExpression(
+							this.hooks.evaluateTypeof,
+							expr.argument.expression,
+							expr
+						);
+						if (res !== undefined) return res;
+						break;
+					}
+					case "FunctionExpression": {
+						return new BasicEvaluatedExpression()
+							.setString("function")
+							.setRange(/** @type {Range} */ (expr.range));
+					}
+				}
+				const arg = this.evaluateExpression(expr.argument);
+				if (arg.isUnknown()) return;
+				if (arg.isString()) {
+					return new BasicEvaluatedExpression()
+						.setString("string")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isWrapped()) {
+					return new BasicEvaluatedExpression()
+						.setString("string")
+						.setSideEffects()
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isUndefined()) {
+					return new BasicEvaluatedExpression()
+						.setString("undefined")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isNumber()) {
+					return new BasicEvaluatedExpression()
+						.setString("number")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isBigInt()) {
+					return new BasicEvaluatedExpression()
+						.setString("bigint")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isBoolean()) {
+					return new BasicEvaluatedExpression()
+						.setString("boolean")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isConstArray() || arg.isRegExp() || arg.isNull()) {
+					return new BasicEvaluatedExpression()
+						.setString("object")
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+				if (arg.isArray()) {
+					return new BasicEvaluatedExpression()
+						.setString("object")
+						.setSideEffects(arg.couldHaveSideEffects())
+						.setRange(/** @type {Range} */ (expr.range));
+				}
+			} else if (expr.operator === "!") {
+				const argument = this.evaluateExpression(expr.argument);
+				const bool = argument.asBool();
+				if (typeof bool !== "boolean") return;
+				return new BasicEvaluatedExpression()
+					.setBoolean(!bool)
+					.setSideEffects(argument.couldHaveSideEffects())
+					.setRange(/** @type {Range} */ (expr.range));
+			} else if (expr.operator === "~") {
+				return handleConstOperation(v => ~v);
+			} else if (expr.operator === "+") {
+				// eslint-disable-next-line no-implicit-coercion
+				return handleConstOperation(v => +v);
+			} else if (expr.operator === "-") {
+				return handleConstOperation(v => -v);
+			}
+		});
 		this.hooks.evaluateTypeof
 			.for("undefined")
-			.tap("JavascriptParser", expr =>
+			.tap(CLASS_NAME, expr =>
 				new BasicEvaluatedExpression()
 					.setString("undefined")
 					.setRange(/** @type {Range} */ (expr.range))
 			);
-		this.hooks.evaluate.for("Identifier").tap("JavascriptParser", expr => {
+		this.hooks.evaluate.for("Identifier").tap(CLASS_NAME, expr => {
 			if (/** @type {Identifier} */ (expr).name === "undefined") {
 				return new BasicEvaluatedExpression()
 					.setUndefined()
@@ -1349,7 +1353,7 @@ class JavascriptParser extends Parser {
 		});
 		/**
 		 * @param {"Identifier" | "ThisExpression" | "MemberExpression"} exprType expression type name
-		 * @param {function(Expression | SpreadElement): GetInfoResult | undefined} getInfo get info
+		 * @param {(node: Expression | SpreadElement) => GetInfoResult | undefined} getInfo get info
 		 * @returns {void}
 		 */
 		const tapEvaluateWithVariableInfo = (exprType, getInfo) => {
@@ -1357,7 +1361,7 @@ class JavascriptParser extends Parser {
 			let cachedExpression;
 			/** @type {GetInfoResult | undefined} */
 			let cachedInfo;
-			this.hooks.evaluate.for(exprType).tap("JavascriptParser", expr => {
+			this.hooks.evaluate.for(exprType).tap(CLASS_NAME, expr => {
 				const expression =
 					/** @type {Identifier | ThisExpression | MemberExpression} */ (expr);
 
@@ -1382,7 +1386,7 @@ class JavascriptParser extends Parser {
 			});
 			this.hooks.evaluate
 				.for(exprType)
-				.tap({ name: "JavascriptParser", stage: 100 }, expr => {
+				.tap({ name: CLASS_NAME, stage: 100 }, expr => {
 					const expression =
 						/** @type {Identifier | ThisExpression | MemberExpression} */
 						(expr);
@@ -1400,7 +1404,7 @@ class JavascriptParser extends Parser {
 							.setRange(/** @type {Range} */ (expression.range));
 					}
 				});
-			this.hooks.finish.tap("JavascriptParser", () => {
+			this.hooks.finish.tap(CLASS_NAME, () => {
 				// Cleanup for GC
 				cachedExpression = cachedInfo = undefined;
 			});
@@ -1435,12 +1439,13 @@ class JavascriptParser extends Parser {
 				};
 			}
 		});
-		this.hooks.evaluate.for("MetaProperty").tap("JavascriptParser", expr => {
+		this.hooks.evaluate.for("MetaProperty").tap(CLASS_NAME, expr => {
 			const metaProperty = /** @type {MetaProperty} */ (expr);
 
 			return this.callHooksForName(
 				this.hooks.evaluateIdentifier,
-				/** @type {string} */ (getRootName(metaProperty)),
+				/** @type {string} */
+				(getRootName(metaProperty)),
 				metaProperty
 			);
 		});
@@ -1451,7 +1456,7 @@ class JavascriptParser extends Parser {
 			)
 		);
 
-		this.hooks.evaluate.for("CallExpression").tap("JavascriptParser", _expr => {
+		this.hooks.evaluate.for("CallExpression").tap(CLASS_NAME, _expr => {
 			const expr = /** @type {CallExpression} */ (_expr);
 			if (
 				expr.callee.type === "MemberExpression" &&
@@ -1480,7 +1485,7 @@ class JavascriptParser extends Parser {
 		});
 		this.hooks.evaluateCallExpressionMember
 			.for("indexOf")
-			.tap("JavascriptParser", (expr, param) => {
+			.tap(CLASS_NAME, (expr, param) => {
 				if (!param.isString()) return;
 				if (expr.arguments.length === 0) return;
 				const [arg1, arg2] = expr.arguments;
@@ -1508,7 +1513,7 @@ class JavascriptParser extends Parser {
 			});
 		this.hooks.evaluateCallExpressionMember
 			.for("replace")
-			.tap("JavascriptParser", (expr, param) => {
+			.tap(CLASS_NAME, (expr, param) => {
 				if (!param.isString()) return;
 				if (expr.arguments.length !== 2) return;
 				if (expr.arguments[0].type === "SpreadElement") return;
@@ -1531,7 +1536,7 @@ class JavascriptParser extends Parser {
 		for (const fn of ["substr", "substring", "slice"]) {
 			this.hooks.evaluateCallExpressionMember
 				.for(fn)
-				.tap("JavascriptParser", (expr, param) => {
+				.tap(CLASS_NAME, (expr, param) => {
 					if (!param.isString()) return;
 					let arg1;
 					let result;
@@ -1623,22 +1628,20 @@ class JavascriptParser extends Parser {
 			};
 		};
 
-		this.hooks.evaluate
-			.for("TemplateLiteral")
-			.tap("JavascriptParser", _node => {
-				const node = /** @type {TemplateLiteral} */ (_node);
+		this.hooks.evaluate.for("TemplateLiteral").tap(CLASS_NAME, _node => {
+			const node = /** @type {TemplateLiteral} */ (_node);
 
-				const { quasis, parts } = getSimplifiedTemplateResult("cooked", node);
-				if (parts.length === 1) {
-					return parts[0].setRange(/** @type {Range} */ (node.range));
-				}
-				return new BasicEvaluatedExpression()
-					.setTemplateString(quasis, parts, "cooked")
-					.setRange(/** @type {Range} */ (node.range));
-			});
+			const { quasis, parts } = getSimplifiedTemplateResult("cooked", node);
+			if (parts.length === 1) {
+				return parts[0].setRange(/** @type {Range} */ (node.range));
+			}
+			return new BasicEvaluatedExpression()
+				.setTemplateString(quasis, parts, "cooked")
+				.setRange(/** @type {Range} */ (node.range));
+		});
 		this.hooks.evaluate
 			.for("TaggedTemplateExpression")
-			.tap("JavascriptParser", _node => {
+			.tap(CLASS_NAME, _node => {
 				const node = /** @type {TaggedTemplateExpression} */ (_node);
 				const tag = this.evaluateExpression(node.tag);
 
@@ -1655,7 +1658,7 @@ class JavascriptParser extends Parser {
 
 		this.hooks.evaluateCallExpressionMember
 			.for("concat")
-			.tap("JavascriptParser", (expr, param) => {
+			.tap(CLASS_NAME, (expr, param) => {
 				if (!param.isString() && !param.isWrapped()) return;
 				let stringSuffix = null;
 				let hasUnknownParams = false;
@@ -1673,13 +1676,14 @@ class JavascriptParser extends Parser {
 						continue;
 					}
 
-					/** @type {string} */
 					const value = argExpr.isString()
 						? /** @type {string} */ (argExpr.string)
-						: String(/** @type {number} */ (argExpr.number));
+						: String(argExpr.number);
 
 					/** @type {string} */
-					const newString = value + (stringSuffix ? stringSuffix.string : "");
+					const newString =
+						value +
+						(stringSuffix ? /** @type {string} */ (stringSuffix.string) : "");
 					const newRange = /** @type {Range} */ ([
 						/** @type {Range} */ (argExpr.range)[0],
 						/** @type {Range} */ ((stringSuffix || argExpr).range)[1]
@@ -1724,7 +1728,7 @@ class JavascriptParser extends Parser {
 			});
 		this.hooks.evaluateCallExpressionMember
 			.for("split")
-			.tap("JavascriptParser", (expr, param) => {
+			.tap(CLASS_NAME, (expr, param) => {
 				if (!param.isString()) return;
 				if (expr.arguments.length !== 1) return;
 				if (expr.arguments[0].type === "SpreadElement") return;
@@ -1746,101 +1750,95 @@ class JavascriptParser extends Parser {
 					.setSideEffects(param.couldHaveSideEffects())
 					.setRange(/** @type {Range} */ (expr.range));
 			});
-		this.hooks.evaluate
-			.for("ConditionalExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {ConditionalExpression} */ (_expr);
+		this.hooks.evaluate.for("ConditionalExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {ConditionalExpression} */ (_expr);
 
-				const condition = this.evaluateExpression(expr.test);
-				const conditionValue = condition.asBool();
-				let res;
-				if (conditionValue === undefined) {
-					const consequent = this.evaluateExpression(expr.consequent);
-					const alternate = this.evaluateExpression(expr.alternate);
-					res = new BasicEvaluatedExpression();
-					if (consequent.isConditional()) {
-						res.setOptions(
-							/** @type {BasicEvaluatedExpression[]} */ (consequent.options)
-						);
-					} else {
-						res.setOptions([consequent]);
-					}
-					if (alternate.isConditional()) {
-						res.addOptions(
-							/** @type {BasicEvaluatedExpression[]} */ (alternate.options)
-						);
-					} else {
-						res.addOptions([alternate]);
-					}
-				} else {
-					res = this.evaluateExpression(
-						conditionValue ? expr.consequent : expr.alternate
+			const condition = this.evaluateExpression(expr.test);
+			const conditionValue = condition.asBool();
+			let res;
+			if (conditionValue === undefined) {
+				const consequent = this.evaluateExpression(expr.consequent);
+				const alternate = this.evaluateExpression(expr.alternate);
+				res = new BasicEvaluatedExpression();
+				if (consequent.isConditional()) {
+					res.setOptions(
+						/** @type {BasicEvaluatedExpression[]} */ (consequent.options)
 					);
-					if (condition.couldHaveSideEffects()) res.setSideEffects();
+				} else {
+					res.setOptions([consequent]);
 				}
-				res.setRange(/** @type {Range} */ (expr.range));
-				return res;
-			});
-		this.hooks.evaluate
-			.for("ArrayExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {ArrayExpression} */ (_expr);
-
-				const items = expr.elements.map(
-					element =>
-						element !== null &&
-						element.type !== "SpreadElement" &&
-						this.evaluateExpression(element)
+				if (alternate.isConditional()) {
+					res.addOptions(
+						/** @type {BasicEvaluatedExpression[]} */ (alternate.options)
+					);
+				} else {
+					res.addOptions([alternate]);
+				}
+			} else {
+				res = this.evaluateExpression(
+					conditionValue ? expr.consequent : expr.alternate
 				);
-				if (!items.every(Boolean)) return;
-				return new BasicEvaluatedExpression()
-					.setItems(/** @type {BasicEvaluatedExpression[]} */ (items))
-					.setRange(/** @type {Range} */ (expr.range));
-			});
-		this.hooks.evaluate
-			.for("ChainExpression")
-			.tap("JavascriptParser", _expr => {
-				const expr = /** @type {ChainExpression} */ (_expr);
-				/** @type {Expression[]} */
-				const optionalExpressionsStack = [];
-				/** @type {Expression|Super} */
-				let next = expr.expression;
+				if (condition.couldHaveSideEffects()) res.setSideEffects();
+			}
+			res.setRange(/** @type {Range} */ (expr.range));
+			return res;
+		});
+		this.hooks.evaluate.for("ArrayExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {ArrayExpression} */ (_expr);
 
-				while (
-					next.type === "MemberExpression" ||
-					next.type === "CallExpression"
-				) {
-					if (next.type === "MemberExpression") {
-						if (next.optional) {
-							// SuperNode can not be optional
-							optionalExpressionsStack.push(
-								/** @type {Expression} */ (next.object)
-							);
-						}
-						next = next.object;
-					} else {
-						if (next.optional) {
-							// SuperNode can not be optional
-							optionalExpressionsStack.push(
-								/** @type {Expression} */ (next.callee)
-							);
-						}
-						next = next.callee;
+			const items = expr.elements.map(
+				element =>
+					element !== null &&
+					element.type !== "SpreadElement" &&
+					this.evaluateExpression(element)
+			);
+			if (!items.every(Boolean)) return;
+			return new BasicEvaluatedExpression()
+				.setItems(/** @type {BasicEvaluatedExpression[]} */ (items))
+				.setRange(/** @type {Range} */ (expr.range));
+		});
+		this.hooks.evaluate.for("ChainExpression").tap(CLASS_NAME, _expr => {
+			const expr = /** @type {ChainExpression} */ (_expr);
+			/** @type {Expression[]} */
+			const optionalExpressionsStack = [];
+			/** @type {Expression|Super} */
+			let next = expr.expression;
+
+			while (
+				next.type === "MemberExpression" ||
+				next.type === "CallExpression"
+			) {
+				if (next.type === "MemberExpression") {
+					if (next.optional) {
+						// SuperNode can not be optional
+						optionalExpressionsStack.push(
+							/** @type {Expression} */ (next.object)
+						);
 					}
-				}
-
-				while (optionalExpressionsStack.length > 0) {
-					const expression =
-						/** @type {Expression} */
-						(optionalExpressionsStack.pop());
-					const evaluated = this.evaluateExpression(expression);
-
-					if (evaluated.asNullish()) {
-						return evaluated.setRange(/** @type {Range} */ (_expr.range));
+					next = next.object;
+				} else {
+					if (next.optional) {
+						// SuperNode can not be optional
+						optionalExpressionsStack.push(
+							/** @type {Expression} */ (next.callee)
+						);
 					}
+					next = next.callee;
 				}
-				return this.evaluateExpression(expr.expression);
-			});
+			}
+
+			while (optionalExpressionsStack.length > 0) {
+				const expression =
+					/** @type {Expression} */
+					(optionalExpressionsStack.pop());
+				const evaluated = this.evaluateExpression(expression);
+
+				if (evaluated.asNullish()) {
+					return evaluated.setRange(/** @type {Range} */ (_expr.range));
+				}
+			}
+			return this.evaluateExpression(expr.expression);
+		});
 	}
 
 	/**
@@ -1854,7 +1852,7 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @param {Expression | SpreadElement} expr expression
-	 * @returns {string | VariableInfoInterface | undefined} identifier
+	 * @returns {string | VariableInfo | undefined} identifier
 	 */
 	getRenameIdentifier(expr) {
 		const result = this.evaluateExpression(expr);
@@ -1864,7 +1862,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {ClassExpression | ClassDeclaration} classy a class node
+	 * @param {ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration} classy a class node
 	 * @returns {void}
 	 */
 	walkClass(classy) {
@@ -1938,15 +1936,30 @@ class JavascriptParser extends Parser {
 	 * @param {(Statement | ModuleDeclaration)[]} statements statements
 	 */
 	walkStatements(statements) {
+		let onlyFunctionDeclaration = false;
+
 		for (let index = 0, len = statements.length; index < len; index++) {
 			const statement = statements[index];
+
+			if (
+				onlyFunctionDeclaration &&
+				statement.type !== "FunctionDeclaration" &&
+				this.hooks.unusedStatement.call(/** @type {Statement} */ (statement))
+			) {
+				continue;
+			}
+
 			this.walkStatement(statement);
+
+			if (this.scope.terminated) {
+				onlyFunctionDeclaration = true;
+			}
 		}
 	}
 
 	/**
 	 * Walking iterates the statements and expressions and processes them
-	 * @param {Statement | ModuleDeclaration} statement statement
+	 * @param {Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration} statement statement
 	 */
 	preWalkStatement(statement) {
 		/** @type {StatementPath} */
@@ -2004,7 +2017,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {Statement | ModuleDeclaration} statement statement
+	 * @param {Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration} statement statement
 	 */
 	blockPreWalkStatement(statement) {
 		/** @type {StatementPath} */
@@ -2043,7 +2056,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {Statement | ModuleDeclaration} statement statement
+	 * @param {Statement | ModuleDeclaration | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} statement statement
 	 */
 	walkStatement(statement) {
 		/** @type {StatementPath} */
@@ -2147,7 +2160,7 @@ class JavascriptParser extends Parser {
 			this.blockPreWalkStatements(body);
 			this.prevStatement = prev;
 			this.walkStatements(body);
-		});
+		}, true);
 	}
 
 	/**
@@ -2175,9 +2188,20 @@ class JavascriptParser extends Parser {
 		if (result === undefined) {
 			this.walkExpression(statement.test);
 			this.walkNestedStatement(statement.consequent);
+
+			const consequentTerminated = this.scope.terminated;
+			this.scope.terminated = undefined;
+
 			if (statement.alternate) {
 				this.walkNestedStatement(statement.alternate);
 			}
+
+			const alternateTerminated = this.scope.terminated;
+
+			this.scope.terminated =
+				consequentTerminated && alternateTerminated
+					? alternateTerminated
+					: undefined;
 		} else if (result) {
 			this.walkNestedStatement(statement.consequent);
 		} else if (statement.alternate) {
@@ -2201,7 +2225,9 @@ class JavascriptParser extends Parser {
 			const result = hook.call(statement);
 			if (result === true) return;
 		}
-		this.walkNestedStatement(statement.body);
+		this.inBlockScope(() => {
+			this.walkNestedStatement(statement.body);
+		});
 	}
 
 	/**
@@ -2215,8 +2241,10 @@ class JavascriptParser extends Parser {
 	 * @param {WithStatement} statement with statement
 	 */
 	walkWithStatement(statement) {
-		this.walkExpression(statement.object);
-		this.walkNestedStatement(statement.body);
+		this.inBlockScope(() => {
+			this.walkExpression(statement.object);
+			this.walkNestedStatement(statement.body);
+		});
 	}
 
 	/**
@@ -2239,6 +2267,14 @@ class JavascriptParser extends Parser {
 	 */
 	walkTerminatingStatement(statement) {
 		if (statement.argument) this.walkExpression(statement.argument);
+		// Skip top level scope because to handle `export` and `module.exports` after terminate
+		if (this.scope.topLevelScope === true) return;
+		if (this.hooks.terminate.call(statement)) {
+			this.scope.terminated =
+				statement.type === "ReturnStatement"
+					? SCOPE_INFO_TERMINATED_RETURN
+					: SCOPE_INFO_TERMINATED_THROW;
+		}
 	}
 
 	/**
@@ -2275,8 +2311,30 @@ class JavascriptParser extends Parser {
 			this.walkStatement(statement.block);
 			this.scope.inTry = false;
 		}
+
+		const tryTerminated = this.scope.terminated;
+		this.scope.terminated = undefined;
+
 		if (statement.handler) this.walkCatchClause(statement.handler);
-		if (statement.finalizer) this.walkStatement(statement.finalizer);
+
+		const handlerTerminated = this.scope.terminated;
+		this.scope.terminated = undefined;
+
+		if (statement.finalizer) {
+			this.walkStatement(statement.finalizer);
+		}
+
+		const finalizerTerminated = this.scope.terminated;
+		this.scope.terminated = undefined;
+
+		if (finalizerTerminated) {
+			this.scope.terminated = finalizerTerminated;
+		} else if (
+			tryTerminated &&
+			(statement.handler ? handlerTerminated : true)
+		) {
+			this.scope.terminated = handlerTerminated || tryTerminated;
+		}
 	}
 
 	/**
@@ -2290,8 +2348,10 @@ class JavascriptParser extends Parser {
 	 * @param {WhileStatement} statement while statement
 	 */
 	walkWhileStatement(statement) {
-		this.walkExpression(statement.test);
-		this.walkNestedStatement(statement.body);
+		this.inBlockScope(() => {
+			this.walkExpression(statement.test);
+			this.walkNestedStatement(statement.body);
+		});
 	}
 
 	/**
@@ -2305,8 +2365,10 @@ class JavascriptParser extends Parser {
 	 * @param {DoWhileStatement} statement do while statement
 	 */
 	walkDoWhileStatement(statement) {
-		this.walkNestedStatement(statement.body);
-		this.walkExpression(statement.test);
+		this.inBlockScope(() => {
+			this.walkNestedStatement(statement.body);
+			this.walkExpression(statement.test);
+		});
 	}
 
 	/**
@@ -2339,7 +2401,9 @@ class JavascriptParser extends Parser {
 			if (statement.update) {
 				this.walkExpression(statement.update);
 			}
+
 			const body = statement.body;
+
 			if (body.type === "BlockStatement") {
 				// no need to add additional scope
 				const prev = this.prevStatement;
@@ -2373,8 +2437,11 @@ class JavascriptParser extends Parser {
 			} else {
 				this.walkPattern(statement.left);
 			}
+
 			this.walkExpression(statement.right);
+
 			const body = statement.body;
+
 			if (body.type === "BlockStatement") {
 				// no need to add additional scope
 				const prev = this.prevStatement;
@@ -2411,8 +2478,11 @@ class JavascriptParser extends Parser {
 			} else {
 				this.walkPattern(statement.left);
 			}
+
 			this.walkExpression(statement.right);
+
 			const body = statement.body;
+
 			if (body.type === "BlockStatement") {
 				// no need to add additional scope
 				const prev = this.prevStatement;
@@ -2426,7 +2496,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {FunctionDeclaration} statement function declaration
+	 * @param {FunctionDeclaration | MaybeNamedFunctionDeclaration} statement function declaration
 	 */
 	preWalkFunctionDeclaration(statement) {
 		if (statement.id) {
@@ -2435,7 +2505,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {FunctionDeclaration} statement function declaration
+	 * @param {FunctionDeclaration | MaybeNamedFunctionDeclaration} statement function declaration
 	 */
 	walkFunctionDeclaration(statement) {
 		const wasTopLevel = this.scope.topLevelScope;
@@ -2444,15 +2514,14 @@ class JavascriptParser extends Parser {
 			for (const param of statement.params) {
 				this.walkPattern(param);
 			}
-			if (statement.body.type === "BlockStatement") {
-				this.detectMode(statement.body.body);
-				const prev = this.prevStatement;
-				this.preWalkStatement(statement.body);
-				this.prevStatement = prev;
-				this.walkStatement(statement.body);
-			} else {
-				this.walkExpression(statement.body);
-			}
+
+			this.detectMode(statement.body.body);
+
+			const prev = this.prevStatement;
+
+			this.preWalkStatement(statement.body);
+			this.prevStatement = prev;
+			this.walkStatement(statement.body);
 		});
 		this.scope.topLevelScope = wasTopLevel;
 	}
@@ -2647,26 +2716,29 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {TODO} statement statement
+	 * @param {ExportDefaultDeclaration} statement statement
 	 */
 	blockPreWalkExportDefaultDeclaration(statement) {
 		const prev = this.prevStatement;
-		this.preWalkStatement(statement.declaration);
+
+		this.preWalkStatement(/** @type {TODO} */ (statement.declaration));
 		this.prevStatement = prev;
-		this.blockPreWalkStatement(statement.declaration);
+		this.blockPreWalkStatement(/** @type {TODO} */ (statement.declaration));
+
 		if (
-			/** @type {FunctionDeclaration | ClassDeclaration} */ (
-				statement.declaration
-			).id &&
+			/** @type {MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} */
+			(statement.declaration).id &&
 			statement.declaration.type !== "FunctionExpression" &&
 			statement.declaration.type !== "ClassExpression"
 		) {
 			const declaration =
-				/** @type {FunctionDeclaration | ClassDeclaration} */
+				/** @type {MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} */
 				(statement.declaration);
+
 			this.hooks.exportSpecifier.call(
 				statement,
-				declaration.id.name,
+				/** @type {Identifier} */
+				(declaration.id).name,
 				"default",
 				undefined
 			);
@@ -2679,9 +2751,8 @@ class JavascriptParser extends Parser {
 	walkExportDefaultDeclaration(statement) {
 		this.hooks.export.call(statement);
 		if (
-			/** @type {FunctionDeclaration | ClassDeclaration} */ (
-				statement.declaration
-			).id &&
+			/** @type {FunctionDeclaration | ClassDeclaration} */
+			(statement.declaration).id &&
 			statement.declaration.type !== "FunctionExpression" &&
 			statement.declaration.type !== "ClassExpression"
 		) {
@@ -2699,23 +2770,16 @@ class JavascriptParser extends Parser {
 				statement.declaration.type === "FunctionDeclaration" ||
 				statement.declaration.type === "ClassDeclaration"
 			) {
-				this.walkStatement(
-					/** @type {FunctionDeclaration | ClassDeclaration} */
-					(statement.declaration)
-				);
+				this.walkStatement(statement.declaration);
 			} else {
 				this.walkExpression(statement.declaration);
 			}
 
-			if (
-				!this.hooks.exportExpression.call(
-					statement,
-					/** @type {TODO} */ (statement).declaration
-				)
-			) {
+			if (!this.hooks.exportExpression.call(statement, statement.declaration)) {
 				this.hooks.exportSpecifier.call(
 					statement,
-					/** @type {TODO} */ (statement.declaration),
+					/** @type {TODO} */
+					(statement.declaration),
 					"default",
 					undefined
 				);
@@ -2795,11 +2859,18 @@ class JavascriptParser extends Parser {
 		for (let i = 0; i < properties.length; i++) {
 			const property = properties[i];
 			if (property.type !== "Property") return;
-			if (property.shorthand && property.value.type === "Identifier") {
-				this.scope.inShorthand = property.value.name;
+			if (property.shorthand) {
+				if (property.value.type === "Identifier") {
+					this.scope.inShorthand = property.value.name;
+				} else if (
+					property.value.type === "AssignmentPattern" &&
+					property.value.left.type === "Identifier"
+				) {
+					this.scope.inShorthand = property.value.left.name;
+				}
 			}
 			const key = property.key;
-			if (key.type === "Identifier") {
+			if (key.type === "Identifier" && !property.computed) {
 				props.add({
 					id: key.name,
 					range: key.range,
@@ -2887,7 +2958,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {ClassDeclaration} statement class declaration
+	 * @param {ClassDeclaration | MaybeNamedClassDeclaration} statement class declaration
 	 */
 	blockPreWalkClassDeclaration(statement) {
 		if (statement.id) {
@@ -2896,7 +2967,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {ClassDeclaration} statement class declaration
+	 * @param {ClassDeclaration | MaybeNamedClassDeclaration} statement class declaration
 	 */
 	walkClassDeclaration(statement) {
 		this.walkClass(statement);
@@ -2943,8 +3014,10 @@ class JavascriptParser extends Parser {
 				if (switchCase.test) {
 					this.walkExpression(switchCase.test);
 				}
+
 				if (switchCase.consequent.length > 0) {
 					this.walkStatements(switchCase.consequent);
+					this.scope.terminated = undefined;
 				}
 			}
 		});
@@ -2973,7 +3046,7 @@ class JavascriptParser extends Parser {
 			this.blockPreWalkStatement(catchClause.body);
 			this.prevStatement = prev;
 			this.walkStatement(catchClause.body);
-		});
+		}, true);
 	}
 
 	/**
@@ -3052,7 +3125,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {TODO} expression expression
+	 * @param {Expression | SpreadElement | PrivateIdentifier | Super} expression expression
 	 */
 	walkExpression(expression) {
 		switch (expression.type) {
@@ -3191,7 +3264,10 @@ class JavascriptParser extends Parser {
 			this.walkIdentifier(prop.value);
 			this.scope.inShorthand = false;
 		} else {
-			this.walkExpression(prop.value);
+			this.walkExpression(
+				/** @type {Exclude<Property["value"], AssignmentPattern | ObjectPattern | ArrayPattern | RestElement>} */
+				(prop.value)
+			);
 		}
 	}
 
@@ -3212,15 +3288,14 @@ class JavascriptParser extends Parser {
 			for (const param of expression.params) {
 				this.walkPattern(param);
 			}
-			if (expression.body.type === "BlockStatement") {
-				this.detectMode(expression.body.body);
-				const prev = this.prevStatement;
-				this.preWalkStatement(expression.body);
-				this.prevStatement = prev;
-				this.walkStatement(expression.body);
-			} else {
-				this.walkExpression(expression.body);
-			}
+
+			this.detectMode(expression.body.body);
+
+			const prev = this.prevStatement;
+
+			this.preWalkStatement(expression.body);
+			this.prevStatement = prev;
+			this.walkStatement(expression.body);
 		});
 		this.scope.topLevelScope = wasTopLevel;
 	}
@@ -3379,12 +3454,13 @@ class JavascriptParser extends Parser {
 			this.walkExpression(expression.right);
 			this.enterPattern(expression.left, (name, decl) => {
 				if (!this.callHooksForName(this.hooks.assign, name, expression)) {
-					this.walkExpression(expression.left);
+					this.walkExpression(
+						/** @type {MemberExpression} */
+						(expression.left)
+					);
 				}
 			});
-			return;
-		}
-		if (expression.left.type.endsWith("Pattern")) {
+		} else if (expression.left.type.endsWith("Pattern")) {
 			this.walkExpression(expression.right);
 			this.enterPattern(expression.left, (name, decl) => {
 				if (!this.callHooksForName(this.hooks.assign, name, expression)) {
@@ -3412,7 +3488,10 @@ class JavascriptParser extends Parser {
 			this.walkExpression(expression.left);
 		} else {
 			this.walkExpression(expression.right);
-			this.walkExpression(expression.left);
+			this.walkExpression(
+				/** @type {Exclude<AssignmentExpression["left"], Identifier | RestElement | MemberExpression | ObjectPattern | ArrayPattern | AssignmentPattern>} */
+				(expression.left)
+			);
 		}
 	}
 
@@ -3424,6 +3503,7 @@ class JavascriptParser extends Parser {
 		if (result === undefined) {
 			this.walkExpression(expression.test);
 			this.walkExpression(expression.consequent);
+
 			if (expression.alternate) {
 				this.walkExpression(expression.alternate);
 			}
@@ -3513,7 +3593,7 @@ class JavascriptParser extends Parser {
 	_walkIIFE(functionExpression, options, currentThis) {
 		/**
 		 * @param {Expression | SpreadElement} argOrThis arg or this
-		 * @returns {string | VariableInfoInterface | undefined} var info
+		 * @returns {string | VariableInfo | undefined} var info
 		 */
 		const getVarInfo = argOrThis => {
 			const renameIdentifier = this.getRenameIdentifier(argOrThis);
@@ -3603,13 +3683,13 @@ class JavascriptParser extends Parser {
 			expression.callee.type === "MemberExpression" &&
 			expression.callee.object.type.endsWith("FunctionExpression") &&
 			!expression.callee.computed &&
-			// eslint-disable-next-line no-warning-comments
-			// @ts-ignore
-			// TODO check me and handle more cases
-			(expression.callee.property.name === "call" ||
-				// eslint-disable-next-line no-warning-comments
-				// @ts-ignore
-				expression.callee.property.name === "bind") &&
+			/** @type {boolean} */
+			(
+				/** @type {Identifier} */
+				(expression.callee.property).name === "call" ||
+					/** @type {Identifier} */
+					(expression.callee.property).name === "bind"
+			) &&
 			expression.arguments.length > 0 &&
 			isSimpleFunction(
 				/** @type {FunctionExpression | ArrowFunctionExpression} */
@@ -3656,9 +3736,7 @@ class JavascriptParser extends Parser {
 					if (result === true) return;
 				}
 			}
-			const callee = this.evaluateExpression(
-				/** @type {TODO} */ (expression.callee)
-			);
+			const callee = this.evaluateExpression(expression.callee);
 			if (callee.isIdentifier()) {
 				const result1 = this.callHooksForInfo(
 					this.hooks.callMemberChain,
@@ -3764,11 +3842,12 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {TODO} expression member expression
+	 * @template R
+	 * @param {MemberExpression} expression member expression
 	 * @param {string} name name
 	 * @param {string | VariableInfo} rootInfo root info
 	 * @param {string[]} members members
-	 * @param {TODO} onUnhandled on unhandled callback
+	 * @param {() => R | undefined} onUnhandled on unhandled callback
 	 */
 	walkMemberExpressionWithExpressionName(
 		expression,
@@ -3781,7 +3860,9 @@ class JavascriptParser extends Parser {
 			// optimize the case where expression.object is a MemberExpression too.
 			// we can keep info here when calling walkMemberExpression directly
 			const property =
-				expression.property.name || `${expression.property.value}`;
+				/** @type {Identifier} */
+				(expression.property).name ||
+				`${/** @type {Literal} */ (expression.property).value}`;
 			name = name.slice(0, -property.length - 1);
 			members.pop();
 			const result = this.callHooksForInfo(
@@ -3847,8 +3928,8 @@ class JavascriptParser extends Parser {
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
 	 * @param {Expression | Super} expr expression info
-	 * @param {(function(string, string | ScopeInfo | VariableInfo, function(): string[]): any) | undefined} fallback callback when variable in not handled by hooks
-	 * @param {(function(string): any) | undefined} defined callback when variable is defined
+	 * @param {((name: string, rootInfo: string | ScopeInfo | VariableInfo, getMembers: () => string[]) => TODO) | undefined} fallback callback when variable in not handled by hooks
+	 * @param {((result?: string) => R | undefined) | undefined} defined callback when variable is defined
 	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
 	 */
@@ -3899,7 +3980,7 @@ class JavascriptParser extends Parser {
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks that should be called
 	 * @param {ExportedVariableInfo} info variable info
-	 * @param  {AsArray<T>} args args for the hook
+	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
 	 */
 	callHooksForInfo(hookMap, info, ...args) {
@@ -3917,8 +3998,8 @@ class JavascriptParser extends Parser {
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
 	 * @param {ExportedVariableInfo} info variable info
-	 * @param {(function(string): any) | undefined} fallback callback when variable in not handled by hooks
-	 * @param {(function(string=): any) | undefined} defined callback when variable is defined
+	 * @param {((name: string) => TODO) | undefined} fallback callback when variable in not handled by hooks
+	 * @param {((result?: string) => TODO) | undefined} defined callback when variable is defined
 	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
 	 */
@@ -3967,8 +4048,8 @@ class JavascriptParser extends Parser {
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
 	 * @param {string} name key in map
-	 * @param {(function(string): any) | undefined} fallback callback when variable in not handled by hooks
-	 * @param {(function(): any) | undefined} defined callback when variable is defined
+	 * @param {((value: string) => R | undefined) | undefined} fallback callback when variable in not handled by hooks
+	 * @param {(() => R) | undefined} defined callback when variable is defined
 	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
 	 */
@@ -3984,8 +4065,8 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @deprecated
-	 * @param {any} params scope params
-	 * @param {function(): void} fn inner function
+	 * @param {(string | Pattern | Property)[]} params scope params
+	 * @param {() => void} fn inner function
 	 * @returns {void}
 	 */
 	inScope(params, fn) {
@@ -3997,6 +4078,7 @@ class JavascriptParser extends Parser {
 			inTaggedTemplateTag: false,
 			isStrict: oldScope.isStrict,
 			isAsmJs: oldScope.isAsmJs,
+			terminated: undefined,
 			definitions: oldScope.definitions.createChild()
 		};
 
@@ -4014,7 +4096,7 @@ class JavascriptParser extends Parser {
 	/**
 	 * @param {boolean} hasThis true, when this is defined
 	 * @param {Identifier[]} params scope params
-	 * @param {function(): void} fn inner function
+	 * @param {() => void} fn inner function
 	 * @returns {void}
 	 */
 	inClassScope(hasThis, params, fn) {
@@ -4026,6 +4108,7 @@ class JavascriptParser extends Parser {
 			inTaggedTemplateTag: false,
 			isStrict: oldScope.isStrict,
 			isAsmJs: oldScope.isAsmJs,
+			terminated: undefined,
 			definitions: oldScope.definitions.createChild()
 		};
 
@@ -4045,7 +4128,7 @@ class JavascriptParser extends Parser {
 	/**
 	 * @param {boolean} hasThis true, when this is defined
 	 * @param {(Pattern | string)[]} params scope params
-	 * @param {function(): void} fn inner function
+	 * @param {() => void} fn inner function
 	 * @returns {void}
 	 */
 	inFunctionScope(hasThis, params, fn) {
@@ -4057,6 +4140,7 @@ class JavascriptParser extends Parser {
 			inTaggedTemplateTag: false,
 			isStrict: oldScope.isStrict,
 			isAsmJs: oldScope.isAsmJs,
+			terminated: undefined,
 			definitions: oldScope.definitions.createChild()
 		};
 
@@ -4074,10 +4158,11 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {function(): void} fn inner function
+	 * @param {() => void} fn inner function
+	 * @param {boolean} inExecutedPath executed state
 	 * @returns {void}
 	 */
-	inBlockScope(fn) {
+	inBlockScope(fn, inExecutedPath = false) {
 		const oldScope = this.scope;
 		this.scope = {
 			topLevelScope: oldScope.topLevelScope,
@@ -4086,10 +4171,17 @@ class JavascriptParser extends Parser {
 			inTaggedTemplateTag: false,
 			isStrict: oldScope.isStrict,
 			isAsmJs: oldScope.isAsmJs,
+			terminated: oldScope.terminated,
 			definitions: oldScope.definitions.createChild()
 		};
 
 		fn();
+
+		const terminated = this.scope.terminated;
+
+		if (inExecutedPath && terminated) {
+			oldScope.terminated = terminated;
+		}
 
 		this.scope = oldScope;
 	}
@@ -4228,7 +4320,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {Expression | SpreadElement | PrivateIdentifier} expression expression node
+	 * @param {Expression | SpreadElement | PrivateIdentifier | Super} expression expression node
 	 * @returns {BasicEvaluatedExpression} evaluation result
 	 */
 	evaluateExpression(expression) {
@@ -4242,6 +4334,7 @@ class JavascriptParser extends Parser {
 				}
 			}
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.warn(err);
 			// ignore error
 		}
@@ -4274,7 +4367,7 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @param {Expression} expression expression
-	 * @returns {{ range?: Range, value: string, code: boolean, conditional: TODO }} result
+	 * @returns {{ range?: Range, value: string, code: boolean, conditional: boolean | TODO }} result
 	 */
 	parseCalculatedString(expression) {
 		switch (expression.type) {
@@ -4379,6 +4472,13 @@ class JavascriptParser extends Parser {
 		if (typeof source === "object") {
 			ast = /** @type {Program} */ (source);
 			comments = source.comments;
+			if (source.semicolons) {
+				// Forward semicolon information from the preparsed AST if present
+				// This ensures the output is consistent with that of a fresh AST
+				for (const pos of source.semicolons) {
+					semicolons.add(pos);
+				}
+			}
 		} else {
 			comments = [];
 			ast = JavascriptParser._parse(source, {
@@ -4401,10 +4501,10 @@ class JavascriptParser extends Parser {
 			inTaggedTemplateTag: false,
 			isStrict: false,
 			isAsmJs: false,
+			terminated: undefined,
 			definitions: new StackedMap()
 		};
-		/** @type {ParserState} */
-		this.state = state;
+		this.state = /** @type {ParserState} */ (state);
 		this.comments = comments;
 		this.semicolons = semicolons;
 		this.statementPath = [];
@@ -4421,7 +4521,6 @@ class JavascriptParser extends Parser {
 		}
 		this.hooks.finish.call(ast, comments);
 		this.scope = oldScope;
-		/** @type {ParserState} */
 		this.state = oldState;
 		this.comments = oldComments;
 		this.semicolons = oldSemicolons;
@@ -4446,7 +4545,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {Expression | Declaration | PrivateIdentifier | null | undefined} expr an expression
+	 * @param {Expression | Declaration | PrivateIdentifier | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration | null | undefined} expr an expression
 	 * @param {number} commentsStartPos source position from which annotation comments are checked
 	 * @returns {boolean} true, when the expression is pure
 	 */
@@ -4666,8 +4765,8 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @param {string} name name
-	 * @param {symbol} tag tag info
-	 * @returns {TODO} tag data
+	 * @param {Tag} tag tag info
+	 * @returns {TagData | undefined} tag data
 	 */
 	getTagData(name, tag) {
 		const info = this.scope.definitions.get(name);
@@ -4682,8 +4781,8 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @param {string} name name
-	 * @param {symbol} tag tag info
-	 * @param {TODO=} data data
+	 * @param {Tag} tag tag info
+	 * @param {TagData=} data data
 	 */
 	tagVariable(name, tag, data) {
 		const oldInfo = this.scope.definitions.get(name);
@@ -4784,7 +4883,7 @@ class JavascriptParser extends Parser {
 
 	/**
 	 * @param {Range} range range of the comment
-	 * @returns {{ options: Record<string, any> | null, errors: (Error & { comment: Comment })[] | null }} result
+	 * @returns {{ options: Record<string, EXPECTED_ANY> | null, errors: (Error & { comment: Comment })[] | null }} result
 	 */
 	parseCommentOptions(range) {
 		const comments = this.getComments(range);

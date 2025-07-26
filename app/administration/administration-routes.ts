@@ -24,7 +24,6 @@ export const adminRoutes: Route[] = [
       ).then((m) => m.ConfigAdministrationPageComponent),
     data: { name: 'config-tables' },
     canActivate: [siteAdminGuard, onEnterReset(ConfigAdministrationPageStore)],
-    providers: [ConfigAdministrationPageStore],
     title: 'Config Tables',
   },
 ];

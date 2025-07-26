@@ -13,6 +13,7 @@ export interface DeclarationToNgModuleOptions {
     flat?: boolean;
     export?: boolean;
     type: string;
+    typeSeparator?: '.' | '-';
     skipImport?: boolean;
     standalone?: boolean;
 }

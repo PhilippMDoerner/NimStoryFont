@@ -1,4 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { HomeComponent } from 'src/app/design//templates/home/home.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -9,6 +14,7 @@ import { HomePageStore } from './home-page.store';
   templateUrl: './home-page.component.html',
   styleUrls: ['./home-page.component.scss'],
   imports: [HomeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePageComponent {
   globalStore = inject(GlobalStore);

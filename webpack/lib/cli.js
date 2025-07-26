@@ -8,23 +8,29 @@
 const path = require("path");
 const webpackSchema = require("../schemas/WebpackOptions.json");
 
-/** @typedef {TODO & { absolutePath: boolean, instanceof: string, cli: { helper?: boolean, exclude?: boolean } }} Schema */
+/** @typedef {import("json-schema").JSONSchema4} JSONSchema4 */
+/** @typedef {import("json-schema").JSONSchema6} JSONSchema6 */
+/** @typedef {import("json-schema").JSONSchema7} JSONSchema7 */
+/** @typedef {JSONSchema4 | JSONSchema6 | JSONSchema7} JSONSchema */
+/** @typedef {JSONSchema & { absolutePath: boolean, instanceof: string, cli: { helper?: boolean, exclude?: boolean, description?: string, negatedDescription?: string, resetDescription?: string } }} Schema */
 
 // TODO add originPath to PathItem for better errors
 /**
  * @typedef {object} PathItem
- * @property {any} schema the part of the schema
+ * @property {Schema} schema the part of the schema
  * @property {string} path the path in the config
  */
 
 /** @typedef {"unknown-argument" | "unexpected-non-array-in-path" | "unexpected-non-object-in-path" | "multiple-values-unexpected" | "invalid-value"} ProblemType */
+
+/** @typedef {string | number | boolean | RegExp} Value */
 
 /**
  * @typedef {object} Problem
  * @property {ProblemType} type
  * @property {string} path
  * @property {string} argument
- * @property {any=} value
+ * @property {Value=} value
  * @property {number=} index
  * @property {string=} expected
  */
@@ -36,14 +42,18 @@ const webpackSchema = require("../schemas/WebpackOptions.json");
  * @property {string=} expected
  */
 
+/** @typedef {{ [key: string]: EnumValue }} EnumValueObject */
+/** @typedef {EnumValue[]} EnumValueArray */
+/** @typedef {string | number | boolean | EnumValueObject | EnumValueArray | null} EnumValue */
+
 /**
  * @typedef {object} ArgumentConfig
- * @property {string | undefined} description
- * @property {string} [negatedDescription]
+ * @property {string=} description
+ * @property {string=} negatedDescription
  * @property {string} path
  * @property {boolean} multiple
- * @property {"enum"|"string"|"path"|"number"|"boolean"|"RegExp"|"reset"} type
- * @property {any[]=} values
+ * @property {"enum" | "string" | "path" | "number" | "boolean" | "RegExp" | "reset"} type
+ * @property {EnumValue[]=} values
  */
 
 /** @typedef {"string" | "number" | "boolean"} SimpleType */
@@ -55,8 +65,6 @@ const webpackSchema = require("../schemas/WebpackOptions.json");
  * @property {boolean} multiple
  * @property {ArgumentConfig[]} configs
  */
-
-/** @typedef {string | number | boolean | RegExp | (string | number | boolean | RegExp)} Value */
 
 /** @typedef {Record<string, Argument>} Flags */
 
@@ -93,7 +101,7 @@ const getArguments = (schema = webpackSchema) => {
 		let schemaPart = schema;
 
 		for (let i = 1; i < newPath.length; i++) {
-			const inner = schemaPart[newPath[i]];
+			const inner = schemaPart[/** @type {keyof Schema} */ (newPath[i])];
 
 			if (!inner) {
 				break;
@@ -147,7 +155,7 @@ const getArguments = (schema = webpackSchema) => {
 
 	/**
 	 * @param {Schema} schemaPart schema
-	 * @returns {Pick<ArgumentConfig, "type"|"values"> | undefined} partial argument config
+	 * @returns {Pick<ArgumentConfig, "type" | "values"> | undefined} partial argument config
 	 */
 	const schemaToArgumentConfig = schemaPart => {
 		if (schemaPart.enum) {
@@ -272,7 +280,7 @@ const getArguments = (schema = webpackSchema) => {
 	/**
 	 * @param {Schema} schemaPart the current schema
 	 * @param {string} schemaPath the current path in the schema
-	 * @param {{schema: object, path: string}[]} path all previous visited schemaParts
+	 * @param {PathItem[]} path all previous visited schemaParts
 	 * @param {string | null} inArray if inside of an array, the path to the array
 	 * @returns {number} added arguments
 	 */
@@ -291,6 +299,7 @@ const getArguments = (schema = webpackSchema) => {
 
 		if (schemaPart.cli && schemaPart.cli.exclude) return 0;
 
+		/** @type {PathItem[]} */
 		const fullPath = [{ schema: schemaPart, path: schemaPath }, ...path];
 
 		let addedArguments = 0;
@@ -423,7 +432,7 @@ const cliAddedItems = new WeakMap();
  * @param {Configuration} config configuration
  * @param {string} schemaPath path in the config
  * @param {number | undefined} index index of value when multiple values are provided, otherwise undefined
- * @returns {{ problem?: LocalProblem, object?: any, property?: Property, value?: any }} problem or object with property and value
+ * @returns {{ problem?: LocalProblem, object?: TODO, property?: Property, value?: EXPECTED_OBJECT | EXPECTED_ANY[] }} problem or object with property and value
  */
 const getObjectAndProperty = (config, schemaPath, index = 0) => {
 	if (!schemaPath) return { value: config };
@@ -522,7 +531,7 @@ const getObjectAndProperty = (config, schemaPath, index = 0) => {
 /**
  * @param {Configuration} config configuration
  * @param {string} schemaPath path in the config
- * @param {any} value parsed value
+ * @param {ParsedValue} value parsed value
  * @param {number | undefined} index index of value when multiple values are provided, otherwise undefined
  * @returns {LocalProblem | null} problem or null for success
  */
@@ -587,10 +596,12 @@ const getExpectedValue = argConfig => {
 	}
 };
 
+/** @typedef {null | string | number | boolean | RegExp | EnumValue | []} ParsedValue */
+
 /**
  * @param {ArgumentConfig} argConfig processing instructions
  * @param {Value} value the value
- * @returns {any | undefined} parsed value
+ * @returns {ParsedValue | undefined} parsed value
  */
 const parseValueForArgumentConfig = (argConfig, value) => {
 	switch (argConfig.type) {
@@ -627,9 +638,10 @@ const parseValueForArgumentConfig = (argConfig, value) => {
 			break;
 		case "enum": {
 			const values =
-				/** @type {NonNullable<ArgumentConfig["values"]>} */
+				/** @type {EnumValue[]} */
 				(argConfig.values);
-			if (values.includes(value)) return value;
+			if (values.includes(/** @type {Exclude<Value, RegExp>} */ (value)))
+				return value;
 			for (const item of values) {
 				if (`${item}` === value) return item;
 			}
@@ -641,7 +653,7 @@ const parseValueForArgumentConfig = (argConfig, value) => {
 	}
 };
 
-/** @typedef {any} Configuration */
+/** @typedef {TODO} Configuration */
 
 /**
  * @param {Flags} args object of arguments

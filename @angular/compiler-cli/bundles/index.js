@@ -3,11 +3,6 @@
       const require = __cjsCompatRequire(import.meta.url);
     
 import {
-  GLOBAL_DEFS_FOR_TERSER,
-  GLOBAL_DEFS_FOR_TERSER_WITH_AOT,
-  constructorParametersDownlevelTransform
-} from "./chunk-3Q7JGQD2.js";
-import {
   DEFAULT_ERROR_CODE,
   DecoratorType,
   DocsExtractor,
@@ -33,34 +28,36 @@ import {
   isTsDiagnostic,
   performCompilation,
   readConfiguration
-} from "./chunk-2MIQQ3RF.js";
+} from "./chunk-2L4O4UIG.js";
+import {
+  ConsoleLogger,
+  LogLevel
+} from "./chunk-H5Y7P5GQ.js";
+import {
+  GLOBAL_DEFS_FOR_TERSER,
+  GLOBAL_DEFS_FOR_TERSER_WITH_AOT,
+  constructorParametersDownlevelTransform
+} from "./chunk-QZKYZIEQ.js";
 import {
   angularJitApplicationTransform,
   getDownlevelDecoratorsTransform,
   getInitializerApiJitTransform
-} from "./chunk-2NHOVPL3.js";
-import {
-  OptimizeFor,
-  TsCreateProgramDriver
-} from "./chunk-K3P5YJTN.js";
-import {
-  ErrorCode,
-  isLocalCompilationDiagnostics,
-  ngErrorCode
-} from "./chunk-WKHF7UQD.js";
+} from "./chunk-EBPHWYDC.js";
 import {
   ActivePerfRecorder,
-  PerfPhase
-} from "./chunk-I6R3GL3L.js";
+  ErrorCode,
+  OptimizeFor,
+  PerfPhase,
+  TsCreateProgramDriver,
+  isLocalCompilationDiagnostics,
+  ngErrorCode
+} from "./chunk-NPUFVONQ.js";
+import "./chunk-M3WWDK6S.js";
 import {
-  ConsoleLogger,
-  LogLevel
-} from "./chunk-GBKXY6BH.js";
-import {
+  InvalidFileSystem,
   LogicalFileSystem,
   LogicalProjectPath,
   NgtscCompilerHost,
-  NodeJSFileSystem,
   absoluteFrom,
   absoluteFromSourceFile,
   basename,
@@ -77,14 +74,17 @@ import {
   resolve,
   setFileSystem,
   toRelativeImport
-} from "./chunk-STORTTKY.js";
+} from "./chunk-3AHGFMNS.js";
+import {
+  NodeJSFileSystem
+} from "./chunk-U5SKOFKE.js";
 import "./chunk-KPQ72R34.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/version.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/version.js
 import { Version } from "@angular/compiler";
-var VERSION = new Version("19.1.6");
+var VERSION = new Version("20.0.3");
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/ngtsc/tsc_plugin.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/ngtsc/tsc_plugin.js
 var NgTscPlugin = class {
   ngOptions;
   name = "ngtsc";
@@ -107,7 +107,6 @@ var NgTscPlugin = class {
     return this.host;
   }
   setupCompilation(program, oldProgram) {
-    var _a;
     const perfRecorder = ActivePerfRecorder.zeroedToNow();
     if (this.host === null || this.options === null) {
       throw new Error("Lifecycle error: setupCompilation() before wrapHost().");
@@ -119,7 +118,7 @@ var NgTscPlugin = class {
     let ticket;
     const modifiedResourceFiles = /* @__PURE__ */ new Set();
     if (this.host.getModifiedResourceFiles !== void 0) {
-      for (const resourceFile of (_a = this.host.getModifiedResourceFiles()) != null ? _a : []) {
+      for (const resourceFile of this.host.getModifiedResourceFiles() ?? []) {
         modifiedResourceFiles.add(resolve(resourceFile));
       }
     }
@@ -161,7 +160,7 @@ var NgTscPlugin = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/index.js
 setFileSystem(new NodeJSFileSystem());
 export {
   ConsoleLogger,
@@ -173,6 +172,7 @@ export {
   ErrorCode,
   GLOBAL_DEFS_FOR_TERSER,
   GLOBAL_DEFS_FOR_TERSER_WITH_AOT,
+  InvalidFileSystem,
   LogLevel,
   LogicalFileSystem,
   LogicalProjectPath,

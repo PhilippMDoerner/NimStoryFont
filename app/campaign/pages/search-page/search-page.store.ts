@@ -12,6 +12,7 @@ interface SearchState {}
 const initialState: SearchState = {};
 
 export const SearchPageStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withQueries(() => {
     const articleService = inject(ArticleService);

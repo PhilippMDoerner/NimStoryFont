@@ -1,9 +1,5 @@
 import type { CertAuthority, TLogAuthority } from './trust.types';
-type CertAuthorityFilterCriteria = {
-    start: Date;
-    end: Date;
-};
-export declare function filterCertAuthorities(certAuthorities: CertAuthority[], criteria: CertAuthorityFilterCriteria): CertAuthority[];
+export declare function filterCertAuthorities(certAuthorities: CertAuthority[], timestamp: Date): CertAuthority[];
 type TLogAuthorityFilterCriteria = {
     targetDate: Date;
     logID?: Buffer;

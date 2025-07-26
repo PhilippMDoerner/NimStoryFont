@@ -20,6 +20,7 @@ const { JS_TYPES } = require("../ModuleSourceTypesConstants");
 const { JAVASCRIPT_MODULE_TYPE_ESM } = require("../ModuleTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const Template = require("../Template");
+const { DEFAULTS } = require("../config/defaults");
 const HarmonyImportDependency = require("../dependencies/HarmonyImportDependency");
 const JavascriptParser = require("../javascript/JavascriptParser");
 const { equals } = require("../util/ArrayHelpers");
@@ -60,6 +61,7 @@ const {
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("../ExportsInfo").ExportInfo} ExportInfo */
+/** @typedef {import("../Module").BuildCallback} BuildCallback */
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../Module").CodeGenerationContext} CodeGenerationContext */
@@ -82,8 +84,10 @@ const {
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {typeof import("../util/Hash")} HashConstructor */
+/** @typedef {import("../util/concatenate").ScopeInfo} ScopeInfo */
 /** @typedef {import("../util/concatenate").UsedNames} UsedNames */
 /** @typedef {import("../util/fs").InputFileSystem} InputFileSystem */
+/** @typedef {import("../util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 /**
@@ -98,7 +102,7 @@ const {
 
 // fix eslint-scope to support class properties correctly
 // cspell:word Referencer
-const ReferencerClass = /** @type {any} */ (Referencer);
+const ReferencerClass = /** @type {EXPECTED_ANY} */ (Referencer);
 if (!ReferencerClass.prototype.PropertyDefinition) {
 	ReferencerClass.prototype.PropertyDefinition =
 		ReferencerClass.prototype.Property;
@@ -600,7 +604,7 @@ const getFinalName = (
 
 /**
  * @typedef {object} ConcatenateModuleHooks
- * @property {SyncBailHook<[Record<string, string>], boolean | void>} exportsDefinitions
+ * @property {SyncBailHook<[Record<string, string>, ConcatenatedModule], boolean | void>} exportsDefinitions
  */
 
 /** @type {WeakMap<Compilation, ConcatenateModuleHooks>} */
@@ -612,7 +616,7 @@ class ConcatenatedModule extends Module {
 	 * @param {Set<Module>} modules all modules in the concatenation (including the root module)
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {Compilation} compilation the compilation
-	 * @param {object=} associatedObjectForCache object for caching
+	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @param {string | HashConstructor=} hashFunction hash function to use
 	 * @returns {ConcatenatedModule} the module
 	 */
@@ -622,7 +626,7 @@ class ConcatenatedModule extends Module {
 		runtime,
 		compilation,
 		associatedObjectForCache,
-		hashFunction = "md4"
+		hashFunction = DEFAULTS.HASH_FUNCTION
 	) {
 		const identifier = ConcatenatedModule._createIdentifier(
 			rootModule,
@@ -647,7 +651,7 @@ class ConcatenatedModule extends Module {
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {
-				exportsDefinitions: new SyncBailHook(["definitions"])
+				exportsDefinitions: new SyncBailHook(["definitions", "module"])
 			};
 			compilationHooksMap.set(compilation, hooks);
 		}
@@ -745,7 +749,7 @@ class ConcatenatedModule extends Module {
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
 	 * @param {InputFileSystem} fs the file system
-	 * @param {function(WebpackError=): void} callback callback function
+	 * @param {BuildCallback} callback callback function
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
@@ -1040,7 +1044,7 @@ class ConcatenatedModule extends Module {
 	/**
 	 * @param {Module} rootModule the root module of the concatenation
 	 * @param {Set<Module>} modules all modules in the concatenation (including the root module)
-	 * @param {object=} associatedObjectForCache object for caching
+	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @param {string | HashConstructor=} hashFunction hash function to use
 	 * @returns {string} the identifier
 	 */
@@ -1048,7 +1052,7 @@ class ConcatenatedModule extends Module {
 		rootModule,
 		modules,
 		associatedObjectForCache,
-		hashFunction = "md4"
+		hashFunction = DEFAULTS.HASH_FUNCTION
 	) {
 		const cachedMakePathsRelative = makePathsRelative.bindContextCache(
 			/** @type {string} */ (rootModule.context),
@@ -1135,13 +1139,8 @@ class ConcatenatedModule extends Module {
 		const topLevelDeclarations = new Set();
 
 		// List of additional names in scope for module references
-		/** @type {Map<string, { usedNames: UsedNames, alreadyCheckedScopes: Set<TODO> }>} */
+		/** @type {Map<string, ScopeInfo>} */
 		const usedNamesInScopeInfo = new Map();
-		/**
-		 * @param {string} module module identifier
-		 * @param {string} id export id
-		 * @returns {{ usedNames: UsedNames, alreadyCheckedScopes: Set<TODO> }} info
-		 */
 
 		// Set of already checked scopes
 		const ignoredScopes = new Set();
@@ -1160,7 +1159,7 @@ class ConcatenatedModule extends Module {
 				const superClassCache = new WeakMap();
 				/**
 				 * @param {Scope} scope scope
-				 * @returns {TODO} result
+				 * @returns {{ range: Range, variables: Variable[] }[]} result
 				 */
 				const getSuperClassExpressions = scope => {
 					const cacheEntry = superClassCache.get(scope);
@@ -1175,7 +1174,7 @@ class ConcatenatedModule extends Module {
 							block.superClass
 						) {
 							superClassExpressions.push({
-								range: block.superClass.range,
+								range: /** @type {Range} */ (block.superClass.range),
 								variables: childScope.variables
 							});
 						}
@@ -1418,16 +1417,16 @@ class ConcatenatedModule extends Module {
 		}
 
 		// Map with all root exposed used exports
-		/** @type {Map<string, function(RequestShortener): string>} */
+		/** @type {Map<string, (requestShortener: RequestShortener) => string>} */
 		const exportsMap = new Map();
 
 		// Set with all root exposed unused exports
 		/** @type {Set<string>} */
 		const unusedExports = new Set();
 
-		const rootInfo = /** @type {ConcatenatedModuleInfo} */ (
-			moduleToInfoMap.get(this.rootModule)
-		);
+		const rootInfo =
+			/** @type {ConcatenatedModuleInfo} */
+			(moduleToInfoMap.get(this.rootModule));
 		const strictHarmonyModule =
 			/** @type {BuildMeta} */
 			(rootInfo.module.buildMeta).strictHarmonyModule;
@@ -1485,7 +1484,8 @@ class ConcatenatedModule extends Module {
 		// define exports
 		if (exportsMap.size > 0) {
 			const { exportsDefinitions } = ConcatenatedModule.getCompilationHooks(
-				/** @type {Compilation} */ (this.compilation)
+				/** @type {Compilation} */
+				(this.compilation)
 			);
 
 			const definitions = [];
@@ -1496,8 +1496,11 @@ class ConcatenatedModule extends Module {
 					)}`
 				);
 			}
-			const shouldSkipRenderDefinitions =
-				exportsDefinitions.call(exportsFinalName);
+
+			const shouldSkipRenderDefinitions = exportsDefinitions.call(
+				exportsFinalName,
+				this
+			);
 
 			if (!shouldSkipRenderDefinitions) {
 				runtimeRequirements.add(RuntimeGlobals.exports);
@@ -1625,7 +1628,8 @@ ${defineGetters}`
 					);
 					runtimeRequirements.add(RuntimeGlobals.require);
 					const { runtimeCondition } =
-						/** @type {ExternalModuleInfo | ReferenceToModuleInfo} */ (rawInfo);
+						/** @type {ExternalModuleInfo | ReferenceToModuleInfo} */
+						(rawInfo);
 					const condition = runtimeTemplate.runtimeConditionExpression({
 						chunkGraph,
 						runtimeCondition,
@@ -1723,9 +1727,9 @@ ${defineGetters}`
 					codeGenerationResults,
 					sourceTypes: JS_TYPES
 				});
-				const source = /** @type {Source} */ (
-					codeGenResult.sources.get("javascript")
-				);
+				const source =
+					/** @type {Source} */
+					(codeGenResult.sources.get("javascript"));
 				const data = codeGenResult.data;
 				const chunkInitFragments = data && data.get("chunkInitFragments");
 				const code = source.source().toString();
@@ -1735,7 +1739,9 @@ ${defineGetters}`
 						sourceType: "module"
 					});
 				} catch (_err) {
-					const err = /** @type {TODO} */ (_err);
+					const err =
+						/** @type {Error & { loc?: { line: number, column: number } }} */
+						(_err);
 					if (
 						err.loc &&
 						typeof err.loc === "object" &&

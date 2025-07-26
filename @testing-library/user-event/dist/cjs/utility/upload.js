@@ -1,24 +1,18 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
+var isElementType = require('../utils/misc/isElementType.js');
 var FileList = require('../utils/dataTransfer/FileList.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var setFiles = require('../utils/edit/setFiles.js');
-var isElementType = require('../utils/misc/isElementType.js');
 var isDisabled = require('../utils/misc/isDisabled.js');
 var getWindow = require('../utils/misc/getWindow.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 
 async function upload(element, fileOrFiles) {
     const input = isElementType.isElementType(element, 'label') ? element.control : element;
     if (!input || !isElementType.isElementType(input, 'input', {
         type: 'file'
     })) {
-        throw new TypeError(`The ${input === element ? 'given' : 'associated'} ${input === null || input === void 0 ? void 0 : input.tagName} element does not accept file uploads`);
+        throw new TypeError(`The ${input === element ? 'given' : 'associated'} ${input === null || input === undefined ? undefined : input.tagName} element does not accept file uploads`);
     }
     if (isDisabled.isDisabled(element)) return;
     const files = (Array.isArray(fileOrFiles) ? fileOrFiles : [
@@ -27,9 +21,9 @@ async function upload(element, fileOrFiles) {
     const fileDialog = ()=>{
         var _input_files;
         // do not fire an input event if the file selection does not change
-        if (files.length === ((_input_files = input.files) === null || _input_files === void 0 ? void 0 : _input_files.length) && files.every((f, i)=>{
+        if (files.length === ((_input_files = input.files) === null || _input_files === undefined ? undefined : _input_files.length) && files.every((f, i)=>{
             var _input_files;
-            return f === ((_input_files = input.files) === null || _input_files === void 0 ? void 0 : _input_files.item(i));
+            return f === ((_input_files = input.files) === null || _input_files === undefined ? undefined : _input_files.item(i));
         })) {
             return;
         }
@@ -41,6 +35,10 @@ async function upload(element, fileOrFiles) {
     await this.click(element);
     input.removeEventListener('fileDialog', fileDialog);
 }
+// When matching files, browsers ignore case and consider jpeg/jpg interchangeable.
+function normalize(nameOrType) {
+    return nameOrType.toLowerCase().replace(/(\.|\/)jpg\b/g, '$1jpeg');
+}
 function isAcceptableFile(file, accept) {
     if (!accept) {
         return true;
@@ -50,14 +48,14 @@ function isAcceptableFile(file, accept) {
         'image/*',
         'video/*'
     ];
-    return accept.split(',').some((acceptToken)=>{
+    return normalize(accept).trim().split(/\s*,\s*/).some((acceptToken)=>{
+        // tokens starting with a dot represent a file extension
         if (acceptToken.startsWith('.')) {
-            // tokens starting with a dot represent a file extension
-            return file.name.endsWith(acceptToken);
+            return normalize(file.name).endsWith(acceptToken);
         } else if (wildcards.includes(acceptToken)) {
-            return file.type.startsWith(acceptToken.substr(0, acceptToken.length - 1));
+            return normalize(file.type).startsWith(acceptToken.replace('*', ''));
         }
-        return file.type === acceptToken;
+        return normalize(file.type) === acceptToken;
     });
 }
 

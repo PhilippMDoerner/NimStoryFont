@@ -1,31 +1,27 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var getActiveElement = require('../utils/focus/getActiveElement.js');
 var isFocusable = require('../utils/focus/isFocusable.js');
-require('../utils/keyDef/readNextDescriptor.js');
 var findClosest = require('../utils/misc/findClosest.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var updateSelectionOnFocus = require('./selection/updateSelectionOnFocus.js');
 var wrapEvent = require('./wrapEvent.js');
 
+// Browsers do not dispatch FocusEvent if the document does not have focus.
+// TODO: simulate FocusEvent in browsers
 /**
  * Focus closest focusable element.
  */ function focusElement(element) {
     const target = findClosest.findClosest(element, isFocusable.isFocusable);
     const activeElement = getActiveElement.getActiveElement(element.ownerDocument);
-    if ((target !== null && target !== void 0 ? target : element.ownerDocument.body) === activeElement) {
+    if ((target !== null && target !== undefined ? target : element.ownerDocument.body) === activeElement) {
         return;
     } else if (target) {
         wrapEvent.wrapEvent(()=>target.focus());
     } else {
-        wrapEvent.wrapEvent(()=>activeElement === null || activeElement === void 0 ? void 0 : activeElement.blur());
+        wrapEvent.wrapEvent(()=>activeElement === null || activeElement === undefined ? undefined : activeElement.blur());
     }
-    updateSelectionOnFocus.updateSelectionOnFocus(target !== null && target !== void 0 ? target : element.ownerDocument.body);
+    updateSelectionOnFocus.updateSelectionOnFocus(target !== null && target !== undefined ? target : element.ownerDocument.body);
 }
 function blurElement(element) {
     if (!isFocusable.isFocusable(element)) return;

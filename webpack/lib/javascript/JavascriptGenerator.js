@@ -36,7 +36,7 @@ const deprecatedGetInitFragments = util.deprecate(
 	 * @returns {InitFragment<GenerateContext>[]} init fragments
 	 */
 	(template, dependency, templateContext) =>
-		/** @type {DependencyTemplate & { getInitFragments: function(Dependency, DependencyTemplateContext): InitFragment<GenerateContext>[] }} */
+		/** @type {DependencyTemplate & { getInitFragments: (dependency: Dependency, dependencyTemplateContext: DependencyTemplateContext) => InitFragment<GenerateContext>[] }} */
 		(template).getInitFragments(dependency, templateContext),
 	"DependencyTemplate.getInitFragment is deprecated (use apply(dep, source, { initFragments }) instead)",
 	"DEP_WEBPACK_JAVASCRIPT_GENERATOR_GET_INIT_FRAGMENTS"
@@ -108,6 +108,16 @@ class JavascriptGenerator extends Generator {
 		this.sourceModule(module, initFragments, source, generateContext);
 
 		return InitFragment.addToSource(source, initFragments, generateContext);
+	}
+
+	/**
+	 * @param {Error} error the error
+	 * @param {NormalModule} module module for which the code should be generated
+	 * @param {GenerateContext} generateContext context for generate
+	 * @returns {Source | null} generated code
+	 */
+	generateError(error, module, generateContext) {
+		return new RawSource(`throw new Error(${JSON.stringify(error.message)});`);
 	}
 
 	/**

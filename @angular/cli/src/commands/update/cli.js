@@ -49,10 +49,10 @@ const listr2_1 = require("listr2");
 const node_child_process_1 = require("node:child_process");
 const node_fs_1 = require("node:fs");
 const node_module_1 = require("node:module");
+const path = __importStar(require("node:path"));
+const node_path_1 = require("node:path");
 const npm_package_arg_1 = __importDefault(require("npm-package-arg"));
 const npm_pick_manifest_1 = __importDefault(require("npm-pick-manifest"));
-const path = __importStar(require("path"));
-const path_1 = require("path");
 const semver = __importStar(require("semver"));
 const workspace_schema_1 = require("../../../lib/config/workspace-schema");
 const command_module_1 = require("../../command-builder/command-module");
@@ -77,7 +77,7 @@ class UpdateCommandModule extends command_module_1.CommandModule {
     resolvePaths = [__dirname, this.context.root];
     command = 'update [packages..]';
     describe = 'Updates your workspace and its dependencies. See https://update.angular.dev/.';
-    longDescriptionPath = (0, path_1.join)(__dirname, 'long-description.md');
+    longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     builder(localYargs) {
         return localYargs
             .positional('packages', {
@@ -773,8 +773,8 @@ class UpdateCommandModule extends command_module_1.CommandModule {
         // Remove version/tag etc... from package name
         // Ex: @angular/cli@latest -> @angular/cli
         const packageNameNoVersion = packageName.substring(0, packageName.lastIndexOf('@'));
-        const pkgLocation = (0, path_1.join)(tempNodeModules, packageNameNoVersion);
-        const packageJsonPath = (0, path_1.join)(pkgLocation, 'package.json');
+        const pkgLocation = (0, node_path_1.join)(tempNodeModules, packageNameNoVersion);
+        const packageJsonPath = (0, node_path_1.join)(pkgLocation, 'package.json');
         // Get a binary location for this package
         let binPath;
         if ((0, node_fs_1.existsSync)(packageJsonPath)) {
@@ -783,7 +783,7 @@ class UpdateCommandModule extends command_module_1.CommandModule {
                 const { bin = {} } = JSON.parse(content);
                 const binKeys = Object.keys(bin);
                 if (binKeys.length) {
-                    binPath = (0, path_1.resolve)(pkgLocation, bin[binKeys[0]]);
+                    binPath = (0, node_path_1.resolve)(pkgLocation, bin[binKeys[0]]);
                 }
             }
         }

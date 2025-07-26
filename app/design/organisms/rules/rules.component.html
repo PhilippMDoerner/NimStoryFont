@@ -7,8 +7,8 @@
         [text]="'Add Rule'"
         [icon]="'plus'"
         (clicked)="addRule()"
-        [hotkey]="'c'"
-        (hotkeyPressed)="addRule()"
+        [hotkeyAction]="'create'"
+        (actionTriggered)="addRule()"
       ></button>
     </div>
   }
@@ -36,7 +36,11 @@
         </app-collapsible-panel>
       </div>
     }
-    <app-focus-list [entries]="ruleCards()" #focusListComponent>
+    <app-focus-list
+      [entries]="ruleCards()"
+      [listLabel]="'Rules'"
+      #focusListComponent
+    >
       <ng-template
         #itemTemplate
         let-focusEntry

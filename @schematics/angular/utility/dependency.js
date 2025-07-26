@@ -43,7 +43,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExistingBehavior = exports.InstallBehavior = exports.DependencyType = void 0;
 exports.addDependency = addDependency;
 const tasks_1 = require("@angular-devkit/schematics/tasks");
-const path = __importStar(require("path"));
+const path = __importStar(require("node:path"));
 const installTasks = new WeakMap();
 /**
  * An enum used to specify the type of a dependency found within a package manifest

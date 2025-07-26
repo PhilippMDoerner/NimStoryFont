@@ -4,6 +4,7 @@ exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const utils_2 = require("@typescript-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
+const signals_1 = require("../utils/signals");
 const DEFAULT_OPTIONS = {
     preferReadonlySignalProperties: true,
     preferInputSignals: true,
@@ -11,12 +12,6 @@ const DEFAULT_OPTIONS = {
     useTypeChecking: false,
     additionalSignalCreationFunctions: [],
 };
-const KNOWN_SIGNAL_TYPES = new Set([
-    'InputSignal',
-    'ModelSignal',
-    'Signal',
-    'WritableSignal',
-]);
 const KNOWN_SIGNAL_CREATION_FUNCTIONS = new Set([
     'computed',
     'contentChild',
@@ -88,7 +83,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                         const type = node.typeAnnotation.typeAnnotation;
                         if (type.typeArguments &&
                             type.typeName.type === utils_2.AST_NODE_TYPES.Identifier &&
-                            KNOWN_SIGNAL_TYPES.has(type.typeName.name)) {
+                            signals_1.KNOWN_SIGNAL_TYPES.has(type.typeName.name)) {
                             shouldBeReadonly = true;
                         }
                     }
@@ -134,7 +129,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                             .getTypeAtLocation(node.value)
                             .getSymbol()?.name;
                         shouldBeReadonly =
-                            name !== undefined && KNOWN_SIGNAL_TYPES.has(name);
+                            name !== undefined && signals_1.KNOWN_SIGNAL_TYPES.has(name);
                     }
                 }
                 if (shouldBeReadonly) {

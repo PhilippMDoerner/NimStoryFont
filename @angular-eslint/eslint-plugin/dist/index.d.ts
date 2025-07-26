@@ -15,8 +15,10 @@ declare const _default: {
                 "@angular-eslint/no-async-lifecycle-method": string;
                 "@angular-eslint/no-attribute-decorator": string;
                 "@angular-eslint/no-conflicting-lifecycle": string;
+                "@angular-eslint/no-developer-preview": string;
                 "@angular-eslint/no-duplicates-in-metadata-arrays": string;
                 "@angular-eslint/no-empty-lifecycle-method": string;
+                "@angular-eslint/no-experimental": string;
                 "@angular-eslint/no-forward-ref": string;
                 "@angular-eslint/no-input-prefix": string;
                 "@angular-eslint/no-input-rename": string;
@@ -28,8 +30,11 @@ declare const _default: {
                 "@angular-eslint/no-outputs-metadata-property": string;
                 "@angular-eslint/no-pipe-impure": string;
                 "@angular-eslint/no-queries-metadata-property": string;
+                "@angular-eslint/no-uncalled-signals": string;
                 "@angular-eslint/pipe-prefix": string;
+                "@angular-eslint/prefer-inject": string;
                 "@angular-eslint/prefer-on-push-component-change-detection": string;
+                "@angular-eslint/prefer-output-emitter-ref": string;
                 "@angular-eslint/prefer-output-readonly": string;
                 "@angular-eslint/prefer-signals": string;
                 "@angular-eslint/prefer-standalone": string;
@@ -37,6 +42,7 @@ declare const _default: {
                 "@angular-eslint/require-lifecycle-on-prototype": string;
                 "@angular-eslint/require-localize-metadata": string;
                 "@angular-eslint/runtime-localize": string;
+                "@angular-eslint/sort-keys-in-type-decorator": string;
                 "@angular-eslint/sort-lifecycle-methods": string;
                 "@angular-eslint/use-component-selector": string;
                 "@angular-eslint/use-component-view-encapsulation": string;
@@ -49,9 +55,7 @@ declare const _default: {
             parser: string;
             plugins: string[];
             rules: {
-                "@angular-eslint/component-class-suffix": string;
                 "@angular-eslint/contextual-lifecycle": string;
-                "@angular-eslint/directive-class-suffix": string;
                 "@angular-eslint/no-empty-lifecycle-method": string;
                 "@angular-eslint/no-input-rename": string;
                 "@angular-eslint/no-inputs-metadata-property": string;
@@ -59,6 +63,7 @@ declare const _default: {
                 "@angular-eslint/no-output-on-prefix": string;
                 "@angular-eslint/no-output-rename": string;
                 "@angular-eslint/no-outputs-metadata-property": string;
+                "@angular-eslint/prefer-inject": string;
                 "@angular-eslint/prefer-standalone": string;
                 "@angular-eslint/use-pipe-transform-interface": string;
                 "@angular-eslint/use-lifecycle-interface": string;
@@ -84,6 +89,7 @@ declare const _default: {
         "no-input-rename": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/no-input-rename").MessageIds, import("./rules/no-input-rename").Options, import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "no-inputs-metadata-property": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noInputsMetadataProperty", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "no-lifecycle-call": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noLifecycleCall", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "no-uncalled-signals": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/no-uncalled-signals").MessageIds, [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "no-output-native": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noOutputNative", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "no-output-on-prefix": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noOutputOnPrefix", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "no-output-rename": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/no-output-rename").MessageIds, [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
@@ -99,18 +105,23 @@ declare const _default: {
             useTypeChecking: boolean;
             additionalSignalCreationFunctions: string[];
         }], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
-        "prefer-standalone": import("@typescript-eslint/utils/ts-eslint").RuleModule<"preferStandalone", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "prefer-standalone": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/prefer-standalone").MessageIds, [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "prefer-inject": import("@typescript-eslint/utils/ts-eslint").RuleModule<"preferInject", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "prefer-output-emitter-ref": import("@typescript-eslint/utils/ts-eslint").RuleModule<"preferOutputEmitterRef", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "prefer-output-readonly": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/prefer-output-readonly").MessageIds, [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "relative-url-prefix": import("@typescript-eslint/utils/ts-eslint").RuleModule<"relativeUrlPrefix", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "require-lifecycle-on-prototype": import("@typescript-eslint/utils/ts-eslint").RuleModule<"defineOnPrototype", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "require-localize-metadata": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/require-localize-metadata").MessageIds, import("./rules/require-localize-metadata").Options, import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "runtime-localize": import("@typescript-eslint/utils/ts-eslint").RuleModule<"runtimeLocalize", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "sort-keys-in-type-decorator": import("@typescript-eslint/utils/ts-eslint").RuleModule<"incorrectOrder", import("./rules/sort-keys-in-type-decorator").Options, import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "sort-lifecycle-methods": import("@typescript-eslint/utils/ts-eslint").RuleModule<"lifecycleMethodsNotSorted", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "use-component-selector": import("@typescript-eslint/utils/ts-eslint").RuleModule<"useComponentSelector", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "use-component-view-encapsulation": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/use-component-view-encapsulation").MessageIds, [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "use-injectable-provided-in": import("@typescript-eslint/utils/ts-eslint").RuleModule<import("./rules/use-injectable-provided-in").MessageIds, import("./rules/use-injectable-provided-in").Options, import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "use-lifecycle-interface": import("@typescript-eslint/utils/ts-eslint").RuleModule<"useLifecycleInterface", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
         "use-pipe-transform-interface": import("@typescript-eslint/utils/ts-eslint").RuleModule<"usePipeTransformInterface", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "no-experimental": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noExperimental", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+        "no-developer-preview": import("@typescript-eslint/utils/ts-eslint").RuleModule<"noDeveloperPreview", [], import("./utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
     };
 };
 export = _default;

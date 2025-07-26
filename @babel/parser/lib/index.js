@@ -116,9 +116,6 @@ var StandardErrors = {
   }) => `\`${exportName}\` has already been exported. Exported identifiers must be unique.`,
   DuplicateProto: "Redefinition of __proto__ property.",
   DuplicateRegExpFlags: "Duplicate regular expression flag.",
-  DynamicImportPhaseRequiresImportExpressions: ({
-    phase
-  }) => `'import.${phase}(...)' can only be parsed when using the 'createImportExpressions' option.`,
   ElementAfterRest: "Rest element must be last element.",
   EscapedCharNotAnIdentifier: "Invalid Unicode escape.",
   ExportBindingIsString: ({
@@ -151,6 +148,7 @@ var StandardErrors = {
   IncompatibleRegExpUVFlags: "The 'u' and 'v' regular expression flags cannot be enabled at the same time.",
   InvalidBigIntLiteral: "Invalid BigIntLiteral.",
   InvalidCodePoint: "Code point out of bounds.",
+  InvalidCoverDiscardElement: "'void' must be followed by an expression when not used in a binding position.",
   InvalidCoverInitializedName: "Invalid shorthand property initializer.",
   InvalidDecimal: "Invalid decimal.",
   InvalidDigit: ({
@@ -267,7 +265,8 @@ var StandardErrors = {
     unexpected
   }) => `Unexpected token${unexpected ? ` '${unexpected}'.` : ""}${expected ? `, expected "${expected}"` : ""}`,
   UnexpectedTokenUnaryExponentiation: "Illegal expression. Wrap left hand side or entire exponentiation in parentheses.",
-  UnexpectedUsingDeclaration: "Using declaration cannot appear in the top level when source type is `script`.",
+  UnexpectedUsingDeclaration: "Using declaration cannot appear in the top level when source type is `script` or in the bare case statement.",
+  UnexpectedVoidPattern: "Unexpected void binding.",
   UnsupportedBind: "Binding should be performed on object property.",
   UnsupportedDecoratorExport: "A decorated export must export a class declaration.",
   UnsupportedDefaultExport: "Only expressions, functions or classes are allowed as the `default` export.",
@@ -288,6 +287,8 @@ var StandardErrors = {
   VarRedeclaration: ({
     identifierName
   }) => `Identifier '${identifierName}' has already been declared.`,
+  VoidPatternCatchClauseParam: "A void binding can not be the catch clause parameter. Use `try { ... } catch { ... }` if you want to discard the caught error.",
+  VoidPatternInitializer: "A void binding may not have an initializer.",
   YieldBindingIdentifier: "Can not use 'yield' as identifier inside a generator.",
   YieldInParameter: "Yield expression is not allowed in formal parameters.",
   YieldNotInGeneratorFunction: "'yield' is only allowed within generator functions.",
@@ -305,6 +306,12 @@ var StrictModeErrors = {
   StrictNumericEscape: "The only valid numeric escape in strict mode is '\\0'.",
   StrictOctalLiteral: "Legacy octal literals are not allowed in strict mode.",
   StrictWith: "'with' in strict mode."
+};
+var ParseExpressionErrors = {
+  ParseExpressionEmptyInput: "Unexpected parseExpression() input: The input is empty or contains only comments.",
+  ParseExpressionExpectsEOF: ({
+    unexpected
+  }) => `Unexpected parseExpression() input: The input should contain exactly one expression, but the first expression is followed by the unexpected character \`${String.fromCodePoint(unexpected)}\`.`
 };
 const UnparenthesizedPipeBodyDescriptions = new Set(["ArrowFunctionExpression", "AssignmentExpression", "ConditionalExpression", "YieldExpression"]);
 var PipelineOperatorErrors = Object.assign({
@@ -420,7 +427,7 @@ function ParseErrorEnum(argument, syntaxPlugin) {
   }
   return ParseErrorConstructors;
 }
-const Errors = Object.assign({}, ParseErrorEnum(ModuleErrors), ParseErrorEnum(StandardErrors), ParseErrorEnum(StrictModeErrors), ParseErrorEnum`pipelineOperator`(PipelineOperatorErrors));
+const Errors = Object.assign({}, ParseErrorEnum(ModuleErrors), ParseErrorEnum(StandardErrors), ParseErrorEnum(StrictModeErrors), ParseErrorEnum(ParseExpressionErrors), ParseErrorEnum`pipelineOperator`(PipelineOperatorErrors));
 function createDefaultOptions() {
   return {
     sourceType: "script",
@@ -466,6 +473,17 @@ function getOptions(opts) {
   } else if (opts.startColumn == null || opts.startIndex == null) {
     if (opts.startIndex != null) {
       throw new Error("With a `startLine > 1` you must also specify `startIndex` and `startColumn`.");
+    }
+  }
+  if (options.sourceType === "commonjs") {
+    if (opts.allowAwaitOutsideFunction != null) {
+      throw new Error("The `allowAwaitOutsideFunction` option cannot be used with `sourceType: 'commonjs'`.");
+    }
+    if (opts.allowReturnOutsideFunction != null) {
+      throw new Error("`sourceType: 'commonjs'` implies `allowReturnOutsideFunction: true`, please remove the `allowReturnOutsideFunction` option or use `sourceType: 'script'`.");
+    }
+    if (opts.allowNewTargetOutsideFunction != null) {
+      throw new Error("`sourceType: 'commonjs'` implies `allowNewTargetOutsideFunction: true`, please remove the `allowNewTargetOutsideFunction` option or use `sourceType: 'script'`.");
     }
   }
   return options;
@@ -1335,7 +1353,7 @@ const tt = {
     startsExpr
   }),
   placeholder: createToken("%%", {
-    startsExpr: true
+    startsExpr
   }),
   string: createToken("string", {
     startsExpr
@@ -1358,10 +1376,10 @@ const tt = {
   eof: createToken("eof"),
   jsxName: createToken("jsxName"),
   jsxText: createToken("jsxText", {
-    beforeExpr: true
+    beforeExpr
   }),
   jsxTagStart: createToken("jsxTagStart", {
-    startsExpr: true
+    startsExpr
   }),
   jsxTagEnd: createToken("jsxTagEnd")
 };
@@ -1541,6 +1559,9 @@ class ScopeHandler {
   get allowDirectSuper() {
     return (this.currentThisScopeFlags() & 32) > 0;
   }
+  get allowNewTarget() {
+    return (this.currentThisScopeFlags() & 512) > 0;
+  }
   get inClass() {
     return (this.currentThisScopeFlags() & 64) > 0;
   }
@@ -1556,13 +1577,16 @@ class ScopeHandler {
       if (flags & 128) {
         return true;
       }
-      if (flags & (387 | 64)) {
+      if (flags & (1667 | 64)) {
         return false;
       }
     }
   }
   get inNonArrowFunction() {
     return (this.currentThisScopeFlags() & 2) > 0;
+  }
+  get inBareCaseStatement() {
+    return (this.currentScope().flags & 256) > 0;
   }
   get treatFunctionsAsVar() {
     return this.treatFunctionsAsVarInScope(this.currentScope());
@@ -1603,7 +1627,7 @@ class ScopeHandler {
         this.checkRedeclarationInScope(scope, name, bindingType, loc);
         scope.names.set(name, (scope.names.get(name) || 0) | 1);
         this.maybeExportDefined(scope, name);
-        if (scope.flags & 387) break;
+        if (scope.flags & 1667) break;
       }
     }
     if (this.parser.inModule && scope.flags & 1) {
@@ -1650,7 +1674,7 @@ class ScopeHandler {
       const {
         flags
       } = this.scopeStack[i];
-      if (flags & 387) {
+      if (flags & 1667) {
         return flags;
       }
     }
@@ -1660,7 +1684,7 @@ class ScopeHandler {
       const {
         flags
       } = this.scopeStack[i];
-      if (flags & (387 | 64) && !(flags & 4)) {
+      if (flags & (1667 | 64) && !(flags & 4)) {
         return flags;
       }
     }
@@ -3058,7 +3082,7 @@ var flow = superClass => class FlowParserMixin extends superClass {
   finishArrowValidation(node) {
     var _node$extra;
     this.toAssignableList(node.params, (_node$extra = node.extra) == null ? void 0 : _node$extra.trailingCommaLoc, false);
-    this.scope.enter(2 | 4);
+    this.scope.enter(514 | 4);
     super.checkParams(node, false, true);
     this.scope.exit();
   }
@@ -3601,7 +3625,7 @@ var flow = superClass => class FlowParserMixin extends superClass {
       this.next();
       const node = this.startNodeAt(startLoc);
       node.callee = base;
-      node.arguments = super.parseCallExpressionArguments(11);
+      node.arguments = super.parseCallExpressionArguments();
       base = this.finishNode(node, "CallExpression");
     } else if (base.type === "Identifier" && base.name === "async" && this.match(47)) {
       const state = this.state.clone();
@@ -3633,7 +3657,7 @@ var flow = superClass => class FlowParserMixin extends superClass {
       node.callee = base;
       node.typeArguments = this.flowParseTypeParameterInstantiationInExpression();
       this.expect(10);
-      node.arguments = this.parseCallExpressionArguments(11);
+      node.arguments = this.parseCallExpressionArguments();
       node.optional = true;
       return this.finishCallExpression(node, true);
     } else if (!noCalls && this.shouldParseTypes() && (this.match(47) || this.match(51))) {
@@ -3642,7 +3666,7 @@ var flow = superClass => class FlowParserMixin extends superClass {
       const result = this.tryParse(() => {
         node.typeArguments = this.flowParseTypeParameterInstantiationCallOrNew();
         this.expect(10);
-        node.arguments = super.parseCallExpressionArguments(11);
+        node.arguments = super.parseCallExpressionArguments();
         if (subscriptState.optionalChainMember) {
           node.optional = false;
         }
@@ -4842,14 +4866,14 @@ class TypeScriptScopeHandler extends ScopeHandler {
     return new TypeScriptScope(flags);
   }
   enter(flags) {
-    if (flags === 256) {
+    if (flags === 1024) {
       this.importsStack.push(new Set());
     }
     super.enter(flags);
   }
   exit() {
     const flags = super.exit();
-    if (flags === 256) {
+    if (flags === 1024) {
       this.importsStack.pop();
     }
     return flags;
@@ -5078,6 +5102,7 @@ class CommentsParser extends BaseParser {
     }
   }
   finalizeComment(commentWS) {
+    var _node$options;
     const {
       comments
     } = commentWS;
@@ -5103,6 +5128,9 @@ class CommentsParser extends BaseParser {
           case "CallExpression":
           case "OptionalCallExpression":
             adjustInnerComments(node, node.arguments, commentWS);
+            break;
+          case "ImportExpression":
+            adjustInnerComments(node, [node.source, (_node$options = node.options) != null ? _node$options : null], commentWS);
             break;
           case "FunctionDeclaration":
           case "FunctionExpression":
@@ -5159,20 +5187,6 @@ class CommentsParser extends BaseParser {
     const commentWS = commentStack[length - 1];
     if (commentWS.leadingNode === node) {
       commentWS.leadingNode = null;
-    }
-  }
-  resetPreviousIdentifierLeadingComments(node) {
-    const {
-      commentStack
-    } = this.state;
-    const {
-      length
-    } = commentStack;
-    if (length === 0) return;
-    if (commentStack[length - 1].trailingNode === node) {
-      commentStack[length - 1].trailingNode = null;
-    } else if (length >= 2 && commentStack[length - 2].trailingNode === node) {
-      commentStack[length - 2].trailingNode = null;
     }
   }
   takeSurroundingComments(node, start, end) {
@@ -6867,9 +6881,8 @@ class UtilParser extends Tokenizer {
     return this.state.type === token && !this.state.containsEsc;
   }
   isUnparsedContextual(nameStart, name) {
-    const nameEnd = nameStart + name.length;
-    if (this.input.slice(nameStart, nameEnd) === name) {
-      const nextCh = this.input.charCodeAt(nameEnd);
+    if (this.input.startsWith(name, nameStart)) {
+      const nextCh = this.input.charCodeAt(nameStart + name.length);
       return !(isIdentifierChar(nextCh) || (nextCh & 0xfc00) === 0xd800);
     }
     return false;
@@ -6972,9 +6985,10 @@ class UtilParser extends Tokenizer {
       shorthandAssignLoc,
       doubleProtoLoc,
       privateKeyLoc,
-      optionalParametersLoc
+      optionalParametersLoc,
+      voidPatternLoc
     } = refExpressionErrors;
-    const hasErrors = !!shorthandAssignLoc || !!doubleProtoLoc || !!optionalParametersLoc || !!privateKeyLoc;
+    const hasErrors = !!shorthandAssignLoc || !!doubleProtoLoc || !!optionalParametersLoc || !!privateKeyLoc || !!voidPatternLoc;
     if (!andThrow) {
       return hasErrors;
     }
@@ -6989,6 +7003,9 @@ class UtilParser extends Tokenizer {
     }
     if (optionalParametersLoc != null) {
       this.unexpected(optionalParametersLoc);
+    }
+    if (voidPatternLoc != null) {
+      this.raise(Errors.InvalidCoverDiscardElement, voidPatternLoc);
     }
   }
   isLiteralPropertyName() {
@@ -7037,14 +7054,22 @@ class UtilParser extends Tokenizer {
   }
   enterInitialScopes() {
     let paramFlags = 0;
-    if (this.inModule) {
+    if (this.inModule || this.optionFlags & 1) {
       paramFlags |= 2;
     }
     if (this.optionFlags & 32) {
       paramFlags |= 1;
     }
-    this.scope.enter(1);
+    const isCommonJS = !this.inModule && this.options.sourceType === "commonjs";
+    if (isCommonJS || this.optionFlags & 2) {
+      paramFlags |= 4;
+    }
     this.prodParam.enter(paramFlags);
+    let scopeFlags = isCommonJS ? 514 : 1;
+    if (this.optionFlags & 4) {
+      scopeFlags |= 512;
+    }
+    this.scope.enter(scopeFlags);
   }
   checkDestructuringPrivate(refExpressionErrors) {
     const {
@@ -7061,6 +7086,7 @@ class ExpressionErrors {
     this.doubleProtoLoc = null;
     this.privateKeyLoc = null;
     this.optionalParametersLoc = null;
+    this.voidPatternLoc = null;
   }
 }
 class Node {
@@ -7192,6 +7218,7 @@ class LValParser extends NodeUtils {
       case "ArrayPattern":
       case "AssignmentPattern":
       case "RestElement":
+      case "VoidPattern":
         break;
       case "ObjectExpression":
         this.castNodeTo(node, "ObjectPattern");
@@ -7231,6 +7258,9 @@ class LValParser extends NodeUtils {
         }
         this.castNodeTo(node, "AssignmentPattern");
         delete node.operator;
+        if (node.left.type === "VoidPattern") {
+          this.raise(Errors.VoidPatternInitializer, node.left);
+        }
         this.toAssignable(node.left, isLHS);
         break;
       case "ParenthesizedExpression":
@@ -7286,6 +7316,7 @@ class LValParser extends NodeUtils {
       case "ArrayPattern":
       case "AssignmentPattern":
       case "RestElement":
+      case "VoidPattern":
         return true;
       case "ObjectExpression":
         {
@@ -7331,7 +7362,11 @@ class LValParser extends NodeUtils {
   parseRestBinding() {
     const node = this.startNode();
     this.next();
-    node.argument = this.parseBindingAtom();
+    const argument = this.parseBindingAtom();
+    if (argument.type === "VoidPattern") {
+      this.raise(Errors.UnexpectedVoidPattern, argument);
+    }
+    node.argument = argument;
     return this.finishNode(node, "RestElement");
   }
   parseBindingAtom() {
@@ -7345,6 +7380,8 @@ class LValParser extends NodeUtils {
         }
       case 5:
         return this.parseObjectLike(8, true);
+      case 88:
+        return this.parseVoidPattern(null);
     }
     return this.parseIdentifier();
   }
@@ -7389,7 +7426,12 @@ class LValParser extends NodeUtils {
   }
   parseBindingRestProperty(prop) {
     this.next();
-    prop.argument = this.parseIdentifier();
+    if (this.hasPlugin("discardBinding") && this.match(88)) {
+      prop.argument = this.parseVoidPattern(null);
+      this.raise(Errors.UnexpectedVoidPattern, prop.argument);
+    } else {
+      prop.argument = this.parseIdentifier();
+    }
     this.checkCommaAfterRest(125);
     return this.finishNode(prop, "RestElement");
   }
@@ -7432,6 +7474,9 @@ class LValParser extends NodeUtils {
     left = left != null ? left : this.parseBindingAtom();
     if (!this.eat(29)) return left;
     const node = this.startNodeAt(startLoc);
+    if (left.type === "VoidPattern") {
+      this.raise(Errors.VoidPatternInitializer, left);
+    }
     node.left = left;
     node.right = this.parseMaybeAssignAllowIn();
     return this.finishNode(node, "AssignmentPattern");
@@ -7450,6 +7495,8 @@ class LValParser extends NodeUtils {
         return "elements";
       case "ObjectPattern":
         return "properties";
+      case "VoidPattern":
+        return true;
     }
     return false;
   }
@@ -7488,6 +7535,8 @@ class LValParser extends NodeUtils {
         }
       }
       return;
+    } else if (type === "VoidPattern" && ancestor.type === "CatchClause") {
+      this.raise(Errors.VoidPatternCatchClauseParam, expression);
     }
     const validity = this.isValidLVal(type, !(hasParenthesizedAncestor || (_expression$extra = expression.extra) != null && _expression$extra.parenthesized) && ancestor.type === "AssignmentExpression", binding);
     if (validity === true) return;
@@ -7596,7 +7645,7 @@ const TSErrors = ParseErrorEnum`typescript`({
   DeclareFunctionHasImplementation: "An implementation cannot be declared in ambient contexts.",
   DuplicateAccessibilityModifier: ({
     modifier
-  }) => `Accessibility modifier already seen.`,
+  }) => `Accessibility modifier already seen: '${modifier}'.`,
   DuplicateModifier: ({
     modifier
   }) => `Duplicate modifier: '${modifier}'.`,
@@ -7622,6 +7671,7 @@ const TSErrors = ParseErrorEnum`typescript`({
   InvalidHeritageClauseType: ({
     token
   }) => `'${token}' list can only include identifiers or qualified-names with optional type arguments.`,
+  InvalidModifierOnAwaitUsingDeclaration: modifier => `'${modifier}' modifier cannot appear on an await using declaration.`,
   InvalidModifierOnTypeMember: ({
     modifier
   }) => `'${modifier}' modifier cannot appear on a type member.`,
@@ -7631,6 +7681,7 @@ const TSErrors = ParseErrorEnum`typescript`({
   InvalidModifierOnTypeParameterPositions: ({
     modifier
   }) => `'${modifier}' modifier can only appear on a type parameter of a class, interface or type alias.`,
+  InvalidModifierOnUsingDeclaration: modifier => `'${modifier}' modifier cannot appear on a using declaration.`,
   InvalidModifiersOrder: ({
     orderedModifiers
   }) => `'${orderedModifiers[0]}' modifier must precede '${orderedModifiers[1]}' modifier.`,
@@ -7638,7 +7689,7 @@ const TSErrors = ParseErrorEnum`typescript`({
   InvalidTupleMemberLabel: "Tuple members must be labeled with a simple identifier.",
   MissingInterfaceName: "'interface' declarations must be followed by an identifier.",
   NonAbstractClassHasAbstractMethod: "Abstract methods can only appear within an abstract class.",
-  NonClassMethodPropertyHasAbstractModifer: "'abstract' modifier can only appear on a class, method, or property declaration.",
+  NonClassMethodPropertyHasAbstractModifier: "'abstract' modifier can only appear on a class, method, or property declaration.",
   OptionalTypeBeforeRequired: "A required element cannot follow an optional element.",
   OverrideNotInSubClass: "This member cannot have an 'override' modifier because its containing class does not extend another class.",
   PatternIsOptional: "A binding pattern parameter cannot be optional in an implementation signature.",
@@ -7669,7 +7720,8 @@ const TSErrors = ParseErrorEnum`typescript`({
   UnsupportedParameterPropertyKind: "A parameter property may not be declared using a binding pattern.",
   UnsupportedSignatureParameterKind: ({
     type
-  }) => `Name in a signature must be an Identifier, ObjectPattern or ArrayPattern, instead got ${type}.`
+  }) => `Name in a signature must be an Identifier, ObjectPattern or ArrayPattern, instead got ${type}.`,
+  UsingDeclarationInAmbientContext: kind => `'${kind}' declarations are not allowed in ambient contexts.`
 });
 function keywordTypeFromName(value) {
   switch (value) {
@@ -7745,12 +7797,15 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     }
     return this.tsNextTokenOnSameLineAndCanFollowModifier();
   }
-  tsParseModifier(allowedModifiers, stopOnStartOfClassStaticBlock) {
+  tsParseModifier(allowedModifiers, stopOnStartOfClassStaticBlock, hasSeenStaticModifier) {
     if (!tokenIsIdentifier(this.state.type) && this.state.type !== 58 && this.state.type !== 75) {
       return undefined;
     }
     const modifier = this.state.value;
     if (allowedModifiers.includes(modifier)) {
+      if (hasSeenStaticModifier && this.match(106)) {
+        return undefined;
+      }
       if (stopOnStartOfClassStaticBlock && this.tsIsStartOfStaticBlocks()) {
         return undefined;
       }
@@ -7784,7 +7839,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
       const {
         startLoc
       } = this.state;
-      const modifier = this.tsParseModifier(allowedModifiers.concat(disallowedModifiers != null ? disallowedModifiers : []), stopOnStartOfClassStaticBlock);
+      const modifier = this.tsParseModifier(allowedModifiers.concat(disallowedModifiers != null ? disallowedModifiers : []), stopOnStartOfClassStaticBlock, modified.static);
       if (!modifier) break;
       if (tsIsAccessModifier(modifier)) {
         if (modified.accessibility) {
@@ -8681,7 +8736,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     return this.finishNode(node, "TSConditionalType");
   }
   isAbstractConstructorSignature() {
-    return this.isContextual(124) && this.lookahead().type === 77;
+    return this.isContextual(124) && this.isLookaheadContextual("new");
   }
   tsParseNonConditionalType() {
     if (this.tsIsStartOfFunctionType()) {
@@ -8752,7 +8807,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     node.typeAnnotation = this.tsInType(() => {
       node.typeParameters = this.tsTryParseTypeParameters(this.tsParseInOutModifiers);
       this.expect(29);
-      if (this.isContextual(114) && this.lookahead().type !== 16) {
+      if (this.isContextual(114) && this.lookaheadCharCode() !== 46) {
         const node = this.startNode();
         this.next();
         return this.finishNode(node, "TSIntrinsicKeyword");
@@ -8865,7 +8920,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
       this.tsParseModuleOrNamespaceDeclaration(inner, true);
       node.body = inner;
     } else {
-      this.scope.enter(256);
+      this.scope.enter(1024);
       this.prodParam.enter(0);
       node.body = this.tsParseModuleBlock();
       this.prodParam.exit();
@@ -8887,7 +8942,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
       this.unexpected();
     }
     if (this.match(5)) {
-      this.scope.enter(256);
+      this.scope.enter(1024);
       this.prodParam.enter(0);
       node.body = this.tsParseModuleBlock();
       this.prodParam.exit();
@@ -8950,51 +9005,65 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     }
     this.state = state;
   }
-  tsTryParseDeclare(nany) {
+  tsTryParseDeclare(node) {
     if (this.isLineTerminator()) {
       return;
     }
-    let startType = this.state.type;
-    let kind;
-    if (this.isContextual(100)) {
-      startType = 74;
-      kind = "let";
-    }
+    const startType = this.state.type;
     return this.tsInAmbientContext(() => {
       switch (startType) {
         case 68:
-          nany.declare = true;
-          return super.parseFunctionStatement(nany, false, false);
+          node.declare = true;
+          return super.parseFunctionStatement(node, false, false);
         case 80:
-          nany.declare = true;
-          return this.parseClass(nany, true, false);
+          node.declare = true;
+          return this.parseClass(node, true, false);
         case 126:
-          return this.tsParseEnumDeclaration(nany, {
+          return this.tsParseEnumDeclaration(node, {
             declare: true
           });
         case 112:
-          return this.tsParseAmbientExternalModuleDeclaration(nany);
+          return this.tsParseAmbientExternalModuleDeclaration(node);
+        case 100:
+          if (this.state.containsEsc) {
+            return;
+          }
         case 75:
         case 74:
           if (!this.match(75) || !this.isLookaheadContextual("enum")) {
-            nany.declare = true;
-            return this.parseVarStatement(nany, kind || this.state.value, true);
+            node.declare = true;
+            return this.parseVarStatement(node, this.state.value, true);
           }
           this.expect(75);
-          return this.tsParseEnumDeclaration(nany, {
+          return this.tsParseEnumDeclaration(node, {
             const: true,
             declare: true
           });
+        case 107:
+          if (this.isUsing()) {
+            this.raise(TSErrors.InvalidModifierOnUsingDeclaration, this.state.startLoc, "declare");
+            node.declare = true;
+            return this.parseVarStatement(node, "using", true);
+          }
+          break;
+        case 96:
+          if (this.isAwaitUsing()) {
+            this.raise(TSErrors.InvalidModifierOnAwaitUsingDeclaration, this.state.startLoc, "declare");
+            node.declare = true;
+            this.next();
+            return this.parseVarStatement(node, "await using", true);
+          }
+          break;
         case 129:
           {
-            const result = this.tsParseInterfaceDeclaration(nany, {
+            const result = this.tsParseInterfaceDeclaration(node, {
               declare: true
             });
             if (result) return result;
           }
         default:
           if (tokenIsIdentifier(startType)) {
-            return this.tsParseDeclaration(nany, this.state.value, true, null);
+            return this.tsParseDeclaration(node, this.state.value, true, null);
           }
       }
     });
@@ -9014,7 +9083,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
         }
       case "global":
         if (this.match(5)) {
-          this.scope.enter(256);
+          this.scope.enter(1024);
           this.prodParam.enter(0);
           const mod = node;
           mod.kind = "global";
@@ -9245,7 +9314,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
         if (!noCalls && this.eat(10)) {
           const node = this.startNodeAt(startLoc);
           node.callee = base;
-          node.arguments = this.parseCallExpressionArguments(11);
+          node.arguments = this.parseCallExpressionArguments();
           this.tsCheckForInvalidTypeCasts(node.arguments);
           {
             node.typeParameters = typeArguments;
@@ -9402,7 +9471,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     }
   }
   isAbstractClass() {
-    return this.isContextual(124) && this.lookahead().type === 80;
+    return this.isContextual(124) && this.isLookaheadContextual("class");
   }
   parseExportDefaultExpression() {
     if (this.isAbstractClass()) {
@@ -9423,12 +9492,16 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     } = this.state;
     const declaration = super.parseVarStatement(node, kind, allowMissingInitializer || isAmbientContext);
     if (!isAmbientContext) return declaration;
+    if (!node.declare && (kind === "using" || kind === "await using")) {
+      this.raiseOverwrite(TSErrors.UsingDeclarationInAmbientContext, node, kind);
+      return declaration;
+    }
     for (const {
       id,
       init
     } of declaration.declarations) {
       if (!init) continue;
-      if (kind !== "const" || !!id.typeAnnotation) {
+      if (kind === "var" || kind === "let" || !!id.typeAnnotation) {
         this.raise(TSErrors.InitializerNotAllowedInAmbientContext, init);
       } else if (!isValidAmbientConstInitializer(init, this.hasPlugin("estree"))) {
         this.raise(TSErrors.ConstInitializerMustBeStringOrNumericLiteralOrLiteralEnumReference, init);
@@ -10034,7 +10107,7 @@ var typescript = superClass => class TypeScriptParserMixin extends superClass {
     } else if (this.isContextual(129)) {
       if (!this.hasFollowingLineBreak()) {
         node.abstract = true;
-        this.raise(TSErrors.NonClassMethodPropertyHasAbstractModifer, node);
+        this.raise(TSErrors.NonClassMethodPropertyHasAbstractModifier, node);
         return this.tsParseInterfaceDeclaration(node);
       }
     } else {
@@ -10393,8 +10466,8 @@ var placeholders = superClass => class PlaceholdersParserMixin extends superClas
     if (super.chStartsBindingIdentifier(ch, pos)) {
       return true;
     }
-    const nextToken = this.lookahead();
-    if (nextToken.type === 133) {
+    const next = this.nextTokenStart();
+    if (this.input.charCodeAt(next) === 37 && this.input.charCodeAt(next + 1) === 37) {
       return true;
     }
     return false;
@@ -10634,6 +10707,9 @@ function validatePlugins(pluginsMap) {
   if (pluginsMap.has("optionalChainingAssign") && pluginsMap.get("optionalChainingAssign").version !== "2023-07") {
     throw new Error("The 'optionalChainingAssign' plugin requires a 'version' option," + " representing the last proposal update. Currently, the" + " only supported value is '2023-07'.");
   }
+  if (pluginsMap.has("discardBinding") && pluginsMap.get("discardBinding").syntaxType !== "void") {
+    throw new Error("The 'discardBinding' plugin requires a 'syntaxType' option. Currently the only supported value is 'void'.");
+  }
 }
 const mixinPlugins = {
   estree,
@@ -10675,9 +10751,14 @@ class ExpressionParser extends LValParser {
   getExpression() {
     this.enterInitialScopes();
     this.nextToken();
+    if (this.match(140)) {
+      throw this.raise(Errors.ParseExpressionEmptyInput, this.state.startLoc);
+    }
     const expr = this.parseExpression();
     if (!this.match(140)) {
-      this.unexpected();
+      throw this.raise(Errors.ParseExpressionExpectsEOF, this.state.startLoc, {
+        unexpected: this.input.codePointAt(this.state.start)
+      });
     }
     this.finalizeRemainingComments();
     expr.comments = this.comments;
@@ -10763,6 +10844,9 @@ class ExpressionParser extends LValParser {
         if (refExpressionErrors.privateKeyLoc != null && refExpressionErrors.privateKeyLoc.index >= startIndex) {
           this.checkDestructuringPrivate(refExpressionErrors);
           refExpressionErrors.privateKeyLoc = null;
+        }
+        if (refExpressionErrors.voidPatternLoc != null && refExpressionErrors.voidPatternLoc.index >= startIndex) {
+          refExpressionErrors.voidPatternLoc = null;
         }
       } else {
         node.left = left;
@@ -11092,9 +11176,9 @@ class ExpressionParser extends LValParser {
       node.optional = optional;
     }
     if (optional) {
-      node.arguments = this.parseCallExpressionArguments(11);
+      node.arguments = this.parseCallExpressionArguments();
     } else {
-      node.arguments = this.parseCallExpressionArguments(11, base.type !== "Super", node, refExpressionErrors);
+      node.arguments = this.parseCallExpressionArguments(base.type !== "Super", node, refExpressionErrors);
     }
     let finishedNode = this.finishCallExpression(node, optionalChainMember);
     if (maybeAsyncArrow && this.shouldParseAsyncArrow() && !optional) {
@@ -11142,17 +11226,17 @@ class ExpressionParser extends LValParser {
     }
     return this.finishNode(node, optional ? "OptionalCallExpression" : "CallExpression");
   }
-  parseCallExpressionArguments(close, allowPlaceholder, nodeForExtra, refExpressionErrors) {
+  parseCallExpressionArguments(allowPlaceholder, nodeForExtra, refExpressionErrors) {
     const elts = [];
     let first = true;
     const oldInFSharpPipelineDirectBody = this.state.inFSharpPipelineDirectBody;
     this.state.inFSharpPipelineDirectBody = false;
-    while (!this.eat(close)) {
+    while (!this.eat(11)) {
       if (first) {
         first = false;
       } else {
         this.expect(12);
-        if (this.match(close)) {
+        if (this.match(11)) {
           if (nodeForExtra) {
             this.addTrailingCommaExtraToNode(nodeForExtra);
           }
@@ -11160,7 +11244,7 @@ class ExpressionParser extends LValParser {
           break;
         }
       }
-      elts.push(this.parseExprListItem(false, refExpressionErrors, allowPlaceholder));
+      elts.push(this.parseExprListItem(11, false, refExpressionErrors, allowPlaceholder));
     }
     this.state.inFSharpPipelineDirectBody = oldInFSharpPipelineDirectBody;
     return elts;
@@ -11198,7 +11282,7 @@ class ExpressionParser extends LValParser {
         node = this.startNode();
         this.next();
         if (this.match(16)) {
-          return this.parseImportMetaProperty(node);
+          return this.parseImportMetaPropertyOrPhaseCall(node);
         }
         if (this.match(10)) {
           if (this.optionFlags & 512) {
@@ -11491,27 +11575,24 @@ class ExpressionParser extends LValParser {
     }
     return this.finishNode(node, "MetaProperty");
   }
-  parseImportMetaProperty(node) {
-    const id = this.createIdentifier(this.startNodeAtNode(node), "import");
+  parseImportMetaPropertyOrPhaseCall(node) {
     this.next();
-    if (this.isContextual(101)) {
-      if (!this.inModule) {
-        this.raise(Errors.ImportMetaOutsideModule, id);
-      }
-      this.sawUnambiguousESM = true;
-    } else if (this.isContextual(105) || this.isContextual(97)) {
+    if (this.isContextual(105) || this.isContextual(97)) {
       const isSource = this.isContextual(105);
       this.expectPlugin(isSource ? "sourcePhaseImports" : "deferredImportEvaluation");
-      if (!(this.optionFlags & 512)) {
-        throw this.raise(Errors.DynamicImportPhaseRequiresImportExpressions, this.state.startLoc, {
-          phase: this.state.value
-        });
-      }
       this.next();
       node.phase = isSource ? "source" : "defer";
       return this.parseImportCall(node);
+    } else {
+      const id = this.createIdentifierAt(this.startNodeAtNode(node), "import", this.state.lastTokStartLoc);
+      if (this.isContextual(101)) {
+        if (!this.inModule) {
+          this.raise(Errors.ImportMetaOutsideModule, id);
+        }
+        this.sawUnambiguousESM = true;
+      }
+      return this.parseMetaProperty(node, id, "meta");
     }
-    return this.parseMetaProperty(node, id, "meta");
   }
   parseLiteralAtNode(value, type, node) {
     this.addExtra(node, "rawValue", value);
@@ -11531,7 +11612,9 @@ class ExpressionParser extends LValParser {
     return this.parseLiteral(value, "NumericLiteral");
   }
   parseBigIntLiteral(value) {
-    return this.parseLiteral(value, "BigIntLiteral");
+    {
+      return this.parseLiteral(value, "BigIntLiteral");
+    }
   }
   parseDecimalLiteral(value) {
     return this.parseLiteral(value, "DecimalLiteral");
@@ -11588,7 +11671,7 @@ class ExpressionParser extends LValParser {
           break;
         }
       } else {
-        exprList.push(this.parseMaybeAssignAllowIn(refExpressionErrors, this.parseParenItem));
+        exprList.push(this.parseMaybeAssignAllowInOrVoidPattern(11, refExpressionErrors, this.parseParenItem));
       }
     }
     const innerEndLoc = this.state.lastTokEndLoc;
@@ -11650,7 +11733,7 @@ class ExpressionParser extends LValParser {
       const meta = this.createIdentifier(this.startNodeAtNode(node), "new");
       this.next();
       const metaProp = this.parseMetaProperty(node, meta, "target");
-      if (!this.scope.inNonArrowFunction && !this.scope.inClass && !(this.optionFlags & 4)) {
+      if (!this.scope.allowNewTarget) {
         this.raise(Errors.UnexpectedNewTarget, metaProp);
       }
       return metaProp;
@@ -11865,7 +11948,7 @@ class ExpressionParser extends LValParser {
   parseObjectProperty(prop, startLoc, isPattern, refExpressionErrors) {
     prop.shorthand = false;
     if (this.eat(14)) {
-      prop.value = isPattern ? this.parseMaybeDefault(this.state.startLoc) : this.parseMaybeAssignAllowIn(refExpressionErrors);
+      prop.value = isPattern ? this.parseMaybeDefault(this.state.startLoc) : this.parseMaybeAssignAllowInOrVoidPattern(8, refExpressionErrors);
       return this.finishObjectProperty(prop);
     }
     if (!prop.computed && prop.key.type === "Identifier") {
@@ -11956,7 +12039,7 @@ class ExpressionParser extends LValParser {
   parseMethod(node, isGenerator, isAsync, isConstructor, allowDirectSuper, type, inClassScope = false) {
     this.initFunction(node, isAsync);
     node.generator = isGenerator;
-    this.scope.enter(2 | 16 | (inClassScope ? 64 : 0) | (allowDirectSuper ? 32 : 0));
+    this.scope.enter(514 | 16 | (inClassScope ? 576 : 0) | (allowDirectSuper ? 32 : 0));
     this.prodParam.enter(functionFlags(isAsync, node.generator));
     this.parseFunctionParams(node, isConstructor);
     const finishedNode = this.parseFunctionBodyAndFinish(node, type, true);
@@ -11977,7 +12060,7 @@ class ExpressionParser extends LValParser {
     return this.finishNode(node, isTuple ? "TupleExpression" : "ArrayExpression");
   }
   parseArrowExpression(node, params, isAsync, trailingCommaLoc) {
-    this.scope.enter(2 | 4);
+    this.scope.enter(514 | 4);
     let flags = functionFlags(isAsync, false);
     if (!this.match(5) && this.prodParam.hasIn) {
       flags |= 8;
@@ -12065,11 +12148,11 @@ class ExpressionParser extends LValParser {
           break;
         }
       }
-      elts.push(this.parseExprListItem(allowEmpty, refExpressionErrors));
+      elts.push(this.parseExprListItem(close, allowEmpty, refExpressionErrors));
     }
     return elts;
   }
-  parseExprListItem(allowEmpty, refExpressionErrors, allowPlaceholder) {
+  parseExprListItem(close, allowEmpty, refExpressionErrors, allowPlaceholder) {
     let elt;
     if (this.match(12)) {
       if (!allowEmpty) {
@@ -12090,7 +12173,7 @@ class ExpressionParser extends LValParser {
       this.next();
       elt = this.finishNode(node, "ArgumentPlaceholder");
     } else {
-      elt = this.parseMaybeAssignAllowIn(refExpressionErrors, this.parseParenItem);
+      elt = this.parseMaybeAssignAllowInOrVoidPattern(close, refExpressionErrors, this.parseParenItem);
     }
     return elt;
   }
@@ -12103,6 +12186,11 @@ class ExpressionParser extends LValParser {
     node.name = name;
     node.loc.identifierName = name;
     return this.finishNode(node, "Identifier");
+  }
+  createIdentifierAt(node, name, endLoc) {
+    node.name = name;
+    node.loc.identifierName = name;
+    return this.finishNodeAt(node, "Identifier", endLoc);
   }
   parseIdentifierName(liberal) {
     let name;
@@ -12168,7 +12256,7 @@ class ExpressionParser extends LValParser {
     }
   }
   recordAwaitIfAllowed() {
-    const isAwaitAllowed = this.prodParam.hasAwait || this.optionFlags & 1 && !this.scope.inFunction;
+    const isAwaitAllowed = this.prodParam.hasAwait;
     if (isAwaitAllowed && !this.scope.inFunction) {
       this.state.hasTopLevelAwait = true;
     }
@@ -12231,12 +12319,17 @@ class ExpressionParser extends LValParser {
     if (this.eat(12)) {
       if (!this.match(11)) {
         node.options = this.parseMaybeAssignAllowIn();
-        if (this.eat(12) && !this.match(11)) {
-          do {
-            this.parseMaybeAssignAllowIn();
-          } while (this.eat(12) && !this.match(11));
-          this.raise(Errors.ImportCallArity, node);
+        if (this.eat(12)) {
+          this.addTrailingCommaExtraToNode(node.options);
+          if (!this.match(11)) {
+            do {
+              this.parseMaybeAssignAllowIn();
+            } while (this.eat(12) && !this.match(11));
+            this.raise(Errors.ImportCallArity, node);
+          }
         }
+      } else {
+        this.addTrailingCommaExtraToNode(node.source);
       }
     }
     this.expect(11);
@@ -12382,6 +12475,24 @@ class ExpressionParser extends LValParser {
     }
     return this.finishNode(node, "ModuleExpression");
   }
+  parseVoidPattern(refExpressionErrors) {
+    this.expectPlugin("discardBinding");
+    const node = this.startNode();
+    if (refExpressionErrors != null) {
+      refExpressionErrors.voidPatternLoc = this.state.startLoc;
+    }
+    this.next();
+    return this.finishNode(node, "VoidPattern");
+  }
+  parseMaybeAssignAllowInOrVoidPattern(close, refExpressionErrors, afterLeftParse) {
+    if (refExpressionErrors != null && this.match(88)) {
+      const nextCode = this.lookaheadCharCode();
+      if (nextCode === 44 || nextCode === (close === 3 ? 93 : close === 8 ? 125 : 41) || nextCode === 61) {
+        return this.parseMaybeDefault(this.state.startLoc, this.parseVoidPattern(refExpressionErrors));
+      }
+    }
+    return this.parseMaybeAssignAllowIn(refExpressionErrors, afterLeftParse);
+  }
   parsePropertyNamePrefixOperator(prop) {}
 }
 const loopLabel = {
@@ -12501,14 +12612,14 @@ function babel7CompatTokens(tokens, input, startIndex) {
 }
 class StatementParser extends ExpressionParser {
   parseTopLevel(file, program) {
-    file.program = this.parseProgram(program);
+    file.program = this.parseProgram(program, 140, this.options.sourceType === "module" ? "module" : "script");
     file.comments = this.comments;
     if (this.optionFlags & 256) {
       file.tokens = babel7CompatTokens(this.tokens, this.input, this.startIndex);
     }
     return this.finishNode(file, "File");
   }
-  parseProgram(program, end = 140, sourceType = this.options.sourceType) {
+  parseProgram(program, end, sourceType) {
     program.sourceType = sourceType;
     program.interpreter = this.parseInterpreterDirective();
     this.parseBlockBody(program, true, true, end);
@@ -12558,6 +12669,45 @@ class StatementParser extends ExpressionParser {
     }
     return this.hasFollowingBindingAtom();
   }
+  isUsing() {
+    if (!this.isContextual(107)) {
+      return false;
+    }
+    const next = this.nextTokenInLineStart();
+    const nextCh = this.codePointAtPos(next);
+    return this.chStartsBindingIdentifier(nextCh, next);
+  }
+  isForUsing() {
+    if (!this.isContextual(107)) {
+      return false;
+    }
+    const next = this.nextTokenInLineStart();
+    const nextCh = this.codePointAtPos(next);
+    if (this.isUnparsedContextual(next, "of")) {
+      const nextCharAfterOf = this.lookaheadCharCodeSince(next + 2);
+      if (nextCharAfterOf !== 61 && nextCharAfterOf !== 58 && nextCharAfterOf !== 59) {
+        return false;
+      }
+    }
+    if (this.chStartsBindingIdentifier(nextCh, next) || this.isUnparsedContextual(next, "void")) {
+      return true;
+    }
+    return false;
+  }
+  isAwaitUsing() {
+    if (!this.isContextual(96)) {
+      return false;
+    }
+    let next = this.nextTokenInLineStart();
+    if (this.isUnparsedContextual(next, "using")) {
+      next = this.nextTokenInLineStartSince(next + 5);
+      const nextCh = this.codePointAtPos(next);
+      if (this.chStartsBindingIdentifier(nextCh, next)) {
+        return true;
+      }
+    }
+    return false;
+  }
   chStartsBindingIdentifier(ch, pos) {
     if (isIdentifierStart(ch)) {
       keywordRelationalOperator.lastIndex = pos;
@@ -12587,35 +12737,8 @@ class StatementParser extends ExpressionParser {
     const nextCh = this.codePointAtPos(next);
     return nextCh === 123 || this.chStartsBindingIdentifier(nextCh, next);
   }
-  allowsForUsing() {
-    const {
-      type,
-      containsEsc,
-      end
-    } = this.lookahead();
-    if (type === 102 && !containsEsc) {
-      const nextCharAfterOf = this.lookaheadCharCodeSince(end);
-      if (nextCharAfterOf !== 61 && nextCharAfterOf !== 58 && nextCharAfterOf !== 59) {
-        return false;
-      }
-    }
-    if (tokenIsIdentifier(type) && !this.hasFollowingLineBreak()) {
-      this.expectPlugin("explicitResourceManagement");
-      return true;
-    }
-    return false;
-  }
-  startsAwaitUsing() {
-    let next = this.nextTokenInLineStart();
-    if (this.isUnparsedContextual(next, "using")) {
-      next = this.nextTokenInLineStartSince(next + 5);
-      const nextCh = this.codePointAtPos(next);
-      if (this.chStartsBindingIdentifier(nextCh, next)) {
-        this.expectPlugin("explicitResourceManagement");
-        return true;
-      }
-    }
-    return false;
+  allowsUsing() {
+    return (this.scope.inModule || !this.scope.inTopLevel) && !this.scope.inBareCaseStatement;
   }
   parseModuleItem() {
     return this.parseStatementLike(1 | 2 | 4 | 8);
@@ -12680,11 +12803,13 @@ class StatementParser extends ExpressionParser {
       case 73:
         return this.parseTryStatement(node);
       case 96:
-        if (!this.state.containsEsc && this.startsAwaitUsing()) {
-          if (!this.recordAwaitIfAllowed()) {
-            this.raise(Errors.AwaitUsingNotInAsyncContext, node);
+        if (this.isAwaitUsing()) {
+          if (!this.allowsUsing()) {
+            this.raise(Errors.UnexpectedUsingDeclaration, node);
           } else if (!allowDeclaration) {
             this.raise(Errors.UnexpectedLexicalDeclaration, node);
+          } else if (!this.recordAwaitIfAllowed()) {
+            this.raise(Errors.AwaitUsingNotInAsyncContext, node);
           }
           this.next();
           return this.parseVarStatement(node, "await using");
@@ -12694,8 +12819,7 @@ class StatementParser extends ExpressionParser {
         if (this.state.containsEsc || !this.hasInLineFollowingBindingIdentifierOrBrace()) {
           break;
         }
-        this.expectPlugin("explicitResourceManagement");
-        if (!this.scope.inModule && this.scope.inTopLevel) {
+        if (!this.allowsUsing()) {
           this.raise(Errors.UnexpectedUsingDeclaration, this.state.startLoc);
         } else if (!allowDeclaration) {
           this.raise(Errors.UnexpectedLexicalDeclaration, this.state.startLoc);
@@ -12863,7 +12987,7 @@ class StatementParser extends ExpressionParser {
     if (this.eat(10)) {
       const node = this.startNodeAt(startLoc);
       node.callee = expr;
-      node.arguments = this.parseCallExpressionArguments(11);
+      node.arguments = this.parseCallExpressionArguments();
       this.toReferencedList(node.arguments);
       return this.finishNode(node, "CallExpression");
     }
@@ -12937,8 +13061,8 @@ class StatementParser extends ExpressionParser {
     }
     const startsWithLet = this.isContextual(100);
     {
-      const startsWithAwaitUsing = this.isContextual(96) && this.startsAwaitUsing();
-      const starsWithUsingDeclaration = startsWithAwaitUsing || this.isContextual(107) && this.allowsForUsing();
+      const startsWithAwaitUsing = this.isAwaitUsing();
+      const starsWithUsingDeclaration = startsWithAwaitUsing || this.isForUsing();
       const isLetOrUsing = startsWithLet && this.hasFollowingBindingAtom() || starsWithUsingDeclaration;
       if (this.match(74) || this.match(75) || isLetOrUsing) {
         const initNode = this.startNode();
@@ -13008,7 +13132,7 @@ class StatementParser extends ExpressionParser {
     return this.finishNode(node, "IfStatement");
   }
   parseReturnStatement(node) {
-    if (!this.prodParam.hasReturn && !(this.optionFlags & 2)) {
+    if (!this.prodParam.hasReturn) {
       this.raise(Errors.IllegalReturn, this.state.startLoc);
     }
     this.next();
@@ -13026,7 +13150,7 @@ class StatementParser extends ExpressionParser {
     const cases = node.cases = [];
     this.expect(5);
     this.state.labels.push(switchLabel);
-    this.scope.enter(0);
+    this.scope.enter(256);
     let cur;
     for (let sawDefault; !this.match(8);) {
       if (this.match(61) || this.match(65)) {
@@ -13280,6 +13404,10 @@ class StatementParser extends ExpressionParser {
       if (id.type === "ArrayPattern" || id.type === "ObjectPattern") {
         this.raise(Errors.UsingDeclarationHasBindingPattern, id.loc.start);
       }
+    } else {
+      if (id.type === "VoidPattern") {
+        this.raise(Errors.UnexpectedVoidPattern, id.loc.start);
+      }
     }
     this.checkLVal(id, {
       type: "VariableDeclarator"
@@ -13307,7 +13435,7 @@ class StatementParser extends ExpressionParser {
     }
     const oldMaybeInArrowParameters = this.state.maybeInArrowParameters;
     this.state.maybeInArrowParameters = false;
-    this.scope.enter(2);
+    this.scope.enter(514);
     this.prodParam.enter(functionFlags(isAsync, node.generator));
     if (!isDeclaration) {
       node.id = this.parseFunctionId();
@@ -13448,6 +13576,7 @@ class StatementParser extends ExpressionParser {
       method.kind = "method";
       const isPrivateName = this.match(139);
       this.parseClassElementName(method);
+      this.parsePostMemberNameModifiers(method);
       if (isPrivateName) {
         this.pushClassPrivateMethod(classBody, privateMethod, true, false);
         return;
@@ -13559,7 +13688,7 @@ class StatementParser extends ExpressionParser {
   }
   parseClassStaticBlock(classBody, member) {
     var _member$decorators;
-    this.scope.enter(64 | 128 | 16);
+    this.scope.enter(576 | 128 | 16);
     const oldLabels = this.state.labels;
     this.state.labels = [];
     this.prodParam.enter(0);
@@ -13623,7 +13752,7 @@ class StatementParser extends ExpressionParser {
     return this.finishNode(node, "ClassAccessorProperty");
   }
   parseInitializer(node) {
-    this.scope.enter(64 | 16);
+    this.scope.enter(576 | 16);
     this.expressionScope.enter(newExpressionScope());
     this.prodParam.enter(0);
     node.value = this.eat(29) ? this.parseMaybeAssignAllowIn() : null;
@@ -13790,7 +13919,7 @@ class StatementParser extends ExpressionParser {
       }
       return this.parseClass(this.maybeTakeDecorators(this.parseDecorators(false), this.startNode()), true, true);
     }
-    if (this.match(75) || this.match(74) || this.isLet()) {
+    if (this.match(75) || this.match(74) || this.isLet() || this.isUsing() || this.isAwaitUsing()) {
       throw this.raise(Errors.UnsupportedDefaultExport, this.state.startLoc);
     }
     const res = this.parseMaybeAssignAllowIn();
@@ -13813,10 +13942,9 @@ class StatementParser extends ExpressionParser {
         return false;
       }
       if ((type === 130 || type === 129) && !this.state.containsEsc) {
-        const {
-          type: nextType
-        } = this.lookahead();
-        if (tokenIsIdentifier(nextType) && nextType !== 98 || nextType === 5) {
+        const next = this.nextTokenStart();
+        const nextChar = this.input.charCodeAt(next);
+        if (nextChar === 123 || this.chStartsBindingIdentifier(nextChar, next) && !this.input.startsWith("from", next)) {
           this.expectOnePlugin(["flow", "typescript"]);
           return false;
         }
@@ -13859,11 +13987,11 @@ class StatementParser extends ExpressionParser {
         return true;
       }
     }
-    if (this.isContextual(107)) {
+    if (this.isUsing()) {
       this.raise(Errors.UsingDeclarationExport, this.state.startLoc);
       return true;
     }
-    if (this.isContextual(96) && this.startsAwaitUsing()) {
+    if (this.isAwaitUsing()) {
       this.raise(Errors.UsingDeclarationExport, this.state.startLoc);
       return true;
     }
@@ -14080,18 +14208,18 @@ class StatementParser extends ExpressionParser {
       this.applyImportPhase(node, isExport, null);
       return null;
     }
-    const phaseIdentifier = this.parseIdentifier(true);
+    const phaseIdentifier = this.startNode();
+    const phaseIdentifierName = this.parseIdentifierName(true);
     const {
       type
     } = this.state;
     const isImportPhase = tokenIsKeywordOrIdentifier(type) ? type !== 98 || this.lookaheadCharCode() === 102 : type !== 12;
     if (isImportPhase) {
-      this.resetPreviousIdentifierLeadingComments(phaseIdentifier);
-      this.applyImportPhase(node, isExport, phaseIdentifier.name, phaseIdentifier.loc.start);
+      this.applyImportPhase(node, isExport, phaseIdentifierName, phaseIdentifier.loc.start);
       return null;
     } else {
       this.applyImportPhase(node, isExport, null);
-      return phaseIdentifier;
+      return this.createIdentifier(phaseIdentifier, phaseIdentifierName);
     }
   }
   isPrecedingIdImportPhase(phase) {

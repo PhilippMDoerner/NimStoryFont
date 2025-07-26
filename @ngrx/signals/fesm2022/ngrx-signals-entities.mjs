@@ -41,39 +41,46 @@ function getEntityUpdaterResult(state, stateKeys, didMutate) {
         }
     }
 }
-function addEntityMutably(state, entity, selectId) {
+function addEntityMutably(state, entity, selectId, prepend = false) {
     const id = selectId(entity);
     if (state.entityMap[id]) {
         return DidMutate.None;
     }
     state.entityMap[id] = entity;
-    state.ids.push(id);
+    if (prepend) {
+        state.ids.unshift(id);
+    }
+    else {
+        state.ids.push(id);
+    }
     return DidMutate.Both;
 }
-function addEntitiesMutably(state, entities, selectId) {
+function addEntitiesMutably(state, entities, selectId, prepend = false) {
     let didMutate = DidMutate.None;
     for (const entity of entities) {
-        const result = addEntityMutably(state, entity, selectId);
+        const result = addEntityMutably(state, entity, selectId, prepend);
         if (result === DidMutate.Both) {
             didMutate = result;
         }
     }
     return didMutate;
 }
-function setEntityMutably(state, entity, selectId) {
+function setEntityMutably(state, entity, selectId, replace = true) {
     const id = selectId(entity);
     if (state.entityMap[id]) {
-        state.entityMap[id] = entity;
+        state.entityMap[id] = replace
+            ? entity
+            : { ...state.entityMap[id], ...entity };
         return DidMutate.Entities;
     }
     state.entityMap[id] = entity;
     state.ids.push(id);
     return DidMutate.Both;
 }
-function setEntitiesMutably(state, entities, selectId) {
+function setEntitiesMutably(state, entities, selectId, replace = true) {
     let didMutate = DidMutate.None;
     for (const entity of entities) {
-        const result = setEntityMutably(state, entity, selectId);
+        const result = setEntityMutably(state, entity, selectId, replace);
         if (didMutate === DidMutate.Both) {
             continue;
         }
@@ -122,7 +129,9 @@ function updateEntitiesMutably(state, idsOrPredicate, changes, selectId) {
         state.ids = state.ids.map((id) => newIds[id] ?? id);
         didMutate = DidMutate.Both;
     }
-    if (ngDevMode && state.ids.length !== Object.keys(state.entityMap).length) {
+    if (typeof ngDevMode !== 'undefined' &&
+        ngDevMode &&
+        state.ids.length !== Object.keys(state.entityMap).length) {
         console.warn('@ngrx/signals/entities: Entities with IDs:', ids, 'are not updated correctly.', 'Make sure to apply valid changes when using `updateEntity`,', '`updateEntities`, and `updateAllEntities` updaters.');
     }
     return didMutate;
@@ -144,6 +153,35 @@ function addEntities(entities, config) {
     return (state) => {
         const clonedState = cloneEntityState(state, stateKeys);
         const didMutate = addEntitiesMutably(clonedState, entities, selectId);
+        return getEntityUpdaterResult(clonedState, stateKeys, didMutate);
+    };
+}
+
+function prependEntity(entity, config) {
+    const selectId = getEntityIdSelector(config);
+    const stateKeys = getEntityStateKeys(config);
+    return (state) => {
+        const clonedState = cloneEntityState(state, stateKeys);
+        const didMutate = addEntityMutably(clonedState, entity, selectId, true);
+        return getEntityUpdaterResult(clonedState, stateKeys, didMutate);
+    };
+}
+
+function prependEntities(entities, config) {
+    const selectId = getEntityIdSelector(config);
+    const stateKeys = getEntityStateKeys(config);
+    return (state) => {
+        const clonedState = cloneEntityState(state, stateKeys);
+        const uniqueEntities = [];
+        const seenIds = new Set();
+        for (const entity of entities) {
+            const id = selectId(entity);
+            if (!seenIds.has(id)) {
+                uniqueEntities.unshift(entity);
+                seenIds.add(id);
+            }
+        }
+        const didMutate = addEntitiesMutably(clonedState, uniqueEntities, selectId, true);
         return getEntityUpdaterResult(clonedState, stateKeys, didMutate);
     };
 }
@@ -238,6 +276,26 @@ function updateAllEntities(changes, config) {
     };
 }
 
+function upsertEntity(entity, config) {
+    const selectId = getEntityIdSelector(config);
+    const stateKeys = getEntityStateKeys(config);
+    return (state) => {
+        const clonedState = cloneEntityState(state, stateKeys);
+        const didMutate = setEntityMutably(clonedState, entity, selectId, false);
+        return getEntityUpdaterResult(clonedState, stateKeys, didMutate);
+    };
+}
+
+function upsertEntities(entities, config) {
+    const selectId = getEntityIdSelector(config);
+    const stateKeys = getEntityStateKeys(config);
+    return (state) => {
+        const clonedState = cloneEntityState(state, stateKeys);
+        const didMutate = setEntitiesMutably(clonedState, entities, selectId, false);
+        return getEntityUpdaterResult(clonedState, stateKeys, didMutate);
+    };
+}
+
 function entityConfig(config) {
     return config;
 }
@@ -260,5 +318,5 @@ function withEntities(config) {
  * Generated bundle index. Do not edit.
  */
 
-export { addEntities, addEntity, entityConfig, removeAllEntities, removeEntities, removeEntity, setAllEntities, setEntities, setEntity, updateAllEntities, updateEntities, updateEntity, withEntities };
+export { addEntities, addEntity, entityConfig, prependEntities, prependEntity, removeAllEntities, removeEntities, removeEntity, setAllEntities, setEntities, setEntity, updateAllEntities, updateEntities, updateEntity, upsertEntities, upsertEntity, withEntities };
 //# sourceMappingURL=ngrx-signals-entities.mjs.map

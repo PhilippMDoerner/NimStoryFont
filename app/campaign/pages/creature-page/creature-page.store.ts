@@ -15,7 +15,7 @@ import { Creature } from 'src/app/_models/creature';
 import { Image } from 'src/app/_models/image';
 import { httpErrorToast } from 'src/app/_models/toast';
 import { CreatureService } from 'src/app/_services/article/creature.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
 import { replaceItem } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';

@@ -23,18 +23,21 @@ class PointerHost {
         return this.devices.get(keyDef.pointerType).isPressed(keyDef);
     }
     async press(instance, keyDef, position) {
+        this.devices.get(keyDef.pointerType).addPressed(keyDef);
+        this.buttons.down(keyDef);
         const pointerName = this.getPointerName(keyDef);
-        const pointer = keyDef.pointerType === 'touch' ? this.pointers.new(pointerName, keyDef).init(instance, position) : this.pointers.get(pointerName);
+        const pointer = keyDef.pointerType === 'touch' ? this.pointers.new(pointerName, keyDef.pointerType, this.buttons) : this.pointers.get(pointerName);
         // TODO: deprecate the following implicit setting of position
         pointer.position = position;
         if (pointer.pointerType !== 'touch') {
             this.mouse.position = position;
         }
-        this.devices.get(keyDef.pointerType).addPressed(keyDef);
-        this.buttons.down(keyDef);
-        pointer.down(instance, keyDef);
-        if (pointer.pointerType !== 'touch' && !pointer.isPrevented) {
-            this.mouse.down(instance, keyDef, pointer);
+        if (pointer.pointerType === 'touch') {
+            pointer.init(instance);
+        }
+        pointer.down(instance, keyDef.button);
+        if (pointer.pointerType !== 'touch') {
+            this.mouse.down(instance, keyDef, pointer.isPrevented);
         }
     }
     async move(instance, pointerName, position) {
@@ -44,45 +47,44 @@ class PointerHost {
         // While the order of mouse (or pointer) events is defined per spec,
         // the order in which they interweave/follow on a user interaction depends on the implementation.
         const pointermove = pointer.move(instance, position);
-        const mousemove = pointer.pointerType === 'touch' || pointer.isPrevented && pointer.isDown ? undefined : this.mouse.move(instance, position);
-        pointermove === null || pointermove === void 0 ? void 0 : pointermove.leave();
-        mousemove === null || mousemove === void 0 ? void 0 : mousemove.leave();
-        pointermove === null || pointermove === void 0 ? void 0 : pointermove.enter();
-        mousemove === null || mousemove === void 0 ? void 0 : mousemove.enter();
-        pointermove === null || pointermove === void 0 ? void 0 : pointermove.move();
-        mousemove === null || mousemove === void 0 ? void 0 : mousemove.move();
+        const mousemove = pointer.pointerType === 'touch' ? undefined : this.mouse.move(instance, position, pointer.isPrevented);
+        pointermove === null || pointermove === undefined ? undefined : pointermove.leave();
+        mousemove === null || mousemove === undefined ? undefined : mousemove.leave();
+        pointermove === null || pointermove === undefined ? undefined : pointermove.enter();
+        mousemove === null || mousemove === undefined ? undefined : mousemove.enter();
+        pointermove === null || pointermove === undefined ? undefined : pointermove.move();
+        mousemove === null || mousemove === undefined ? undefined : mousemove.move();
     }
     async release(instance, keyDef, position) {
         const device = this.devices.get(keyDef.pointerType);
         device.removePressed(keyDef);
         this.buttons.up(keyDef);
         const pointer = this.pointers.get(this.getPointerName(keyDef));
+        const isPrevented = pointer.isPrevented;
         // TODO: deprecate the following implicit setting of position
         pointer.position = position;
         if (pointer.pointerType !== 'touch') {
             this.mouse.position = position;
         }
         if (device.countPressed === 0) {
-            pointer.up(instance, keyDef);
+            pointer.up(instance, keyDef.button);
         }
         if (pointer.pointerType === 'touch') {
             pointer.release(instance);
         }
-        if (!pointer.isPrevented) {
-            if (pointer.pointerType === 'touch' && !pointer.isMultitouch) {
-                const mousemove = this.mouse.move(instance, pointer.position);
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.leave();
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.enter();
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.move();
-                this.mouse.down(instance, keyDef, pointer);
-            }
-            if (!pointer.isMultitouch) {
-                const mousemove = this.mouse.move(instance, pointer.position);
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.leave();
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.enter();
-                mousemove === null || mousemove === void 0 ? void 0 : mousemove.move();
-                this.mouse.up(instance, keyDef, pointer);
-            }
+        if (pointer.pointerType === 'touch' && !pointer.isMultitouch) {
+            const mousemove = this.mouse.move(instance, position, isPrevented);
+            mousemove === null || mousemove === undefined ? undefined : mousemove.leave();
+            mousemove === null || mousemove === undefined ? undefined : mousemove.enter();
+            mousemove === null || mousemove === undefined ? undefined : mousemove.move();
+            this.mouse.down(instance, keyDef, isPrevented);
+        }
+        if (!pointer.isMultitouch) {
+            const mousemove = this.mouse.move(instance, position, isPrevented);
+            mousemove === null || mousemove === undefined ? undefined : mousemove.leave();
+            mousemove === null || mousemove === undefined ? undefined : mousemove.enter();
+            mousemove === null || mousemove === undefined ? undefined : mousemove.move();
+            this.mouse.up(instance, keyDef, isPrevented);
         }
     }
     getPointerName(keyDef) {
@@ -96,43 +98,41 @@ class PointerHost {
     }
     getMouseTarget(instance) {
         var _this_mouse_position_target;
-        return (_this_mouse_position_target = this.mouse.position.target) !== null && _this_mouse_position_target !== void 0 ? _this_mouse_position_target : instance.config.document.body;
+        return (_this_mouse_position_target = this.mouse.position.target) !== null && _this_mouse_position_target !== undefined ? _this_mouse_position_target : instance.config.document.body;
     }
     setMousePosition(position) {
         this.mouse.position = position;
         this.pointers.get('mouse').position = position;
     }
     constructor(system){
-        _define_property(this, "system", void 0);
-        _define_property(this, "mouse", void 0);
-        _define_property(this, "buttons", void 0);
+        _define_property(this, "system", undefined);
+        _define_property(this, "mouse", undefined);
+        _define_property(this, "buttons", undefined);
         _define_property(this, "devices", new class {
             get(k) {
-                var // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                _this_registry, _k;
+                var _this_registry, _k;
                 var _;
-                (_ = (_this_registry = this.registry)[_k = k]) !== null && _ !== void 0 ? _ : _this_registry[_k] = new device.Device();
-                return this.registry[k];
+                return (_ = (_this_registry = this.registry)[_k = k]) !== null && _ !== undefined ? _ : _this_registry[_k] = new device.Device();
             }
             constructor(){
                 _define_property(this, "registry", {});
             }
         }());
         _define_property(this, "pointers", new class {
-            new(pointerName, keyDef) {
-                const isPrimary = keyDef.pointerType !== 'touch' || !Object.values(this.registry).some((p)=>p.pointerType === 'touch' && !p.isCancelled);
+            new(pointerName, pointerType, buttons) {
+                const isPrimary = pointerType !== 'touch' || !Object.values(this.registry).some((p)=>p.pointerType === 'touch' && !p.isCancelled);
                 if (!isPrimary) {
                     Object.values(this.registry).forEach((p)=>{
-                        if (p.pointerType === keyDef.pointerType && !p.isCancelled) {
+                        if (p.pointerType === pointerType && !p.isCancelled) {
                             p.isMultitouch = true;
                         }
                     });
                 }
                 this.registry[pointerName] = new pointer.Pointer({
                     pointerId: this.nextId++,
-                    pointerType: keyDef.pointerType,
+                    pointerType,
                     isPrimary
-                });
+                }, buttons);
                 return this.registry[pointerName];
             }
             get(pointerName) {
@@ -145,19 +145,14 @@ class PointerHost {
                 return pointerName in this.registry;
             }
             constructor(){
-                _define_property(this, "registry", {
-                    mouse: new pointer.Pointer({
-                        pointerId: 1,
-                        pointerType: 'mouse',
-                        isPrimary: true
-                    })
-                });
-                _define_property(this, "nextId", 2);
+                _define_property(this, "registry", {});
+                _define_property(this, "nextId", 1);
             }
         }());
         this.system = system;
         this.buttons = new buttons.Buttons();
         this.mouse = new mouse.Mouse();
+        this.pointers.new('mouse', 'mouse', this.buttons);
     }
 }
 

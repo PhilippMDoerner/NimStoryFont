@@ -10,6 +10,6 @@ declare const unplugin: _unplugin.UnpluginInstance<EnrichCsfOptions, boolean>;
 declare const esbuild: (options: EnrichCsfOptions) => _esbuild.Plugin;
 declare const webpack: (options: EnrichCsfOptions) => _webpack.WebpackPluginInstance;
 declare const rollup: (options: EnrichCsfOptions) => _rollup.Plugin<any> | _rollup.Plugin<any>[];
-declare const vite: (options: EnrichCsfOptions) => _vite.Plugin | _vite.Plugin[];
+declare const vite: (options: EnrichCsfOptions) => _vite.Plugin<any> | _vite.Plugin<any>[];
 
 export { CsfPluginOptions, esbuild, rollup, unplugin, vite, webpack };

@@ -1,65 +1,70 @@
 // src/utils.ts
-function d(e, t) {
-  if (!e)
-    throw new Error(t);
+function assert(condition, message) {
+  if (!condition)
+    throw new Error(message);
 }
-function y(e, t) {
-  return typeof t === e;
+function isType(type, value) {
+  return typeof value === type;
 }
-function w(e) {
-  return e instanceof Promise;
+function isPromise(value) {
+  return value instanceof Promise;
 }
-function f(e, t, n) {
-  Object.defineProperty(e, t, n);
+function define(obj, key, descriptor) {
+  Object.defineProperty(obj, key, descriptor);
 }
-function l(e, t, n) {
-  Object.defineProperty(e, t, { value: n });
+function defineValue(obj, key, value) {
+  define(obj, key, { value, configurable: !0, writable: !0 });
 }
 
 // src/constants.ts
-var u = Symbol.for("tinyspy:spy");
+var SYMBOL_STATE = Symbol.for("tinyspy:spy");
 
 // src/internal.ts
-var x = /* @__PURE__ */ new Set(), P = (e) => {
-  e.called = !1, e.callCount = 0, e.calls = [], e.results = [], e.resolves = [], e.next = [];
-}, K = (e) => (f(e, u, { value: { reset: () => P(e[u]) } }), e[u]), T = (e) => e[u] || K(e);
-function m(e) {
-  d(
-    y("function", e) || y("undefined", e),
+var spies = /* @__PURE__ */ new Set(), reset = (state) => {
+  state.called = !1, state.callCount = 0, state.calls = [], state.results = [], state.resolves = [], state.next = [];
+}, defineState = (spy2) => (define(spy2, SYMBOL_STATE, {
+  value: { reset: () => reset(spy2[SYMBOL_STATE]) }
+}), spy2[SYMBOL_STATE]), getInternalState = (spy2) => spy2[SYMBOL_STATE] || defineState(spy2);
+function createInternalSpy(cb) {
+  assert(
+    isType("function", cb) || isType("undefined", cb),
     "cannot spy on a non-function value"
   );
-  let t = function(...s) {
-    let r = T(t);
-    r.called = !0, r.callCount++, r.calls.push(s);
-    let S = r.next.shift();
-    if (S) {
-      r.results.push(S);
-      let [o, g] = S;
-      if (o === "ok")
-        return g;
-      throw g;
+  let fn = function(...args) {
+    let state2 = getInternalState(fn);
+    state2.called = !0, state2.callCount++, state2.calls.push(args);
+    let next = state2.next.shift();
+    if (next) {
+      state2.results.push(next);
+      let [type2, result2] = next;
+      if (type2 === "ok")
+        return result2;
+      throw result2;
     }
-    let p, c = "ok", a = r.results.length;
-    if (r.impl)
+    let result, type = "ok", resultIndex = state2.results.length;
+    if (state2.impl)
       try {
-        new.target ? p = Reflect.construct(r.impl, s, new.target) : p = r.impl.apply(this, s), c = "ok";
-      } catch (o) {
-        throw p = o, c = "error", r.results.push([c, o]), o;
+        new.target ? result = Reflect.construct(state2.impl, args, new.target) : result = state2.impl.apply(this, args), type = "ok";
+      } catch (err) {
+        throw result = err, type = "error", state2.results.push([type, err]), err;
       }
-    let R = [c, p];
-    return w(p) && p.then(
-      (o) => r.resolves[a] = ["ok", o],
-      (o) => r.resolves[a] = ["error", o]
-    ), r.results.push(R), p;
+    let resultTuple = [type, result];
+    return isPromise(result) && result.then(
+      (r) => state2.resolves[resultIndex] = ["ok", r],
+      (e) => state2.resolves[resultIndex] = ["error", e]
+    ), state2.results.push(resultTuple), result;
   };
-  l(t, "_isMockFunction", !0), l(t, "length", e ? e.length : 0), l(t, "name", e && e.name || "spy");
-  let n = T(t);
-  return n.reset(), n.impl = e, t;
+  defineValue(fn, "_isMockFunction", !0), defineValue(fn, "length", cb ? cb.length : 0), defineValue(fn, "name", cb && cb.name || "spy");
+  let state = getInternalState(fn);
+  return state.reset(), state.impl = cb, fn;
 }
-function A(e) {
-  let t = T(e);
-  "returns" in e || (f(e, "returns", {
-    get: () => t.results.map(([, n]) => n)
+function isMockFunction(obj) {
+  return !!obj && obj._isMockFunction === !0;
+}
+function populateSpy(spy2) {
+  let state = getInternalState(spy2);
+  "returns" in spy2 || (define(spy2, "returns", {
+    get: () => state.results.map(([, r]) => r)
   }), [
     "called",
     "callCount",
@@ -69,81 +74,129 @@ function A(e) {
     "reset",
     "impl"
   ].forEach(
-    (n) => f(e, n, { get: () => t[n], set: (s) => t[n] = s })
-  ), l(e, "nextError", (n) => (t.next.push(["error", n]), t)), l(e, "nextResult", (n) => (t.next.push(["ok", n]), t)));
+    (n) => define(spy2, n, { get: () => state[n], set: (v) => state[n] = v })
+  ), defineValue(spy2, "nextError", (error) => (state.next.push(["error", error]), state)), defineValue(spy2, "nextResult", (result) => (state.next.push(["ok", result]), state)));
 }
 
 // src/spy.ts
-function L(e) {
-  let t = m(e);
-  return A(t), t;
+function spy(cb) {
+  let spy2 = createInternalSpy(cb);
+  return populateSpy(spy2), spy2;
 }
 
 // src/spyOn.ts
-var k = (e, t) => Object.getOwnPropertyDescriptor(e, t), O = (e, t) => {
-  t != null && typeof t == "function" && t.prototype != null && Object.setPrototypeOf(e.prototype, t.prototype);
+var getDescriptor = (obj, method) => {
+  let objDescriptor = Object.getOwnPropertyDescriptor(obj, method);
+  if (objDescriptor)
+    return [obj, objDescriptor];
+  let currentProto = Object.getPrototypeOf(obj);
+  for (; currentProto !== null; ) {
+    let descriptor = Object.getOwnPropertyDescriptor(currentProto, method);
+    if (descriptor)
+      return [currentProto, descriptor];
+    currentProto = Object.getPrototypeOf(currentProto);
+  }
+}, setPototype = (fn, val) => {
+  val != null && typeof val == "function" && val.prototype != null && Object.setPrototypeOf(fn.prototype, val.prototype);
 };
-function C(e, t, n) {
-  d(
-    !y("undefined", e),
+function internalSpyOn(obj, methodName, mock) {
+  assert(
+    !isType("undefined", obj),
     "spyOn could not find an object to spy upon"
-  ), d(
-    y("object", e) || y("function", e),
+  ), assert(
+    isType("object", obj) || isType("function", obj),
     "cannot spyOn on a primitive value"
   );
-  let [s, r] = (() => {
-    if (!y("object", t))
-      return [t, "value"];
-    if ("getter" in t && "setter" in t)
+  let [accessName, accessType] = (() => {
+    if (!isType("object", methodName))
+      return [methodName, "value"];
+    if ("getter" in methodName && "setter" in methodName)
       throw new Error("cannot spy on both getter and setter");
-    if ("getter" in t)
-      return [t.getter, "get"];
-    if ("setter" in t)
-      return [t.setter, "set"];
+    if ("getter" in methodName)
+      return [methodName.getter, "get"];
+    if ("setter" in methodName)
+      return [methodName.setter, "set"];
     throw new Error("specify getter or setter to spy on");
-  })(), S = k(e, s), p = Object.getPrototypeOf(e), c = p && k(p, s), a = S || c;
-  d(
-    a || s in e,
-    `${String(s)} does not exist`
+  })(), [originalDescriptorObject, originalDescriptor] = getDescriptor(obj, accessName) || [];
+  assert(
+    originalDescriptor || accessName in obj,
+    `${String(accessName)} does not exist`
   );
-  let R = !1;
-  r === "value" && a && !a.value && a.get && (r = "get", R = !0, n = a.get());
-  let o;
-  a ? o = a[r] : r !== "value" ? o = () => e[s] : o = e[s];
-  let g = (v) => {
-    let { value: M, ...h } = a || {
+  let ssr = !1;
+  accessType === "value" && originalDescriptor && !originalDescriptor.value && originalDescriptor.get && (accessType = "get", ssr = !0, mock = originalDescriptor.get());
+  let original;
+  originalDescriptor ? original = originalDescriptor[accessType] : accessType !== "value" ? original = () => obj[accessName] : original = obj[accessName], original && isSpyFunction(original) && (original = original[SYMBOL_STATE].getOriginal());
+  let reassign = (cb) => {
+    let { value, ...desc } = originalDescriptor || {
       configurable: !0,
       writable: !0
     };
-    r !== "value" && delete h.writable, h[r] = v, f(e, s, h);
-  }, b = () => a ? f(e, s, a) : g(o);
-  n || (n = o);
-  let i = m(n);
-  r === "value" && O(i, o);
-  let I = i[u];
-  return l(I, "restore", b), l(I, "getOriginal", () => R ? o() : o), l(I, "willCall", (v) => (I.impl = v, i)), g(
-    R ? () => (O(i, n), i) : i
-  ), x.add(i), i;
+    accessType !== "value" && delete desc.writable, desc[accessType] = cb, define(obj, accessName, desc);
+  }, restore = () => {
+    originalDescriptorObject !== obj ? Reflect.deleteProperty(obj, accessName) : originalDescriptor && !original ? define(obj, accessName, originalDescriptor) : reassign(original);
+  };
+  mock || (mock = original);
+  let spy2 = wrap(createInternalSpy(mock), mock);
+  accessType === "value" && setPototype(spy2, original);
+  let state = spy2[SYMBOL_STATE];
+  return defineValue(state, "restore", restore), defineValue(state, "getOriginal", () => ssr ? original() : original), defineValue(state, "willCall", (newCb) => (state.impl = newCb, spy2)), reassign(
+    ssr ? () => (setPototype(spy2, mock), spy2) : spy2
+  ), spies.add(spy2), spy2;
 }
-function U(e, t, n) {
-  let s = C(e, t, n);
-  return A(s), ["restore", "getOriginal", "willCall"].forEach((r) => {
-    l(s, r, s[u][r]);
-  }), s;
+var ignoreProperties = /* @__PURE__ */ new Set([
+  "length",
+  "name",
+  "prototype"
+]);
+function getAllProperties(original) {
+  let properties = /* @__PURE__ */ new Set(), descriptors2 = {};
+  for (; original && original !== Object.prototype && original !== Function.prototype; ) {
+    let ownProperties = [
+      ...Object.getOwnPropertyNames(original),
+      ...Object.getOwnPropertySymbols(original)
+    ];
+    for (let prop of ownProperties)
+      descriptors2[prop] || ignoreProperties.has(prop) || (properties.add(prop), descriptors2[prop] = Object.getOwnPropertyDescriptor(original, prop));
+    original = Object.getPrototypeOf(original);
+  }
+  return {
+    properties,
+    descriptors: descriptors2
+  };
+}
+function wrap(mock, original) {
+  if (!original || // the original is already a spy, so it has all the properties
+  SYMBOL_STATE in original)
+    return mock;
+  let { properties, descriptors: descriptors2 } = getAllProperties(original);
+  for (let key of properties) {
+    let descriptor = descriptors2[key];
+    getDescriptor(mock, key) || define(mock, key, descriptor);
+  }
+  return mock;
+}
+function spyOn(obj, methodName, mock) {
+  let spy2 = internalSpyOn(obj, methodName, mock);
+  return populateSpy(spy2), ["restore", "getOriginal", "willCall"].forEach((method) => {
+    defineValue(spy2, method, spy2[SYMBOL_STATE][method]);
+  }), spy2;
+}
+function isSpyFunction(obj) {
+  return isMockFunction(obj) && "getOriginal" in obj[SYMBOL_STATE];
 }
 
 // src/restoreAll.ts
-function Y() {
-  for (let e of x)
-    e.restore();
-  x.clear();
+function restoreAll() {
+  for (let fn of spies)
+    fn.restore();
+  spies.clear();
 }
 export {
-  m as createInternalSpy,
-  T as getInternalState,
-  C as internalSpyOn,
-  Y as restoreAll,
-  x as spies,
-  L as spy,
-  U as spyOn
+  createInternalSpy,
+  getInternalState,
+  internalSpyOn,
+  restoreAll,
+  spies,
+  spy,
+  spyOn
 };

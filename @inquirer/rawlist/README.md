@@ -4,6 +4,16 @@ Simple interactive command line prompt to display a raw list of choices (single 
 
 ![rawlist prompt](https://cdn.rawgit.com/SBoudrias/Inquirer.js/28ae8337ba51d93e359ef4f7ee24e79b69898962/assets/screenshots/rawlist.svg)
 
+# Special Thanks
+
+<div align="center" markdown="1">
+
+[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
+
+### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
+
+</div>
+
 # Installation
 
 <table>
@@ -67,11 +77,12 @@ const answer = await rawlist({
 
 ## Options
 
-| Property | Type                    | Required | Description                    |
-| -------- | ----------------------- | -------- | ------------------------------ |
-| message  | `string`                | yes      | The question to ask            |
-| choices  | `Choice[]`              | yes      | List of the available choices. |
-| theme    | [See Theming](#Theming) | no       | Customize look of the prompt.  |
+| Property | Type                    | Required | Description                                                                                                                       |
+| -------- | ----------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| message  | `string`                | yes      | The question to ask                                                                                                               |
+| choices  | `Choice[]`              | yes      | List of the available choices.                                                                                                    |
+| loop     | `boolean`               | no       | Defaults to `true`. When set to `false`, the cursor will be constrained to the top and bottom of the choice list without looping. |
+| theme    | [See Theming](#Theming) | no       | Customize look of the prompt.                                                                                                     |
 
 `Separator` objects can be used in the `choices` array to render non-selectable lines in the choice list. By default it'll render a line, but you can provide the text as argument (`new Separator('-- Dependencies --')`). This option is often used to add labels to groups within long list of options.
 

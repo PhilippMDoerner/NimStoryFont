@@ -1,13 +1,7 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
 var wait = require('../utils/misc/wait.js');
-require('../options.js');
 var parseKeyDef = require('./parseKeyDef.js');
 
 async function keyboard(text) {

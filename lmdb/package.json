@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -93,7 +93,7 @@
     "fs-extra": "^9.0.1",
     "mocha": "^10.1.0",
     "prebuildify-ci": "^1.0.5",
-    "prebuildify-platform-packages": "5.0.4",
+    "prebuildify-platform-packages": "5.0.5",
     "prettier": "^3.0.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.61.1",
@@ -111,11 +111,12 @@
     "singleQuote": true
   },
   "optionalDependencies": {
-    "@lmdb/lmdb-darwin-arm64": "3.2.2",
-    "@lmdb/lmdb-darwin-x64": "3.2.2",
-    "@lmdb/lmdb-linux-arm": "3.2.2",
-    "@lmdb/lmdb-linux-arm64": "3.2.2",
-    "@lmdb/lmdb-linux-x64": "3.2.2",
-    "@lmdb/lmdb-win32-x64": "3.2.2"
+    "@lmdb/lmdb-darwin-arm64": "3.3.0",
+    "@lmdb/lmdb-darwin-x64": "3.3.0",
+    "@lmdb/lmdb-linux-arm": "3.3.0",
+    "@lmdb/lmdb-linux-arm64": "3.3.0",
+    "@lmdb/lmdb-linux-x64": "3.3.0",
+    "@lmdb/lmdb-win32-arm64": "3.3.0",
+    "@lmdb/lmdb-win32-x64": "3.3.0"
   }
 }

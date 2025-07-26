@@ -12,6 +12,7 @@ export declare class StreamingReader implements IReader, IReaderResettable {
     get view(): DataView;
     get x(): number;
     set x(x: number);
+    peek(): number;
     peak(): number;
     skip(length: number): void;
     buf(size: number): Uint8Array;

@@ -11,13 +11,13 @@ const { LogType } = require("./Logger");
 /** @typedef {import("../../declarations/WebpackOptions").FilterTypes} FilterTypes */
 /** @typedef {import("./Logger").LogTypeEnum} LogTypeEnum */
 
-/** @typedef {function(string): boolean} FilterFunction */
-/** @typedef {function(string, LogTypeEnum, EXPECTED_ANY[]=): void} LoggingFunction */
+/** @typedef {(item: string) => boolean} FilterFunction */
+/** @typedef {(value: string, type: LogTypeEnum, args?: EXPECTED_ANY[]) => void} LoggingFunction */
 
 /**
  * @typedef {object} LoggerConsole
- * @property {function(): void} clear
- * @property {function(): void} trace
+ * @property {() => void} clear
+ * @property {() => void} trace
  * @property {(...args: EXPECTED_ANY[]) => void} info
  * @property {(...args: EXPECTED_ANY[]) => void} log
  * @property {(...args: EXPECTED_ANY[]) => void} warn
@@ -89,7 +89,6 @@ module.exports = ({ level = "info", debug = false, console }) => {
 						.concat(debug)
 						.map(filterToFunction)
 		);
-	/** @type {number} */
 	const loglevel = LogLevel[`${level}`] || 0;
 
 	/**

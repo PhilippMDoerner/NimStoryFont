@@ -1,4 +1,3 @@
-/// <reference types="node" />
 /**
  * Only a subset of the secure hash standard algorithms are supported.
  * See <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf> for more
@@ -29,7 +28,8 @@ export declare function hashAlgorithmToJSON(object: HashAlgorithm): string;
  * opinionated options instead of allowing every possible permutation.
  *
  * Any changes to this enum MUST be reflected in the algorithm registry.
- * See: docs/algorithm-registry.md
+ *
+ * See: <https://github.com/sigstore/architecture-docs/blob/main/algorithm-registry.md>
  *
  * To avoid the possibility of contradicting formats such as PKCS1 with
  * ED25519 the valid permutations are listed as a linear set instead of a
@@ -76,10 +76,20 @@ export declare enum PublicKeyDetails {
     PKIX_ED25519 = 7,
     PKIX_ED25519_PH = 8,
     /**
+     * PKIX_ECDSA_P384_SHA_256 - These algorithms are deprecated and should not be used, but they
+     * were/are being used by most Sigstore clients implementations.
+     *
+     * @deprecated
+     */
+    PKIX_ECDSA_P384_SHA_256 = 19,
+    /** @deprecated */
+    PKIX_ECDSA_P521_SHA_256 = 20,
+    /**
      * LMS_SHA256 - LMS and LM-OTS
      *
-     * These keys and signatures may be used by private Sigstore
-     * deployments, but are not currently supported by the public
+     * These algorithms are deprecated and should not be used.
+     * Keys and signatures MAY be used by private Sigstore
+     * deployments, but will not be supported by the public
      * good instance.
      *
      * USER WARNING: LMS and LM-OTS are both stateful signature schemes.
@@ -89,9 +99,29 @@ export declare enum PublicKeyDetails {
      * MUST NOT be used for more than one signature per LM-OTS key.
      * If you cannot maintain these invariants, you MUST NOT use these
      * schemes.
+     *
+     * @deprecated
      */
     LMS_SHA256 = 14,
-    LMOTS_SHA256 = 15
+    /** @deprecated */
+    LMOTS_SHA256 = 15,
+    /**
+     * ML_DSA_65 - ML-DSA
+     *
+     * These ML_DSA_65 and ML-DSA_87 algorithms are the pure variants that
+     * take data to sign rather than the prehash variants (HashML-DSA), which
+     * take digests.  While considered quantum-resistant, their usage
+     * involves tradeoffs in that signatures and keys are much larger, and
+     * this makes deployments more costly.
+     *
+     * USER WARNING: ML_DSA_65 and ML_DSA_87 are experimental algorithms.
+     * In the future they MAY be used by private Sigstore deployments, but
+     * they are not yet fully functional.  This warning will be removed when
+     * these algorithms are widely supported by Sigstore clients and servers,
+     * but care should still be taken for production environments.
+     */
+    ML_DSA_65 = 21,
+    ML_DSA_87 = 22
 }
 export declare function publicKeyDetailsFromJSON(object: any): PublicKeyDetails;
 export declare function publicKeyDetailsToJSON(object: PublicKeyDetails): string;
@@ -201,13 +231,20 @@ export interface X509Certificate {
 }
 export interface SubjectAlternativeName {
     type: SubjectAlternativeNameType;
-    identity?: {
+    identity?: //
+    /**
+     * A regular expression describing the expected value for
+     * the SAN.
+     */
+    {
         $case: "regexp";
         regexp: string;
-    } | {
+    } | //
+    /** The exact value to match against. */
+    {
         $case: "value";
         value: string;
-    };
+    } | undefined;
 }
 /**
  * A collection of X.509 certificates.
@@ -236,55 +273,21 @@ export interface TimeRange {
     start: Date | undefined;
     end?: Date | undefined;
 }
-export declare const HashOutput: {
-    fromJSON(object: any): HashOutput;
-    toJSON(message: HashOutput): unknown;
-};
-export declare const MessageSignature: {
-    fromJSON(object: any): MessageSignature;
-    toJSON(message: MessageSignature): unknown;
-};
-export declare const LogId: {
-    fromJSON(object: any): LogId;
-    toJSON(message: LogId): unknown;
-};
-export declare const RFC3161SignedTimestamp: {
-    fromJSON(object: any): RFC3161SignedTimestamp;
-    toJSON(message: RFC3161SignedTimestamp): unknown;
-};
-export declare const PublicKey: {
-    fromJSON(object: any): PublicKey;
-    toJSON(message: PublicKey): unknown;
-};
-export declare const PublicKeyIdentifier: {
-    fromJSON(object: any): PublicKeyIdentifier;
-    toJSON(message: PublicKeyIdentifier): unknown;
-};
-export declare const ObjectIdentifier: {
-    fromJSON(object: any): ObjectIdentifier;
-    toJSON(message: ObjectIdentifier): unknown;
-};
-export declare const ObjectIdentifierValuePair: {
-    fromJSON(object: any): ObjectIdentifierValuePair;
-    toJSON(message: ObjectIdentifierValuePair): unknown;
-};
-export declare const DistinguishedName: {
-    fromJSON(object: any): DistinguishedName;
-    toJSON(message: DistinguishedName): unknown;
-};
-export declare const X509Certificate: {
-    fromJSON(object: any): X509Certificate;
-    toJSON(message: X509Certificate): unknown;
-};
-export declare const SubjectAlternativeName: {
-    fromJSON(object: any): SubjectAlternativeName;
-    toJSON(message: SubjectAlternativeName): unknown;
-};
-export declare const X509CertificateChain: {
-    fromJSON(object: any): X509CertificateChain;
-    toJSON(message: X509CertificateChain): unknown;
-};
-export declare const TimeRange: {
-    fromJSON(object: any): TimeRange;
-    toJSON(message: TimeRange): unknown;
-};
+export declare const HashOutput: MessageFns<HashOutput>;
+export declare const MessageSignature: MessageFns<MessageSignature>;
+export declare const LogId: MessageFns<LogId>;
+export declare const RFC3161SignedTimestamp: MessageFns<RFC3161SignedTimestamp>;
+export declare const PublicKey: MessageFns<PublicKey>;
+export declare const PublicKeyIdentifier: MessageFns<PublicKeyIdentifier>;
+export declare const ObjectIdentifier: MessageFns<ObjectIdentifier>;
+export declare const ObjectIdentifierValuePair: MessageFns<ObjectIdentifierValuePair>;
+export declare const DistinguishedName: MessageFns<DistinguishedName>;
+export declare const X509Certificate: MessageFns<X509Certificate>;
+export declare const SubjectAlternativeName: MessageFns<SubjectAlternativeName>;
+export declare const X509CertificateChain: MessageFns<X509CertificateChain>;
+export declare const TimeRange: MessageFns<TimeRange>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

@@ -13,15 +13,15 @@ import {
   XmbTranslationSerializer,
   checkDuplicateMessages,
   parseFormatOptions
-} from "../../chunk-E4HORTOJ.js";
-import "../../chunk-7G4W4ZDI.js";
+} from "../../chunk-TONUHCMD.js";
+import "../../chunk-EZ3BW4XG.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.js
 import { ConsoleLogger, LogLevel, NodeJSFileSystem, setFileSystem } from "@angular/compiler-cli/private/localize";
-import glob from "fast-glob";
+import { globSync } from "tinyglobby";
 import yargs from "yargs";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/index.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/index.js
 function extractTranslations({ rootPath: rootPath2, sourceFilePaths: sourceFilePaths2, sourceLocale, format: format2, outputPath: output, logger: logger2, useSourceMaps, useLegacyIds, duplicateMessageHandling: duplicateMessageHandling2, formatOptions: formatOptions2 = {}, fileSystem: fs }) {
   const basePath = fs.resolve(rootPath2);
   const extractor = new MessageExtractor(fs, logger2, { basePath, useSourceMaps });
@@ -64,7 +64,7 @@ function getSerializer(format2, sourceLocale, rootPath2, useLegacyIds, formatOpt
   throw new Error(`No translation serializer can handle the provided format: ${format2}`);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.mjs
+// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.js
 process.title = "Angular Localization Message Extractor (localize-extract)";
 var args = process.argv.slice(2);
 var options = yargs(args).option("l", {
@@ -129,7 +129,7 @@ var options = yargs(args).option("l", {
 var fileSystem = new NodeJSFileSystem();
 setFileSystem(fileSystem);
 var rootPath = options.r;
-var sourceFilePaths = glob.sync(options.s, { cwd: rootPath });
+var sourceFilePaths = globSync(options.s, { cwd: rootPath });
 var logLevel = options.loglevel;
 var logger = new ConsoleLogger(logLevel ? LogLevel[logLevel] : LogLevel.warn);
 var duplicateMessageHandling = options.d;

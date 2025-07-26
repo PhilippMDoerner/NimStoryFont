@@ -1,10 +1,10 @@
 'use strict';
 
-var bracketDict;
-(function(bracketDict) {
+var bracketDict = /*#__PURE__*/ function(bracketDict) {
     bracketDict["{"] = "}";
     bracketDict["["] = "]";
-})(bracketDict || (bracketDict = {}));
+    return bracketDict;
+}(bracketDict || {});
 /**
  * Read the next key definition from user input
  *
@@ -44,11 +44,11 @@ function readTag(text, pos, startBracket, context) {
     pos += releasePreviousModifier.length;
     const escapedDescriptor = startBracket === '{' && text[pos] === '\\';
     pos += Number(escapedDescriptor);
-    const descriptor = escapedDescriptor ? text[pos] : (_text_slice_match = text.slice(pos).match(startBracket === '{' ? /^\w+|^[^}>/]/ : /^\w+/)) === null || _text_slice_match === void 0 ? void 0 : _text_slice_match[0];
+    const descriptor = escapedDescriptor ? text[pos] : (_text_slice_match = text.slice(pos).match(startBracket === '{' ? /^\w+|^[^}>/]/ : /^\w+/)) === null || _text_slice_match === undefined ? undefined : _text_slice_match[0];
     assertDescriptor(descriptor, text, pos, context);
     pos += descriptor.length;
     var _text_slice_match_;
-    const repeatModifier = (_text_slice_match_ = (_text_slice_match1 = text.slice(pos).match(/^>\d+/)) === null || _text_slice_match1 === void 0 ? void 0 : _text_slice_match1[0]) !== null && _text_slice_match_ !== void 0 ? _text_slice_match_ : '';
+    const repeatModifier = (_text_slice_match_ = (_text_slice_match1 = text.slice(pos).match(/^>\d+/)) === null || _text_slice_match1 === undefined ? undefined : _text_slice_match1[0]) !== null && _text_slice_match_ !== undefined ? _text_slice_match_ : '';
     pos += repeatModifier.length;
     const releaseSelfModifier = text[pos] === '/' || !repeatModifier && text[pos] === '>' ? text[pos] : '';
     pos += releaseSelfModifier.length;
@@ -84,7 +84,7 @@ function hasReleaseSelf(releaseSelfModifier, repeatModifier) {
     }
 }
 function getErrorMessage(expected, found, text, context) {
-    return `Expected ${expected} but found "${found !== null && found !== void 0 ? found : ''}" in "${text}"
+    return `Expected ${expected} but found "${found !== null && found !== undefined ? found : ''}" in "${text}"
     See ${context === 'pointer' ? `https://testing-library.com/docs/user-event/pointer#pressing-a-button-or-touching-the-screen` : `https://testing-library.com/docs/user-event/keyboard`}
     for more information about how userEvent parses your input.`;
 }

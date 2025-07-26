@@ -66,8 +66,9 @@ class ArchitectBaseCommandModule extends command_module_1.CommandModule {
             (0, error_1.assertIsError)(e);
             return this.onMissingTarget(e.message);
         }
+        const isAngularBuild = builderName.startsWith('@angular/build:');
         const { logger } = this.context;
-        const run = await this.getArchitect().scheduleTarget(target, options, {
+        const run = await this.getArchitect(isAngularBuild).scheduleTarget(target, options, {
             logger,
         });
         const analytics = (0, analytics_1.isPackageNameSafeForAnalytics)(builderName)
@@ -133,12 +134,17 @@ class ArchitectBaseCommandModule extends command_module_1.CommandModule {
         return (this._architectHost = new node_1.WorkspaceNodeModulesArchitectHost(workspace, workspace.basePath));
     }
     _architect;
-    getArchitect() {
+    getArchitect(skipUndefinedArrayTransform) {
         if (this._architect) {
             return this._architect;
         }
         const registry = new core_1.json.schema.CoreSchemaRegistry();
-        registry.addPostTransform(core_1.json.schema.transforms.addUndefinedDefaults);
+        if (skipUndefinedArrayTransform) {
+            registry.addPostTransform(core_1.json.schema.transforms.addUndefinedObjectDefaults);
+        }
+        else {
+            registry.addPostTransform(core_1.json.schema.transforms.addUndefinedDefaults);
+        }
         registry.useXDeprecatedProvider((msg) => this.context.logger.warn(msg));
         const architectHost = this.getArchitectHost();
         return (this._architect = new architect_1.Architect(architectHost, registry));

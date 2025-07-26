@@ -4,7 +4,7 @@ var getWindow = require('./getWindow.js');
 
 function isVisible(element) {
     const window = getWindow.getWindow(element);
-    for(let el = element; el === null || el === void 0 ? void 0 : el.ownerDocument; el = el.parentElement){
+    for(let el = element; el === null || el === undefined ? undefined : el.ownerDocument; el = el.parentElement){
         const { display, visibility } = window.getComputedStyle(el);
         if (display === 'none') {
             return false;

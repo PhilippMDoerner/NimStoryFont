@@ -370,17 +370,20 @@ function _usageMessage(options, infoMap, logger) {
         .filter(({ info, version, target }) => target?.['ng-update'] && semver.compare(info.installed.version, version) < 0)
         .map(({ name, info, version, tag, target }) => {
         // Look for packageGroup.
-        const packageGroup = target['ng-update']?.['packageGroup'];
+        const ngUpdate = target['ng-update'];
+        const packageGroup = ngUpdate?.['packageGroup'];
         if (packageGroup) {
             const packageGroupNames = Array.isArray(packageGroup)
                 ? packageGroup
                 : Object.keys(packageGroup);
-            const packageGroupName = target['ng-update']?.['packageGroupName'] || packageGroupNames[0];
+            const packageGroupName = ngUpdate?.['packageGroupName'] || packageGroupNames.find((n) => infoMap.has(n));
             if (packageGroupName) {
                 if (packageGroups.has(name)) {
                     return null;
                 }
-                packageGroupNames.forEach((x) => packageGroups.set(x, packageGroupName));
+                for (const groupName of packageGroupNames) {
+                    packageGroups.set(groupName, packageGroupName);
+                }
                 packageGroups.set(packageGroupName, packageGroupName);
                 name = packageGroupName;
             }

@@ -30,8 +30,8 @@ class DataTransferItemStub {
         throw new Error('not implemented');
     }
     constructor(dataOrFile, type){
-        _define_property(this, "kind", void 0);
-        _define_property(this, "type", void 0);
+        _define_property(this, "kind", undefined);
+        _define_property(this, "type", undefined);
         _define_property(this, "file", null);
         _define_property(this, "data", undefined);
         if (typeof dataOrFile === 'string') {
@@ -69,9 +69,9 @@ function createDataTransferStub(window) {
     return new class DataTransferStub {
         getData(format) {
             var _this_items_find;
-            const match = (_this_items_find = this.items.find(getTypeMatcher(format, true))) !== null && _this_items_find !== void 0 ? _this_items_find : this.items.find(getTypeMatcher(format, false));
+            const match = (_this_items_find = this.items.find(getTypeMatcher(format, true))) !== null && _this_items_find !== undefined ? _this_items_find : this.items.find(getTypeMatcher(format, false));
             let text = '';
-            match === null || match === void 0 ? void 0 : match.getAsString((t)=>{
+            match === null || match === undefined ? undefined : match.getAsString((t)=>{
                 text = t;
             });
             return text;
@@ -121,16 +121,12 @@ function createDataTransfer(window, files = []) {
     });
     return dt;
 }
-function getBlobFromDataTransferItem(window, item) {
+async function getBlobFromDataTransferItem(window, item) {
     if (item.kind === 'file') {
         return item.getAsFile();
     }
-    let data = '';
-    item.getAsString((s)=>{
-        data = s;
-    });
     return new window.Blob([
-        data
+        await new Promise((r)=>item.getAsString(r))
     ], {
         type: item.type
     });

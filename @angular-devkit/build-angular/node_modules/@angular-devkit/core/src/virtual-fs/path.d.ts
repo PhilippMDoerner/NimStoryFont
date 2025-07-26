@@ -30,12 +30,10 @@ export type PathFragment = Path & {
 };
 /**
  * The Separator for normalized path.
- * @type {Path}
  */
 export declare const NormalizedSep: Path;
 /**
  * The root of a normalized path.
- * @type {Path}
  */
 export declare const NormalizedRoot: Path;
 /**

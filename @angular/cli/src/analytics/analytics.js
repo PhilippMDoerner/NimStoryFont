@@ -14,7 +14,7 @@ exports.promptAnalytics = promptAnalytics;
 exports.getAnalyticsUserId = getAnalyticsUserId;
 exports.getAnalyticsInfoString = getAnalyticsInfoString;
 const core_1 = require("@angular-devkit/core");
-const crypto_1 = require("crypto");
+const node_crypto_1 = require("node:crypto");
 const color_1 = require("../utilities/color");
 const config_1 = require("../utilities/config");
 const environment_options_1 = require("../utilities/environment-options");
@@ -55,7 +55,7 @@ async function setAnalyticsConfig(global, value) {
     if (!workspace || !core_1.json.isJsonObject(cli)) {
         throw new Error(`Invalid config found at ${workspace.filePath}. CLI should be an object.`);
     }
-    cli.analytics = value === true ? (0, crypto_1.randomUUID)() : value;
+    cli.analytics = value === true ? (0, node_crypto_1.randomUUID)() : value;
     await workspace.save();
 }
 /**

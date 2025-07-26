@@ -9,6 +9,7 @@ type SelectTheme = {
         description: (text: string) => string;
     };
     helpMode: 'always' | 'never' | 'auto';
+    indexMode: 'hidden' | 'number';
 };
 type Choice<Value> = {
     value: Value;
@@ -24,6 +25,10 @@ declare const _default: <Value>(config: {
     pageSize?: number | undefined;
     loop?: boolean | undefined;
     default?: unknown;
+    instructions?: {
+        navigation: string;
+        pager: string;
+    } | undefined;
     theme?: PartialDeep<Theme<SelectTheme>> | undefined;
 }, context?: import("@inquirer/type").Context) => Promise<Value> & {
     cancel: () => void;

@@ -32,7 +32,7 @@ defineType("AssignmentExpression", {
           validator(node, key, val);
         };
       }(), {
-        type: "string"
+        oneOf: _index.ASSIGNMENT_OPERATORS
       })
     },
     left: {
@@ -119,7 +119,7 @@ defineType("BreakStatement", {
   aliases: ["Statement", "Terminatorless", "CompletionStatement"]
 });
 defineType("CallExpression", {
-  visitor: ["callee", "arguments", "typeParameters", "typeArguments"],
+  visitor: ["callee", "typeParameters", "typeArguments", "arguments"],
   builder: ["callee", "arguments"],
   aliases: ["Expression"],
   fields: Object.assign({
@@ -131,18 +131,13 @@ defineType("CallExpression", {
       validate: (0, _utils.assertNodeType)("TypeParameterInstantiation"),
       optional: true
     }
-  }, {
+  }, process.env.BABEL_TYPES_8_BREAKING ? {} : {
     optional: {
       validate: (0, _utils.assertValueType)("boolean"),
       optional: true
     },
     typeParameters: {
       validate: (0, _utils.assertNodeType)("TSTypeParameterInstantiation"),
-      optional: true
-    }
-  }, process.env.BABEL_TYPES_8_BREAKING ? {} : {
-    optional: {
-      validate: (0, _utils.assertValueType)("boolean"),
       optional: true
     }
   })
@@ -273,7 +268,7 @@ defineType("ForStatement", {
   }
 });
 const functionCommon = () => ({
-  params: (0, _utils.validateArrayOfType)("Identifier", "Pattern", "RestElement"),
+  params: (0, _utils.validateArrayOfType)("FunctionParameter"),
   generator: {
     default: false
   },
@@ -361,7 +356,7 @@ exports.patternLikeCommon = patternLikeCommon;
 defineType("Identifier", {
   builder: ["name"],
   visitor: ["typeAnnotation", "decorators"],
-  aliases: ["Expression", "PatternLike", "LVal", "TSEntityName"],
+  aliases: ["Expression", "FunctionParameter", "PatternLike", "LVal", "TSEntityName"],
   fields: Object.assign({}, patternLikeCommon(), {
     name: {
       validate: process.env.BABEL_TYPES_8_BREAKING ? (0, _utils.chain)((0, _utils.assertValueType)("string"), Object.assign(function (node, key, val) {
@@ -508,7 +503,7 @@ defineType("LogicalExpression", {
 defineType("MemberExpression", {
   builder: ["object", "property", "computed", ...(!process.env.BABEL_TYPES_8_BREAKING ? ["optional"] : [])],
   visitor: ["object", "property"],
-  aliases: ["Expression", "LVal"],
+  aliases: ["Expression", "LVal", "PatternLike"],
   fields: Object.assign({
     object: {
       validate: (0, _utils.assertNodeType)("Expression", "Super")
@@ -641,7 +636,7 @@ defineType("ObjectProperty", {
       optional: true
     }
   },
-  visitor: ["key", "value", "decorators"],
+  visitor: ["decorators", "key", "value"],
   aliases: ["UserWhitespacable", "Property", "ObjectMember"],
   validate: !process.env.BABEL_TYPES_8_BREAKING ? undefined : function () {
     const pattern = (0, _utils.assertNodeType)("Identifier", "Pattern", "TSAsExpression", "TSSatisfiesExpression", "TSNonNullExpression", "TSTypeAssertion");
@@ -655,11 +650,11 @@ defineType("ObjectProperty", {
 defineType("RestElement", {
   visitor: ["argument", "typeAnnotation"],
   builder: ["argument"],
-  aliases: ["LVal", "PatternLike"],
+  aliases: ["FunctionParameter", "PatternLike", "LVal"],
   deprecatedAlias: "RestProperty",
   fields: Object.assign({}, patternLikeCommon(), {
     argument: {
-      validate: !process.env.BABEL_TYPES_8_BREAKING ? (0, _utils.assertNodeType)("LVal") : (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern", "MemberExpression", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression")
+      validate: !process.env.BABEL_TYPES_8_BREAKING ? (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern", "MemberExpression", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression", "RestElement", "AssignmentPattern") : (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern", "MemberExpression", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression")
     }
   }),
   validate: process.env.BABEL_TYPES_8_BREAKING ? function (parent, key) {
@@ -801,7 +796,7 @@ defineType("VariableDeclaration", {
   validate: process.env.BABEL_TYPES_8_BREAKING ? (() => {
     const withoutInit = (0, _utils.assertNodeType)("Identifier", "Placeholder");
     const constOrLetOrVar = (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern", "Placeholder");
-    const usingOrAwaitUsing = withoutInit;
+    const usingOrAwaitUsing = (0, _utils.assertNodeType)("Identifier", "VoidPattern", "Placeholder");
     return function (parent, key, node) {
       const {
         kind,
@@ -833,7 +828,7 @@ defineType("VariableDeclarator", {
   visitor: ["id", "init"],
   fields: {
     id: {
-      validate: !process.env.BABEL_TYPES_8_BREAKING ? (0, _utils.assertNodeType)("LVal") : (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern")
+      validate: !process.env.BABEL_TYPES_8_BREAKING ? (0, _utils.assertNodeType)("LVal", "VoidPattern") : (0, _utils.assertNodeType)("Identifier", "ArrayPattern", "ObjectPattern", "VoidPattern")
     },
     definite: {
       optional: true,
@@ -872,7 +867,7 @@ defineType("WithStatement", {
 defineType("AssignmentPattern", {
   visitor: ["left", "right", "decorators"],
   builder: ["left", "right"],
-  aliases: ["Pattern", "PatternLike", "LVal"],
+  aliases: ["FunctionParameter", "Pattern", "PatternLike", "LVal"],
   fields: Object.assign({}, patternLikeCommon(), {
     left: {
       validate: (0, _utils.assertNodeType)("Identifier", "ObjectPattern", "ArrayPattern", "MemberExpression", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression")
@@ -889,10 +884,10 @@ defineType("AssignmentPattern", {
 defineType("ArrayPattern", {
   visitor: ["elements", "typeAnnotation"],
   builder: ["elements"],
-  aliases: ["Pattern", "PatternLike", "LVal"],
+  aliases: ["FunctionParameter", "Pattern", "PatternLike", "LVal"],
   fields: Object.assign({}, patternLikeCommon(), {
     elements: {
-      validate: (0, _utils.chain)((0, _utils.assertValueType)("array"), (0, _utils.assertEach)((0, _utils.assertNodeOrValueType)("null", "PatternLike", "LVal")))
+      validate: (0, _utils.chain)((0, _utils.assertValueType)("array"), (0, _utils.assertEach)((0, _utils.assertNodeOrValueType)("null", "PatternLike")))
     }
   })
 });
@@ -1042,7 +1037,7 @@ defineType("ExportDefaultDeclaration", {
 });
 defineType("ExportNamedDeclaration", {
   builder: ["declaration", "specifiers", "source"],
-  visitor: process.env ? ["declaration", "specifiers", "source", "attributes"] : ["declaration", "specifiers", "source", "attributes", "assertions"],
+  visitor: ["declaration", "specifiers", "source", "attributes", "assertions"],
   aliases: ["Statement", "Declaration", "ImportOrExportDeclaration", "ExportDeclaration"],
   fields: Object.assign({
     declaration: {
@@ -1272,7 +1267,7 @@ const classMethodOrPropertyCommon = () => ({
 });
 exports.classMethodOrPropertyCommon = classMethodOrPropertyCommon;
 const classMethodOrDeclareMethodCommon = () => Object.assign({}, functionCommon(), classMethodOrPropertyCommon(), {
-  params: (0, _utils.validateArrayOfType)("Identifier", "Pattern", "RestElement", "TSParameterProperty"),
+  params: (0, _utils.validateArrayOfType)("FunctionParameter", "TSParameterProperty"),
   kind: {
     validate: (0, _utils.assertOneOf)("get", "set", "method", "constructor"),
     default: "method"
@@ -1298,9 +1293,9 @@ defineType("ClassMethod", {
   })
 });
 defineType("ObjectPattern", {
-  visitor: ["properties", "typeAnnotation", "decorators"],
+  visitor: ["decorators", "properties", "typeAnnotation"],
   builder: ["properties"],
-  aliases: ["Pattern", "PatternLike", "LVal"],
+  aliases: ["FunctionParameter", "Pattern", "PatternLike", "LVal"],
   fields: Object.assign({}, patternLikeCommon(), {
     properties: (0, _utils.validateArrayOfType)("RestElement", "ObjectProperty")
   })
@@ -1472,7 +1467,7 @@ defineType("OptionalMemberExpression", {
   }
 });
 defineType("OptionalCallExpression", {
-  visitor: ["callee", "arguments", "typeParameters", "typeArguments"],
+  visitor: ["callee", "typeParameters", "typeArguments", "arguments"],
   builder: ["callee", "arguments", "optional"],
   aliases: ["Expression"],
   fields: Object.assign({

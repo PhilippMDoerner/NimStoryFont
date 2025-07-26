@@ -15,7 +15,7 @@ import {
   shareReplay,
   take,
 } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { log } from 'src/utils/logging';
 import { ToastConfig } from '../_models/toast';
 

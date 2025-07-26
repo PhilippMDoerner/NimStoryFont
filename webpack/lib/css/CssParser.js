@@ -283,13 +283,17 @@ const eatUntilSemi = walkCssTokens.eatUntil(";");
 const eatUntilLeftCurly = walkCssTokens.eatUntil("{");
 const eatSemi = walkCssTokens.eatUntil(";");
 
+/**
+ * @typedef {object} CssParserOptions
+ * @property {boolean=} importOption need handle `@import`
+ * @property {boolean=} url need handle URLs
+ * @property {("pure" | "global" | "local" | "auto")=} defaultMode default mode
+ * @property {boolean=} namedExports is named exports
+ */
+
 class CssParser extends Parser {
 	/**
-	 * @param {object} options options
-	 * @param {boolean=} options.importOption need handle `@import`
-	 * @param {boolean=} options.url need handle URLs
-	 * @param {("pure" | "global" | "local" | "auto")=} options.defaultMode default mode
-	 * @param {boolean=} options.namedExports is named exports
+	 * @param {CssParserOptions=} options options
 	 */
 	constructor({
 		defaultMode = "pure",
@@ -357,6 +361,9 @@ class CssParser extends Parser {
 
 		const isModules = mode === "global" || mode === "local";
 
+		/** @type {BuildMeta} */
+		(module.buildMeta).isCSSModule = isModules;
+
 		const locConverter = new LocConverter(source);
 
 		/** @type {number} */
@@ -379,7 +386,8 @@ class CssParser extends Parser {
 		let lastIdentifier;
 		/** @type {Set<string>} */
 		const declaredCssVariables = new Set();
-		/** @type {Map<string, { path?: string, value: string }>} */
+		/** @typedef {{ path?: string, value: string }} IcssDefinition */
+		/** @type {Map<string, IcssDefinition>} */
 		const icssDefinitions = new Map();
 
 		/**
@@ -447,6 +455,7 @@ class CssParser extends Parser {
 		 */
 		const parseImportOrExport = (type, input, pos) => {
 			pos = walkCssTokens.eatWhitespaceAndComments(input, pos);
+			/** @type {string | undefined} */
 			let importPath;
 			if (type === 0) {
 				let cc = input.charCodeAt(pos);
@@ -517,7 +526,9 @@ class CssParser extends Parser {
 			/** @type {undefined | 0 | 1 | 2} */
 			let scope;
 
-			/** @type {[number, number] | undefined} */
+			/** @typedef {[number, number]} Name */
+
+			/** @type {Name | undefined} */
 			let name;
 			/** @type {number | undefined} */
 			let value;
@@ -537,10 +548,11 @@ class CssParser extends Parser {
 					balanced--;
 
 					if (scope === 2) {
+						const [nameStart, nameEnd] = /** @type {Name} */ (name);
 						createDep(
-							input.slice(name[0], name[1]),
+							input.slice(nameStart, nameEnd),
 							input.slice(value, end - 1).trim(),
-							name[1],
+							nameEnd,
 							end - 1
 						);
 						scope = 0;
@@ -571,10 +583,11 @@ class CssParser extends Parser {
 				},
 				semicolon: (input, _start, end) => {
 					if (scope === 2) {
+						const [nameStart, nameEnd] = /** @type {Name} */ (name);
 						createDep(
-							input.slice(name[0], name[1]),
+							input.slice(nameStart, nameEnd),
 							input.slice(value, end - 1),
-							name[1],
+							nameEnd,
 							end - 1
 						);
 						scope = 0;
@@ -986,7 +999,9 @@ class CssParser extends Parser {
 									}
 
 									if (icssDefinitions.has(value)) {
-										const def = icssDefinitions.get(value);
+										const def =
+											/** @type {IcssDefinition} */
+											(icssDefinitions.get(value));
 
 										value = def.value;
 									}
@@ -1068,13 +1083,18 @@ class CssParser extends Parser {
 			},
 			identifier: (input, start, end) => {
 				if (isModules) {
-					if (icssDefinitions.has(input.slice(start, end))) {
-						const name = input.slice(start, end);
-						let { path, value } = icssDefinitions.get(name);
+					const name = input.slice(start, end);
+
+					if (icssDefinitions.has(name)) {
+						let { path, value } =
+							/** @type {IcssDefinition} */
+							(icssDefinitions.get(name));
 
 						if (path) {
 							if (icssDefinitions.has(path)) {
-								const definition = icssDefinitions.get(path);
+								const definition =
+									/** @type {IcssDefinition} */
+									(icssDefinitions.get(path));
 
 								path = definition.value.slice(1, -1);
 							}
@@ -1555,7 +1575,7 @@ class CssParser extends Parser {
 
 	/**
 	 * @param {Range} range range of the comment
-	 * @returns {{ options: Record<string, any> | null, errors: (Error & { comment: Comment })[] | null }} result
+	 * @returns {{ options: Record<string, EXPECTED_ANY> | null, errors: (Error & { comment: Comment })[] | null }} result
 	 */
 	parseCommentOptions(range) {
 		const comments = this.getComments(range);

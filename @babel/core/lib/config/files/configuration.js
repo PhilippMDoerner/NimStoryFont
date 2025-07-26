@@ -51,6 +51,7 @@ var _moduleTypes = require("./module-types.js");
 var _patternToRegex = require("../pattern-to-regex.js");
 var _configError = require("../../errors/config-error.js");
 var fs = require("../../gensync-utils/fs.js");
+require("module");
 var _rewriteStackTrace = require("../../errors/rewrite-stack-trace.js");
 var _async = require("../../gensync-utils/async.js");
 const debug = _debug()("babel:config:loading:files:configuration");
@@ -102,7 +103,7 @@ function buildConfigFileObject(options, filepath) {
   return configFile;
 }
 const packageToBabelConfig = (0, _caching.makeWeakCacheSync)(file => {
-  const babel = file.options["babel"];
+  const babel = file.options.babel;
   if (babel === undefined) return null;
   if (typeof babel !== "object" || Array.isArray(babel) || babel === null) {
     throw new _configError.default(`.babel property must be an object`, file.filepath);
@@ -127,7 +128,7 @@ const readConfigJSON5 = (0, _utils.makeStaticFileCache)((filepath, content) => {
   if (Array.isArray(options)) {
     throw new _configError.default(`Expected config object but found array`, filepath);
   }
-  delete options["$schema"];
+  delete options.$schema;
   return {
     filepath,
     dirname: _path().dirname(filepath),
@@ -225,7 +226,9 @@ function readConfig(filepath, envName, caller) {
     case ".js":
     case ".cjs":
     case ".mjs":
+    case ".ts":
     case ".cts":
+    case ".mts":
       return readConfigCode(filepath, {
         envName,
         caller

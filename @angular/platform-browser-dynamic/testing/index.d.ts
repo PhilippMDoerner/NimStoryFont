@@ -1,50 +1,27 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
 import * as i0 from '@angular/core';
+import { StaticProvider, PlatformRef } from '@angular/core';
 import * as i1 from '@angular/platform-browser/testing';
-import { PlatformRef } from '@angular/core';
-import { StaticProvider } from '@angular/core';
-import { TestComponentRenderer } from '@angular/core/testing';
 
+/**
+ * @deprecated Use the `platformBrowserTesting` function instead from `@angular/platform-browser/testing`.
+ * In case you are not in a CLI app and rely on JIT compilation, you might also need to import `@angular/compiler`
+ */
+declare const platformBrowserDynamicTesting: (extraProviders?: StaticProvider[]) => PlatformRef;
 /**
  * NgModule for testing.
  *
- * @publicApi
+ * @deprecated Use the `BrowserTestingModule` from `@angular/platform-browser/testing` instead.
  */
-export declare class BrowserDynamicTestingModule {
+declare class BrowserDynamicTestingModule {
     static ɵfac: i0.ɵɵFactoryDeclaration<BrowserDynamicTestingModule, never>;
     static ɵmod: i0.ɵɵNgModuleDeclaration<BrowserDynamicTestingModule, never, never, [typeof i1.BrowserTestingModule]>;
     static ɵinj: i0.ɵɵInjectorDeclaration<BrowserDynamicTestingModule>;
 }
 
-/**
- * @publicApi
- */
-export declare const platformBrowserDynamicTesting: (extraProviders?: StaticProvider[]) => PlatformRef;
-
-/**
- * A DOM based implementation of the TestComponentRenderer.
- */
-export declare class ɵDOMTestComponentRenderer extends TestComponentRenderer {
-    private _doc;
-    constructor(_doc: any);
-    insertRootElement(rootElId: string): void;
-    removeAllRootElements(): void;
-    private removeAllRootElementsImpl;
-    static ɵfac: i0.ɵɵFactoryDeclaration<ɵDOMTestComponentRenderer, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<ɵDOMTestComponentRenderer>;
-}
-
-/**
- * Platform for dynamic tests
- *
- * @publicApi
- */
-export declare const ɵplatformCoreDynamicTesting: (extraProviders?: any[]) => PlatformRef;
-
-export { }
+export { BrowserDynamicTestingModule, platformBrowserDynamicTesting };

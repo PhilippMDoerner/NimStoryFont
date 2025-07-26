@@ -3,9 +3,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -19,12 +16,6 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-// (disabled):util
-var require_util = __commonJS({
-  "(disabled):util"() {
-  }
-});
 
 // src/index.ts
 var index_exports = {};
@@ -370,19 +361,6 @@ function inspectSymbol(value) {
 
 // src/promise.ts
 var getPromiseValue = () => "Promise{\u2026}";
-try {
-  const { getPromiseDetails, kPending, kRejected } = process.binding("util");
-  if (Array.isArray(getPromiseDetails(Promise.resolve()))) {
-    getPromiseValue = (value, options) => {
-      const [state, innerValue] = getPromiseDetails(value);
-      if (state === kPending) {
-        return "Promise{<pending>}";
-      }
-      return `Promise${state === kRejected ? "!" : ""}{${options.inspect(innerValue, options)}}`;
-    };
-  }
-} catch (notNode) {
-}
 var promise_default = getPromiseValue;
 
 // src/object.ts
@@ -485,8 +463,18 @@ function inspectAttribute([key, value], options) {
   }
   return `${options.stylize(String(key), "yellow")}=${options.stylize(`"${value}"`, "string")}`;
 }
-function inspectHTMLCollection(collection, options) {
-  return inspectList(collection, options, inspectHTML, "\n");
+function inspectNodeCollection(collection, options) {
+  return inspectList(collection, options, inspectNode, "\n");
+}
+function inspectNode(node, options) {
+  switch (node.nodeType) {
+    case 1:
+      return inspectHTML(node, options);
+    case 3:
+      return options.inspect(node.data, options);
+    default:
+      return options.inspect(node, options);
+  }
 }
 function inspectHTML(element, options) {
   const properties = element.getAttributeNames();
@@ -507,7 +495,7 @@ function inspectHTML(element, options) {
   }
   options.truncate -= propertyContents.length;
   const truncate2 = options.truncate;
-  let children = inspectHTMLCollection(element.children, options);
+  let children = inspectNodeCollection(element.children, options);
   if (children && children.length > truncate2) {
     children = `${truncator}(${element.children.length})`;
   }
@@ -517,13 +505,7 @@ function inspectHTML(element, options) {
 // src/index.ts
 var symbolsSupported = typeof Symbol === "function" && typeof Symbol.for === "function";
 var chaiInspect = symbolsSupported ? Symbol.for("chai/inspect") : "@@chai/inspect";
-var nodeInspect = false;
-try {
-  const nodeUtil = require_util();
-  nodeInspect = nodeUtil.inspect ? nodeUtil.inspect.custom : false;
-} catch (noNodeInspect) {
-  nodeInspect = false;
-}
+var nodeInspect = Symbol.for("nodejs.util.inspect.custom");
 var constructorMap = /* @__PURE__ */ new WeakMap();
 var stringTagMap = {};
 var baseTypesMap = {
@@ -565,14 +547,14 @@ var baseTypesMap = {
   DataView: () => "",
   ArrayBuffer: () => "",
   Error: inspectObject2,
-  HTMLCollection: inspectHTMLCollection,
-  NodeList: inspectHTMLCollection
+  HTMLCollection: inspectNodeCollection,
+  NodeList: inspectNodeCollection
 };
 var inspectCustom = (value, options, type) => {
   if (chaiInspect in value && typeof value[chaiInspect] === "function") {
     return value[chaiInspect](options);
   }
-  if (nodeInspect && nodeInspect in value && typeof value[nodeInspect] === "function") {
+  if (nodeInspect in value && typeof value[nodeInspect] === "function") {
     return value[nodeInspect](options.depth, options);
   }
   if ("inspect" in value && typeof value.inspect === "function") {

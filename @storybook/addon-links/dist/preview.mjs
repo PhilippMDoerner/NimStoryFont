@@ -1,4 +1,4 @@
-import { makeDecorator, addons } from 'storybook/internal/preview-api';
+import { makeDecorator, addons } from 'storybook/preview-api';
 import { STORY_CHANGED, SELECT_STORY } from 'storybook/internal/core-events';
 import 'storybook/internal/csf';
 import { global } from '@storybook/global';

@@ -10,7 +10,6 @@ let axRoles = null;
 // for the first time, so we will not take up the memory.
 function isSemanticRoleElement(element, role, elementAttributes) {
     if (axElements === null || axRoles === null) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { AXObjectRoles, elementAXObjects } = require('axobject-query');
         axElements = elementAXObjects;
         axRoles = AXObjectRoles;

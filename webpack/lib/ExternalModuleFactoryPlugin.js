@@ -15,10 +15,13 @@ const ImportDependency = require("./dependencies/ImportDependency");
 const { resolveByProperty, cachedSetProperty } = require("./util/cleverMerge");
 
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionData} ExternalItemFunctionData */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectKnown} ExternalItemObjectKnown */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectUnknown} ExternalItemObjectUnknown */
 /** @typedef {import("../declarations/WebpackOptions").Externals} Externals */
 /** @typedef {import("./Compilation").DepConstructor} DepConstructor */
 /** @typedef {import("./ExternalModule").DependencyMeta} DependencyMeta */
 /** @typedef {import("./Module")} Module */
+/** @typedef {import("./ModuleFactory").IssuerLayer} IssuerLayer */
 /** @typedef {import("./NormalModuleFactory")} NormalModuleFactory */
 
 const UNSPECIFIED_EXTERNAL_TYPE_REGEXP = /^[a-z0-9-]+ /;
@@ -27,7 +30,7 @@ const EMPTY_RESOLVE_OPTIONS = {};
 // TODO webpack 6 remove this
 const callDeprecatedExternals = util.deprecate(
 	/**
-	 * @param {TODO} externalsFunction externals function
+	 * @param {EXPECTED_FUNCTION} externalsFunction externals function
 	 * @param {string} context context
 	 * @param {string} request request
 	 * @param {(err: Error | null | undefined, value: ExternalValue | undefined, ty: ExternalType | undefined) => void} cb cb
@@ -40,19 +43,26 @@ const callDeprecatedExternals = util.deprecate(
 	"DEP_WEBPACK_EXTERNALS_FUNCTION_PARAMETERS"
 );
 
+/** @typedef {ExternalItemObjectKnown & ExternalItemObjectUnknown} ExternalItemObject */
+
+/**
+ * @template {ExternalItemObject} T
+ * @typedef {WeakMap<T, Map<IssuerLayer, Omit<T, "byLayer">>>} ExternalWeakCache
+ */
+
+/** @type {ExternalWeakCache<ExternalItemObject>} */
 const cache = new WeakMap();
 
 /**
- * @template {object} T
- * @param {T} obj obj
- * @param {TODO} layer layer
- * @returns {Omit<T, "byLayer">} result
+ * @param {ExternalItemObject} obj obj
+ * @param {IssuerLayer} layer layer
+ * @returns {Omit<ExternalItemObject, "byLayer">} result
  */
 const resolveLayer = (obj, layer) => {
-	let map = cache.get(/** @type {object} */ (obj));
+	let map = cache.get(obj);
 	if (map === undefined) {
 		map = new Map();
-		cache.set(/** @type {object} */ (obj), map);
+		cache.set(obj, map);
 	} else {
 		const cacheEntry = map.get(layer);
 		if (cacheEntry !== undefined) return cacheEntry;
@@ -89,10 +99,12 @@ class ExternalModuleFactoryPlugin {
 				const dependency = data.dependencies[0];
 				const dependencyType = data.dependencyType;
 
+				/** @typedef {(err?: Error | null, externalModule?: ExternalModule) => void} HandleExternalCallback */
+
 				/**
 				 * @param {ExternalValue} value the external config
 				 * @param {ExternalType | undefined} type type of external
-				 * @param {function((Error | null)=, ExternalModule=): void} callback callback
+				 * @param {HandleExternalCallback} callback callback
 				 * @returns {void}
 				 */
 				const handleExternal = (value, type, callback) => {
@@ -176,7 +188,7 @@ class ExternalModuleFactoryPlugin {
 
 				/**
 				 * @param {Externals} externals externals config
-				 * @param {function((Error | null)=, ExternalModule=): void} callback callback
+				 * @param {HandleExternalCallback} callback callback
 				 * @returns {void}
 				 */
 				const handleExternals = (externals, callback) => {
@@ -273,8 +285,7 @@ class ExternalModuleFactoryPlugin {
 												context,
 												request,
 												resolveContext,
-												/** @type {TODO} */
-												(callback)
+												callback
 											);
 										} else {
 											return new Promise((resolve, reject) => {
@@ -300,7 +311,8 @@ class ExternalModuleFactoryPlugin {
 					} else if (typeof externals === "object") {
 						const resolvedExternals = resolveLayer(
 							externals,
-							contextInfo.issuerLayer
+							/** @type {IssuerLayer} */
+							(contextInfo.issuerLayer)
 						);
 						if (
 							Object.prototype.hasOwnProperty.call(

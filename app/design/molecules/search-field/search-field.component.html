@@ -14,8 +14,8 @@
         [labelId]="searchLabelId"
         [disabled]="!canSearch()"
         [type]="'search'"
-        [hotkey]="'f'"
-        (hotkeyPressed)="input.focus()"
+        [hotkeyAction]="'focus'"
+        (actionTriggered)="input.focus()"
         (changed)="searchString = $event"
       />
       @let canTriggerSearch = canSearch() && !!input._value();

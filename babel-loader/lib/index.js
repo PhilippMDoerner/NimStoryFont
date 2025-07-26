@@ -23,7 +23,9 @@ const schema = require("./schema");
 const {
   isAbsolute
 } = require("path");
-const validateOptions = require("schema-utils").validate;
+const {
+  promisify
+} = require("util");
 function subscribe(subscriber, metadata, context) {
   if (context[subscriber]) {
     context[subscriber](metadata);
@@ -41,17 +43,9 @@ function makeLoader(callback) {
 }
 async function loader(source, inputSourceMap, overrides) {
   const filename = this.resourcePath;
-  const logger = typeof this.getLogger === "function" ? this.getLogger("babel-loader") : {
-    debug: () => {}
-  };
-  let loaderOptions = this.getOptions();
-  validateOptions(schema, loaderOptions, {
-    name: "Babel loader"
-  });
+  const logger = this.getLogger("babel-loader");
+  let loaderOptions = this.getOptions(schema);
   if (loaderOptions.customize != null) {
-    if (typeof loaderOptions.customize !== "string") {
-      throw new Error("Customized loaders must be implemented as standalone modules.");
-    }
     if (!isAbsolute(loaderOptions.customize)) {
       throw new Error("Customized loaders must be passed as absolute paths, since " + "babel-loader has no way to know what they would be relative to.");
     }
@@ -80,10 +74,10 @@ async function loader(source, inputSourceMap, overrides) {
 
   // Deprecation handling
   if ("forceEnv" in loaderOptions) {
-    console.warn("The option `forceEnv` has been removed in favor of `envName` in Babel 7.");
+    this.emitWarning(new Error("The option `forceEnv` has been removed in favor of `envName` in Babel 7."));
   }
   if (typeof loaderOptions.babelrc === "string") {
-    console.warn("The option `babelrc` should not be set to a string anymore in the babel-loader config. " + "Please update your configuration and set `babelrc` to true or false.\n" + "If you want to specify a specific babel config file to inherit config from " + "please use the `extends` option.\nFor more information about this options see " + "https://babeljs.io/docs/core-packages/#options");
+    this.emitWarning(new Error("The option `babelrc` should not be set to a string anymore in the babel-loader config. " + "Please update your configuration and set `babelrc` to true or false.\n" + "If you want to specify a specific babel config file to inherit config from " + "please use the `extends` option.\nFor more information about this options see " + "https://babeljs.io/docs/#options"));
   }
   logger.debug("normalizing loader options");
   // Standardize on 'sourceMaps' as the key passed through to Webpack, so that
@@ -135,17 +129,17 @@ async function loader(source, inputSourceMap, overrides) {
     }
     const {
       cacheDirectory = null,
-      cacheIdentifier = JSON.stringify({
-        options,
-        "@babel/core": transform.version,
-        "@babel/loader": version
-      }),
+      cacheIdentifier = "core" + transform.version + "," + "loader" + version,
       cacheCompression = true,
       metadataSubscribers = []
     } = loaderOptions;
     let result;
     if (cacheDirectory) {
       logger.debug("cache is enabled");
+      const getFileTimestamp = promisify((path, cb) => {
+        this._compilation.fileSystemInfo.getFileTimestamp(path, cb);
+      });
+      const hash = this.utils.createHash(this._compilation.outputOptions.hashFunction);
       result = await cache({
         source,
         options,
@@ -153,6 +147,8 @@ async function loader(source, inputSourceMap, overrides) {
         cacheDirectory,
         cacheIdentifier,
         cacheCompression,
+        hash,
+        getFileTimestamp,
         logger
       });
     } else {
@@ -180,7 +176,7 @@ async function loader(source, inputSourceMap, overrides) {
         metadata,
         externalDependencies
       } = result;
-      externalDependencies?.forEach(dep => {
+      externalDependencies?.forEach(([dep]) => {
         this.addDependency(dep);
         logger.debug(`added '${dep}' to webpack dependencies`);
       });

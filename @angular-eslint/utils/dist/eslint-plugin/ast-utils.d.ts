@@ -121,6 +121,7 @@ export declare const isAngularInnerClassDecorator: (value: string) => value is A
  * }
  */
 export declare function getPropertyDefinitionName({ computed, key, }: TSESTree.PropertyDefinition): string;
+export declare const getDecoratorProperties: (decorator: TSESTree.Decorator) => TSESTree.Property[];
 export declare const getDecoratorProperty: (decorator: TSESTree.Decorator, name: string) => TSESTree.Property | undefined;
 export declare const getDecoratorPropertyValue: (decorator: TSESTree.Decorator, name: string) => TSESTree.Property["value"] | undefined;
 export declare const getDeclaredMethods: ({ body: { body }, }: TSESTree.ClassDeclaration) => readonly TSESTree.MethodDefinition[];

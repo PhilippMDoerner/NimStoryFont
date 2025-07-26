@@ -1,13 +1,7 @@
 import { getUISelection } from '../../document/UI.js';
-import '../../utils/click/isClickableInput.js';
 import '../../utils/dataTransfer/Clipboard.js';
-import '../../utils/edit/isEditable.js';
-import '../../utils/edit/maxLength.js';
 import { getNextCursorPosition } from '../../utils/focus/cursor.js';
 import { hasOwnSelection } from '../../utils/focus/selection.js';
-import '../../utils/keyDef/readNextDescriptor.js';
-import '../../utils/misc/level.js';
-import '../../options.js';
 import { setSelection } from './setSelection.js';
 
 /**
@@ -22,7 +16,7 @@ import { setSelection } from './setSelection.js';
         });
     } else {
         const selection = node.ownerDocument.getSelection();
-        if (!(selection === null || selection === void 0 ? void 0 : selection.focusNode)) {
+        if (!(selection === null || selection === undefined ? undefined : selection.focusNode)) {
             return;
         }
         if (selection.isCollapsed) {

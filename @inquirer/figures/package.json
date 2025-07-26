@@ -1,6 +1,6 @@
 {
   "name": "@inquirer/figures",
-  "version": "1.0.9",
+  "version": "1.0.13",
   "description": "Vendored version of figures, for CJS compatibility",
   "keywords": [
     "answer",
@@ -75,8 +75,7 @@
     "tsc": "tshy"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.17.2",
-    "@repo/tsconfig": "workspace:*",
+    "@arethetypeswrong/cli": "^0.18.2",
     "tshy": "^3.0.2"
   },
   "engines": {
@@ -91,5 +90,5 @@
       ".": "./src/index.ts"
     }
   },
-  "gitHead": "7613d7474f1f17a18019b89f208f46be10c5b02f"
+  "gitHead": "c1a755fe8b50377b685ea5951e0794985ce8d356"
 }

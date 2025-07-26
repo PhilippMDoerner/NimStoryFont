@@ -1,13 +1,13 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
 import { DOCUMENT } from '@angular/common';
 import * as i0 from '@angular/core';
-import { inject, Injector, ɵRuntimeError, ɵChangeDetectionScheduler, Injectable, InjectionToken, ɵperformanceMarkFeature, makeEnvironmentProviders, RendererFactory2, NgZone, ANIMATION_MODULE_TYPE } from '@angular/core';
-import { ɵDomRendererFactory2 } from '@angular/platform-browser';
+import { inject, Injector, ɵRuntimeError as _RuntimeError, ɵChangeDetectionScheduler as _ChangeDetectionScheduler, Injectable, InjectionToken, ɵperformanceMarkFeature as _performanceMarkFeature, makeEnvironmentProviders, RendererFactory2, NgZone, ANIMATION_MODULE_TYPE } from '@angular/core';
+import { DomRendererFactory2 } from '../dom_renderer-Frqw9gM5.mjs';
 
 const ANIMATION_PREFIX = '@';
 class AsyncAnimationRendererFactory {
@@ -34,7 +34,7 @@ class AsyncAnimationRendererFactory {
         this.animationType = animationType;
         this.moduleImpl = moduleImpl;
     }
-    /** @nodoc */
+    /** @docs-private */
     ngOnDestroy() {
         // When the root view is removed, the renderer defers the actual work to the
         // `TransitionAnimationEngine` to do this, and the `TransitionAnimationEngine` doesn't actually
@@ -61,7 +61,7 @@ class AsyncAnimationRendererFactory {
         }
         return moduleImplPromise
             .catch((e) => {
-            throw new ɵRuntimeError(5300 /* RuntimeErrorCode.ANIMATION_RENDERER_ASYNC_LOADING_FAILURE */, (typeof ngDevMode === 'undefined' || ngDevMode) &&
+            throw new _RuntimeError(5300 /* RuntimeErrorCode.ANIMATION_RENDERER_ASYNC_LOADING_FAILURE */, (typeof ngDevMode === 'undefined' || ngDevMode) &&
                 'Async loading for animations package was ' +
                     'enabled, but loading failed. Angular falls back to using regular rendering. ' +
                     "No animations will be displayed and their styles won't be applied.");
@@ -104,8 +104,8 @@ class AsyncAnimationRendererFactory {
             ?.then((animationRendererFactory) => {
             const animationRenderer = animationRendererFactory.createRenderer(hostElement, rendererType);
             dynamicRenderer.use(animationRenderer);
-            this.scheduler ??= this.injector.get(ɵChangeDetectionScheduler, null, { optional: true });
-            this.scheduler?.notify(11 /* NotificationSource.AsyncAnimationsLoaded */);
+            this.scheduler ??= this.injector.get(_ChangeDetectionScheduler, null, { optional: true });
+            this.scheduler?.notify(10 /* NotificationSource.AsyncAnimationsLoaded */);
         })
             .catch((e) => {
             // Permanently use regular renderer when loading fails.
@@ -131,10 +131,10 @@ class AsyncAnimationRendererFactory {
         this._engine?.flush();
         this.delegate.componentReplaced?.(componentId);
     }
-    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: AsyncAnimationRendererFactory, deps: "invalid", target: i0.ɵɵFactoryTarget.Injectable });
-    static ɵprov = i0.ɵɵngDeclareInjectable({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: AsyncAnimationRendererFactory });
+    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: AsyncAnimationRendererFactory, deps: "invalid", target: i0.ɵɵFactoryTarget.Injectable });
+    static ɵprov = i0.ɵɵngDeclareInjectable({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: AsyncAnimationRendererFactory });
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "19.1.6", ngImport: i0, type: AsyncAnimationRendererFactory, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: AsyncAnimationRendererFactory, decorators: [{
             type: Injectable
         }], ctorParameters: () => [{ type: Document }, { type: i0.RendererFactory2 }, { type: i0.NgZone }, { type: undefined }, { type: Promise }] });
 /**
@@ -276,14 +276,18 @@ const ɵASYNC_ANIMATION_LOADING_SCHEDULER_FN = new InjectionToken(ngDevMode ? 'a
  * @publicApi
  */
 function provideAnimationsAsync(type = 'animations') {
-    ɵperformanceMarkFeature('NgAsyncAnimations');
+    _performanceMarkFeature('NgAsyncAnimations');
+    // Animations don't work on the server so we switch them over to no-op automatically.
+    if (typeof ngServerMode !== 'undefined' && ngServerMode) {
+        type = 'noop';
+    }
     return makeEnvironmentProviders([
         {
             provide: RendererFactory2,
             useFactory: (doc, renderer, zone) => {
                 return new AsyncAnimationRendererFactory(doc, renderer, zone, type);
             },
-            deps: [DOCUMENT, ɵDomRendererFactory2, NgZone],
+            deps: [DOCUMENT, DomRendererFactory2, NgZone],
         },
         {
             provide: ANIMATION_MODULE_TYPE,
@@ -291,24 +295,6 @@ function provideAnimationsAsync(type = 'animations') {
         },
     ]);
 }
-
-/**
- * @module
- * @description
- * Entry point for all animation APIs of the animation browser package.
- */
-
-/**
- * @module
- * @description
- * Entry point for all public APIs of this package.
- */
-
-// This file is not used to build this module. It is only used during editing
-
-/**
- * Generated bundle index. Do not edit.
- */
 
 export { provideAnimationsAsync, ɵASYNC_ANIMATION_LOADING_SCHEDULER_FN, AsyncAnimationRendererFactory as ɵAsyncAnimationRendererFactory };
 //# sourceMappingURL=async.mjs.map

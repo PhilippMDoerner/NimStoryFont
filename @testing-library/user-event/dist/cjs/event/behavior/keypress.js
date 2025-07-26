@@ -1,14 +1,9 @@
 'use strict';
 
-require('../../utils/click/isClickableInput.js');
+var isElementType = require('../../utils/misc/isElementType.js');
 require('../../utils/dataTransfer/Clipboard.js');
 var isContentEditable = require('../../utils/edit/isContentEditable.js');
 var isEditable = require('../../utils/edit/isEditable.js');
-require('../../utils/edit/maxLength.js');
-var isElementType = require('../../utils/misc/isElementType.js');
-require('../../utils/keyDef/readNextDescriptor.js');
-require('../../utils/misc/level.js');
-require('../../options.js');
 var input = require('../input.js');
 var registry = require('./registry.js');
 
@@ -20,7 +15,7 @@ registry.behavior.keypress = (event, target, instance)=>{
             };
         } else if (isElementType.isElementType(target, 'input')) {
             const form = target.form;
-            const submit = form === null || form === void 0 ? void 0 : form.querySelector('input[type="submit"], button:not([type]), button[type="submit"]');
+            const submit = form === null || form === undefined ? undefined : form.querySelector('input[type="submit"], button:not([type]), button[type="submit"]');
             if (submit) {
                 return ()=>instance.dispatchUIEvent(submit, 'click');
             } else if (form && SubmitSingleInputOnEnter.includes(target.type) && form.querySelectorAll('input').length === 1) {

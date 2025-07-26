@@ -104,7 +104,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 		} else if (param.isConstArray()) {
 			/** @type {(string | LocalModuleDependency | AMDRequireItemDependency)[]} */
 			const deps = [];
-			for (const request of /** @type {any[]} */ (param.array)) {
+			for (const request of /** @type {EXPECTED_ANY[]} */ (param.array)) {
 				let dep;
 				let localModule;
 				if (request === "require") {
@@ -158,20 +158,27 @@ class AMDRequireDependenciesBlockParserPlugin {
 			if (param.string === "require") {
 				dep = new ConstDependency(
 					RuntimeGlobals.require,
-					/** @type {TODO} */ (param.string),
+					/** @type {TODO} */
+					(param.string),
 					[RuntimeGlobals.require]
 				);
 			} else if (param.string === "module") {
 				dep = new ConstDependency(
-					/** @type {BuildInfo} */
-					(parser.state.module.buildInfo).moduleArgument,
+					/** @type {string} */
+					(
+						/** @type {BuildInfo} */
+						(parser.state.module.buildInfo).moduleArgument
+					),
 					/** @type {Range} */ (param.range),
 					[RuntimeGlobals.module]
 				);
 			} else if (param.string === "exports") {
 				dep = new ConstDependency(
-					/** @type {BuildInfo} */
-					(parser.state.module.buildInfo).exportsArgument,
+					/** @type {string} */
+					(
+						/** @type {BuildInfo} */
+						(parser.state.module.buildInfo).exportsArgument
+					),
 					/** @type {Range} */ (param.range),
 					[RuntimeGlobals.exports]
 				);
@@ -208,7 +215,8 @@ class AMDRequireDependenciesBlockParserPlugin {
 	processContext(parser, expr, param) {
 		const dep = ContextDependencyHelpers.create(
 			AMDRequireContextDependency,
-			/** @type {Range} */ (param.range),
+			/** @type {Range} */
+			(param.range),
 			param,
 			expr,
 			this.options,

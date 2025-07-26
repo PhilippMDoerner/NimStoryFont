@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const node_async_hooks_1 = require("node:async_hooks");
 const external_editor_1 = require("external-editor");
 const core_1 = require("@inquirer/core");
 const editorTheme = {
@@ -15,8 +14,7 @@ exports.default = (0, core_1.createPrompt)((config, done) => {
     const prefix = (0, core_1.usePrefix)({ status, theme });
     function startEditor(rl) {
         rl.pause();
-        // Note: The bind call isn't strictly required. But we need it for our mocks to work as expected.
-        const editCallback = node_async_hooks_1.AsyncResource.bind(async (error, answer) => {
+        const editCallback = async (error, answer) => {
             rl.resume();
             if (error) {
                 setError(error.toString());
@@ -40,7 +38,7 @@ exports.default = (0, core_1.createPrompt)((config, done) => {
                     setStatus('idle');
                 }
             }
-        });
+        };
         (0, external_editor_1.editAsync)(value, (error, answer) => void editCallback(error, answer), {
             postfix,
             ...fileProps,

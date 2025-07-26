@@ -2,14 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.8.0](https://github.com/piscinajs/piscina/compare/v4.7.0...v4.8.0) (2024-12-04)
+## [5.0.0](https://github.com/piscinajs/piscina/compare/v5.0.0-alpha.2...v5.0.0) (2025-05-02)
 
-## [4.7.0](https://github.com/piscinajs/piscina/compare/v4.6.1...v4.7.0) (2024-09-18)
+
+### ⚠ BREAKING CHANGES
+
+* drop v18 (#782)
+
+* drop v18 ([#782](https://github.com/piscinajs/piscina/issues/782)) ([7a87d6b](https://github.com/piscinajs/piscina/commit/7a87d6b16844943ebb237de6bd8285baa81bba0b))
+
+## [5.0.0-alpha.2](https://github.com/piscinajs/piscina/compare/v5.0.0-alpha.1...v5.0.0-alpha.2) (2025-03-16)
 
 
 ### Features
 
-* **backport:** use @napi-rs/nice to support Windows ([#655](https://github.com/piscinajs/piscina/issues/655)) ([#660](https://github.com/piscinajs/piscina/issues/660)) ([541295d](https://github.com/piscinajs/piscina/commit/541295dad21c4c3f43bc133d78d82871fa86c864))
+* Allow long-running threads ([#757](https://github.com/piscinajs/piscina/issues/757)) ([f0f4fd3](https://github.com/piscinajs/piscina/commit/f0f4fd39d50dac47b411a2a7aee1ac2d744f0e2f))
+
+## [5.0.0-alpha.1](https://github.com/piscinajs/piscina/compare/v5.0.0-alpha.0...v5.0.0-alpha.1) (2025-01-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **#305:** Expose new `PiscinaHistogram` abstraction (#723)
+
+### Features
+
+* **#305:** Expose new `PiscinaHistogram` abstraction ([#723](https://github.com/piscinajs/piscina/issues/723)) ([86d736c](https://github.com/piscinajs/piscina/commit/86d736cf4c239d20e1a403d11a82b7ead0611aa8)), closes [#305](https://github.com/piscinajs/piscina/issues/305)
+
+## [5.0.0-alpha.0](https://github.com/piscinajs/piscina/compare/v4.6.1...v5.0.0-alpha.0) (2024-12-04)
+
+
+### Features
+
+* Custom Balancer ([#590](https://github.com/piscinajs/piscina/issues/590)) ([5c42b28](https://github.com/piscinajs/piscina/commit/5c42b28942f39399ea4aad39dd1f4367959c1e8f))
+* support Atomics.waitAsync ([#687](https://github.com/piscinajs/piscina/issues/687)) ([9c5a19e](https://github.com/piscinajs/piscina/commit/9c5a19ea491b159b82f23512811555a5c4aa2d3f))
+* use @napi-rs/nice to support Windows ([#655](https://github.com/piscinajs/piscina/issues/655)) ([c567394](https://github.com/piscinajs/piscina/commit/c56739465000f455fcf7abc2f83501054cab22a4))
 
 
 ### Bug Fixes

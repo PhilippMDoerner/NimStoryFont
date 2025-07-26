@@ -1,15 +1,9 @@
 'use strict';
 
-require('../utils/click/isClickableInput.js');
 var DataTransfer = require('../utils/dataTransfer/DataTransfer.js');
 require('../utils/dataTransfer/Clipboard.js');
-require('../utils/edit/isEditable.js');
-require('../utils/edit/maxLength.js');
 var getWindow = require('../utils/misc/getWindow.js');
 var selection = require('../utils/focus/selection.js');
-require('../utils/keyDef/readNextDescriptor.js');
-require('../utils/misc/level.js');
-require('../options.js');
 var UI = require('./UI.js');
 
 function copySelection(target) {

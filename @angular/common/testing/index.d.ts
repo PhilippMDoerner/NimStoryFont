@@ -1,25 +1,52 @@
 /**
- * @license Angular v19.1.6
- * (c) 2010-2024 Google LLC. https://angular.io/
+ * @license Angular v20.0.3
+ * (c) 2010-2025 Google LLC. https://angular.io/
  * License: MIT
  */
 
-
 import * as i0 from '@angular/core';
-import { InjectionToken } from '@angular/core';
-import { Location as Location_2 } from '@angular/common';
-import { LocationChangeListener } from '@angular/common';
-import { LocationStrategy } from '@angular/common';
-import { PlatformLocation } from '@angular/common';
-import { Provider } from '@angular/core';
+import { Provider, InjectionToken } from '@angular/core';
+export { ɵFakeNavigation } from '@angular/core/testing';
+import { Location, LocationStrategy } from '@angular/common';
 import { SubscriptionLike } from 'rxjs';
+import { PlatformLocation, LocationChangeListener } from '../platform_location.d-Lbv6Ueec.js';
 
 /**
- * Provider for mock platform location config
+ * Return a provider for the `FakeNavigation` in place of the real Navigation API.
+ */
+declare function provideFakePlatformNavigation(): Provider[];
+
+/**
+ * A spy for {@link Location} that allows tests to fire simulated location events.
  *
  * @publicApi
  */
-export declare const MOCK_PLATFORM_LOCATION_CONFIG: InjectionToken<MockPlatformLocationConfig>;
+declare class SpyLocation implements Location {
+    urlChanges: string[];
+    private _history;
+    private _historyIndex;
+    /** @docs-private */
+    ngOnDestroy(): void;
+    setInitialPath(url: string): void;
+    setBaseHref(url: string): void;
+    path(): string;
+    getState(): unknown;
+    isCurrentPathEqualTo(path: string, query?: string): boolean;
+    simulateUrlPop(pathname: string): void;
+    simulateHashChange(pathname: string): void;
+    prepareExternalUrl(url: string): string;
+    go(path: string, query?: string, state?: any): void;
+    replaceState(path: string, query?: string, state?: any): void;
+    forward(): void;
+    back(): void;
+    historyGo(relativePosition?: number): void;
+    onUrlChange(fn: (url: string, state: unknown) => void): VoidFunction;
+    subscribe(onNext: (value: any) => void, onThrow?: ((error: any) => void) | null, onReturn?: (() => void) | null): SubscriptionLike;
+    normalize(url: string): string;
+    private pushHistory;
+    static ɵfac: i0.ɵɵFactoryDeclaration<SpyLocation, never>;
+    static ɵprov: i0.ɵɵInjectableDeclaration<SpyLocation>;
+}
 
 /**
  * A mock implementation of {@link LocationStrategy} that allows tests to fire simulated
@@ -27,7 +54,7 @@ export declare const MOCK_PLATFORM_LOCATION_CONFIG: InjectionToken<MockPlatformL
  *
  * @publicApi
  */
-export declare class MockLocationStrategy extends LocationStrategy {
+declare class MockLocationStrategy extends LocationStrategy {
     internalBaseHref: string;
     internalPath: string;
     internalTitle: string;
@@ -49,11 +76,26 @@ export declare class MockLocationStrategy extends LocationStrategy {
 }
 
 /**
+ * Mock platform location config
+ *
+ * @publicApi
+ */
+interface MockPlatformLocationConfig {
+    startUrl?: string;
+    appBaseHref?: string;
+}
+/**
+ * Provider for mock platform location config
+ *
+ * @publicApi
+ */
+declare const MOCK_PLATFORM_LOCATION_CONFIG: InjectionToken<MockPlatformLocationConfig>;
+/**
  * Mock implementation of URL state.
  *
  * @publicApi
  */
-export declare class MockPlatformLocation implements PlatformLocation {
+declare class MockPlatformLocation implements PlatformLocation {
     private baseHref;
     private hashUpdate;
     private popStateSubject;
@@ -95,58 +137,12 @@ export declare class MockPlatformLocation implements PlatformLocation {
 }
 
 /**
- * Mock platform location config
- *
- * @publicApi
- */
-export declare interface MockPlatformLocationConfig {
-    startUrl?: string;
-    appBaseHref?: string;
-}
-
-/**
  * Returns mock providers for the `Location` and `LocationStrategy` classes.
  * The mocks are helpful in tests to fire simulated location events.
  *
  * @publicApi
  */
-export declare function provideLocationMocks(): Provider[];
+declare function provideLocationMocks(): Provider[];
 
-/**
- * A spy for {@link Location} that allows tests to fire simulated location events.
- *
- * @publicApi
- */
-export declare class SpyLocation implements Location_2 {
-    urlChanges: string[];
-    private _history;
-    private _historyIndex;
-    /** @nodoc */
-    ngOnDestroy(): void;
-    setInitialPath(url: string): void;
-    setBaseHref(url: string): void;
-    path(): string;
-    getState(): unknown;
-    isCurrentPathEqualTo(path: string, query?: string): boolean;
-    simulateUrlPop(pathname: string): void;
-    simulateHashChange(pathname: string): void;
-    prepareExternalUrl(url: string): string;
-    go(path: string, query?: string, state?: any): void;
-    replaceState(path: string, query?: string, state?: any): void;
-    forward(): void;
-    back(): void;
-    historyGo(relativePosition?: number): void;
-    onUrlChange(fn: (url: string, state: unknown) => void): VoidFunction;
-    subscribe(onNext: (value: any) => void, onThrow?: ((error: any) => void) | null, onReturn?: (() => void) | null): SubscriptionLike;
-    normalize(url: string): string;
-    private pushHistory;
-    static ɵfac: i0.ɵɵFactoryDeclaration<SpyLocation, never>;
-    static ɵprov: i0.ɵɵInjectableDeclaration<SpyLocation>;
-}
-
-/**
- * Return a provider for the `FakeNavigation` in place of the real Navigation API.
- */
-export declare function ɵprovideFakePlatformNavigation(): Provider[];
-
-export { }
+export { MOCK_PLATFORM_LOCATION_CONFIG, MockLocationStrategy, MockPlatformLocation, SpyLocation, provideLocationMocks, provideFakePlatformNavigation as ɵprovideFakePlatformNavigation };
+export type { MockPlatformLocationConfig };

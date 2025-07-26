@@ -3,6 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RULE_NAME = void 0;
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-interpolation-in-attributes';
+const allowSubstringInterpolationDescription = `\
+When \`true\`, only attribute values that are entirely interpolations will fail, whereas values with interpolations that form part of larger strings will be allowed.
+
+For example, when set to \`true\` the following code will not fail for the \`alt\` attribute but will still fail for the \`src\` attribute:
+
+\`\`\`html
+<img alt="Poke user {{ username }}" src="{{ pokeSrc }}" />
+\`\`\`
+`;
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
     meta: {
@@ -10,16 +19,37 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         docs: {
             description: 'Ensures that property-binding is used instead of interpolation in attributes.',
         },
-        schema: [],
+        schema: [
+            {
+                type: 'object',
+                properties: {
+                    allowSubstringInterpolation: {
+                        type: 'boolean',
+                        description: allowSubstringInterpolationDescription,
+                    },
+                },
+                additionalProperties: false,
+            },
+        ],
         messages: {
             noInterpolationInAttributes: 'Use property binding [attribute]="value" instead of interpolation {{ value }} for an attribute.',
         },
+        fixable: 'code',
     },
-    defaultOptions: [],
-    create(context) {
+    defaultOptions: [{ allowSubstringInterpolation: false }],
+    create(context, [{ allowSubstringInterpolation }]) {
         const sourceCode = context.sourceCode;
         return {
             ['BoundAttribute Interpolation'](interpolation) {
+                const isFullInterpolation = !interpolation.strings.some((str) => str !== '');
+                if (allowSubstringInterpolation && !isFullInterpolation) {
+                    return;
+                }
+                // 'parent' is an internal runtime property not declared in the type, hence the 'any' cast.
+                const boundAttribute = interpolation.parent?.parent;
+                if (!boundAttribute) {
+                    return;
+                }
                 const { sourceSpan: { start, end }, } = interpolation;
                 context.report({
                     loc: {
@@ -27,6 +57,24 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                         end: sourceCode.getLocFromIndex(end),
                     },
                     messageId: 'noInterpolationInAttributes',
+                    fix: isFullInterpolation
+                        ? (fixer) => {
+                            const attrStart = boundAttribute.keySpan.start.offset;
+                            const attrEnd = boundAttribute.keySpan.end.offset;
+                            const attributeName = sourceCode.text
+                                .slice(attrStart, attrEnd)
+                                .trim();
+                            const exprStart = boundAttribute.valueSpan.start.offset + 2; // +2 to remove '{{'
+                            const exprEnd = boundAttribute.valueSpan.end.offset - 2; // -2 to remove '}}'
+                            const expression = sourceCode.text
+                                .slice(exprStart, exprEnd)
+                                .trim();
+                            const rangeStart = boundAttribute.sourceSpan.start.offset;
+                            const rangeEnd = boundAttribute.sourceSpan.end.offset;
+                            const replacement = `[${attributeName}]="${expression}"`;
+                            return fixer.replaceTextRange([rangeStart, rangeEnd], replacement);
+                        }
+                        : null,
                 });
             },
         };

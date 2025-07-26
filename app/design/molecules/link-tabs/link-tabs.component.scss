@@ -1,0 +1,12 @@
+:host {
+  display: block;
+}
+
+.nav-link {
+  display: flex;
+  gap: var(--spacer-3);
+  justify-content: center;
+  align-items: center;
+  padding-left: var(--spacer-2);
+  padding-right: var(--spacer-2);
+}

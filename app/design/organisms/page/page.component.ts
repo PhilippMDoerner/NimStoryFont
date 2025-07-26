@@ -1,6 +1,6 @@
-import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -17,7 +17,6 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { NgbOffcanvas, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { debounceTime, filter, fromEvent, map, switchMap } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { ScreenService } from 'src/app/_services/screen.service';
 import { SwipeService } from 'src/app/_services/swipe.service';
@@ -47,13 +46,22 @@ export const showSidebarSignal = signal(true);
     NgTemplateOutlet,
     MobileHeaderComponent,
     IconComponent,
-    HotkeyDirective,
     SpinnerComponent,
     NgbTooltip,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NgbOffcanvas],
 })
 export class PageComponent {
+  titleService = inject(FaviconService);
+  globalStore = inject(GlobalStore);
+  sidebarService = inject(NgbOffcanvas);
+  swipeService = inject(SwipeService);
+  screenService = inject(ScreenService);
+  routingService = inject(RoutingService);
+  host = inject(ElementRef);
+  navStore = inject(NavigationStore);
+
   contentId = input.required<string>();
 
   readonly logout = output<void>();
@@ -64,21 +72,14 @@ export class PageComponent {
   sidebarTemplate =
     viewChild.required<TemplateRef<SidebarComponent>>('sidebar');
   sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
-
-  titleService = inject(FaviconService);
-  globalStore = inject(GlobalStore);
-  sidebarService = inject(NgbOffcanvas);
-  swipeService = inject(SwipeService);
-  screenService = inject(ScreenService);
-  routingService = inject(RoutingService);
-  host = inject(ElementRef);
-  navStore = inject(NavigationStore);
-
+  isMobile$ = this.screenService.isMobile$;
   mobileHeaderTitle = computed(() => {
     const campaignName = this.globalStore.campaignName();
     return campaignName ? capitalize(campaignName) : '';
   });
   isLoading = this.globalStore.isLoadingPage;
+  titleContainer =
+    viewChild.required<ElementRef<HTMLDivElement>>('titleContainer');
 
   contentScrollEvents$ = toObservable(this.innerContentElement).pipe(
     filterNil(),
@@ -115,6 +116,7 @@ export class PageComponent {
       campaign: this.globalStore.campaignName(),
     }),
   );
+  title = computed(() => this.navStore.currentRoute()?.title);
 
   campaignBackgroundImage$ = toObservable(
     this.globalStore.currentCampaign,
@@ -124,15 +126,13 @@ export class PageComponent {
   );
 
   constructor() {
-    const liveAnouncer = inject(LiveAnnouncer);
     effect(() => {
       const loading = this.isLoading();
-      const title = untracked(() => this.navStore.currentRoute()?.title);
-      if (!title || loading) return;
+      const titleContainer = this.titleContainer();
+      const title = untracked(() => this.title());
+      if (!title || loading || !titleContainer) return;
 
-      const loadingMessage = 'Loaded ' + title;
-
-      liveAnouncer.announce(loadingMessage);
+      titleContainer.nativeElement.focus();
     });
 
     this.pageSwipesRight$

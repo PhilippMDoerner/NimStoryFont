@@ -94,10 +94,13 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {import("./AsyncDependenciesBlock")} AsyncDependenciesBlock */
 /** @typedef {import("./Cache")} Cache */
 /** @typedef {import("./CacheFacade")} CacheFacade */
+/** @typedef {import("./Chunk").ChunkName} ChunkName */
 /** @typedef {import("./Chunk").ChunkId} ChunkId */
 /** @typedef {import("./ChunkGroup").ChunkGroupOptions} ChunkGroupOptions */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Compiler").CompilationParams} CompilationParams */
+/** @typedef {import("./Compiler").MemCache} MemCache */
+/** @typedef {import("./Compiler").WeakReferences} WeakReferences */
 /** @typedef {import("./Compiler").ModuleMemCachesItem} ModuleMemCachesItem */
 /** @typedef {import("./DependenciesBlock")} DependenciesBlock */
 /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
@@ -106,13 +109,18 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {import("./Entrypoint").EntryOptions} EntryOptions */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 /** @typedef {import("./Module").ValueCacheVersions} ValueCacheVersions */
+/** @typedef {import("./Module").RuntimeRequirements} RuntimeRequirements */
 /** @typedef {import("./NormalModule").NormalModuleCompilationHooks} NormalModuleCompilationHooks */
+/** @typedef {import("./Module").FactoryMeta} FactoryMeta */
 /** @typedef {import("./Module").CodeGenerationResult} CodeGenerationResult */
 /** @typedef {import("./ModuleFactory")} ModuleFactory */
+/** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
 /** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCreateDataContextInfo} ModuleFactoryCreateDataContextInfo */
 /** @typedef {import("./ModuleFactory").ModuleFactoryResult} ModuleFactoryResult */
+/** @typedef {import("./NormalModule").ParserOptions} ParserOptions */
+/** @typedef {import("./NormalModule").GeneratorOptions} GeneratorOptions */
 /** @typedef {import("./RequestShortener")} RequestShortener */
 /** @typedef {import("./RuntimeModule")} RuntimeModule */
 /** @typedef {import("./Template").RenderManifestEntry} RenderManifestEntry */
@@ -122,13 +130,12 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsModule} StatsModule */
 /** @typedef {import("./TemplatedPathPlugin").TemplatePath} TemplatePath */
 /** @typedef {import("./util/Hash")} Hash */
-/** @typedef {import("./util/createHash").Algorithm} Algorithm */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /**
  * @template T
  * @typedef {import("./util/deprecation").FakeHook<T>} FakeHook<T>
  */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
-/** @typedef {WeakMap<Dependency, Module>} References */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /**
  * @callback Callback
@@ -164,13 +171,7 @@ const { isSourceEqual } = require("./util/source");
  * @returns {void}
  */
 
-/**
- * @callback DepBlockVarDependenciesCallback
- * @param {Dependency} dependency
- * @returns {any}
- */
-
-/** @typedef {new (...args: any[]) => Dependency} DepConstructor */
+/** @typedef {new (...args: EXPECTED_ANY[]) => Dependency} DepConstructor */
 
 /** @typedef {Record<string, Source>} CompilationAssets */
 
@@ -189,10 +190,10 @@ const { isSourceEqual } = require("./util/source");
 
 /**
  * @typedef {object} ChunkPathData
- * @property {string|number} id
+ * @property {string | number} id
  * @property {string=} name
  * @property {string} hash
- * @property {function(number): string=} hashWithLength
+ * @property {((length: number) => string)=} hashWithLength
  * @property {(Record<string, string>)=} contentHash
  * @property {(Record<string, (length: number) => string>)=} contentHashWithLength
  */
@@ -216,11 +217,13 @@ const { isSourceEqual } = require("./util/source");
  * @property {EntryOptions=} entryOptions
  */
 
+/** @typedef {EXPECTED_ANY} ExecuteModuleExports */
+
 /**
  * @typedef {object} ExecuteModuleResult
- * @property {any} exports
+ * @property {ExecuteModuleExports} exports
  * @property {boolean} cacheable
- * @property {Map<string, { source: Source, info: AssetInfo }>} assets
+ * @property {Map<string, { source: Source, info: AssetInfo | undefined }>} assets
  * @property {LazySet<string>} fileDependencies
  * @property {LazySet<string>} contextDependencies
  * @property {LazySet<string>} missingDependencies
@@ -228,22 +231,36 @@ const { isSourceEqual } = require("./util/source");
  */
 
 /**
- * @typedef {{ id: string, exports: any, loaded: boolean }} ModuleObject
- *
- * /**
+ * @typedef {object} ExecuteModuleObject
+ * @property {string=} id module id
+ * @property {ExecuteModuleExports} exports exports
+ * @property {boolean} loaded is loaded
+ * @property {Error=} error error
+ */
+
+/**
  * @typedef {object} ExecuteModuleArgument
  * @property {Module} module
- * @property {ModuleObject=} moduleObject
- * @property {any} preparedInfo
+ * @property {ExecuteModuleObject=} moduleObject
+ * @property {TODO} preparedInfo
  * @property {CodeGenerationResult} codeGenerationResult
+ */
+
+/** @typedef {((id: string) => ExecuteModuleExports) & { i?: ((options: ExecuteOptions) => void)[], c?: Record<string, ExecuteModuleObject> }} WebpackRequire */
+
+/**
+ * @typedef {object} ExecuteOptions
+ * @property {string=} id module id
+ * @property {ExecuteModuleObject} module module
+ * @property {WebpackRequire} require require function
  */
 
 /**
  * @typedef {object} ExecuteModuleContext
- * @property {Map<string, { source: Source, info: AssetInfo }>} assets
+ * @property {Map<string, { source: Source, info: AssetInfo | undefined }>} assets
  * @property {Chunk} chunk
  * @property {ChunkGraph} chunkGraph
- * @property {function(string): any=} __webpack_require__
+ * @property {WebpackRequire=} __webpack_require__
  */
 
 /**
@@ -256,7 +273,7 @@ const { isSourceEqual } = require("./util/source");
 /**
  * @typedef {object} LogEntry
  * @property {string} type
- * @property {any[]=} args
+ * @property {EXPECTED_ANY[]=} args
  * @property {number} time
  * @property {string[]=} trace
  */
@@ -277,7 +294,7 @@ const { isSourceEqual } = require("./util/source");
  * @property {Record<string, string | string[]>=} related object of pointers to other assets, keyed by type of relation (only points from parent to child)
  */
 
-/** @typedef {KnownAssetInfo & Record<string, any>} AssetInfo */
+/** @typedef {KnownAssetInfo & Record<string, EXPECTED_ANY>} AssetInfo */
 
 /** @typedef {{ path: string, info: AssetInfo }} InterpolatedPathAndAssetInfo */
 
@@ -290,38 +307,40 @@ const { isSourceEqual } = require("./util/source");
 
 /**
  * @typedef {object} ModulePathData
- * @property {string|number} id
+ * @property {string | number} id
  * @property {string} hash
- * @property {function(number): string=} hashWithLength
+ * @property {((length: number) => string)=} hashWithLength
  */
 
 /**
  * @typedef {object} PathData
  * @property {ChunkGraph=} chunkGraph
  * @property {string=} hash
- * @property {function(number): string=} hashWithLength
- * @property {(Chunk|ChunkPathData)=} chunk
- * @property {(Module|ModulePathData)=} module
+ * @property {((length: number) => string)=} hashWithLength
+ * @property {(Chunk | ChunkPathData)=} chunk
+ * @property {(Module | ModulePathData)=} module
  * @property {RuntimeSpec=} runtime
  * @property {string=} filename
  * @property {string=} basename
  * @property {string=} query
  * @property {string=} contentHashType
  * @property {string=} contentHash
- * @property {function(number): string=} contentHashWithLength
+ * @property {((length: number) => string)=} contentHashWithLength
  * @property {boolean=} noChunkHash
  * @property {string=} url
  */
+
+/** @typedef {"module" | "chunk" | "root-of-chunk" | "nested"} ExcludeModulesType */
 
 /**
  * @typedef {object} KnownNormalizedStatsOptions
  * @property {string} context
  * @property {RequestShortener} requestShortener
- * @property {string} chunksSort
- * @property {string} modulesSort
- * @property {string} chunkModulesSort
- * @property {string} nestedModulesSort
- * @property {string} assetsSort
+ * @property {string | false} chunksSort
+ * @property {string | false} modulesSort
+ * @property {string | false} chunkModulesSort
+ * @property {string | false} nestedModulesSort
+ * @property {string | false} assetsSort
  * @property {boolean} ids
  * @property {boolean} cachedAssets
  * @property {boolean} groupAssetsByEmitStatus
@@ -329,7 +348,7 @@ const { isSourceEqual } = require("./util/source");
  * @property {boolean} groupAssetsByExtension
  * @property {number} assetsSpace
  * @property {((value: string, asset: StatsAsset) => boolean)[]} excludeAssets
- * @property {((name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean)[]} excludeModules
+ * @property {((name: string, module: StatsModule, type: ExcludeModulesType) => boolean)[]} excludeModules
  * @property {((warning: StatsError, textValue: string) => boolean)[]} warningsFilter
  * @property {boolean} cachedModules
  * @property {boolean} orphanModules
@@ -349,26 +368,30 @@ const { isSourceEqual } = require("./util/source");
  * @property {number} modulesSpace
  * @property {number} chunkModulesSpace
  * @property {number} nestedModulesSpace
- * @property {false|"none"|"error"|"warn"|"info"|"log"|"verbose"} logging
+ * @property {false | "none" | "error" | "warn" | "info" | "log" | "verbose"} logging
  * @property {((value: string) => boolean)[]} loggingDebug
  * @property {boolean} loggingTrace
- * @property {any} _env
+ * @property {TODO} _env
  */
 
-/** @typedef {KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>} NormalizedStatsOptions */
+/** @typedef {KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, EXPECTED_ANY>} NormalizedStatsOptions */
 
 /**
  * @typedef {object} KnownCreateStatsOptionsContext
  * @property {boolean=} forToString
  */
 
-/** @typedef {Record<string, any> & KnownCreateStatsOptionsContext} CreateStatsOptionsContext */
+/** @typedef {KnownCreateStatsOptionsContext & Record<string, EXPECTED_ANY>} CreateStatsOptionsContext */
 
-/** @typedef {{module: Module, hash: string, runtime: RuntimeSpec, runtimes: RuntimeSpec[]}[]} CodeGenerationJobs */
+/** @typedef {{ module: Module, hash: string, runtime: RuntimeSpec, runtimes: RuntimeSpec[]}} CodeGenerationJob */
+
+/** @typedef {CodeGenerationJob[]} CodeGenerationJobs */
 
 /** @typedef {{javascript: ModuleTemplate}} ModuleTemplates */
 
 /** @typedef {Set<Module>} NotCodeGeneratedModules */
+
+/** @typedef {Record<string, TODO>} Records */
 
 /** @type {AssetInfo} */
 const EMPTY_ASSET_INFO = Object.freeze({});
@@ -433,11 +456,28 @@ const byLocation = compareSelect(err => err.loc, compareLocations);
 
 const compareErrors = concatComparators(byModule, byLocation, byMessage);
 
-/** @type {WeakMap<Dependency, Module & { restoreFromUnsafeCache: Function } | null>} */
+/**
+ * @typedef {object} KnownUnsafeCacheData
+ * @property {FactoryMeta=} factoryMeta factory meta
+ * @property {ResolveOptions=} resolveOptions resolve options
+ * @property {ParserOptions=} parserOptions
+ * @property {GeneratorOptions=} generatorOptions
+ */
+
+/** @typedef {KnownUnsafeCacheData & Record<string, EXPECTED_ANY>} UnsafeCacheData */
+
+/**
+ * @typedef {Module & { restoreFromUnsafeCache?: (unsafeCacheData: UnsafeCacheData, moduleFactory: ModuleFactory, compilationParams: CompilationParams) => void }} ModuleWithRestoreFromUnsafeCache
+ */
+
+/** @type {WeakMap<Dependency, ModuleWithRestoreFromUnsafeCache | null>} */
 const unsafeCacheDependencies = new WeakMap();
 
-/** @type {WeakMap<Module & { restoreFromUnsafeCache: Function }, object>} */
+/** @type {WeakMap<ModuleWithRestoreFromUnsafeCache, UnsafeCacheData>} */
 const unsafeCacheData = new WeakMap();
+
+/** @typedef {{ id: ModuleId, modules?: Map<Module, string | number | undefined>, blocks?: (string | number | null)[] }} References */
+/** @typedef {Map<Module, WeakTupleMap<EXPECTED_ANY[], EXPECTED_ANY>>} ModuleMemCaches */
 
 class Compilation {
 	/**
@@ -449,7 +489,7 @@ class Compilation {
 		this._backCompat = compiler._backCompat;
 
 		const getNormalModuleLoader = () => deprecatedNormalModuleLoaderHook(this);
-		/** @typedef {{ additionalAssets?: true | Function }} ProcessAssetsAdditionalOptions */
+		/** @typedef {{ additionalAssets?: true | TODO }} ProcessAssetsAdditionalOptions */
 		/** @type {AsyncSeriesHook<[CompilationAssets], ProcessAssetsAdditionalOptions>} */
 		const processAssetsHook = new AsyncSeriesHook(["assets"]);
 
@@ -480,23 +520,34 @@ class Compilation {
 				const { fn, additionalAssets, ...remainingTap } = tap;
 				const additionalAssetsFn =
 					additionalAssets === true ? fn : additionalAssets;
+				/** @typedef {WeakSet<CompilationAssets>} ProcessedAssets */
+
+				/** @type {ProcessedAssets | undefined} */
 				const processedAssets = additionalAssetsFn ? new WeakSet() : undefined;
 				switch (type) {
 					case "sync":
 						if (additionalAssetsFn) {
 							this.hooks.processAdditionalAssets.tap(name, assets => {
-								if (processedAssets.has(this.assets))
+								if (
+									/** @type {ProcessedAssets} */
+									(processedAssets).has(this.assets)
+								)
 									additionalAssetsFn(assets);
 							});
 						}
 						return {
 							...remainingTap,
 							type: "async",
+							/**
+							 * @param {CompilationAssets} assets assets
+							 * @param {(err?: Error | null, result?: void) => void} callback callback
+							 * @returns {void}
+							 */
 							fn: (assets, callback) => {
 								try {
 									fn(assets);
 								} catch (err) {
-									return callback(err);
+									return callback(/** @type {Error} */ (err));
 								}
 								if (processedAssets !== undefined)
 									processedAssets.add(this.assets);
@@ -516,7 +567,10 @@ class Compilation {
 							this.hooks.processAdditionalAssets.tapAsync(
 								name,
 								(assets, callback) => {
-									if (processedAssets.has(this.assets))
+									if (
+										/** @type {ProcessedAssets} */
+										(processedAssets).has(this.assets)
+									)
 										return additionalAssetsFn(assets, callback);
 									callback();
 								}
@@ -524,33 +578,52 @@ class Compilation {
 						}
 						return {
 							...remainingTap,
+							/**
+							 * @param {CompilationAssets} assets assets
+							 * @param {(err?: Error | null, result?: void) => void} callback callback
+							 * @returns {void}
+							 */
 							fn: (assets, callback) => {
-								fn(assets, err => {
-									if (err) return callback(err);
-									if (processedAssets !== undefined)
-										processedAssets.add(this.assets);
-									const newAssets = popNewAssets(assets);
-									if (newAssets !== undefined) {
-										this.hooks.processAdditionalAssets.callAsync(
-											newAssets,
-											callback
-										);
-										return;
+								fn(
+									assets,
+									/**
+									 * @param {Error} err err
+									 * @returns {void}
+									 */
+									err => {
+										if (err) return callback(err);
+										if (processedAssets !== undefined)
+											processedAssets.add(this.assets);
+										const newAssets = popNewAssets(assets);
+										if (newAssets !== undefined) {
+											this.hooks.processAdditionalAssets.callAsync(
+												newAssets,
+												callback
+											);
+											return;
+										}
+										callback();
 									}
-									callback();
-								});
+								);
 							}
 						};
 					case "promise":
 						if (additionalAssetsFn) {
 							this.hooks.processAdditionalAssets.tapPromise(name, assets => {
-								if (processedAssets.has(this.assets))
+								if (
+									/** @type {ProcessedAssets} */
+									(processedAssets).has(this.assets)
+								)
 									return additionalAssetsFn(assets);
 								return Promise.resolve();
 							});
 						}
 						return {
 							...remainingTap,
+							/**
+							 * @param {CompilationAssets} assets assets
+							 * @returns {Promise<CompilationAssets>} result
+							 */
 							fn: assets => {
 								const p = fn(assets);
 								if (!p || !p.then) return p;
@@ -577,9 +650,9 @@ class Compilation {
 		 * @template T
 		 * @param {string} name name of the hook
 		 * @param {number} stage new stage
-		 * @param {function(): AsArray<T>} getArgs get old hook function args
+		 * @param {() => AsArray<T>} getArgs get old hook function args
 		 * @param {string=} code deprecation code (not deprecated when unset)
-		 * @returns {FakeHook<Pick<AsyncSeriesHook<T>, "tap" | "tapAsync" | "tapPromise" | "name">>} fake hook which redirects
+		 * @returns {FakeHook<Pick<AsyncSeriesHook<T>, "tap" | "tapAsync" | "tapPromise" | "name">> | undefined} fake hook which redirects
 		 */
 		const createProcessAssetsHook = (name, stage, getArgs, code) => {
 			if (!this._backCompat && code) return;
@@ -590,6 +663,10 @@ class Compilation {
 			const errorMessage =
 				reason => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
 BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
+			/**
+			 * @param {string | (import("tapable").TapOptions & { name: string; } & ProcessAssetsAdditionalOptions)} options hook options
+			 * @returns {import("tapable").TapOptions & { name: string; } & ProcessAssetsAdditionalOptions} modified options
+			 */
 			const getOptions = options => {
 				if (typeof options === "string") options = { name: options };
 				if (options.stage) {
@@ -613,7 +690,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						processAssetsHook.tapAsync(
 							getOptions(options),
 							(assets, callback) =>
-								/** @type {any} */ (fn)(...getArgs(), callback)
+								/** @type {TODO} */ (fn)(...getArgs(), callback)
 						);
 					},
 					/** @type {AsyncSeriesHook<T>["tapPromise"]} */
@@ -740,7 +817,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			/** @type {SyncHook<[RuntimeModule, Chunk]>} */
 			runtimeModule: new SyncHook(["module", "chunk"]),
 
-			/** @type {SyncHook<[Iterable<Module>, any]>} */
+			/** @type {SyncHook<[Iterable<Module>, Records]>} */
 			reviveModules: new SyncHook(["modules", "records"]),
 			/** @type {SyncHook<[Iterable<Module>]>} */
 			beforeModuleIds: new SyncHook(["modules"]),
@@ -751,7 +828,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			/** @type {SyncHook<[Iterable<Module>]>} */
 			afterOptimizeModuleIds: new SyncHook(["modules"]),
 
-			/** @type {SyncHook<[Iterable<Chunk>, any]>} */
+			/** @type {SyncHook<[Iterable<Chunk>, Records]>} */
 			reviveChunks: new SyncHook(["chunks", "records"]),
 			/** @type {SyncHook<[Iterable<Chunk>]>} */
 			beforeChunkIds: new SyncHook(["chunks"]),
@@ -762,9 +839,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			/** @type {SyncHook<[Iterable<Chunk>]>} */
 			afterOptimizeChunkIds: new SyncHook(["chunks"]),
 
-			/** @type {SyncHook<[Iterable<Module>, any]>} */
+			/** @type {SyncHook<[Iterable<Module>, Records]>} */
 			recordModules: new SyncHook(["modules", "records"]),
-			/** @type {SyncHook<[Iterable<Chunk>, any]>} */
+			/** @type {SyncHook<[Iterable<Chunk>, Records]>} */
 			recordChunks: new SyncHook(["chunks", "records"]),
 
 			/** @type {SyncHook<[Iterable<Module>]>} */
@@ -791,9 +868,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			contentHash: new SyncHook(["chunk"]),
 			/** @type {SyncHook<[]>} */
 			afterHash: new SyncHook([]),
-			/** @type {SyncHook<[any]>} */
+			/** @type {SyncHook<[Records]>} */
 			recordHash: new SyncHook(["records"]),
-			/** @type {SyncHook<[Compilation, any]>} */
+			/** @type {SyncHook<[Compilation, Records]>} */
 			record: new SyncHook(["compilation", "records"]),
 
 			/** @type {SyncHook<[]>} */
@@ -804,36 +881,52 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			beforeChunkAssets: new SyncHook([]),
 			// TODO webpack 6 remove
 			/** @deprecated */
-			additionalChunkAssets: createProcessAssetsHook(
-				"additionalChunkAssets",
-				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-				() => [this.chunks],
-				"DEP_WEBPACK_COMPILATION_ADDITIONAL_CHUNK_ASSETS"
-			),
+			additionalChunkAssets:
+				/** @type {FakeHook<Pick<AsyncSeriesHook<[Set<Chunk>]>, "tap" | "tapAsync" | "tapPromise" | "name">>} */
+				(
+					createProcessAssetsHook(
+						"additionalChunkAssets",
+						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+						() => [this.chunks],
+						"DEP_WEBPACK_COMPILATION_ADDITIONAL_CHUNK_ASSETS"
+					)
+				),
 
 			// TODO webpack 6 deprecate
 			/** @deprecated */
-			additionalAssets: createProcessAssetsHook(
-				"additionalAssets",
-				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-				() => []
-			),
+			additionalAssets:
+				/** @type {FakeHook<Pick<AsyncSeriesHook<[]>, "tap" | "tapAsync" | "tapPromise" | "name">>} */
+				(
+					createProcessAssetsHook(
+						"additionalAssets",
+						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+						() => []
+					)
+				),
 			// TODO webpack 6 remove
 			/** @deprecated */
-			optimizeChunkAssets: createProcessAssetsHook(
-				"optimizeChunkAssets",
-				Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
-				() => [this.chunks],
-				"DEP_WEBPACK_COMPILATION_OPTIMIZE_CHUNK_ASSETS"
-			),
+			optimizeChunkAssets:
+				/** @type {FakeHook<Pick<AsyncSeriesHook<[Set<Chunk>]>, "tap" | "tapAsync" | "tapPromise" | "name">>} */
+				(
+					createProcessAssetsHook(
+						"optimizeChunkAssets",
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+						() => [this.chunks],
+						"DEP_WEBPACK_COMPILATION_OPTIMIZE_CHUNK_ASSETS"
+					)
+				),
 			// TODO webpack 6 remove
 			/** @deprecated */
-			afterOptimizeChunkAssets: createProcessAssetsHook(
-				"afterOptimizeChunkAssets",
-				Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE + 1,
-				() => [this.chunks],
-				"DEP_WEBPACK_COMPILATION_AFTER_OPTIMIZE_CHUNK_ASSETS"
-			),
+			afterOptimizeChunkAssets:
+				/** @type {FakeHook<Pick<AsyncSeriesHook<[Set<Chunk>]>, "tap" | "tapAsync" | "tapPromise" | "name">>} */
+				(
+					createProcessAssetsHook(
+						"afterOptimizeChunkAssets",
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE + 1,
+						() => [this.chunks],
+						"DEP_WEBPACK_COMPILATION_AFTER_OPTIMIZE_CHUNK_ASSETS"
+					)
+				),
 			// TODO webpack 6 deprecate
 			/** @deprecated */
 			optimizeAssets: processAssetsHook,
@@ -864,7 +957,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			/** @type {SyncHook<[Chunk, string]>} */
 			chunkAsset: new SyncHook(["chunk", "filename"]),
 
-			/** @type {SyncWaterfallHook<[string, object, AssetInfo | undefined]>} */
+			/** @type {SyncWaterfallHook<[string, PathData, AssetInfo | undefined]>} */
 			assetPath: new SyncWaterfallHook(["path", "options", "assetInfo"]),
 
 			/** @type {SyncBailHook<[], boolean | void>} */
@@ -880,9 +973,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			/** @type {SyncBailHook<[string, LogEntry], boolean | void>} */
 			log: new SyncBailHook(["origin", "logEntry"]),
 
-			/** @type {SyncWaterfallHook<[WebpackError[]]>} */
+			/** @type {SyncWaterfallHook<[Error[]]>} */
 			processWarnings: new SyncWaterfallHook(["warnings"]),
-			/** @type {SyncWaterfallHook<[WebpackError[]]>} */
+			/** @type {SyncWaterfallHook<[Error[]]>} */
 			processErrors: new SyncWaterfallHook(["errors"]),
 
 			/** @type {HookMap<SyncHook<[Partial<NormalizedStatsOptions>, CreateStatsOptionsContext]>>} */
@@ -956,15 +1049,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 		defineRemovedModuleTemplates(this.moduleTemplates);
 
-		/** @type {Map<Module, WeakTupleMap<any, any>> | undefined} */
+		// We need to think how implement types here
+		/** @type {ModuleMemCaches | undefined} */
 		this.moduleMemCaches = undefined;
-		/** @type {Map<Module, WeakTupleMap<any, any>> | undefined} */
+		/** @type {ModuleMemCaches | undefined} */
 		this.moduleMemCaches2 = undefined;
 		this.moduleGraph = new ModuleGraph();
 		/** @type {ChunkGraph} */
-		this.chunkGraph = undefined;
+		this.chunkGraph = /** @type {TODO} */ (undefined);
 		/** @type {CodeGenerationResults} */
-		this.codeGenerationResults = undefined;
+		this.codeGenerationResults = /** @type {TODO} */ (undefined);
 
 		/** @type {AsyncQueue<Module, Module, Module>} */
 		this.processDependenciesQueue = new AsyncQueue({
@@ -1006,7 +1100,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		 */
 		this.creatingModuleDuringBuild = new WeakMap();
 
-		/** @type {Map<string, EntryData>} */
+		/** @type {Map<Exclude<ChunkName, null>, EntryData>} */
 		this.entries = new Map();
 		/** @type {EntryData} */
 		this.globalEntry = {
@@ -1039,6 +1133,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		 * @type {Map<string, Module>}
 		 */
 		this._modules = new Map();
+		/** @type {Records | null} */
 		this.records = null;
 		/** @type {string[]} */
 		this.additionalChunkAssets = [];
@@ -1048,9 +1143,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.assetsInfo = new Map();
 		/** @type {Map<string, Map<string, Set<string>>>} */
 		this._assetsRelatedIn = new Map();
-		/** @type {WebpackError[]} */
+		/** @type {Error[]} */
 		this.errors = [];
-		/** @type {WebpackError[]} */
+		/** @type {Error[]} */
 		this.warnings = [];
 		/** @type {Compilation[]} */
 		this.children = [];
@@ -1064,15 +1159,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 		/** @type {Record<string, number>} */
 		this.childrenCounters = {};
-		/** @type {Set<number|string>} */
+		/** @type {Set<number|string> | null} */
 		this.usedChunkIds = null;
-		/** @type {Set<number>} */
+		/** @type {Set<number> | null} */
 		this.usedModuleIds = null;
 		/** @type {boolean} */
 		this.needAdditionalPass = false;
-		/** @type {Set<Module & { restoreFromUnsafeCache: Function }>} */
+		/** @type {Set<ModuleWithRestoreFromUnsafeCache>} */
 		this._restoredUnsafeCacheModuleEntries = new Set();
-		/** @type {Map<string, Module & { restoreFromUnsafeCache: Function }>} */
+		/** @type {Map<string, ModuleWithRestoreFromUnsafeCache>} */
 		this._restoredUnsafeCacheEntries = new Map();
 		/** @type {WeakSet<Module>} */
 		this.builtModules = new WeakSet();
@@ -1182,7 +1277,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	/**
-	 * @param {string | (function(): string)} name name of the logger, or function called once to get the logger name
+	 * @param {string | (() => string)} name name of the logger, or function called once to get the logger name
 	 * @returns {Logger} a logger with that name
 	 */
 	getLogger(name) {
@@ -1220,6 +1315,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					args,
 					trace
 				};
+				/* eslint-disable no-console */
 				if (this.hooks.log.call(name, logEntry) === undefined) {
 					if (
 						logEntry.type === LogType.profileEnd &&
@@ -1248,6 +1344,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 							}`
 						);
 					}
+					/* eslint-enable no-console */
 				}
 			},
 			childName => {
@@ -1423,7 +1520,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					this.options,
 					this,
 					this.resolverFactory.get("normal", module.resolveOptions),
-					/** @type {InputFileSystem} */ (this.inputFileSystem),
+					/** @type {InputFileSystem} */
+					(this.inputFileSystem),
 					err => {
 						if (currentProfile !== undefined) {
 							currentProfile.markBuildingEnd();
@@ -1668,6 +1766,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						return;
 					}
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.error(err);
 				}
 			}
@@ -1909,7 +2008,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					}
 
 					const module =
-						/** @type {Module & { restoreFromUnsafeCache?: Function }} */
+						/** @type {ModuleWithRestoreFromUnsafeCache} */
 						(_module);
 
 					if (
@@ -1920,10 +2019,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						this._unsafeCachePredicate(module)
 					) {
 						const unsafeCacheableModule =
-							/** @type {Module & { restoreFromUnsafeCache: Function }} */
+							/** @type {ModuleWithRestoreFromUnsafeCache} */
 							(module);
-						for (let i = 0; i < dependencies.length; i++) {
-							const dependency = dependencies[i];
+						for (const dependency of dependencies) {
 							moduleGraph.setResolvedModule(
 								connectOrigin ? originModule : null,
 								dependency,
@@ -1939,8 +2037,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						}
 					} else {
 						applyFactoryResultDependencies();
-						for (let i = 0; i < dependencies.length; i++) {
-							const dependency = dependencies[i];
+						for (const dependency of dependencies) {
 							moduleGraph.setResolvedModule(
 								connectOrigin ? originModule : null,
 								dependency,
@@ -1976,7 +2073,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * @private
-	 * @param {Module} originModule original module
+	 * @param {Module | null} originModule original module
 	 * @param {Module} module module
 	 * @param {boolean} recursive true if make it recursive, otherwise false
 	 * @param {boolean} checkCycle true if need to check cycle, otherwise false
@@ -1993,14 +2090,20 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		// Check for cycles when build is trigger inside another build
 		/** @type {Set<Module> | undefined} */
 		let creatingModuleDuringBuildSet;
-		if (checkCycle && this.buildQueue.isProcessing(originModule)) {
+		if (
+			checkCycle &&
+			this.buildQueue.isProcessing(/** @type {Module} */ (originModule))
+		) {
 			// Track build dependency
-			creatingModuleDuringBuildSet =
-				this.creatingModuleDuringBuild.get(originModule);
+			creatingModuleDuringBuildSet = this.creatingModuleDuringBuild.get(
+				/** @type {Module} */
+				(originModule)
+			);
 			if (creatingModuleDuringBuildSet === undefined) {
 				creatingModuleDuringBuildSet = new Set();
 				this.creatingModuleDuringBuild.set(
-					originModule,
+					/** @type {Module} */
+					(originModule),
 					creatingModuleDuringBuildSet
 				);
 			}
@@ -2082,15 +2185,19 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		factory.create(
 			{
 				contextInfo: {
-					issuer: originModule ? originModule.nameForCondition() : "",
+					issuer: originModule
+						? /** @type {string} */ (originModule.nameForCondition())
+						: "",
 					issuerLayer: originModule ? originModule.layer : null,
-					compiler: this.compiler.name,
+					compiler: /** @type {string} */ (this.compiler.name),
 					...contextInfo
 				},
 				resolveOptions: originModule ? originModule.resolveOptions : undefined,
 				context:
 					context ||
-					(originModule ? originModule.context : this.compiler.context),
+					(originModule
+						? /** @type {string} */ (originModule.context)
+						: /** @type {string} */ (this.compiler.context)),
 				dependencies
 			},
 			(err, result) => {
@@ -2247,6 +2354,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	_addEntryItem(context, entry, target, options, callback) {
 		const { name } = options;
+		/** @type {EntryData | undefined} */
 		let entryData =
 			name !== undefined ? this.entries.get(name) : this.globalEntry;
 		if (entryData === undefined) {
@@ -2260,12 +2368,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			};
 			entryData[target].push(entry);
 			this.entries.set(
-				/** @type {NonNullable<EntryOptions["name"]>} */ (name),
+				/** @type {NonNullable<EntryOptions["name"]>} */
+				(name),
 				entryData
 			);
 		} else {
 			entryData[target].push(entry);
-			for (const key of Object.keys(options)) {
+			for (const _key of Object.keys(options)) {
+				const key = /** @type {keyof EntryOptions} */ (_key);
 				if (options[key] === undefined) continue;
 				if (entryData.options[key] === options[key]) continue;
 				if (
@@ -2276,7 +2386,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					continue;
 				}
 				if (entryData.options[key] === undefined) {
-					entryData.options[key] = options[key];
+					/** @type {TODO} */
+					(entryData.options)[key] =
+						/** @type {NonNullable<EntryOptions[keyof EntryOptions]>} */
+						(options[key]);
 				} else {
 					return callback(
 						new WebpackError(
@@ -2302,7 +2415,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					this.hooks.failedEntry.call(entry, options, err);
 					return callback(err);
 				}
-				this.hooks.succeedEntry.call(entry, options, module);
+				this.hooks.succeedEntry.call(
+					entry,
+					options,
+					/** @type {Module} */
+					(module)
+				);
 				return callback(null, module);
 			}
 		);
@@ -2384,10 +2502,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 		/**
 		 * @param {Module} module module
-		 * @returns {References | undefined} references
+		 * @returns {WeakReferences | undefined} references
 		 */
 		const computeReferences = module => {
-			/** @type {References | undefined} */
+			/** @type {WeakReferences | undefined} */
 			let references;
 			for (const connection of moduleGraph.getOutgoingConnections(module)) {
 				const d = connection.dependency;
@@ -2401,7 +2519,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 		/**
 		 * @param {Module} module the module
-		 * @param {References | undefined} references references
+		 * @param {WeakReferences | undefined} references references
 		 * @returns {boolean} true, when the references differ
 		 */
 		const compareReferences = (module, references) => {
@@ -2423,6 +2541,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				if (buildInfo) {
 					if (cachedMemCache.buildInfo !== buildInfo) {
 						// use a new one
+						/** @type {MemCache} */
 						const memCache = new WeakTupleMap();
 						moduleMemCaches.set(module, memCache);
 						affectedModules.add(module);
@@ -2432,6 +2551,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						statChanged++;
 					} else if (!compareReferences(module, cachedMemCache.references)) {
 						// use a new one
+						/** @type {MemCache} */
 						const memCache = new WeakTupleMap();
 						moduleMemCaches.set(module, memCache);
 						affectedModules.add(module);
@@ -2522,6 +2642,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				} else {
 					affectedModules.add(referencingModule);
 				}
+				/** @type {MemCache} */
 				const memCache = new WeakTupleMap();
 				const cache =
 					/** @type {ModuleMemCachesItem} */
@@ -2554,7 +2675,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		let statNew = 0;
 		/**
 		 * @param {Module} module module
-		 * @returns {{ id: ModuleId, modules?: Map<Module, string | number | undefined>, blocks?: (string | number | null)[] }} references
+		 * @returns {References} references
 		 */
 		const computeReferences = module => {
 			const id = /** @type {ModuleId} */ (chunkGraph.getModuleId(module));
@@ -2624,9 +2745,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 
 		for (const [module, memCache] of moduleMemCaches) {
-			/** @type {{ references: { id: string | number, modules?: Map<Module, string | number | undefined>, blocks?: (string | number | null)[]}, memCache: WeakTupleMap<any[], any> }} */
+			/** @type {{ references: References, memCache: MemCache } | undefined} */
 			const cache = memCache.get(key);
 			if (cache === undefined) {
+				/** @type {WeakTupleMap<Module[], RuntimeRequirements | null> | undefined} */
 				const memCache2 = new WeakTupleMap();
 				memCache.set(key, {
 					references: computeReferences(module),
@@ -2635,6 +2757,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				moduleMemCaches2.set(module, memCache2);
 				statNew++;
 			} else if (!compareReferences(module, cache.references)) {
+				/** @type {WeakTupleMap<Module[], RuntimeRequirements | null> | undefined} */
 				const memCache = new WeakTupleMap();
 				cache.references = computeReferences(module);
 				cache.memCache = memCache;
@@ -2981,7 +3104,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 			const entryModules = new Set();
 			for (const dep of [...this.globalEntry.dependencies, ...dependencies]) {
-				entrypoint.addOrigin(null, { name }, /** @type {any} */ (dep).request);
+				entrypoint.addOrigin(
+					null,
+					{ name },
+					/** @type {Dependency & { request: string }} */
+					(dep).request
+				);
 
 				const module = this.moduleGraph.getModule(dep);
 				if (module) {
@@ -3136,13 +3264,21 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 
 					const shouldRecord = this.hooks.shouldRecord.call() !== false;
 
-					this.hooks.reviveModules.call(this.modules, this.records);
+					this.hooks.reviveModules.call(
+						this.modules,
+						/** @type {Records} */
+						(this.records)
+					);
 					this.hooks.beforeModuleIds.call(this.modules);
 					this.hooks.moduleIds.call(this.modules);
 					this.hooks.optimizeModuleIds.call(this.modules);
 					this.hooks.afterOptimizeModuleIds.call(this.modules);
 
-					this.hooks.reviveChunks.call(this.chunks, this.records);
+					this.hooks.reviveChunks.call(
+						this.chunks,
+						/** @type {Records} */
+						(this.records)
+					);
 					this.hooks.beforeChunkIds.call(this.chunks);
 					this.hooks.chunkIds.call(this.chunks);
 					this.hooks.optimizeChunkIds.call(this.chunks);
@@ -3157,8 +3293,16 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 					this.sortItemsWithChunkIds();
 
 					if (shouldRecord) {
-						this.hooks.recordModules.call(this.modules, this.records);
-						this.hooks.recordChunks.call(this.chunks, this.records);
+						this.hooks.recordModules.call(
+							this.modules,
+							/** @type {Records} */
+							(this.records)
+						);
+						this.hooks.recordChunks.call(
+							this.chunks,
+							/** @type {Records} */
+							(this.records)
+						);
 					}
 
 					this.hooks.optimizeCodeGeneration.call(this.modules);
@@ -3198,7 +3342,10 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 
 							if (shouldRecord) {
 								this.logger.time("record hash");
-								this.hooks.recordHash.call(this.records);
+								this.hooks.recordHash.call(
+									/** @type {Records} */
+									(this.records)
+								);
 								this.logger.timeEnd("record hash");
 							}
 
@@ -3219,22 +3366,28 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 									}
 									this.hooks.afterProcessAssets.call(this.assets);
 									this.logger.timeEnd("process assets");
-									this.assets = /** @type {CompilationAssets} */ (
-										this._backCompat
-											? soonFrozenObjectDeprecation(
-													this.assets,
-													"Compilation.assets",
-													"DEP_WEBPACK_COMPILATION_ASSETS",
-													`BREAKING CHANGE: No more changes should happen to Compilation.assets after sealing the Compilation.
+									this.assets =
+										/** @type {CompilationAssets} */
+										(
+											this._backCompat
+												? soonFrozenObjectDeprecation(
+														this.assets,
+														"Compilation.assets",
+														"DEP_WEBPACK_COMPILATION_ASSETS",
+														`BREAKING CHANGE: No more changes should happen to Compilation.assets after sealing the Compilation.
 	Do changes to assets earlier, e. g. in Compilation.hooks.processAssets.
 	Make sure to select an appropriate stage from Compilation.PROCESS_ASSETS_STAGE_*.`
-												)
-											: Object.freeze(this.assets)
-									);
+													)
+												: Object.freeze(this.assets)
+										);
 
 									this.summarizeDependencies();
 									if (shouldRecord) {
-										this.hooks.record.call(this, this.records);
+										this.hooks.record.call(
+											this,
+											/** @type {Records} */
+											(this.records)
+										);
 									}
 
 									if (this.hooks.needAdditionalSeal.call()) {
@@ -3281,18 +3434,13 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	 */
 	reportDependencyErrorsAndWarnings(module, blocks) {
 		let hasProblems = false;
-		for (let indexBlock = 0; indexBlock < blocks.length; indexBlock++) {
-			const block = blocks[indexBlock];
+		for (const block of blocks) {
 			const dependencies = block.dependencies;
 
-			for (let indexDep = 0; indexDep < dependencies.length; indexDep++) {
-				const d = dependencies[indexDep];
-
+			for (const d of dependencies) {
 				const warnings = d.getWarnings(this.moduleGraph);
 				if (warnings) {
-					for (let indexWar = 0; indexWar < warnings.length; indexWar++) {
-						const w = warnings[indexWar];
-
+					for (const w of warnings) {
 						const warning = new ModuleDependencyWarning(module, w, d.loc);
 						this.warnings.push(warning);
 						hasProblems = true;
@@ -3300,9 +3448,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 				}
 				const errors = d.getErrors(this.moduleGraph);
 				if (errors) {
-					for (let indexErr = 0; indexErr < errors.length; indexErr++) {
-						const e = errors[indexErr];
-
+					for (const e of errors) {
 						const error = new ModuleDependencyError(module, e, d.loc);
 						this.errors.push(error);
 						hasProblems = true;
@@ -3471,7 +3617,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	 * @param {RuntimeTemplate} runtimeTemplate runtimeTemplate
 	 * @param {WebpackError[]} errors errors
 	 * @param {CodeGenerationResults} results results
-	 * @param {function((WebpackError | null)=, boolean=): void} callback callback
+	 * @param {(err?: WebpackError | null, result?: boolean) => void} callback callback
 	 */
 	_codeGenerationModule(
 		module,
@@ -3585,7 +3731,8 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 								chunkGraph.addModuleRuntimeRequirements(
 									module,
 									runtime,
-									cached,
+									/** @type {RuntimeRequirements} */
+									(cached),
 									false
 								);
 							}
@@ -3752,7 +3899,6 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 			groupOptions = { name: groupOptions };
 		}
 		const name = groupOptions.name;
-
 		if (name) {
 			const chunkGroup = this.namedChunkGroups.get(name);
 			if (chunkGroup !== undefined) {
@@ -3761,7 +3907,8 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 						module,
 						/** @type {DependencyLocation} */
 						(loc),
-						request
+						/** @type {string} */
+						(request)
 					);
 				}
 				return chunkGroup;
@@ -3773,7 +3920,8 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 				module,
 				/** @type {DependencyLocation} */
 				(loc),
-				request
+				/** @type {string} */
+				(request)
 			);
 		const chunk = this.addChunk(name);
 
@@ -3832,7 +3980,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	/**
 	 * This method first looks to see if a name is provided for a new chunk,
 	 * and first looks to see if any named chunks already exist and reuse that chunk instead.
-	 * @param {string=} name optional chunk name to be provided
+	 * @param {ChunkName=} name optional chunk name to be provided
 	 * @returns {Chunk} create a chunk (invoked during seal event)
 	 */
 	addChunk(name) {
@@ -3895,27 +4043,29 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	assignDepths(modules) {
 		const moduleGraph = this.moduleGraph;
 
-		/** @type {Set<Module | number>} */
+		/** @type {Set<Module>} */
 		const queue = new Set(modules);
-		queue.add(1);
+		// Track these in local variables so that queue only has one data type
+		let nextDepthAt = queue.size;
 		let depth = 0;
 
 		let i = 0;
 		for (const module of queue) {
-			i++;
-			if (typeof module === "number") {
-				depth = module;
-				if (queue.size === i) return;
-				queue.add(depth + 1);
-			} else {
-				moduleGraph.setDepth(module, depth);
-				for (const { module: refModule } of moduleGraph.getOutgoingConnections(
-					module
-				)) {
-					if (refModule) {
-						queue.add(refModule);
-					}
+			moduleGraph.setDepth(module, depth);
+			// Some of these results come from cache, which speeds this up
+			const connections = moduleGraph.getOutgoingConnectionsByModule(module);
+			// connections will be undefined if there are no outgoing connections
+			if (connections) {
+				for (const refModule of connections.keys()) {
+					if (refModule) queue.add(refModule);
 				}
+			}
+			i++;
+			// Since this is a breadth-first search, all modules added to the queue
+			// while at depth N will be depth N+1
+			if (i >= nextDepthAt) {
+				depth++;
+				nextDepthAt = queue.size;
 			}
 		}
 	}
@@ -4003,16 +4153,14 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 		};
 
 		const blocks = block.blocks;
-		for (let indexBlock = 0; indexBlock < blocks.length; indexBlock++) {
-			const asyncBlock = blocks[indexBlock];
+		for (const asyncBlock of blocks) {
 			const chunkGroup =
 				/** @type {ChunkGroup} */
 				(this.chunkGraph.getBlockChunkGroup(asyncBlock));
 			// Grab all chunks from the first Block's AsyncDepBlock
 			const chunks = chunkGroup.chunks;
 			// For each chunk in chunkGroup
-			for (let indexChunk = 0; indexChunk < chunks.length; indexChunk++) {
-				const iteratedChunk = chunks[indexChunk];
+			for (const iteratedChunk of chunks) {
 				chunkGroup.removeChunk(iteratedChunk);
 				// Recurse
 				this.removeChunkFromDependencies(block, iteratedChunk);
@@ -4053,13 +4201,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	}
 
 	summarizeDependencies() {
-		for (
-			let indexChildren = 0;
-			indexChildren < this.children.length;
-			indexChildren++
-		) {
-			const child = this.children[indexChildren];
-
+		for (const child of this.children) {
 			this.fileDependencies.addAll(child.fileDependencies);
 			this.contextDependencies.addAll(child.contextDependencies);
 			this.missingDependencies.addAll(child.missingDependencies);
@@ -4087,7 +4229,9 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 			const memCache = moduleMemCaches2 && moduleMemCaches2.get(module);
 			for (const runtime of chunkGraph.getModuleRuntimes(module)) {
 				if (memCache) {
-					const digest = memCache.get(`moduleHash-${getRuntimeKey(runtime)}`);
+					const digest =
+						/** @type {string} */
+						(memCache.get(`moduleHash-${getRuntimeKey(runtime)}`));
 					if (digest !== undefined) {
 						chunkGraph.setModuleHashes(
 							module,
@@ -4154,7 +4298,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 	) {
 		let moduleHashDigest;
 		try {
-			const moduleHash = createHash(/** @type {Algorithm} */ (hashFunction));
+			const moduleHash = createHash(/** @type {HashFunction} */ (hashFunction));
 			module.updateHash(moduleHash, {
 				chunkGraph,
 				runtime,
@@ -4182,7 +4326,7 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
 		const hashFunction = outputOptions.hashFunction;
 		const hashDigest = outputOptions.hashDigest;
 		const hashDigestLength = outputOptions.hashDigestLength;
-		const hash = createHash(/** @type {Algorithm} */ (hashFunction));
+		const hash = createHash(/** @type {HashFunction} */ (hashFunction));
 		if (outputOptions.hashSalt) {
 			hash.update(outputOptions.hashSalt);
 		}
@@ -4315,9 +4459,9 @@ This prevents using hashes of each other and should be avoided.`);
 		this.logger.timeEnd("hashing: sort chunks");
 
 		const fullHashChunks = new Set();
-		/** @type {{module: Module, hash: string, runtime: RuntimeSpec, runtimes: RuntimeSpec[]}[]} */
+		/** @type {CodeGenerationJobs} */
 		const codeGenerationJobs = [];
-		/** @type {Map<string, Map<Module, {module: Module, hash: string, runtime: RuntimeSpec, runtimes: RuntimeSpec[]}>>} */
+		/** @type {Map<string, Map<Module, CodeGenerationJob>>} */
 		const codeGenerationJobsMap = new Map();
 		/** @type {WebpackError[]} */
 		const errors = [];
@@ -4365,7 +4509,9 @@ This prevents using hashes of each other and should be avoided.`);
 			this.logger.timeAggregate("hashing: hash runtime modules");
 			try {
 				this.logger.time("hashing: hash chunks");
-				const chunkHash = createHash(/** @type {Algorithm} */ (hashFunction));
+				const chunkHash = createHash(
+					/** @type {HashFunction} */ (hashFunction)
+				);
 				if (outputOptions.hashSalt) {
 					chunkHash.update(outputOptions.hashSalt);
 				}
@@ -4418,7 +4564,9 @@ This prevents using hashes of each other and should be avoided.`);
 			for (const module of /** @type {Iterable<RuntimeModule>} */ (
 				chunkGraph.getChunkFullHashModulesIterable(chunk)
 			)) {
-				const moduleHash = createHash(/** @type {Algorithm} */ (hashFunction));
+				const moduleHash = createHash(
+					/** @type {HashFunction} */ (hashFunction)
+				);
 				module.updateHash(moduleHash, {
 					chunkGraph,
 					runtime: chunk.runtime,
@@ -4434,9 +4582,13 @@ This prevents using hashes of each other and should be avoided.`);
 					moduleHashDigest,
 					moduleHashDigest.slice(0, hashDigestLength)
 				);
-				codeGenerationJobsMap.get(oldHash).get(module).hash = moduleHashDigest;
+				/** @type {CodeGenerationJob} */
+				(
+					/** @type {Map<Module, CodeGenerationJob>} */
+					(codeGenerationJobsMap.get(oldHash)).get(module)
+				).hash = moduleHashDigest;
 			}
-			const chunkHash = createHash(/** @type {Algorithm} */ (hashFunction));
+			const chunkHash = createHash(/** @type {HashFunction} */ (hashFunction));
 			chunkHash.update(chunk.hash);
 			chunkHash.update(this.hash);
 			const chunkHashDigest =
@@ -4484,7 +4636,7 @@ This prevents using hashes of each other and should be avoided.`);
 	/**
 	 * @private
 	 * @param {string} file file name
-	 * @param {AssetInfo} newInfo new asset information
+	 * @param {AssetInfo=} newInfo new asset information
 	 * @param {AssetInfo=} oldInfo old asset information
 	 */
 	_setAssetInfo(file, newInfo, oldInfo = this.assetsInfo.get(file)) {
@@ -4550,8 +4702,8 @@ This prevents using hashes of each other and should be avoided.`);
 
 	/**
 	 * @param {string} file file name
-	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {(AssetInfo | function(AssetInfo | undefined): AssetInfo) | undefined} assetInfoUpdateOrFunction new asset info or function converting old to new
+	 * @param {Source | ((source: Source) => Source)} newSourceOrFunction new asset source or function converting old to new
+	 * @param {(AssetInfo | ((assetInfo?: AssetInfo) => AssetInfo | undefined)) | undefined} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		file,
@@ -4794,7 +4946,7 @@ This prevents using hashes of each other and should be avoided.`);
 					manifest,
 					(fileManifest, callback) => {
 						const ident = fileManifest.identifier;
-						const usedHash = fileManifest.hash;
+						const usedHash = /** @type {string} */ (fileManifest.hash);
 
 						const assetCacheItem = this._assetsCache.getItemCache(
 							ident,
@@ -5240,12 +5392,15 @@ This prevents using hashes of each other and should be avoided.`);
 							err => {
 								if (err) return callback(err);
 
+								/** @type {ExecuteModuleExports | undefined} */
 								let exports;
 								try {
 									const {
 										strictModuleErrorHandling,
 										strictModuleExceptionHandling
 									} = this.outputOptions;
+
+									/** @type {WebpackRequire} */
 									const __webpack_require__ = id => {
 										const cached = moduleCache[id];
 										if (cached !== undefined) {
@@ -5253,29 +5408,39 @@ This prevents using hashes of each other and should be avoided.`);
 											return cached.exports;
 										}
 										const moduleArgument = moduleArgumentsById.get(id);
-										return __webpack_require_module__(moduleArgument, id);
+										return __webpack_require_module__(
+											/** @type {ExecuteModuleArgument} */
+											(moduleArgument),
+											id
+										);
 									};
 									const interceptModuleExecution = (__webpack_require__[
-										RuntimeGlobals.interceptModuleExecution.replace(
-											`${RuntimeGlobals.require}.`,
-											""
+										/** @type {"i"} */
+										(
+											RuntimeGlobals.interceptModuleExecution.replace(
+												`${RuntimeGlobals.require}.`,
+												""
+											)
 										)
-									] = []);
+									] = /** @type {NonNullable<WebpackRequire["i"]>} */ ([]));
 									const moduleCache = (__webpack_require__[
-										RuntimeGlobals.moduleCache.replace(
-											`${RuntimeGlobals.require}.`,
-											""
+										/** @type {"c"} */ (
+											RuntimeGlobals.moduleCache.replace(
+												`${RuntimeGlobals.require}.`,
+												""
+											)
 										)
-									] = {});
+									] = /** @type {NonNullable<WebpackRequire["c"]>} */ ({}));
 
 									context.__webpack_require__ = __webpack_require__;
 
 									/**
 									 * @param {ExecuteModuleArgument} moduleArgument the module argument
 									 * @param {string=} id id
-									 * @returns {any} exports
+									 * @returns {ExecuteModuleExports} exports
 									 */
 									const __webpack_require_module__ = (moduleArgument, id) => {
+										/** @type {ExecuteOptions} */
 										const execOptions = {
 											id,
 											module: {
@@ -5310,9 +5475,14 @@ This prevents using hashes of each other and should be avoided.`);
 											if (strictModuleExceptionHandling) {
 												if (id) delete moduleCache[id];
 											} else if (strictModuleErrorHandling) {
-												moduleObject.error = execErr;
+												moduleObject.error =
+													/** @type {WebpackError} */
+													(execErr);
 											}
-											if (!execErr.module) execErr.module = module;
+											if (!(/** @type {WebpackError} */ (execErr).module)) {
+												/** @type {WebpackError} */
+												(execErr).module = module;
+											}
 											throw execErr;
 										}
 									};
@@ -5327,13 +5497,18 @@ This prevents using hashes of each other and should be avoided.`);
 									}
 									exports = __webpack_require__(module.identifier());
 								} catch (execErr) {
+									const { message, stack, module } =
+										/** @type {WebpackError} */
+										(execErr);
 									const err = new WebpackError(
-										`Execution of module code from module graph (${module.readableIdentifier(
-											this.requestShortener
-										)}) failed: ${execErr.message}`
+										`Execution of module code from module graph (${
+											/** @type {Module} */
+											(module).readableIdentifier(this.requestShortener)
+										}) failed: ${message}`,
+										{ cause: execErr }
 									);
-									err.stack = execErr.stack;
-									err.module = execErr.module;
+									err.stack = stack;
+									err.module = module;
 									return callback(err);
 								}
 
@@ -5420,7 +5595,7 @@ Compilation.prototype.factorizeModule = /**
 	(options: FactorizeModuleOptions & { factoryResult: true }, callback: ModuleFactoryResultCallback): void;
 }} */ (
 	function (options, callback) {
-		this.factorizeQueue.add(options, callback);
+		this.factorizeQueue.add(options, /** @type {TODO} */ (callback));
 	}
 );
 /* eslint-enable jsdoc/require-asterisk-prefix */
@@ -5457,7 +5632,7 @@ Object.defineProperty(compilationPrototype, "cache", {
 	),
 	set: util.deprecate(
 		/**
-		 * @param {any} v value
+		 * @param {EXPECTED_ANY} v value
 		 */
 		v => {},
 		"Compilation.cache was removed in favor of Compilation.getCache()",

@@ -28,6 +28,41 @@ export interface TimestampVerificationData {
  * extension is attached to.
  */
 export interface VerificationMaterial {
+    /**
+     * The key material for verification purposes.
+     *
+     * This allows key material to be conveyed in one of three forms:
+     *
+     * 1. An unspecified public key identifier, for retrieving a key
+     *    from an out-of-band mechanism (such as a keyring);
+     *
+     * 2. A sequence of one or more X.509 certificates, of which the first member
+     *    MUST be a leaf certificate conveying the signing key. Subsequent members
+     *    SHOULD be in issuing order, meaning that `n + 1` should be an issuer for `n`.
+     *
+     *    Signers MUST NOT include root CA certificates in bundles, and SHOULD NOT
+     *    include intermediate CA certificates that appear in an independent root of trust
+     *    (such as the Public Good Instance's trusted root).
+     *
+     *    Verifiers MUST validate the chain carefully to ensure that it chains up
+     *    to a CA certificate that they independently trust. Verifiers SHOULD
+     *    handle old or non-complying bundles that have superfluous intermediate and/or
+     *    root CA certificates by either ignoring them or explicitly considering them
+     *    untrusted for the purposes of chain building.
+     *
+     * 3. A single X.509 certificate, which MUST be a leaf certificate conveying
+     *    the signing key.
+     *
+     * When used with the Public Good Instance (PGI) of Sigstore for "keyless" signing
+     * via Fulcio, form (1) MUST NOT be used, regardless of bundle version. Form (1)
+     * MAY be used with the PGI for self-managed keys.
+     *
+     * When used in a `0.1` or `0.2` bundle with the PGI and "keyless" signing,
+     * form (2) MUST be used.
+     *
+     * When used in a `0.3` bundle with the PGI and "keyless" signing,
+     * form (3) MUST be used.
+     */
     content?: {
         $case: "publicKey";
         publicKey: PublicKeyIdentifier;
@@ -37,7 +72,7 @@ export interface VerificationMaterial {
     } | {
         $case: "certificate";
         certificate: X509Certificate;
-    };
+    } | undefined;
     /**
      * An inclusion proof and an optional signed timestamp from the log.
      * Client verification libraries MAY provide an option to support v0.1
@@ -80,20 +115,32 @@ export interface Bundle {
     content?: {
         $case: "messageSignature";
         messageSignature: MessageSignature;
-    } | {
+    } | //
+    /**
+     * A DSSE envelope can contain arbitrary payloads.
+     * Verifiers must verify that the payload type is a
+     * supported and expected type. This is part of the DSSE
+     * protocol which is defined here:
+     * <https://github.com/secure-systems-lab/dsse/blob/master/protocol.md>
+     * DSSE envelopes in a bundle MUST have exactly one signature.
+     * This is a limitation from the DSSE spec, as it can contain
+     * multiple signatures. There are two primary reasons:
+     * 1. It simplifies the verification logic and policy
+     * 2. The bundle (currently) can only contain a single
+     *    instance of the required verification materials
+     * During verification a client MUST reject an envelope if
+     * the number of signatures is not equal to one.
+     */
+    {
         $case: "dsseEnvelope";
         dsseEnvelope: Envelope;
-    };
+    } | undefined;
 }
-export declare const TimestampVerificationData: {
-    fromJSON(object: any): TimestampVerificationData;
-    toJSON(message: TimestampVerificationData): unknown;
-};
-export declare const VerificationMaterial: {
-    fromJSON(object: any): VerificationMaterial;
-    toJSON(message: VerificationMaterial): unknown;
-};
-export declare const Bundle: {
-    fromJSON(object: any): Bundle;
-    toJSON(message: Bundle): unknown;
-};
+export declare const TimestampVerificationData: MessageFns<TimestampVerificationData>;
+export declare const VerificationMaterial: MessageFns<VerificationMaterial>;
+export declare const Bundle: MessageFns<Bundle>;
+interface MessageFns<T> {
+    fromJSON(object: any): T;
+    toJSON(message: T): unknown;
+}
+export {};

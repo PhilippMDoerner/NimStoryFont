@@ -9,7 +9,7 @@ exports.getLessOptions = getLessOptions;
 exports.isUnsupportedUrl = isUnsupportedUrl;
 exports.normalizeSourceMap = normalizeSourceMap;
 var _path = _interopRequireDefault(require("path"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 /* eslint-disable class-methods-use-this */
 const trailingSlash = /[/\\]$/;
 
@@ -39,6 +39,7 @@ const MODULE_REQUEST_REGEX = /^[^?]*~/;
  * @returns {LessPlugin}
  */
 function createWebpackLessPlugin(loaderContext, implementation) {
+  const lessOptions = loaderContext.getOptions();
   const resolve = loaderContext.getResolve({
     dependencyType: "less",
     conditionNames: ["less", "style", "..."],
@@ -99,7 +100,7 @@ function createWebpackLessPlugin(loaderContext, implementation) {
     async loadFile(filename, ...args) {
       let result;
       try {
-        if (IS_SPECIAL_MODULE_IMPORT.test(filename)) {
+        if (IS_SPECIAL_MODULE_IMPORT.test(filename) || lessOptions.webpackImporter === "only") {
           const error = new Error();
           error.type = "Next";
           throw error;
@@ -149,7 +150,7 @@ function getLessOptions(loaderContext, loaderOptions, implementation) {
     ...options
   };
   const plugins = lessOptions.plugins.slice();
-  const shouldUseWebpackImporter = typeof loaderOptions.webpackImporter === "boolean" ? loaderOptions.webpackImporter : true;
+  const shouldUseWebpackImporter = typeof loaderOptions.webpackImporter === "boolean" || loaderOptions.webpackImporter === "only" ? loaderOptions.webpackImporter : true;
   if (shouldUseWebpackImporter) {
     plugins.unshift(createWebpackLessPlugin(loaderContext, implementation));
   }

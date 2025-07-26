@@ -24,7 +24,7 @@ function addSnippet(options) {
             .getDir(options.path)
             .subfiles // Find all files that start with the same name, are ts files,
             // and aren't spec or module files.
-            .filter((f) => fileRegExp.test(f) && !/(module|spec)\.ts$/.test(f))
+            .filter((f) => fileRegExp.test(f) && !/(module|spec|config|routes)\.ts$/.test(f))
             // Sort alphabetically for consistency.
             .sort();
         if (siblingModules.length === 0) {

@@ -18,23 +18,25 @@ const {
 } = require("../util/serialization");
 
 /** @typedef {import("../../declarations/WebpackOptions").SnapshotOptions} SnapshotOptions */
+/** @typedef {import("../Cache").Data} Data */
 /** @typedef {import("../Cache").Etag} Etag */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../FileSystemInfo").ResolveBuildDependenciesResult} ResolveBuildDependenciesResult */
+/** @typedef {import("../FileSystemInfo").ResolveResults} ResolveResults */
 /** @typedef {import("../FileSystemInfo").Snapshot} Snapshot */
 /** @typedef {import("../logging/Logger").Logger} Logger */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {typeof import("../util/Hash")} Hash */
 /** @typedef {import("../util/fs").IntermediateFileSystem} IntermediateFileSystem */
 
-/** @typedef {Map<string, string | false>} ResolveResults */
 /** @typedef {Set<string>} Items */
 /** @typedef {Set<string>} BuildDependencies */
 /** @typedef {Map<string, PackItemInfo>} ItemInfo */
 
 class PackContainer {
 	/**
-	 * @param {object} data stored data
+	 * @param {Pack} data stored data
 	 * @param {string} version version identifier
 	 * @param {Snapshot} buildSnapshot snapshot of all build dependencies
 	 * @param {BuildDependencies} buildDependencies list of all unresolved build dependencies captured
@@ -99,7 +101,7 @@ class PackItemInfo {
 	/**
 	 * @param {string} identifier identifier of item
 	 * @param {string | null | undefined} etag etag of item
-	 * @param {any} value fresh value of item
+	 * @param {Data} value fresh value of item
 	 */
 	constructor(identifier, etag, value) {
 		this.identifier = identifier;
@@ -154,7 +156,7 @@ class Pack {
 	/**
 	 * @param {string} identifier unique name for the resource
 	 * @param {string | null} etag etag of the resource
-	 * @returns {any} cached content
+	 * @returns {Data} cached content
 	 */
 	get(identifier, etag) {
 		const info = this.itemInfo.get(identifier);
@@ -177,7 +179,7 @@ class Pack {
 	/**
 	 * @param {string} identifier unique name for the resource
 	 * @param {string | null} etag etag of the resource
-	 * @param {any} data cached content
+	 * @param {Data} data cached content
 	 * @returns {void}
 	 */
 	set(identifier, etag, data) {
@@ -268,7 +270,7 @@ class Pack {
 	}
 
 	_persistFreshContent() {
-		/** @typedef {{ items: Items, map: Map<string, any>, loc: number }} PackItem */
+		/** @typedef {{ items: Items, map: Content, loc: number }} PackItem */
 		const itemsCount = this.freshContent.size;
 		if (itemsCount > 0) {
 			const packCount = Math.ceil(itemsCount / MAX_ITEMS_IN_FRESH_PACK);
@@ -393,7 +395,7 @@ class Pack {
 		const mergedItems = new Set();
 		/** @type {Items} */
 		const mergedUsedItems = new Set();
-		/** @type {(function(Map<string, any>): Promise<void>)[]} */
+		/** @type {((map: Content) => Promise<void>)[]} */
 		const addToMergedMap = [];
 		for (const content of mergedContent) {
 			for (const identifier of content.items) {
@@ -472,6 +474,7 @@ class Pack {
 							await content.unpack(
 								"it should be splitted into used and unused items"
 							);
+							/** @type {Content} */
 							const map = new Map();
 							for (const identifier of usedItems) {
 								map.set(
@@ -597,7 +600,10 @@ class Pack {
 			const content = this.content[i];
 			if (content !== undefined) {
 				write(content.items);
-				content.writeLazy(lazy => writeSeparate(lazy, { name: `${i}` }));
+				content.writeLazy(lazy =>
+					/** @type {NonNullable<ObjectSerializerContext["writeSeparate"]>} */
+					(writeSeparate)(lazy, { name: `${i}` })
+				);
 			} else {
 				write(undefined); // undefined marks an empty content slot
 			}
@@ -659,7 +665,7 @@ class Pack {
 
 makeSerializable(Pack, "webpack/lib/cache/PackFileCacheStrategy", "Pack");
 
-/** @typedef {Map<string, any>} Content */
+/** @typedef {Map<string, Data>} Content */
 
 class PackContentItems {
 	/**
@@ -670,7 +676,7 @@ class PackContentItems {
 	}
 
 	/**
-	 * @param {ObjectSerializerContext & { snapshot: TODO, rollback: TODO, logger: Logger, profile: boolean | undefined  }} context context
+	 * @param {ObjectSerializerContext & { logger: Logger, profile: boolean | undefined  }} context context
 	 */
 	serialize({ write, snapshot, rollback, logger, profile }) {
 		if (profile) {
@@ -791,7 +797,7 @@ makeSerializable(
 	"PackContentItems"
 );
 
-/** @typedef {(function(): Promise<PackContentItems> | PackContentItems)} LazyFn */
+/** @typedef {(() => Promise<PackContentItems> | PackContentItems) & Partial<{ options: { size?: number }}>} LazyFunction */
 
 class PackContent {
 	/*
@@ -816,13 +822,13 @@ class PackContent {
 	/**
 	 * @param {Items} items keys
 	 * @param {Items} usedItems used keys
-	 * @param {PackContentItems | function(): Promise<PackContentItems>} dataOrFn sync or async content
+	 * @param {PackContentItems | (() => Promise<PackContentItems>)} dataOrFn sync or async content
 	 * @param {Logger=} logger logger for logging
 	 * @param {string=} lazyName name of dataOrFn for logging
 	 */
 	constructor(items, usedItems, dataOrFn, logger, lazyName) {
 		this.items = items;
-		/** @type {LazyFn | undefined} */
+		/** @type {LazyFunction | undefined} */
 		this.lazy = typeof dataOrFn === "function" ? dataOrFn : undefined;
 		/** @type {Content | undefined} */
 		this.content = typeof dataOrFn === "function" ? undefined : dataOrFn.map;
@@ -860,7 +866,7 @@ class PackContent {
 			);
 			logger.time(timeMessage);
 		}
-		const value = /** @type {LazyFn} */ (this.lazy)();
+		const value = /** @type {LazyFunction} */ (this.lazy)();
 		if ("then" in value) {
 			return value.then(data => {
 				const map = data.map;
@@ -869,10 +875,7 @@ class PackContent {
 				}
 				// Move to state C
 				this.content = map;
-				this.lazy = SerializerMiddleware.unMemoizeLazy(
-					/** @type {LazyFn} */
-					(this.lazy)
-				);
+				this.lazy = SerializerMiddleware.unMemoizeLazy(this.lazy);
 				return map.get(identifier);
 			});
 		}
@@ -883,10 +886,7 @@ class PackContent {
 		}
 		// Move to state C
 		this.content = map;
-		this.lazy = SerializerMiddleware.unMemoizeLazy(
-			/** @type {LazyFn} */
-			(this.lazy)
-		);
+		this.lazy = SerializerMiddleware.unMemoizeLazy(this.lazy);
 		return map.get(identifier);
 	}
 
@@ -916,7 +916,9 @@ class PackContent {
 				);
 				logger.time(timeMessage);
 			}
-			const value = this.lazy();
+			const value =
+				/** @type {PackContentItems | Promise<PackContentItems>} */
+				(this.lazy());
 			if ("then" in value) {
 				return value.then(data => {
 					if (timeMessage) {
@@ -937,7 +939,9 @@ class PackContent {
 	 */
 	getSize() {
 		if (!this.lazy) return -1;
-		const options = /** @type {any} */ (this.lazy).options;
+		const options =
+			/** @type {{ options: { size?: number } }} */
+			(this.lazy).options;
 		if (!options) return -1;
 		const size = options.size;
 		if (typeof size !== "number") return -1;
@@ -954,8 +958,7 @@ class PackContent {
 	}
 
 	/**
-	 * @template T
-	 * @param {function(any): function(): Promise<PackContentItems> | PackContentItems} write write function
+	 * @param {(lazy: LazyFunction) => (() => PackContentItems | Promise<PackContentItems>)} write write function
 	 * @returns {void}
 	 */
 	writeLazy(write) {
@@ -1007,7 +1010,7 @@ class PackContent {
 			);
 			logger.time(timeMessage);
 		}
-		const value = /** @type {LazyFn} */ (this.lazy)();
+		const value = /** @type {LazyFunction} */ (this.lazy)();
 		this.outdated = false;
 		if ("then" in value) {
 			// Move to state B1
@@ -1024,10 +1027,7 @@ class PackContent {
 					}
 					// Move to state C1 (or maybe C2)
 					this.content = map;
-					this.lazy = SerializerMiddleware.unMemoizeLazy(
-						/** @type {LazyFn} */
-						(this.lazy)
-					);
+					this.lazy = SerializerMiddleware.unMemoizeLazy(this.lazy);
 
 					return new PackContentItems(map);
 				})
@@ -1091,9 +1091,11 @@ class PackFileCacheStrategy {
 		compression,
 		readonly
 	}) {
+		/** @type {import("../serialization/Serializer")<PackContainer, null, {}>} */
 		this.fileSerializer = createFileSerializer(
 			fs,
-			compiler.options.output.hashFunction
+			/** @type {string | Hash} */
+			(compiler.options.output.hashFunction)
 		);
 		this.fileSystemInfo = new FileSystemInfo(fs, {
 			managedPaths: snapshot.managedPaths,
@@ -1276,7 +1278,7 @@ class PackFileCacheStrategy {
 						logger.timeEnd("check build dependencies");
 						if (buildSnapshotValid && resolveValid) {
 							logger.time("restore cache content metadata");
-							const d = packContainer.data();
+							const d = /** @type {TODO} */ (packContainer).data();
 							logger.timeEnd("restore cache content metadata");
 							return d;
 						}
@@ -1309,7 +1311,7 @@ class PackFileCacheStrategy {
 	/**
 	 * @param {string} identifier unique name for the resource
 	 * @param {Etag | null} etag etag of the resource
-	 * @param {any} data cached content
+	 * @param {Data} data cached content
 	 * @returns {Promise<void>} promise
 	 */
 	store(identifier, etag, data) {
@@ -1323,7 +1325,7 @@ class PackFileCacheStrategy {
 	/**
 	 * @param {string} identifier unique name for the resource
 	 * @param {Etag | null} etag etag of the resource
-	 * @returns {Promise<any>} promise to the cached content
+	 * @returns {Promise<Data>} promise to the cached content
 	 */
 	restore(identifier, etag) {
 		return this._getPack()
@@ -1372,104 +1374,110 @@ class PackFileCacheStrategy {
 							newBuildDependencies
 						).join(", ")})`
 					);
-					promise = new Promise((resolve, reject) => {
-						this.logger.time("resolve build dependencies");
-						this.fileSystemInfo.resolveBuildDependencies(
-							this.context,
-							newBuildDependencies,
-							(err, result) => {
-								this.logger.timeEnd("resolve build dependencies");
-								if (err) return reject(err);
+					promise = new Promise(
+						/**
+						 * @param {(value?: undefined) => void} resolve resolve
+						 * @param {(reason?: Error) => void} reject reject
+						 */
+						(resolve, reject) => {
+							this.logger.time("resolve build dependencies");
+							this.fileSystemInfo.resolveBuildDependencies(
+								this.context,
+								newBuildDependencies,
+								(err, result) => {
+									this.logger.timeEnd("resolve build dependencies");
+									if (err) return reject(err);
 
-								this.logger.time("snapshot build dependencies");
-								const {
-									files,
-									directories,
-									missing,
-									resolveResults,
-									resolveDependencies
-								} = /** @type {ResolveBuildDependenciesResult} */ (result);
-								if (this.resolveResults) {
-									for (const [key, value] of resolveResults) {
-										this.resolveResults.set(key, value);
+									this.logger.time("snapshot build dependencies");
+									const {
+										files,
+										directories,
+										missing,
+										resolveResults,
+										resolveDependencies
+									} = /** @type {ResolveBuildDependenciesResult} */ (result);
+									if (this.resolveResults) {
+										for (const [key, value] of resolveResults) {
+											this.resolveResults.set(key, value);
+										}
+									} else {
+										this.resolveResults = resolveResults;
 									}
-								} else {
-									this.resolveResults = resolveResults;
-								}
-								if (reportProgress) {
-									reportProgress(
-										0.6,
-										"snapshot build dependencies",
-										"resolving"
-									);
-								}
-								this.fileSystemInfo.createSnapshot(
-									undefined,
-									resolveDependencies.files,
-									resolveDependencies.directories,
-									resolveDependencies.missing,
-									this.snapshot.resolveBuildDependencies,
-									(err, snapshot) => {
-										if (err) {
-											this.logger.timeEnd("snapshot build dependencies");
-											return reject(err);
-										}
-										if (!snapshot) {
-											this.logger.timeEnd("snapshot build dependencies");
-											return reject(
-												new Error("Unable to snapshot resolve dependencies")
-											);
-										}
-										if (this.resolveBuildDependenciesSnapshot) {
-											this.resolveBuildDependenciesSnapshot =
-												this.fileSystemInfo.mergeSnapshots(
-													this.resolveBuildDependenciesSnapshot,
-													snapshot
-												);
-										} else {
-											this.resolveBuildDependenciesSnapshot = snapshot;
-										}
-										if (reportProgress) {
-											reportProgress(
-												0.7,
-												"snapshot build dependencies",
-												"modules"
-											);
-										}
-										this.fileSystemInfo.createSnapshot(
-											undefined,
-											files,
-											directories,
-											missing,
-											this.snapshot.buildDependencies,
-											(err, snapshot) => {
-												this.logger.timeEnd("snapshot build dependencies");
-												if (err) return reject(err);
-												if (!snapshot) {
-													return reject(
-														new Error("Unable to snapshot build dependencies")
-													);
-												}
-												this.logger.debug("Captured build dependencies");
-
-												if (this.buildSnapshot) {
-													this.buildSnapshot =
-														this.fileSystemInfo.mergeSnapshots(
-															this.buildSnapshot,
-															snapshot
-														);
-												} else {
-													this.buildSnapshot = snapshot;
-												}
-
-												resolve();
-											}
+									if (reportProgress) {
+										reportProgress(
+											0.6,
+											"snapshot build dependencies",
+											"resolving"
 										);
 									}
-								);
-							}
-						);
-					});
+									this.fileSystemInfo.createSnapshot(
+										undefined,
+										resolveDependencies.files,
+										resolveDependencies.directories,
+										resolveDependencies.missing,
+										this.snapshot.resolveBuildDependencies,
+										(err, snapshot) => {
+											if (err) {
+												this.logger.timeEnd("snapshot build dependencies");
+												return reject(err);
+											}
+											if (!snapshot) {
+												this.logger.timeEnd("snapshot build dependencies");
+												return reject(
+													new Error("Unable to snapshot resolve dependencies")
+												);
+											}
+											if (this.resolveBuildDependenciesSnapshot) {
+												this.resolveBuildDependenciesSnapshot =
+													this.fileSystemInfo.mergeSnapshots(
+														this.resolveBuildDependenciesSnapshot,
+														snapshot
+													);
+											} else {
+												this.resolveBuildDependenciesSnapshot = snapshot;
+											}
+											if (reportProgress) {
+												reportProgress(
+													0.7,
+													"snapshot build dependencies",
+													"modules"
+												);
+											}
+											this.fileSystemInfo.createSnapshot(
+												undefined,
+												files,
+												directories,
+												missing,
+												this.snapshot.buildDependencies,
+												(err, snapshot) => {
+													this.logger.timeEnd("snapshot build dependencies");
+													if (err) return reject(err);
+													if (!snapshot) {
+														return reject(
+															new Error("Unable to snapshot build dependencies")
+														);
+													}
+													this.logger.debug("Captured build dependencies");
+
+													if (this.buildSnapshot) {
+														this.buildSnapshot =
+															this.fileSystemInfo.mergeSnapshots(
+																this.buildSnapshot,
+																snapshot
+															);
+													} else {
+														this.buildSnapshot = snapshot;
+													}
+
+													resolve();
+												}
+											);
+										}
+									);
+								}
+							);
+						}
+					);
 				} else {
 					promise = Promise.resolve();
 				}

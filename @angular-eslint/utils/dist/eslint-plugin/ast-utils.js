@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLifecycleInterfaceByMethodName = exports.getMethodName = exports.getDeclaredMethods = exports.getDecoratorPropertyValue = exports.getDecoratorProperty = exports.isAngularInnerClassDecorator = exports.isAngularClassDecorator = exports.isAngularLifecycleMethod = exports.isAngularLifecycleInterface = exports.ANGULAR_LIFECYCLE_METHODS = exports.ANGULAR_LIFECYCLE_INTERFACES = exports.getDecoratorName = exports.getDecoratorArgument = exports.getAngularClassDecorator = exports.getDecorator = exports.getClassName = exports.getDeclaredAngularLifecycleMethods = exports.getDeclaredAngularLifecycleInterfaces = exports.getPipeDecorator = exports.ANGULAR_CLASS_DECORATOR_MAPPER = exports.ANGULAR_CLASS_DECORATORS = exports.ANGULAR_INNER_CLASS_DECORATORS = exports.ANGULAR_CLASS_DECORATOR_LIFECYCLE_METHOD_MAPPER = exports.angularLifecycleMethodsOrdered = exports.angularLifecycleMethodKeys = exports.angularLifecycleInterfaceKeys = exports.angularInnerClassDecoratorKeys = exports.angularClassDecoratorKeys = exports.OPTION_STYLE_KEBAB_CASE = exports.OPTION_STYLE_CAMEL_CASE = exports.AngularLifecycleMethods = exports.AngularLifecycleInterfaces = exports.AngularInnerClassDecorators = exports.AngularClassDecorators = void 0;
+exports.getLifecycleInterfaceByMethodName = exports.getMethodName = exports.getDeclaredMethods = exports.getDecoratorPropertyValue = exports.getDecoratorProperty = exports.getDecoratorProperties = exports.isAngularInnerClassDecorator = exports.isAngularClassDecorator = exports.isAngularLifecycleMethod = exports.isAngularLifecycleInterface = exports.ANGULAR_LIFECYCLE_METHODS = exports.ANGULAR_LIFECYCLE_INTERFACES = exports.getDecoratorName = exports.getDecoratorArgument = exports.getAngularClassDecorator = exports.getDecorator = exports.getClassName = exports.getDeclaredAngularLifecycleMethods = exports.getDeclaredAngularLifecycleInterfaces = exports.getPipeDecorator = exports.ANGULAR_CLASS_DECORATOR_MAPPER = exports.ANGULAR_CLASS_DECORATORS = exports.ANGULAR_INNER_CLASS_DECORATORS = exports.ANGULAR_CLASS_DECORATOR_LIFECYCLE_METHOD_MAPPER = exports.angularLifecycleMethodsOrdered = exports.angularLifecycleMethodKeys = exports.angularLifecycleInterfaceKeys = exports.angularInnerClassDecoratorKeys = exports.angularClassDecoratorKeys = exports.OPTION_STYLE_KEBAB_CASE = exports.OPTION_STYLE_CAMEL_CASE = exports.AngularLifecycleMethods = exports.AngularLifecycleInterfaces = exports.AngularInnerClassDecorators = exports.AngularClassDecorators = void 0;
 exports.getCorrespondentImportClause = getCorrespondentImportClause;
 exports.getImportDeclarations = getImportDeclarations;
 exports.getImportDeclarationSpecifier = getImportDeclarationSpecifier;
@@ -334,10 +334,12 @@ function getPropertyDefinitionName({ computed, key, }) {
     }
     throw new Error(`Unexpected "PropertyDefinition.key.type" provided: ${key.type}`);
 }
+const getDecoratorProperties = (decorator) => {
+    return (0, exports.getDecoratorArgument)(decorator)?.properties.filter(isProperty) ?? [];
+};
+exports.getDecoratorProperties = getDecoratorProperties;
 const getDecoratorProperty = (decorator, name) => {
-    return (0, exports.getDecoratorArgument)(decorator)
-        ?.properties.filter(isProperty)
-        .find(({ key }) => utils_1.ASTUtils.isIdentifier(key) && key.name === name);
+    return (0, exports.getDecoratorProperties)(decorator).find(({ key }) => utils_1.ASTUtils.isIdentifier(key) && key.name === name);
 };
 exports.getDecoratorProperty = getDecoratorProperty;
 const getDecoratorPropertyValue = (decorator, name) => {

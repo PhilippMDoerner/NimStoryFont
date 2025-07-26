@@ -1,14 +1,15 @@
 import { type Theme } from '@inquirer/core';
 import type { PartialDeep } from '@inquirer/type';
-type NumberConfig = {
+declare const _default: <Required extends boolean>(config: {
     message: string;
-    default?: number;
-    min?: number;
-    max?: number;
-    step?: number | 'any';
-    required?: boolean;
-    validate?: (value: number | undefined) => boolean | string | Promise<string | boolean>;
-    theme?: PartialDeep<Theme>;
+    default?: number | undefined;
+    min?: number | undefined;
+    max?: number | undefined;
+    step?: number | "any" | undefined;
+    required?: Required | undefined;
+    validate?: ((value: Required extends true ? number : number | undefined) => boolean | string | Promise<string | boolean>) | undefined;
+    theme?: PartialDeep<Theme> | undefined;
+}, context?: import("@inquirer/type").Context) => Promise<Required extends true ? number : number | undefined> & {
+    cancel: () => void;
 };
-declare const _default: import("@inquirer/type").Prompt<number | undefined, NumberConfig>;
 export default _default;

@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
+import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { componentId } from 'src/utils/DOM';
 import { ElementKind } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
@@ -6,10 +13,10 @@ import { ButtonComponent } from '../../atoms/button/button.component';
 
 @Component({
   selector: 'app-delete-modal',
-  imports: [ButtonComponent],
+  imports: [ButtonComponent, HotkeyDirective],
   templateUrl: './delete-modal.component.html',
   styleUrl: './delete-modal.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DeleteModalComponent {
   heading = input.required<string>();

@@ -12,17 +12,19 @@ const {
 	ASSET_MODULE_TYPE_SOURCE
 } = require("../ModuleTypeConstants");
 const { cleverMerge } = require("../util/cleverMerge");
-const { compareModulesByIdentifier } = require("../util/comparators");
+const { compareModulesByIdOrIdentifier } = require("../util/comparators");
 const createSchemaValidation = require("../util/create-schema-validation");
 const memoize = require("../util/memoize");
 
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../../declarations/WebpackOptions").AssetParserOptions} AssetParserOptions */
 /** @typedef {import("../Chunk")} Chunk */
+/** @typedef {import("../Compilation").AssetInfo} AssetInfo */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Module").CodeGenerationResult} CodeGenerationResult */
+/** @typedef {import("../NormalModule")} NormalModule */
 
 /**
  * @param {string} name name of definitions
@@ -184,12 +186,12 @@ class AssetModulesPlugin {
 
 				compilation.hooks.renderManifest.tap(plugin, (result, options) => {
 					const { chunkGraph } = compilation;
-					const { chunk, codeGenerationResults } = options;
+					const { chunk, codeGenerationResults, runtimeTemplate } = options;
 
 					const modules = chunkGraph.getOrderedChunkModulesIterableBySourceType(
 						chunk,
 						ASSET_MODULE_TYPE,
-						compareModulesByIdentifier
+						compareModulesByIdOrIdentifier(chunkGraph)
 					);
 					if (modules) {
 						for (const module of modules) {
@@ -203,18 +205,58 @@ class AssetModulesPlugin {
 									/** @type {NonNullable<CodeGenerationResult["data"]>} */
 									(codeGenResult.data);
 								const errored = module.getNumberOfErrors() > 0;
+
+								/** @type {string} */
+								let entryFilename;
+								/** @type {AssetInfo} */
+								let entryInfo;
+								/** @type {string} */
+								let entryHash;
+
+								if (errored) {
+									const erroredModule = /** @type {NormalModule} */ (module);
+									const AssetGenerator = getAssetGenerator();
+									const [fullContentHash, contentHash] =
+										AssetGenerator.getFullContentHash(
+											erroredModule,
+											runtimeTemplate
+										);
+									const { filename, assetInfo } =
+										AssetGenerator.getFilenameWithInfo(
+											erroredModule,
+											{
+												filename:
+													erroredModule.generatorOptions &&
+													erroredModule.generatorOptions.filename,
+												outputPath:
+													erroredModule.generatorOptions &&
+													erroredModule.generatorOptions.outputPath
+											},
+											{
+												runtime: chunk.runtime,
+												runtimeTemplate,
+												chunkGraph
+											},
+											contentHash
+										);
+									entryFilename = filename;
+									entryInfo = assetInfo;
+									entryHash = fullContentHash;
+								} else {
+									entryFilename = buildInfo.filename || data.get("filename");
+									entryInfo = buildInfo.assetInfo || data.get("assetInfo");
+									entryHash =
+										buildInfo.fullContentHash || data.get("fullContentHash");
+								}
+
 								result.push({
 									render: () =>
 										/** @type {Source} */ (codeGenResult.sources.get(type)),
-									filename: errored
-										? module.nameForCondition()
-										: buildInfo.filename || data.get("filename"),
-									info: buildInfo.assetInfo || data.get("assetInfo"),
+									filename: entryFilename,
+									info: entryInfo,
 									auxiliary: true,
 									identifier: `assetModule${chunkGraph.getModuleId(module)}`,
-									hash: errored
-										? chunkGraph.getModuleHash(module, chunk.runtime)
-										: buildInfo.fullContentHash || data.get("fullContentHash")
+									hash: entryHash
 								});
 							} catch (err) {
 								/** @type {Error} */ (err).message +=

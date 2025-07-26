@@ -5,9 +5,9 @@
 
 "use strict";
 
-/** @type {WeakMap<object, WeakMap<object, object>>} */
+/** @type {WeakMap<EXPECTED_OBJECT, WeakMap<EXPECTED_OBJECT, EXPECTED_OBJECT>>} */
 const mergeCache = new WeakMap();
-/** @type {WeakMap<object, Map<string, Map<string|number|boolean, object>>>} */
+/** @type {WeakMap<EXPECTED_OBJECT, Map<string, Map<string | number | boolean, EXPECTED_OBJECT>>>} */
 const setPropertyCache = new WeakMap();
 const DELETE = Symbol("DELETE");
 const DYNAMIC_INFO = Symbol("cleverMerge dynamic info");
@@ -44,14 +44,14 @@ const cachedCleverMerge = (first, second) => {
 	if (prevMerge !== undefined) return prevMerge;
 	const newMerge = _cleverMerge(first, second, true);
 	innerCache.set(second, newMerge);
-	return /** @type {T & O} */ (newMerge);
+	return newMerge;
 };
 
 /**
  * @template T
  * @param {Partial<T>} obj object
  * @param {string} property property
- * @param {string|number|boolean} value assignment value
+ * @param {string | number | boolean} value assignment value
  * @returns {T} new object
  */
 const cachedSetProperty = (obj, property, value) => {
@@ -82,38 +82,45 @@ const cachedSetProperty = (obj, property, value) => {
 	return /** @type {T} */ (result);
 };
 
-/** @typedef {Map<string, any>} ByValues */
+/**
+ * @template V
+ * @typedef {Map<string, V | undefined>} ByValues
+ */
 
 /**
  * @typedef {object} ObjectParsedPropertyEntry
- * @property {any | undefined} base base value
+ * @property {TODO | undefined} base base value
  * @property {string | undefined} byProperty the name of the selector property
- * @property {ByValues} byValues value depending on selector property, merged with base
+ * @property {ByValues<TODO>} byValues value depending on selector property, merged with base
  */
+
+/** @typedef {(function(...EXPECTED_ANY): object) & { [DYNAMIC_INFO]: [DynamicFunction, object] }} DynamicFunction */
 
 /**
  * @typedef {object} ParsedObject
  * @property {Map<string, ObjectParsedPropertyEntry>} static static properties (key is property name)
- * @property {{ byProperty: string, fn: Function } | undefined} dynamic dynamic part
+ * @property {{ byProperty: string, fn: DynamicFunction } | undefined} dynamic dynamic part
  */
 
-/** @type {WeakMap<object, ParsedObject>} */
+/** @type {WeakMap<EXPECTED_OBJECT, ParsedObject>} */
 const parseCache = new WeakMap();
 
 /**
- * @param {object} obj the object
+ * @template {object} T
+ * @param {T} obj the object
  * @returns {ParsedObject} parsed object
  */
 const cachedParseObject = obj => {
-	const entry = parseCache.get(obj);
+	const entry = parseCache.get(/** @type {EXPECTED_OBJECT} */ (obj));
 	if (entry !== undefined) return entry;
 	const result = parseObject(obj);
-	parseCache.set(obj, result);
+	parseCache.set(/** @type {EXPECTED_OBJECT} */ (obj), result);
 	return result;
 };
 
 /**
  * @template {object} T
+ * @template V
  * @param {T} obj the object
  * @returns {ParsedObject} parsed object
  */
@@ -138,7 +145,7 @@ const parseObject = obj => {
 	for (const key of Object.keys(obj)) {
 		if (key.startsWith("by")) {
 			const byProperty = /** @type {keyof T} */ (key);
-			const byObj = /** @type {object} */ (obj[byProperty]);
+			const byObj = /** @type {TODO} */ (obj[byProperty]);
 			if (typeof byObj === "object") {
 				for (const byValue of Object.keys(byObj)) {
 					const obj = byObj[/** @type {keyof (keyof T)} */ (byValue)];
@@ -152,7 +159,7 @@ const parseObject = obj => {
 								`${/** @type {string} */ (byProperty)} and ${entry.byProperty} for a single property is not supported`
 							);
 						}
-						/** @type {ByValues} */
+						/** @type {ByValues<V>} */
 						(entry.byValues).set(
 							byValue,
 							obj[/** @type {keyof (keyof T)} */ (key)]
@@ -160,9 +167,12 @@ const parseObject = obj => {
 						if (byValue === "default") {
 							for (const otherByValue of Object.keys(byObj)) {
 								if (
-									!(/** @type {ByValues} */ (entry.byValues).has(otherByValue))
+									!(
+										/** @type {ByValues<V>} */
+										(entry.byValues).has(otherByValue)
+									)
 								)
-									/** @type {ByValues} */
+									/** @type {ByValues<V>} */
 									(entry.byValues).set(otherByValue, undefined);
 							}
 						}
@@ -197,7 +207,7 @@ const parseObject = obj => {
 /**
  * @template {object} T
  * @param {Map<string, ObjectParsedPropertyEntry>} info static properties (key is property name)
- * @param {{ byProperty: string, fn: Function } | undefined} dynamicInfo dynamic part
+ * @param {{ byProperty: string, fn: (...args: EXPECTED_ANY[]) => T } | undefined} dynamicInfo dynamic part
  * @returns {T} the object
  */
 const serializeObject = (info, dynamicInfo) => {
@@ -205,7 +215,9 @@ const serializeObject = (info, dynamicInfo) => {
 	// Setup byProperty structure
 	for (const entry of info.values()) {
 		if (entry.byProperty !== undefined) {
-			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
+			const byProperty = /** @type {keyof T} */ (entry.byProperty);
+			const byObj = (obj[byProperty] =
+				obj[byProperty] || /** @type {TODO} */ ({}));
 			for (const byValue of entry.byValues.keys()) {
 				byObj[byValue] = byObj[byValue] || {};
 			}
@@ -217,7 +229,9 @@ const serializeObject = (info, dynamicInfo) => {
 		}
 		// Fill byProperty structure
 		if (entry.byProperty !== undefined) {
-			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
+			const byProperty = /** @type {keyof T} */ (entry.byProperty);
+			const byObj = (obj[byProperty] =
+				obj[byProperty] || /** @type {TODO} */ ({}));
 			for (const byValue of Object.keys(byObj)) {
 				const value = getFromByValues(entry.byValues, byValue);
 				if (value !== undefined) byObj[byValue][key] = value;
@@ -225,7 +239,8 @@ const serializeObject = (info, dynamicInfo) => {
 		}
 	}
 	if (dynamicInfo !== undefined) {
-		obj[dynamicInfo.byProperty] = dynamicInfo.fn;
+		/** @type {TODO} */
+		(obj)[dynamicInfo.byProperty] = dynamicInfo.fn;
 	}
 	return obj;
 };
@@ -237,7 +252,8 @@ const VALUE_TYPE_OBJECT = 3;
 const VALUE_TYPE_DELETE = 4;
 
 /**
- * @param {any} value a single value
+ * @template T
+ * @param {T} value a single value
  * @returns {VALUE_TYPE_UNDEFINED | VALUE_TYPE_ATOM | VALUE_TYPE_ARRAY_EXTEND | VALUE_TYPE_OBJECT | VALUE_TYPE_DELETE} value type
  */
 const getValueType = value => {
@@ -278,11 +294,13 @@ const cleverMerge = (first, second) => {
 };
 
 /**
+ * @template {object} T
+ * @template {object} O
  * Merges two objects. Objects are deeply clever merged.
- * @param {object} first first object
- * @param {object} second second object
+ * @param {T} first first
+ * @param {O} second second
  * @param {boolean} internalCaching should parsing of objects and nested merges be cached
- * @returns {object} merged object of first and second object
+ * @returns {T & O} merged object of first and second object
  */
 const _cleverMerge = (first, second, internalCaching = false) => {
 	const firstObject = internalCaching
@@ -295,11 +313,16 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 		let { byProperty, fn } = firstDynamicInfo;
 		const fnInfo = fn[DYNAMIC_INFO];
 		if (fnInfo) {
-			second = internalCaching
-				? cachedCleverMerge(fnInfo[1], second)
-				: cleverMerge(fnInfo[1], second);
+			second =
+				/** @type {TODO} */
+				(
+					internalCaching
+						? cachedCleverMerge(fnInfo[1], second)
+						: cleverMerge(fnInfo[1], second)
+				);
 			fn = fnInfo[0];
 		}
+		/** @type {DynamicFunction} */
 		const newFn = (...args) => {
 			const fnResult = fn(...args);
 			return internalCaching
@@ -307,7 +330,9 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 				: cleverMerge(fnResult, second);
 		};
 		newFn[DYNAMIC_INFO] = [fn, second];
-		return serializeObject(firstObject.static, { byProperty, fn: newFn });
+		return /** @type {T & O} */ (
+			serializeObject(firstObject.static, { byProperty, fn: newFn })
+		);
 	}
 
 	// If the first part is static only, we merge the static parts and keep the dynamic part of the second argument
@@ -330,7 +355,7 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 			resultInfo.set(key, secondEntry);
 		}
 	}
-	return serializeObject(resultInfo, secondDynamicInfo);
+	return /** @type {T & O} */ (serializeObject(resultInfo, secondDynamicInfo));
 };
 
 /**
@@ -446,9 +471,10 @@ const mergeEntries = (firstEntry, secondEntry, internalCaching) => {
 };
 
 /**
- * @param {Map<string, any>} byValues all values
+ * @template V
+ * @param {ByValues<V>} byValues all values
  * @param {string} key value of the selector
- * @returns {any | undefined} value
+ * @returns {V | undefined} value
  */
 const getFromByValues = (byValues, key) => {
 	if (key !== "default" && byValues.has(key)) {
@@ -458,10 +484,12 @@ const getFromByValues = (byValues, key) => {
 };
 
 /**
- * @param {any} a value
- * @param {any} b value
+ * @template A
+ * @template B
+ * @param {A | A[]} a value
+ * @param {B | B[]} b value
  * @param {boolean} internalCaching should parsing of objects and nested merges be cached
- * @returns {any} value
+ * @returns {A & B | (A | B)[] | A | A[] | B | B[]} value
  */
 const mergeSingleValue = (a, b, internalCaching) => {
 	const bType = getValueType(b);
@@ -490,12 +518,13 @@ const mergeSingleValue = (a, b, internalCaching) => {
 				case VALUE_TYPE_UNDEFINED:
 					return b;
 				case VALUE_TYPE_DELETE:
-					return /** @type {any[]} */ (b).filter(item => item !== "...");
+					return /** @type {B[]} */ (b).filter(item => item !== "...");
 				case VALUE_TYPE_ARRAY_EXTEND: {
+					/** @type {(A | B)[]} */
 					const newArray = [];
-					for (const item of b) {
+					for (const item of /** @type {B[]} */ (b)) {
 						if (item === "...") {
-							for (const item of a) {
+							for (const item of /** @type {A[]} */ (a)) {
 								newArray.push(item);
 							}
 						} else {
@@ -505,8 +534,8 @@ const mergeSingleValue = (a, b, internalCaching) => {
 					return newArray;
 				}
 				case VALUE_TYPE_OBJECT:
-					return /** @type {any[]} */ (b).map(item =>
-						item === "..." ? a : item
+					return /** @type {(A | B)[]} */ (b).map(item =>
+						item === "..." ? /** @type {A} */ (a) : item
 					);
 				default:
 					throw new Error("Not implemented");
@@ -524,14 +553,12 @@ const mergeSingleValue = (a, b, internalCaching) => {
  */
 const removeOperations = (obj, keysToKeepOriginalValue = []) => {
 	const newObj = /** @type {T} */ ({});
-	for (const key of Object.keys(obj)) {
-		const value = obj[/** @type {keyof T} */ (key)];
+	for (const _key of Object.keys(obj)) {
+		const key = /** @type {keyof T} */ (_key);
+		const value = obj[key];
 		const type = getValueType(value);
-		if (
-			type === VALUE_TYPE_OBJECT &&
-			keysToKeepOriginalValue.includes(/** @type {keyof T} */ (key))
-		) {
-			newObj[/** @type {keyof T} */ (key)] = value;
+		if (type === VALUE_TYPE_OBJECT && keysToKeepOriginalValue.includes(key)) {
+			newObj[key] = value;
 			continue;
 		}
 		switch (type) {
@@ -539,25 +566,26 @@ const removeOperations = (obj, keysToKeepOriginalValue = []) => {
 			case VALUE_TYPE_DELETE:
 				break;
 			case VALUE_TYPE_OBJECT:
-				newObj[/** @type {keyof T} */ (key)] =
+				newObj[key] =
 					/** @type {T[keyof T]} */
 					(
 						removeOperations(
-							/** @type {TODO} */ (value),
+							/** @type {T} */
+							(value),
 							keysToKeepOriginalValue
 						)
 					);
 				break;
 			case VALUE_TYPE_ARRAY_EXTEND:
-				newObj[/** @type {keyof T} */ (key)] =
+				newObj[key] =
 					/** @type {T[keyof T]} */
 					(
-						/** @type {any[]} */
+						/** @type {EXPECTED_ANY[]} */
 						(value).filter(i => i !== "...")
 					);
 				break;
 			default:
-				newObj[/** @type {keyof T} */ (key)] = value;
+				newObj[key] = value;
 				break;
 		}
 	}
@@ -566,10 +594,11 @@ const removeOperations = (obj, keysToKeepOriginalValue = []) => {
 
 /**
  * @template T
- * @template {string} P
+ * @template {keyof T} P
+ * @template V
  * @param {T} obj the object
  * @param {P} byProperty the by description
- * @param  {...any} values values
+ * @param {...V} values values
  * @returns {Omit<T, P>} object with merged byProperty
  */
 const resolveByProperty = (obj, byProperty, ...values) => {
@@ -579,10 +608,10 @@ const resolveByProperty = (obj, byProperty, ...values) => {
 	const { [byProperty]: _byValue, ..._remaining } = obj;
 	const remaining = /** @type {T} */ (_remaining);
 	const byValue =
-		/** @type {Record<string, T> | function(...any[]): T} */
+		/** @type {Record<string, T> | ((...args: V[]) => T)} */
 		(_byValue);
 	if (typeof byValue === "object") {
-		const key = values[0];
+		const key = /** @type {string} */ (values[0]);
 		if (key in byValue) {
 			return cachedCleverMerge(remaining, byValue[key]);
 		} else if ("default" in byValue) {
@@ -597,6 +626,7 @@ const resolveByProperty = (obj, byProperty, ...values) => {
 			resolveByProperty(result, byProperty, ...values)
 		);
 	}
+	return obj;
 };
 
 module.exports.cachedSetProperty = cachedSetProperty;

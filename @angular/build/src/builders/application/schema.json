@@ -17,7 +17,6 @@
       "description": "The full path for the browser entry point to the application, relative to the current workspace."
     },
     "server": {
-      "type": "string",
       "description": "The full path for the server entry point to the application, relative to the current workspace.",
       "oneOf": [
         {
@@ -196,7 +195,7 @@
       "additionalProperties": false
     },
     "externalDependencies": {
-      "description": "Exclude the listed external dependencies from being bundled into the bundle. Instead, the created bundle relies on these dependencies to be available during runtime.",
+      "description": "Exclude the listed external dependencies from being bundled into the bundle. Instead, the created bundle relies on these dependencies to be available during runtime. Note: `@foo/bar` marks all paths within the `@foo/bar` package as external, including sub-paths like `@foo/bar/baz`.",
       "type": "array",
       "items": {
         "type": "string"
@@ -293,6 +292,13 @@
         "type": "string"
       }
     },
+    "conditions": {
+      "description": "Custom package resolution conditions used to resolve conditional exports/imports. Defaults to ['module', 'development'/'production']. The following special conditions are always present if the requirements are satisfied: 'default', 'import', 'require', 'browser', 'node'.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "fileReplacements": {
       "description": "Replace compilation source files with other compilation source files in the build.",
       "type": "array",
@@ -370,6 +376,11 @@
               "type": "boolean",
               "description": "Resolve vendor packages source maps.",
               "default": false
+            },
+            "sourcesContent": {
+              "type": "boolean",
+              "description": "Output original source content for files within the source map.",
+              "default": true
             }
           },
           "additionalProperties": false
@@ -605,7 +616,7 @@
     }
   },
   "additionalProperties": false,
-  "required": ["outputPath", "index", "browser", "tsConfig"],
+  "required": ["tsConfig"],
   "definitions": {
     "assetPattern": {
       "oneOf": [

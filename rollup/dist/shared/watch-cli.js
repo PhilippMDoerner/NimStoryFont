@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.30.1
-	Tue, 07 Jan 2025 10:35:22 GMT - commit 94917087deb9103fbf605c68670ceb3e71a67bf7
+	Rollup.js v4.40.2
+	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
 
 	https://github.com/rollup/rollup
 
@@ -21,8 +21,8 @@ const loadConfigFile_js = require('./loadConfigFile.js');
 const node_child_process = require('node:child_process');
 const rollup_js = require('../rollup.js');
 require('path');
-require('fs');
 require('util');
+require('fs');
 require('stream');
 require('os');
 require('./fsevents-importer.js');
@@ -365,23 +365,7 @@ const {
  *
  * Returns a function that may be used to unload signal-exit.
  */
-onExit, 
-/**
- * Load the listeners.  Likely you never need to call this, unless
- * doing a rather deep integration with signal-exit functionality.
- * Mostly exposed for the benefit of testing.
- *
- * @internal
- */
-load, 
-/**
- * Unload the listeners.  Likely you never need to call this, unless
- * doing a rather deep integration with signal-exit functionality.
- * Mostly exposed for the benefit of testing.
- *
- * @internal
- */
-unload, } = signalExitWrap(processOk(process$1) ? new SignalExit(process$1) : new SignalExitFallback());
+onExit} = signalExitWrap(processOk(process$1) ? new SignalExit(process$1) : new SignalExitFallback());
 
 const CLEAR_SCREEN = '\u001Bc';
 function getResetScreen(configs, allowClearScreen) {
@@ -441,10 +425,6 @@ async function watch(command) {
     const runWatchHook = createWatchHooks(command);
     onExit(close);
     process$2.on('uncaughtException', closeWithError);
-    if (!process$2.stdin.isTTY) {
-        process$2.stdin.on('end', close);
-        process$2.stdin.resume();
-    }
     async function loadConfigFromFileAndTrack(configFile) {
         let configFileData = null;
         let configFileRevision = 0;
@@ -528,7 +508,7 @@ async function watch(command) {
                 }
                 case 'END': {
                     runWatchHook('onEnd');
-                    if (!silent && isTTY) {
+                    if (!silent) {
                         rollup.stderr(`\n[${dateTime()}] waiting for changes...`);
                     }
                 }

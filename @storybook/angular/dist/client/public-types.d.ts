@@ -26,9 +26,7 @@ export type Decorator<TArgs = StrictArgs> = DecoratorFunction<AngularRenderer, T
 export type Loader<TArgs = StrictArgs> = LoaderFunction<AngularRenderer, TArgs>;
 export type StoryContext<TArgs = StrictArgs> = GenericStoryContext<AngularRenderer, TArgs>;
 export type Preview = ProjectAnnotations<AngularRenderer>;
-/**
- * Utility type that transforms InputSignal and EventEmitter types
- */
+/** Utility type that transforms InputSignal and EventEmitter types */
 type TransformComponentType<T> = TransformInputSignalType<TransformOutputSignalType<TransformEventType<T>>>;
 // @ts-ignore
 type AngularInputSignal<T> = AngularCore.InputSignal<T>;

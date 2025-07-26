@@ -1,7 +1,6 @@
 import { isElementType } from '../misc/isElementType.js';
 
-var clickableInputTypes;
-(function(clickableInputTypes) {
+var clickableInputTypes = /*#__PURE__*/ function(clickableInputTypes) {
     clickableInputTypes["button"] = "button";
     clickableInputTypes["color"] = "color";
     clickableInputTypes["file"] = "file";
@@ -10,7 +9,8 @@ var clickableInputTypes;
     clickableInputTypes["submit"] = "submit";
     clickableInputTypes["checkbox"] = "checkbox";
     clickableInputTypes["radio"] = "radio";
-})(clickableInputTypes || (clickableInputTypes = {}));
+    return clickableInputTypes;
+}(clickableInputTypes || {});
 function isClickableInput(element) {
     return isElementType(element, 'button') || isElementType(element, 'input') && element.type in clickableInputTypes;
 }

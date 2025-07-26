@@ -40,11 +40,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-require("symbol-observable");
-// symbol polyfill must go first
-const fs_1 = require("fs");
-const module_1 = require("module");
-const path = __importStar(require("path"));
+const promises_1 = require("node:fs/promises");
+const node_module_1 = require("node:module");
+const path = __importStar(require("node:path"));
 const semver_1 = require("semver");
 const color_1 = require("../src/utilities/color");
 const config_1 = require("../src/utilities/config");
@@ -81,7 +79,7 @@ let forceExit = false;
     try {
         // No error implies a projectLocalCli, which will load whatever
         // version of ng-cli you have installed in a local package.json
-        const cwdRequire = (0, module_1.createRequire)(process.cwd() + '/');
+        const cwdRequire = (0, node_module_1.createRequire)(process.cwd() + '/');
         const projectLocalCli = cwdRequire.resolve('@angular/cli');
         cli = await Promise.resolve(`${projectLocalCli}`).then(s => __importStar(require(s)));
         const globalVersion = new semver_1.SemVer(version_1.VERSION.full);
@@ -89,7 +87,7 @@ let forceExit = false;
         let localVersion = cli.VERSION?.full;
         if (!localVersion) {
             try {
-                const localPackageJson = await fs_1.promises.readFile(path.join(path.dirname(projectLocalCli), '../../package.json'), 'utf-8');
+                const localPackageJson = await (0, promises_1.readFile)(path.join(path.dirname(projectLocalCli), '../../package.json'), 'utf-8');
                 localVersion = JSON.parse(localPackageJson).version;
             }
             catch (error) {

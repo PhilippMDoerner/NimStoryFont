@@ -9,6 +9,7 @@ const core_1 = require("@angular-devkit/core");
 const find_up_1 = require("find-up");
 const angular_cli_webpack_1 = require("./angular-cli-webpack");
 const module_is_available_1 = require("./utils/module-is-available");
+const common_1 = require("storybook/internal/common");
 async function webpackFinal(baseConfig, options) {
     if (!(0, module_is_available_1.moduleIsAvailable)('@angular-devkit/build-angular')) {
         node_logger_1.logger.info('=> Using base config because "@angular-devkit/build-angular" is not installed');
@@ -25,6 +26,12 @@ async function webpackFinal(baseConfig, options) {
         builderContext,
     });
     webpackConfig.plugins = webpackConfig.plugins ?? [];
+    // Change the generated css filename to include the contenthash for cache busting
+    const miniCssPlugin = webpackConfig?.plugins?.find((plugin) => plugin?.constructor?.name === 'MiniCssExtractPlugin');
+    if (miniCssPlugin && 'options' in miniCssPlugin) {
+        miniCssPlugin.options.filename = '[name].[contenthash].css';
+        miniCssPlugin.options.chunkFilename = '[name].iframe.[contenthash].css';
+    }
     webpackConfig.plugins.push(new builder_webpack5_1.WebpackDefinePlugin({
         STORYBOOK_ANGULAR_OPTIONS: JSON.stringify({
             experimentalZoneless: builderOptions.experimentalZoneless,
@@ -65,7 +72,7 @@ async function getBuilderOptions(options, builderContext) {
         ...browserTargetOptions,
         ...options.angularBuilderOptions,
         tsConfig: options.tsConfig ??
-            (0, find_up_1.sync)('tsconfig.json', { cwd: options.configDir }) ??
+            (0, find_up_1.findUpSync)('tsconfig.json', { cwd: options.configDir, stopAt: (0, common_1.getProjectRoot)() }) ??
             browserTargetOptions.tsConfig,
     };
     node_logger_1.logger.info(`=> Using angular project with "tsConfig:${builderOptions.tsConfig}"`);

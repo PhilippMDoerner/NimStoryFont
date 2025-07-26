@@ -5,14 +5,19 @@
 "use strict";
 
 /**
- * @template T, K
- * @typedef {import("./SerializerMiddleware")<T, K>} SerializerMiddleware
+ * @template T, K, C
+ * @typedef {import("./SerializerMiddleware")<T, K, C>} SerializerMiddleware
  */
 
+/**
+ * @template DeserializedValue
+ * @template SerializedValue
+ * @template Context
+ */
 class Serializer {
 	/**
-	 * @param {SerializerMiddleware<any, any>[]} middlewares serializer middlewares
-	 * @param {TODO=} context context
+	 * @param {SerializerMiddleware<EXPECTED_ANY, EXPECTED_ANY, EXPECTED_ANY>[]} middlewares serializer middlewares
+	 * @param {Context=} context context
 	 */
 	constructor(middlewares, context) {
 		this.serializeMiddlewares = middlewares.slice();
@@ -21,16 +26,23 @@ class Serializer {
 	}
 
 	/**
-	 * @param {any} obj object
-	 * @param {TODO} context content
-	 * @returns {Promise<any>} result
+	 * @template ExtendedContext
+	 * @param {DeserializedValue | Promise<DeserializedValue>} obj object
+	 * @param {Context & ExtendedContext} context context object
+	 * @returns {Promise<SerializedValue>} result
 	 */
 	serialize(obj, context) {
 		const ctx = { ...context, ...this.context };
 		let current = obj;
 		for (const middleware of this.serializeMiddlewares) {
-			if (current && typeof current.then === "function") {
-				current = current.then(data => data && middleware.serialize(data, ctx));
+			if (
+				current &&
+				typeof (/** @type {Promise<DeserializedValue>} */ (current).then) ===
+					"function"
+			) {
+				current =
+					/** @type {Promise<DeserializedValue>} */
+					(current).then(data => data && middleware.serialize(data, ctx));
 			} else if (current) {
 				try {
 					current = middleware.serialize(current, ctx);
@@ -39,25 +51,29 @@ class Serializer {
 				}
 			} else break;
 		}
-		return current;
+		return /** @type {Promise<SerializedValue>} */ (current);
 	}
 
 	/**
-	 * @param {any} value value
-	 * @param {TODO} context context
-	 * @returns {Promise<any>} result
+	 * @template ExtendedContext
+	 * @param {SerializedValue | Promise<SerializedValue>} value value
+	 * @param {Context & ExtendedContext} context object
+	 * @returns {Promise<DeserializedValue>} result
 	 */
 	deserialize(value, context) {
 		const ctx = { ...context, ...this.context };
-		/** @type {any} */
 		let current = value;
 		for (const middleware of this.deserializeMiddlewares) {
 			current =
-				current && typeof current.then === "function"
-					? current.then(data => middleware.deserialize(data, ctx))
+				current &&
+				typeof (/** @type {Promise<SerializedValue>} */ (current).then) ===
+					"function"
+					? /** @type {Promise<SerializedValue>} */ (current).then(data =>
+							middleware.deserialize(data, ctx)
+						)
 					: middleware.deserialize(current, ctx);
 		}
-		return current;
+		return /** @type {Promise<DeserializedValue>} */ (current);
 	}
 }
 

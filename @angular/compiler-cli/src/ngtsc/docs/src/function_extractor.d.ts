@@ -7,7 +7,7 @@
  */
 import ts from 'typescript';
 import { EntryType, FunctionEntry, ParameterEntry } from './entities';
-export type FunctionLike = ts.FunctionDeclaration | ts.MethodDeclaration | ts.MethodSignature | ts.CallSignatureDeclaration | ts.ConstructSignatureDeclaration;
+export type FunctionLike = ts.FunctionDeclaration | ts.MethodDeclaration | ts.MethodSignature | ts.CallSignatureDeclaration | ts.ConstructSignatureDeclaration | ts.ConstructorDeclaration;
 export declare class FunctionExtractor {
     private name;
     private exportDeclaration;

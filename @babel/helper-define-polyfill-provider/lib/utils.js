@@ -9,8 +9,7 @@ exports.intersection = intersection;
 exports.resolveKey = resolveKey;
 exports.resolveSource = resolveSource;
 var _babel = _interopRequireWildcard(require("@babel/core"));
-function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
-function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (const t in e) "default" !== t && {}.hasOwnProperty.call(e, t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, t)) && (i.get || i.set) ? o(f, t, i) : f[t] = e[t]); return f; })(e, t); }
 const {
   types: t,
   template: template
@@ -23,20 +22,28 @@ function intersection(a, b) {
 function has(object, key) {
   return Object.prototype.hasOwnProperty.call(object, key);
 }
-function getType(target) {
-  return Object.prototype.toString.call(target).slice(8, -1);
+function resolve(path, resolved = new Set()) {
+  if (resolved.has(path)) return;
+  resolved.add(path);
+  if (path.isVariableDeclarator()) {
+    if (path.get("id").isIdentifier()) {
+      return resolve(path.get("init"), resolved);
+    }
+  } else if (path.isReferencedIdentifier()) {
+    const binding = path.scope.getBinding(path.node.name);
+    if (!binding) return path;
+    if (!binding.constant) return;
+    return resolve(binding.path, resolved);
+  }
+  return path;
 }
 function resolveId(path) {
   if (path.isIdentifier() && !path.scope.hasBinding(path.node.name, /* noGlobals */true)) {
     return path.node.name;
   }
-  if (path.isPure()) {
-    const {
-      deopt
-    } = path.evaluate();
-    if (deopt && deopt.isIdentifier()) {
-      return deopt.node.name;
-    }
+  const resolved = resolve(path);
+  if (resolved != null && resolved.isIdentifier()) {
+    return resolved.node.name;
   }
 }
 function resolveKey(path, computed = false) {
@@ -84,26 +91,43 @@ function resolveSource(obj) {
       placement: "static"
     };
   }
-  if (obj.isRegExpLiteral()) {
-    return {
-      id: "RegExp",
-      placement: "prototype"
-    };
-  } else if (obj.isFunction()) {
-    return {
-      id: "Function",
-      placement: "prototype"
-    };
-  } else if (obj.isPure()) {
-    const {
-      value
-    } = obj.evaluate();
-    if (value !== undefined) {
+  const path = resolve(obj);
+  switch (path == null ? void 0 : path.type) {
+    case "RegExpLiteral":
       return {
-        id: getType(value),
+        id: "RegExp",
         placement: "prototype"
       };
-    }
+    case "FunctionExpression":
+      return {
+        id: "Function",
+        placement: "prototype"
+      };
+    case "StringLiteral":
+      return {
+        id: "String",
+        placement: "prototype"
+      };
+    case "NumberLiteral":
+      return {
+        id: "Number",
+        placement: "prototype"
+      };
+    case "BooleanLiteral":
+      return {
+        id: "Boolean",
+        placement: "prototype"
+      };
+    case "ObjectExpression":
+      return {
+        id: "Object",
+        placement: "prototype"
+      };
+    case "ArrayExpression":
+      return {
+        id: "Array",
+        placement: "prototype"
+      };
   }
   return {
     id: null,

@@ -1,6 +1,6 @@
 {
     "name": "@types/ws",
-    "version": "8.5.14",
+    "version": "8.18.1",
     "description": "TypeScript definitions for ws",
     "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ws",
     "license": "MIT",
@@ -67,6 +67,6 @@
         "@types/node": "*"
     },
     "peerDependencies": {},
-    "typesPublisherContentHash": "4f28320da3aae9bcd0905e47ff3eb3a16b1882e182a1b60100f36e518359b5a7",
-    "typeScriptVersion": "5.0"
+    "typesPublisherContentHash": "043c83a4bb92503ab01243879ee715fb6db391090d10883c5a2eb72099d22724",
+    "typeScriptVersion": "5.1"
 }

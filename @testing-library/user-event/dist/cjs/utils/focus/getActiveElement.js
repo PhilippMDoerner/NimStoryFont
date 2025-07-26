@@ -4,7 +4,7 @@ var isDisabled = require('../misc/isDisabled.js');
 
 function getActiveElement(document) {
     const activeElement = document.activeElement;
-    if (activeElement === null || activeElement === void 0 ? void 0 : activeElement.shadowRoot) {
+    if (activeElement === null || activeElement === undefined ? undefined : activeElement.shadowRoot) {
         return getActiveElement(activeElement.shadowRoot);
     } else {
         // Browser does not yield disabled elements as document.activeElement - jsdom does
@@ -16,7 +16,7 @@ function getActiveElement(document) {
 }
 function getActiveElementOrBody(document) {
     var _getActiveElement;
-    return (_getActiveElement = getActiveElement(document)) !== null && _getActiveElement !== void 0 ? _getActiveElement : /* istanbul ignore next */ document.body;
+    return (_getActiveElement = getActiveElement(document)) !== null && _getActiveElement !== undefined ? _getActiveElement : /* istanbul ignore next */ document.body;
 }
 
 exports.getActiveElement = getActiveElement;

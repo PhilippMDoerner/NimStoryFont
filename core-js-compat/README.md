@@ -27,7 +27,7 @@ const {
   exclude: [                  // optional list / filter of modules to exclude, the signature is similar to `modules` option
     'web.atob',
   ],
-  version: '3.40',            // used `core-js` version, by default - the latest
+  version: '3.44',            // used `core-js` version, by default - the latest
   inverse: false,             // inverse of the result - shows modules that are NOT required for the target environment
 });
 
@@ -96,7 +96,11 @@ console.log(targets);
   rhino: '1.7.13',        // Rhino engine version
   safari: '14.0',         // Safari version
   samsung: '14.0',        // Samsung Internet version
-  esmodules: true,        // That option set target to minimum supporting ES Modules versions of all browsers
+  /**
+   * true option set target to minimum supporting ES Modules versions of all browsers, ignoring `browsers` target.
+   * 'intersect' option intersects the `browsers` target and `browserslist`'s targets. The maximum version will be used.
+   */
+  esmodules: true | 'intersect',
   browsers: '> 0.25%',    // Browserslist query or object with target browsers
 });
 ```
@@ -125,9 +129,9 @@ require('core-js-compat/modules'); // => Array<ModuleName>
 require('core-js-compat').modules; // => Array<ModuleName>
 
 // the subset of modules which available in the passed `core-js` version:
-require('core-js-compat/get-modules-list-for-target-version')('3.40'); // => Array<ModuleName>
+require('core-js-compat/get-modules-list-for-target-version')('3.44'); // => Array<ModuleName>
 // or
-require('core-js-compat').getModulesListForTargetVersion('3.40'); // => Array<ModuleName>
+require('core-js-compat').getModulesListForTargetVersion('3.44'); // => Array<ModuleName>
 ```
 
 If you wanna help to improve this data, you could take a look at the related section of [`CONTRIBUTING.md`](https://github.com/zloirock/core-js/blob/master/CONTRIBUTING.md#how-to-update-core-js-compat-data). The visualization of compatibility data and the browser tests runner is available [here](http://zloirock.github.io/core-js/compat/), the example:

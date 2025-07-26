@@ -9,7 +9,7 @@
  * @fileoverview The API from compiler-cli that the `@angular/core`
  * package requires for migration schematics.
  */
-export { forwardRefResolver } from '../src/ngtsc/annotations';
+export { createForwardRefResolver } from '../src/ngtsc/annotations';
 export { AbsoluteFsPath } from '../src/ngtsc/file_system';
 export { Reference } from '../src/ngtsc/imports';
 export { DynamicValue, PartialEvaluator, ResolvedValue, ResolvedValueMap, StaticInterpreter, } from '../src/ngtsc/partial_evaluator';

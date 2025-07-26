@@ -41,9 +41,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TempScopedNodeJsSyncHost = void 0;
-const fs = __importStar(require("fs"));
-const os = __importStar(require("os"));
-const path = __importStar(require("path"));
+const fs = __importStar(require("node:fs"));
+const os = __importStar(require("node:os"));
+const path = __importStar(require("node:path"));
 const src_1 = require("../../src");
 const host_1 = require("../host");
 /**

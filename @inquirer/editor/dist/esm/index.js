@@ -1,4 +1,3 @@
-import { AsyncResource } from 'node:async_hooks';
 import { editAsync } from 'external-editor';
 import { createPrompt, useEffect, useState, useKeypress, usePrefix, isEnterKey, makeTheme, } from '@inquirer/core';
 const editorTheme = {
@@ -13,8 +12,7 @@ export default createPrompt((config, done) => {
     const prefix = usePrefix({ status, theme });
     function startEditor(rl) {
         rl.pause();
-        // Note: The bind call isn't strictly required. But we need it for our mocks to work as expected.
-        const editCallback = AsyncResource.bind(async (error, answer) => {
+        const editCallback = async (error, answer) => {
             rl.resume();
             if (error) {
                 setError(error.toString());
@@ -38,7 +36,7 @@ export default createPrompt((config, done) => {
                     setStatus('idle');
                 }
             }
-        });
+        };
         editAsync(value, (error, answer) => void editCallback(error, answer), {
             postfix,
             ...fileProps,

@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CacheCleanModule = void 0;
-const fs_1 = require("fs");
+const promises_1 = require("node:fs/promises");
 const command_module_1 = require("../../../command-builder/command-module");
 const utilities_1 = require("../utilities");
 class CacheCleanModule extends command_module_1.CommandModule {
@@ -21,7 +21,7 @@ class CacheCleanModule extends command_module_1.CommandModule {
     }
     run() {
         const { path } = (0, utilities_1.getCacheConfig)(this.context.workspace);
-        return fs_1.promises.rm(path, {
+        return (0, promises_1.rm)(path, {
             force: true,
             recursive: true,
             maxRetries: 3,

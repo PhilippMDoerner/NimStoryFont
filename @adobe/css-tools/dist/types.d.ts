@@ -150,110 +150,21 @@ export type CssStartingStyleAST = CssCommonPositionAST & {
 };
 export type CssAtRuleAST = CssRuleAST | CssCommentAST | CssContainerAST | CssCharsetAST | CssCustomMediaAST | CssDocumentAST | CssFontFaceAST | CssHostAST | CssImportAST | CssKeyframesAST | CssLayerAST | CssMediaAST | CssNamespaceAST | CssPageAST | CssSupportsAST | CssStartingStyleAST;
 export type CssAllNodesAST = CssAtRuleAST | CssStylesheetAST | CssDeclarationAST | CssKeyframeAST;
-declare class Compiler {
-    level: number;
-    indentation: string;
-    compress: boolean;
-    constructor(options?: {
-        indent?: string;
-        compress?: boolean;
-    });
-    emit(str: string, _position?: CssCommonPositionAST['position']): string;
-    /**
-     * Increase, decrease or return current indentation.
-     */
-    indent(level?: number): string;
-    visit(node: CssAllNodesAST): string;
-    mapVisit(nodes: Array<CssAllNodesAST>, delim?: string): string;
-    compile(node: CssStylesheetAST): string;
-    /**
-     * Visit stylesheet node.
-     */
-    stylesheet(node: CssStylesheetAST): string;
-    /**
-     * Visit comment node.
-     */
-    comment(node: CssCommentAST): string;
-    /**
-     * Visit container node.
-     */
-    container(node: CssContainerAST): string;
-    /**
-     * Visit container node.
-     */
-    layer(node: CssLayerAST): string;
-    /**
-     * Visit import node.
-     */
-    import(node: CssImportAST): string;
-    /**
-     * Visit media node.
-     */
-    media(node: CssMediaAST): string;
-    /**
-     * Visit document node.
-     */
-    document(node: CssDocumentAST): string;
-    /**
-     * Visit charset node.
-     */
-    charset(node: CssCharsetAST): string;
-    /**
-     * Visit namespace node.
-     */
-    namespace(node: CssNamespaceAST): string;
-    /**
-     * Visit container node.
-     */
-    startingStyle(node: CssStartingStyleAST): string;
-    /**
-     * Visit supports node.
-     */
-    supports(node: CssSupportsAST): string;
-    /**
-     * Visit keyframes node.
-     */
-    keyframes(node: CssKeyframesAST): string;
-    /**
-     * Visit keyframe node.
-     */
-    keyframe(node: CssKeyframeAST): string;
-    /**
-     * Visit page node.
-     */
-    page(node: CssPageAST): string;
-    /**
-     * Visit font-face node.
-     */
-    fontFace(node: CssFontFaceAST): string;
-    /**
-     * Visit host node.
-     */
-    host(node: CssHostAST): string;
-    /**
-     * Visit custom-media node.
-     */
-    customMedia(node: CssCustomMediaAST): string;
-    /**
-     * Visit rule node.
-     */
-    rule(node: CssRuleAST): string;
-    /**
-     * Visit declaration node.
-     */
-    declaration(node: CssDeclarationAST): string;
-}
+type CompilerOptions = {
+    indent?: string;
+    compress?: boolean;
+};
 export const parse: (css: string, options?: {
     source?: string;
     silent?: boolean;
 }) => CssStylesheetAST;
-export const stringify: (node: CssStylesheetAST, options?: ConstructorParameters<$$parcel$import$2>[0]) => string;
+export const stringify: (node: CssStylesheetAST, options?: CompilerOptions) => string;
 declare const _default: {
     parse: (css: string, options?: {
         source?: string;
         silent?: boolean;
     }) => CssStylesheetAST;
-    stringify: (node: CssStylesheetAST, options?: ConstructorParameters<$$parcel$import$5>[0]) => string;
+    stringify: (node: CssStylesheetAST, options?: CompilerOptions) => string;
 };
 export default _default;
 

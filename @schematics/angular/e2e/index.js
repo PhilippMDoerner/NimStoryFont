@@ -9,10 +9,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = default_1;
 const schematics_1 = require("@angular-devkit/schematics");
-const utility_1 = require("@schematics/angular/utility");
-const path_1 = require("path");
+const node_path_1 = require("node:path");
+const dependency_1 = require("../utility/dependency");
 const json_file_1 = require("../utility/json-file");
 const latest_versions_1 = require("../utility/latest-versions");
+const standalone_1 = require("../utility/standalone");
+const workspace_1 = require("../utility/workspace");
+const workspace_models_1 = require("../utility/workspace-models");
 /**
  * The list of development dependencies used by the E2E protractor-based builder.
  * The versions are sourced from the latest versions `../utility/latest-versions/package.json`
@@ -35,18 +38,18 @@ function addScriptsToPackageJson() {
 }
 function default_1(options) {
     const { relatedAppName } = options;
-    return (0, utility_1.updateWorkspace)((workspace) => {
+    return (0, workspace_1.updateWorkspace)((workspace) => {
         const project = workspace.projects.get(relatedAppName);
         if (!project) {
             throw new schematics_1.SchematicsException(`Project name "${relatedAppName}" doesn't not exist.`);
         }
-        const e2eRootPath = path_1.posix.join(project.root, 'e2e');
+        const e2eRootPath = node_path_1.posix.join(project.root, 'e2e');
         project.targets.add({
             name: 'e2e',
-            builder: utility_1.AngularBuilder.Protractor,
+            builder: workspace_models_1.Builders.Protractor,
             defaultConfiguration: 'development',
             options: {
-                protractorConfig: path_1.posix.join(e2eRootPath, 'protractor.conf.js'),
+                protractorConfig: node_path_1.posix.join(e2eRootPath, 'protractor.conf.js'),
             },
             configurations: {
                 production: {
@@ -62,14 +65,14 @@ function default_1(options) {
                 (0, schematics_1.applyTemplates)({
                     utils: schematics_1.strings,
                     ...options,
-                    relativePathToWorkspaceRoot: path_1.posix.relative(path_1.posix.join('/', e2eRootPath), '/'),
+                    relativePathToWorkspaceRoot: node_path_1.posix.relative(node_path_1.posix.join('/', e2eRootPath), '/'),
                 }),
                 (0, schematics_1.move)(e2eRootPath),
             ])),
-            (0, utility_1.addRootProvider)(relatedAppName, ({ code, external }) => code `${external('provideProtractorTestingSupport', '@angular/platform-browser')}()`),
-            ...E2E_DEV_DEPENDENCIES.map((name) => (0, utility_1.addDependency)(name, latest_versions_1.latestVersions[name], {
-                type: utility_1.DependencyType.Dev,
-                existing: utility_1.ExistingBehavior.Skip,
+            (0, standalone_1.addRootProvider)(relatedAppName, ({ code, external }) => code `${external('provideProtractorTestingSupport', '@angular/platform-browser')}()`),
+            ...E2E_DEV_DEPENDENCIES.map((name) => (0, dependency_1.addDependency)(name, latest_versions_1.latestVersions[name], {
+                type: dependency_1.DependencyType.Dev,
+                existing: dependency_1.ExistingBehavior.Skip,
             })),
             addScriptsToPackageJson(),
         ]);

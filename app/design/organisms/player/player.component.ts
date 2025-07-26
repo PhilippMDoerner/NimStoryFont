@@ -1,4 +1,11 @@
-import { Component, effect, ElementRef, input, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  ElementRef,
+  input,
+  viewChild,
+} from '@angular/core';
 import Plyr from 'plyr';
 
 type HotKey = 'Space' | 'Enter' | 'KeyM' | 'ArrowRight' | 'ArrowLeft';
@@ -8,6 +15,7 @@ type HotKey = 'Space' | 'Enter' | 'KeyM' | 'ArrowRight' | 'ArrowLeft';
   templateUrl: './player.component.html',
   styleUrls: ['./player.component.scss'],
   imports: [],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayerComponent {
   private SEEK_TIME = 5;
