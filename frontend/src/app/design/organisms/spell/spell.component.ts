@@ -222,7 +222,8 @@ export class SpellComponent implements OnInit {
   }
 
   onSpellDelete() {
-    this.spellDelete.emit(this.spell() as Spell);
+    console.log('Tried to delete spell');
+    // this.spellDelete.emit(this.spell() as Spell);
   }
 
   onSpellUpdate(spell?: Spell) {

@@ -79,7 +79,7 @@
             role="menuitem"
             ngbDropdownItem
             (click)="openModal(item, menuModal)"
-            (actionTriggered)="actionTriggered.emit(item.actionName)"
+            (actionTriggered)="openModal(item, menuModal)"
           >
             @if (item.icon) {
               <app-icon class="me-3" [icon]="item.icon"></app-icon>

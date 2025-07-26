@@ -44,6 +44,7 @@ export interface FocusItem<T> {
 export class FocusListComponent<T> {
   entries = input.required<FocusItem<T>[]>();
   disableHotkeyNavigation = input(false);
+  listLabel = input.required<string>();
 
   itemTemplate =
     contentChild.required<

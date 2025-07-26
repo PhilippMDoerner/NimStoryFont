@@ -40,7 +40,11 @@
       </div>
     }
 
-    <app-focus-list [entries]="sessionCards()" #focusListComponent>
+    <app-focus-list
+      [entries]="sessionCards()"
+      [listLabel]="'Sessions'"
+      #focusListComponent
+    >
       <ng-template
         #itemTemplate
         let-focusEntry
