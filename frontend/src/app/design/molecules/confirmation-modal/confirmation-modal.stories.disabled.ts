@@ -1,10 +1,10 @@
-import { action } from '@storybook/addon-actions';
 import {
   Meta,
   StoryFn,
   componentWrapperDecorator,
   moduleMetadata,
 } from '@storybook/angular';
+import { action } from 'storybook/actions';
 import { ConfirmationModalComponent } from './confirmation-modal.component';
 
 export default {
@@ -14,7 +14,7 @@ export default {
     moduleMetadata({}),
     componentWrapperDecorator(
       () => `
-      <app-confirmation-modal 
+      <app-confirmation-modal
         [heading]="heading"
         [confirmValue]="confirmValue"
         [modalType]="modalType"
@@ -22,23 +22,23 @@ export default {
         [submitButtonLabel]="submitButtonLabel"
         [cancelButtonLabel]="cancelButtonLabel"
         [submitIcon]="submitIcon"
-        (modalClose)="modalClose($event)" 
+        (modalClose)="modalClose($event)"
         (confirm)="confirm($event)"
         (cancelled)="cancel($event)"
       >
-      
+
         <ng-container body>
           <h3> Body </h3>
           This is the modal body content.
         </ng-container>
-        
+
         <ng-container opener>
-          <button btn 
-            [kind]="'SECONDARY'" 
+          <button btn
+            [kind]="'SECONDARY'"
             [text]="'Open Modal'"
           ></button>
         </ng-container>
-        
+
       </app-confirmation-modal>
     `,
     ),

@@ -1,10 +1,10 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from '@storybook/addon-actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { DiaryEntry } from 'src/app/_models/diaryentry';
 import { Encounter } from 'src/app/_models/encounter';
 import { OverviewItem } from 'src/app/_models/overview';
 import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { action } from 'storybook/actions';
 import { DiaryentryComponent } from './diaryentry.component';
 
 const dummyEncounters: Encounter[] = [

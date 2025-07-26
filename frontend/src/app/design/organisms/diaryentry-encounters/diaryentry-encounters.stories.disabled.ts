@@ -2,7 +2,7 @@
 // import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 // import { RouterTestingModule } from '@angular/router/testing';
 // import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-// import { action } from '@storybook/addon-actions';
+// import { action } from 'storybook/actions';
 // import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 // import { EditorModule } from '@tinymce/tinymce-angular';
 // import { OverviewItem } from 'src/app/_models/overview';
