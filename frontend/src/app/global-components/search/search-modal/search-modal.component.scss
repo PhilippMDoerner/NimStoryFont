@@ -24,6 +24,10 @@
     gap: var(--spacer-2);
     height: 450px;
     overflow-y: scroll;
+
+    &--hidden {
+      visibility: hidden;
+    }
   }
 
   &__search-result-link {

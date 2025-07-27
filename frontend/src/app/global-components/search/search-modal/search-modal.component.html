@@ -20,7 +20,7 @@
         class="body__search-field"
         [placeholder]="'Search for articles in ' + campaignName()"
         [btnAriaLabel]="'Start search!'"
-        [canSearch]="(canSearch$ | async) === true"
+        [canSearch]="!isLoading()"
         (appSearch)="searchStore.loadSearchArticles($event)"
       />
       @if (isLoading()) {
@@ -29,6 +29,7 @@
     </div>
     <app-list
       class="body__search-results"
+      [class.body__search-results--hidden]="!entries()?.length"
       [entries]="entries() ?? []"
       [arrowKeyNavigationOptions]="{
         isModalAction: true,

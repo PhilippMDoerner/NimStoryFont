@@ -1,4 +1,3 @@
-import { AsyncPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -26,13 +25,14 @@ import { GlobalStore } from 'src/app/global.store';
 import { componentId } from 'src/utils/DOM';
 import { SearchFieldComponent } from '../../../design/molecules/search-field/search-field.component';
 
+type SearchEntry = Pick<OverviewItem, 'name' | 'description'> & { url: string };
+
 @Component({
   selector: 'app-search-modal',
   imports: [
     ButtonComponent,
     HotkeyDirective,
     SearchFieldComponent,
-    AsyncPipe,
     SpinnerComponent,
     OverviewEntryComponent,
     ListComponent,
@@ -59,14 +59,14 @@ export class SearchModalComponent {
     () => this.searchStore.searchArticlesQueryState() === 'loading',
   );
 
-  canSearch$ = toObservable(this.isLoading);
   entries = computed(() => {
     const articles = this.searchStore.searchArticles()?.articles;
     return articles?.map(
       (article) =>
         ({
           data: {
-            ...article,
+            name: article.name,
+            description: article.description,
             url: article.getAbsoluteRouterUrl(),
           },
           trackId: article.pk ?? componentId(),
@@ -74,7 +74,7 @@ export class SearchModalComponent {
             kind: 'aria-labelledby',
             id: `overview-entry-${article.article_type}-${article.pk}`,
           },
-        }) satisfies ListEntry<OverviewItem & { url: string }>,
+        }) satisfies ListEntry<SearchEntry>,
     );
   });
 
@@ -95,9 +95,8 @@ export class SearchModalComponent {
       .subscribe(() => this.openModal());
   }
 
-  routeToEntry(data: OverviewItem) {
-    const url = data.getAbsoluteRouterUrl();
-    this.router.navigateByUrl(url);
+  routeToEntry(data: SearchEntry) {
+    this.router.navigateByUrl(data.url);
     this.modalService.dismissAll();
   }
 
