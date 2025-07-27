@@ -255,6 +255,11 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
     requiresRole: 'guest',
   },
 ];
+export function getMetadataForType(type: string): ArticleMetaData | undefined {
+  return ARTICLE_META_ENTRIES.find((entry) =>
+    entry.article_types.includes(type),
+  );
+}
 
 export type SidebarLinkEntry = {
   kind: 'link';

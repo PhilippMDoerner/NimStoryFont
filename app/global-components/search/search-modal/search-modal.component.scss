@@ -43,6 +43,10 @@
     font-weight: unset;
     text-decoration: unset;
     outline: none;
+    border: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    display: flex;
+    align-items: center;
 
     &:hover,
     &:focus,
@@ -54,6 +58,15 @@
 
   &__search-result {
     background-color: inherit;
+    border-left-width: 8px !important;
+    border-left-style: solid;
+    border-radius: var(--bs-border-radius);
+  }
+
+  &__search-result-icon {
+    font-size: 30px;
+    opacity: 0.5;
+    margin-right: var(--spacer-2);
   }
 }
 

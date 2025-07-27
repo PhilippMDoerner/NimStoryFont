@@ -6,12 +6,13 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, withLatestFrom } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { OverviewItem } from 'src/app/_models/overview';
 import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { OnlineService } from 'src/app/_services/online.service';
+import { Icon } from 'src/app/design/atoms/_models/icon';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
@@ -21,12 +22,21 @@ import {
   ListEntryTemplateContext,
 } from 'src/app/design/molecule/list/list.component';
 import { OverviewEntryComponent } from 'src/app/design/molecules/overview-entry/overview-entry.component';
+import { getMetadataForType } from 'src/app/design/organisms/_model/sidebar';
 import { SearchPageStore } from 'src/app/global-components/search/search-modal/search-page.store';
 import { GlobalStore } from 'src/app/global.store';
 import { componentId } from 'src/utils/DOM';
+import { capitalize } from 'src/utils/string';
 import { SearchFieldComponent } from '../../../design/molecules/search-field/search-field.component';
 
-type SearchEntry = Pick<OverviewItem, 'name' | 'description'> & { url: string };
+type SearchEntry = Pick<
+  OverviewItem,
+  'name' | 'description' | 'images' | 'article_type'
+> & {
+  url: string;
+  color: string | undefined;
+  icon: Icon;
+};
 
 @Component({
   selector: 'app-search-modal',
@@ -39,6 +49,7 @@ type SearchEntry = Pick<OverviewItem, 'name' | 'description'> & { url: string };
     ListComponent,
     RouterLink,
     IconComponent,
+    NgbTooltip,
   ],
   templateUrl: './search-modal.component.html',
   styleUrl: './search-modal.component.scss',
@@ -69,21 +80,25 @@ export class SearchModalComponent {
 
   entries = computed(() => {
     const articles = this.searchStore.searchArticles()?.articles;
-    return articles?.map(
-      (article) =>
-        ({
-          data: {
-            name: article.name,
-            description: article.description,
-            url: article.getAbsoluteRouterUrl(),
-          },
-          trackId: article.pk ?? componentId(),
-          ariaText: {
-            kind: 'aria-labelledby',
-            id: `overview-entry-${article.article_type}-${article.pk}`,
-          },
-        }) satisfies ListEntry<SearchEntry>,
-    );
+    return articles?.map((article) => {
+      const metadata = getMetadataForType(article.article_type);
+
+      return {
+        data: {
+          name: article.name,
+          description: article.description,
+          url: article.getAbsoluteRouterUrl(),
+          color: metadata?.color,
+          icon: metadata?.iconClass as Icon,
+          article_type: capitalize(article.article_type),
+        },
+        trackId: article.pk ?? componentId(),
+        ariaText: {
+          kind: 'aria-labelledby',
+          id: `overview-entry-${article.article_type}-${article.pk}`,
+        },
+      } satisfies ListEntry<SearchEntry>;
+    });
   });
 
   constructor() {
@@ -109,7 +124,7 @@ export class SearchModalComponent {
   }
 
   typecastContext(context: unknown) {
-    return context as ListEntryTemplateContext<OverviewItem & { url: string }>;
+    return context as ListEntryTemplateContext<SearchEntry>;
   }
 
   openModal() {
