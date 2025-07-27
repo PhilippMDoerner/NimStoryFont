@@ -24,6 +24,8 @@ export class SearchFieldComponent {
   placeholder = input('Enter Search Query');
   btnAriaLabel = input('Trigger a search');
   canSearch = input.required<boolean>();
+  autofocus = input<boolean>(false);
+  showButton = input(true);
   _placeholder = computed(() =>
     this.canSearch() ? this.placeholder() : 'Search is currently disabled',
   );

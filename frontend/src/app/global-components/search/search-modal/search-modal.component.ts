@@ -13,6 +13,7 @@ import { OverviewItem } from 'src/app/_models/overview';
 import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { OnlineService } from 'src/app/_services/online.service';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
 import {
   ListComponent,
@@ -37,6 +38,7 @@ type SearchEntry = Pick<OverviewItem, 'name' | 'description'> & { url: string };
     OverviewEntryComponent,
     ListComponent,
     RouterLink,
+    IconComponent,
   ],
   templateUrl: './search-modal.component.html',
   styleUrl: './search-modal.component.scss',
@@ -58,6 +60,12 @@ export class SearchModalComponent {
   isLoading = computed(
     () => this.searchStore.searchArticlesQueryState() === 'loading',
   );
+  isEmptySearch = computed(() => {
+    const hasEntries =
+      (this.searchStore.searchArticles()?.articles?.length ?? 0) > 0;
+    const hasLoaded = this.searchStore.searchArticlesQueryState() === 'success';
+    return hasLoaded && !hasEntries;
+  });
 
   entries = computed(() => {
     const articles = this.searchStore.searchArticles()?.articles;

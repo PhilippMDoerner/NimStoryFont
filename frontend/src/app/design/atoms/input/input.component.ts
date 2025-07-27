@@ -25,6 +25,7 @@ export class InputComponent {
   labelId = input<string>();
   ariaControls = input<string>();
   disabled = input<boolean>(false);
+  autofocus = input<boolean>(false);
   type = input<'text' | 'number' | 'search'>('text');
 
   changed = output<string>();

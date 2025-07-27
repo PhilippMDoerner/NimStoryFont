@@ -15,18 +15,21 @@
       [disabled]="!canSearch()"
       [type]="'search'"
       [hotkeyAction]="'focus'"
+      [autofocus]="autofocus()"
       (actionTriggered)="input.focus()"
       (changed)="startSearch($event)"
     />
     @let canTriggerSearch = canSearch() && !!input._value();
-    <button
-      btn
-      class="search__button"
-      [attr.aria-label]="'Search for ' + input._value()"
-      [disabled]="!canTriggerSearch"
-      [kind]="canTriggerSearch ? 'PRIMARY' : 'LIGHT-OUTLINE'"
-      [icon]="'search'"
-      [type]="'submit'"
-    ></button>
+    @if (showButton()) {
+      <button
+        btn
+        class="search__button"
+        [attr.aria-label]="'Search for ' + input._value()"
+        [disabled]="!canTriggerSearch"
+        [kind]="canTriggerSearch ? 'PRIMARY' : 'LIGHT-OUTLINE'"
+        [icon]="'search'"
+        [type]="'submit'"
+      ></button>
+    }
   </div>
 </form>

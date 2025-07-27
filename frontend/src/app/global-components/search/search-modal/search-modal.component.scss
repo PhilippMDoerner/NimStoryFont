@@ -14,6 +14,7 @@
 .body {
   display: flex;
   flex-direction: column;
+  height: 572px;
 
   &__search-field-container {
     display: flex;
@@ -31,11 +32,10 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacer-2);
-    height: 450px;
     overflow-y: scroll;
-
+    height: 100%;
     &--hidden {
-      visibility: hidden;
+      display: none;
     }
   }
 
@@ -54,5 +54,15 @@
 
   &__search-result {
     background-color: inherit;
+  }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &__icon {
+    font-size: 200px;
   }
 }
