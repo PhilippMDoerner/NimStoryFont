@@ -17,6 +17,8 @@
   <div class="modal-body body">
     <div class="body__search-field-container">
       <app-search-field
+        [autofocus]="true"
+        [showButton]="false"
         class="body__search-field"
         [placeholder]="'Search for articles in ' + campaignName()"
         [btnAriaLabel]="'Start search!'"
@@ -27,9 +29,10 @@
         <app-spinner />
       }
     </div>
+    @let hasEntries = (entries()?.length ?? 0) > 0;
     <app-list
       class="body__search-results"
-      [class.body__search-results--hidden]="!entries()?.length"
+      [class.body__search-results--hidden]="!hasEntries"
       [entries]="entries() ?? []"
       [arrowKeyNavigationOptions]="{
         isModalAction: true,
@@ -56,5 +59,14 @@
         </a>
       </ng-template>
     </app-list>
+    @if (isEmptySearch()) {
+      <div class="body__empty empty">
+        <app-icon class="empty__icon" [icon]="'search'" />
+        <div class="empty__text">
+          {{ searchStore.searchArticles()?.emptyResponse }} <br />
+          <div class="h4">We couldn't find any hits</div>
+        </div>
+      </div>
+    }
   </div>
 </div>

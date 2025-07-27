@@ -3,6 +3,7 @@
 </label>
 <input
   #input
+  [attr.ngbAutofocus]="autofocus() ? 'true' : null"
   [id]="searchId"
   class="input"
   [type]="type()"
