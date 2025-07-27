@@ -115,7 +115,7 @@ export class SearchModalComponent {
   }
 
   dismiss() {
-    console.log('dismiss');
+    this.searchStore.reset();
     this.modalService.dismissAll();
   }
 }
