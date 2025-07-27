@@ -8,9 +8,14 @@ input[type="search"]::-webkit-search-results-decoration {
   display: none;
 }
 
-.search {
-  margin-bottom: var(--spacer-4);
+:host {
+  display: block;
+  margin-bottom: var(
+    --spacer-4
+  ); // TODO: Refactor all places that use this component so that they set the margin, not this component
+}
 
+.search {
   &__form {
     flex: 1;
   }
