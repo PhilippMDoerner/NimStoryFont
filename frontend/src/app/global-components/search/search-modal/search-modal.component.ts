@@ -111,11 +111,14 @@ export class SearchModalComponent {
       centered: true,
       ariaLabelledBy: this.titleId,
       modalDialogClass: 'search-modal',
+      beforeDismiss: () => {
+        this.searchStore.reset();
+        return true;
+      },
     });
   }
 
   dismiss() {
-    this.searchStore.reset();
     this.modalService.dismissAll();
   }
 }
