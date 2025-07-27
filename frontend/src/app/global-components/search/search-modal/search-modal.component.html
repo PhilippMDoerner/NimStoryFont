@@ -1,0 +1,59 @@
+<div class="modal-border">
+  <div class="modal-header justify-content-between">
+    <div class="h4 modal-title" [id]="titleId">Search</div>
+    <button
+      btn
+      class="rounded"
+      [kind]="'NONE'"
+      [icon]="'xmark'"
+      aria-label="Close"
+      [hotkeyAction]="'cancel'"
+      [watchOptions]="{ isModalAction: true }"
+      (actionTriggered)="dismiss()"
+      (clicked)="dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body body">
+    <div class="body__search-field-container">
+      <app-search-field
+        class="body__search-field"
+        [placeholder]="'Search for articles in ' + campaignName()"
+        [btnAriaLabel]="'Start search!'"
+        [canSearch]="(canSearch$ | async) === true"
+        (appSearch)="searchStore.loadSearchArticles($event)"
+      />
+      @if (isLoading()) {
+        <app-spinner />
+      }
+    </div>
+    <app-list
+      class="body__search-results"
+      [entries]="entries() ?? []"
+      [arrowKeyNavigationOptions]="{
+        isModalAction: true,
+      }"
+      (entryActivated)="routeToEntry($event)"
+    >
+      <ng-template #entryTemplate let-templateContext>
+        @let context = typecastContext(templateContext);
+        <a
+          class="body__search-result-link"
+          [class.body__search-result-link--in-focus]="context.isInFocus"
+          [routerLink]="context.data.url"
+        >
+          <app-overview-entry
+            class="body__search-result"
+            [header]="context.data.name"
+            [body]="context.data.description"
+            [img]="{
+              src: context.data.images?.[0] ?? DEFAULT_URL,
+              alt: '',
+              placeholder: DEFAULT_URL,
+            }"
+          />
+        </a>
+      </ng-template>
+    </app-list>
+  </div>
+</div>
