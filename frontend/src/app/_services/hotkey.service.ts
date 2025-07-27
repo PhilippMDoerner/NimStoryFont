@@ -74,24 +74,24 @@ export class HotkeyService {
   }
 
   private createKeyListener(eventSource: HTMLElement) {
-    return fromEvent<KeyboardEvent>(eventSource, 'keyup').pipe(
+    return fromEvent<KeyboardEvent>(eventSource, 'keypress').pipe(
       filter((event) => {
-        // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
+        // Ignore keypress events from text inputs, we don't want the user typing to count as invoking hotkeys
         const isFromTextInput =
           event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement;
         if (isFromTextInput) return false;
 
-        // Ignore keyup events from modifier keys. We only care about "real" keys
+        // Ignore keypress events from modifier keys. We only care about "real" keys
         return !MODIFIER_KEYS.has(event.key);
       }),
-      debugLog('keyup'),
+      debugLog('keypress'),
       share(),
     );
   }
 
   private createActionListener(eventSource: HTMLElement) {
-    const keyup$ = this.createKeyListener(eventSource);
+    const keypress$ = this.createKeyListener(eventSource);
 
     return this.hotkeyMap$.pipe(
       map((hotkeyMap) => {
@@ -110,7 +110,7 @@ export class HotkeyService {
       }),
       switchMap((hotkeySequences) => {
         const actionListeners$ = hotkeySequences.map(({ sequence, action }) =>
-          keyup$.pipe(
+          keypress$.pipe(
             bufferCount(sequence.length, 1),
             filter((lastNKeys) =>
               sequence.every((key, index) => equals(key, lastNKeys[index])),
