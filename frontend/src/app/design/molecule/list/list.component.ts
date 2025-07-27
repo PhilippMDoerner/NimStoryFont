@@ -32,7 +32,7 @@ import {
 } from 'rxjs';
 import { encodeKey, encodeKeyCombination } from 'src/app/_functions/keyMapper';
 import { AriaText } from 'src/app/_models/aria';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
+import { HotkeyService, WatchOptions } from 'src/app/_services/hotkey.service';
 import { Icon } from '../../atoms/_models/icon';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ChildTemplateContext } from '../../organisms/focus-list/focus-list.component';
@@ -62,7 +62,6 @@ export interface ListEntryTemplateContext<T> {
     tabindex: '0',
     role: 'list',
     'aria-keyshortcuts': 'A',
-    '[ngbTooltip]': '"Yo"',
   },
 })
 export class ListComponent<T> {
@@ -71,7 +70,7 @@ export class ListComponent<T> {
   private host = inject(ElementRef<HTMLElement>);
 
   entries = input.required<ListEntry<T>[]>();
-  enableArrowKeyNavigation = input(false);
+  arrowKeyNavigationOptions = input<WatchOptions | undefined>();
   listItemClasses = input<string | string[]>('');
 
   entryActivated = output<T>();
@@ -145,12 +144,20 @@ export class ListComponent<T> {
   }
 
   private setupKeyboardNavigation() {
-    const toNextEntry$ = this.shortcutService
-      .watchAction('jump-to-next-entry')
-      .pipe(map(() => 'jump-to-next-entry' as const));
-    const toPriorEntry$ = this.shortcutService
-      .watchAction('jump-to-prior-entry')
-      .pipe(map(() => 'jump-to-prior-entry' as const));
+    const options$ = toObservable(this.arrowKeyNavigationOptions);
+    const toNextEntry$ = options$.pipe(
+      switchMap((options) =>
+        this.shortcutService.watchAction('jump-to-next-entry', options),
+      ),
+      map(() => 'jump-to-next-entry' as const),
+    );
+
+    const toPriorEntry$ = options$.pipe(
+      switchMap((options) =>
+        this.shortcutService.watchAction('jump-to-prior-entry', options),
+      ),
+      map(() => 'jump-to-prior-entry' as const),
+    );
 
     merge(toNextEntry$, toPriorEntry$)
       .pipe(
