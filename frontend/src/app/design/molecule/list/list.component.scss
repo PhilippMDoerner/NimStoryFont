@@ -18,7 +18,8 @@
     outline: none;
     outline-offset: -3px;
 
-    &:focus-visible {
+    &:focus-visible,
+    &:has(:focus-visible) {
       outline: var(--focus-outline);
       border-radius: var(--bs-border-radius);
     }

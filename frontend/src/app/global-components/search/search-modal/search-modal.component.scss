@@ -1,5 +1,14 @@
+@use "/src/screens.scss" as screen;
+
 :host {
   display: block;
+}
+::ng-deep {
+  @include screen.media-breakpoint-up(md) {
+    .search-modal {
+      max-width: 1000px !important;
+    }
+  }
 }
 
 .body {
@@ -33,6 +42,7 @@
   &__search-result-link {
     font-weight: unset;
     text-decoration: unset;
+    outline: none;
 
     &:hover,
     &:focus,

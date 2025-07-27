@@ -110,6 +110,7 @@ export class SearchModalComponent {
     this.modalService.open(SearchModalComponent, {
       centered: true,
       ariaLabelledBy: this.titleId,
+      modalDialogClass: 'search-modal',
     });
   }
 
