@@ -7,12 +7,12 @@ import {
   inject,
   input,
   output,
-  Signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   NgbActiveOffcanvas,
+  NgbModal,
   NgbTooltipModule,
 } from '@ng-bootstrap/ng-bootstrap';
 import { filter } from 'rxjs';
@@ -25,12 +25,12 @@ import { SwipeService } from 'src/app/_services/swipe.service';
 import { SWIPE_X_THRESHOLD } from 'src/app/app.constants';
 import { AuthStore } from 'src/app/auth.store';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { hasRoleOrBetter } from 'src/app/global.store';
+import { SearchModalComponent } from 'src/app/global-components/search/search-modal/search-modal.component';
 import { NavigationStore } from 'src/app/navigation.store';
 import { componentId } from 'src/utils/DOM';
 import { SidebarButtonEntryComponent } from '../../molecules/sidebar-button-entry/sidebar-button-entry.component';
 import { SidebarLinkEntryComponent } from '../../molecules/sidebar-link-entry/sidebar-link-entry.component';
-import { ArticleMetaData, SIDEBAR_ENTRIES } from '../_model/sidebar';
+import { SidebarService } from '../_model/sidebar';
 
 @Component({
   selector: 'app-sidebar',
@@ -43,6 +43,7 @@ import { ArticleMetaData, SIDEBAR_ENTRIES } from '../_model/sidebar';
     AsyncPipe,
     NgbTooltipModule,
     SidebarButtonEntryComponent,
+    RouterLinkActive,
     SidebarLinkEntryComponent,
   ],
   providers: [NgbActiveOffcanvas],
@@ -53,8 +54,10 @@ import { ArticleMetaData, SIDEBAR_ENTRIES } from '../_model/sidebar';
   },
 })
 export class SidebarComponent {
+  readonly sidebarService = inject(SidebarService);
   readonly pwaService = inject(PwaService);
   readonly authStore = inject(AuthStore);
+  readonly modalService = inject(NgbModal);
   readonly routingService = inject(RoutingService);
   readonly swipeService = inject(SwipeService);
   readonly host = inject(ElementRef);
@@ -64,42 +67,20 @@ export class SidebarComponent {
     .getSwipeEvents(this.host)
     .pipe(filter((swipeDistance) => swipeDistance < SWIPE_X_THRESHOLD * -1));
   readonly currentRoute = inject(NavigationStore).currentRoute;
-  readonly activeRouteName = computed(
-    () => (this.currentRoute()?.data as NamedRouteData | undefined)?.name,
-  );
   readonly campaign = input<Campaign | undefined>(undefined);
   readonly hasCampaignAdminPrivileges = input<boolean>(false);
 
+  readonly activeRouteName = computed(
+    () => (this.currentRoute()?.data as NamedRouteData | undefined)?.name,
+  );
   readonly logout = output<void>();
   readonly closeSidebar = output<void>();
 
   readonly serverUrl = '';
-  readonly sidebarEntries: Signal<ArticleMetaData[]> = computed(() => {
-    const campaignName = this.campaign()?.name;
-    if (!campaignName) return [];
-    const currentRole = this.authStore.isGlobalAdmin()
-      ? 'admin'
-      : (this.authStore.getCampaignRole(campaignName) ?? 'guest');
+  readonly canInstallPwa = toSignal(this.pwaService.canInstall$);
 
-    const activeRouteName = this.activeRouteName();
-
-    return SIDEBAR_ENTRIES.filter((entry) =>
-      hasRoleOrBetter(currentRole, entry.requiresRole),
-    ).map((entry) => {
-      const route = this.routingService.hasRoutePath(entry.route)
-        ? this.routingService.getRoutePath(entry.route, {
-            campaign: this.campaign()?.name,
-          })
-        : entry.route;
-      return {
-        ...entry,
-        route,
-        isActiveTab: activeRouteName
-          ? entry.associatedRoutes.has(activeRouteName)
-          : false,
-      };
-    });
-  });
+  readonly sidebarEntries = this.sidebarService.sidebarEntries;
+  readonly sidebarFooterEntries = this.sidebarService.sidebarFooterEntries;
 
   readonly headerId = `${componentId()}-header`;
 
@@ -122,5 +103,25 @@ export class SidebarComponent {
     this.sidebarSwipesLeft$
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.closeSidebar.emit());
+  }
+
+  onSidebarButtonClicked(actionName: string) {
+    switch (actionName) {
+      case 'logout':
+        this.logout.emit();
+        break;
+      case 'pwaInstall':
+        this.pwaService.showInstallPrompt();
+        break;
+      case 'search':
+        this.openSearchModal();
+        break;
+    }
+  }
+
+  private openSearchModal() {
+    const ref = this.modalService.open(SearchModalComponent);
+    const titleId = (ref.componentInstance as SearchModalComponent).titleId;
+    ref.update({ ariaLabelledBy: titleId });
   }
 }

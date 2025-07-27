@@ -131,6 +131,10 @@ a {
     &:focus-visible {
       outline: var(--focus-outline);
     }
+
+    &--active {
+      background-color: var(--entry-hover-bg-color);
+    }
   }
 
   &__home-link-text {
