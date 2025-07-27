@@ -46,15 +46,25 @@
           [class.body__search-result-link--in-focus]="context.isInFocus"
           [routerLink]="context.data.url"
         >
+          @let color = context.data.color + " !important";
           <app-overview-entry
             class="body__search-result"
+            [style]="{
+              'border-left-color': color,
+            }"
             [header]="context.data.name"
+            [defaultBorder]="false"
             [body]="context.data.description"
             [img]="{
               src: context.data.images?.[0] ?? DEFAULT_URL,
               alt: '',
               placeholder: DEFAULT_URL,
             }"
+          />
+          <app-icon
+            class="body__search-result-icon"
+            [icon]="context.data.icon"
+            [ngbTooltip]="context.data.article_type"
           />
         </a>
       </ng-template>
