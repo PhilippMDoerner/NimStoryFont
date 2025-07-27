@@ -34,7 +34,6 @@ import { QuestPageStore } from './pages/quest-page/quest-page.store';
 import { QuestOverviewPageStore } from './pages/quests-overview-page/quests-overview-page.store';
 import { QuoteOverviewPageStore } from './pages/quote-overview-page/quote-overview-page.store';
 import { RulesPageStore } from './pages/rules-page/rules-page.store';
-import { SearchPageStore } from './pages/search-page/search-page.store';
 import { SessionAudioOverviewPageStore } from './pages/session-audio-overview-page/session-audio-overview-page.store';
 import { SessionaudioCreateUpdatePageStore } from './pages/sessionaudio-create-update-page/sessionaudio-create-update-page.store';
 import { SessionaudioPageStore } from './pages/sessionaudio-page/sessionaudio-page.store';
@@ -157,23 +156,6 @@ const detailRoutes: Route[] = [
     },
     canActivate: [onEnterReset(HomePageStore)],
     title: campaignTitle('Home'),
-  },
-  // Search
-  {
-    path: 'search/:searchString',
-    loadComponent: () =>
-      import('./pages/search-page/search-page.component').then(
-        (m) => m.SearchPageComponent,
-      ),
-    data: { name: 'search', requiredMinimumRole: 'guest' },
-    resolve: {
-      searchResults: (route: ActivatedRouteSnapshot) =>
-        inject(SearchPageStore).loadSearchArticles(
-          route.params['searchString'],
-        ),
-    },
-    canActivate: [onlyOnlineGuard, onEnterReset(SearchPageStore)],
-    title: campaignTitle('Search'),
   },
   // Character Routes
   {

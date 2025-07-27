@@ -14,7 +14,11 @@
       </div>
 
       <div class="brand__home" [class.disabled-entry]="campaign() == null">
-        <a class="brand__home-link" [routerLink]="homeUrl()">
+        <a
+          class="brand__home-link"
+          [routerLink]="homeUrl()"
+          [routerLinkActive]="'brand__home-link--active'"
+        >
           <div class="h4 brand__home-link-text" [id]="headerId">
             <img
               class="brand__icon"
@@ -37,45 +41,53 @@
       <!-- Campaign Overview Entries -->
       @for (entry of sidebarEntries(); track entry.title) {
         @let isDisabledEntry = isOffline && !entry.availableOffline;
-        <li
-          class="sidebar__entry"
-          [class.sidebar__entry--active]="entry.isActiveTab"
-          sidebar-link-entry
-          [entry]="entry"
-          [ngbTooltip]="isDisabledEntry ? offlineTooltip : undefined"
-        ></li>
-      }
-
-      @if ((pwaService.canInstall$ | async) === true) {
-        <li
-          class="sidebar__entry sidebar__entry--install-button"
-          sidebar-button-entry
-          [icon]="'file-arrow-down'"
-          [label]="'Install App'"
-          (entryClicked)="pwaService.showInstallPrompt()"
-        ></li>
+        @switch (entry.kind) {
+          @case ("link") {
+            <li
+              [class]="['sidebar__entry', entry.extraClass ?? '']"
+              [class.sidebar__entry--active]="entry.isActiveTab"
+              sidebar-link-entry
+              [entry]="entry"
+              [ngbTooltip]="isDisabledEntry ? offlineTooltip : undefined"
+            ></li>
+          }
+          @case ("button") {
+            <li
+              [class]="['sidebar__entry', entry.extraClass ?? '']"
+              sidebar-button-entry
+              [icon]="entry.iconClass"
+              [label]="entry.title"
+              (entryClicked)="onSidebarButtonClicked(entry.actionName)"
+            ></li>
+          }
+        }
       }
     </ul>
 
-    <!-- Logout -->
     <ul class="sidebar__footer footer">
-      <li
-        class="sidebar__entry"
-        sidebar-link-entry
-        [entry]="{
-          title: 'Profile',
-          iconClass: 'circle-user',
-          route: profileUrl,
-          availableOffline: true,
-        }"
-      ></li>
-      <li
-        class="sidebar__entry"
-        sidebar-button-entry
-        [label]="'Logout'"
-        [icon]="'right-from-bracket'"
-        (entryClicked)="logout.emit()"
-      ></li>
+      @for (entry of sidebarFooterEntries(); track entry.title) {
+        @let isDisabledEntry = isOffline && !entry.availableOffline;
+        @switch (entry.kind) {
+          @case ("link") {
+            <li
+              [class]="['sidebar__entry', entry.extraClass ?? '']"
+              [class.sidebar__entry--active]="entry.isActiveTab"
+              sidebar-link-entry
+              [entry]="entry"
+              [ngbTooltip]="isDisabledEntry ? offlineTooltip : undefined"
+            ></li>
+          }
+          @case ("button") {
+            <li
+              [class]="['sidebar__entry', entry.extraClass ?? '']"
+              sidebar-button-entry
+              [icon]="entry.iconClass"
+              [label]="entry.title"
+              (entryClicked)="onSidebarButtonClicked(entry.actionName)"
+            ></li>
+          }
+        }
+      }
     </ul>
   </div>
 }

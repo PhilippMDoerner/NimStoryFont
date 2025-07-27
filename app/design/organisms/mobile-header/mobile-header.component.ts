@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { NgbModal, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { OnlineService } from 'src/app/_services/online.service';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { SearchModalComponent } from 'src/app/global-components/search/search-modal/search-modal.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
 @Component({
@@ -43,5 +44,11 @@ export class MobileHeaderComponent {
       ariaLabelledBy: 'modal-title',
       modalDialogClass: 'border border-info border-3 rounded mymodal',
     });
+  }
+
+  openSearchModal() {
+    const ref = this.modalService.open(SearchModalComponent);
+    const titleId = (ref.componentInstance as SearchModalComponent).titleId;
+    ref.update({ ariaLabelledBy: titleId });
   }
 }

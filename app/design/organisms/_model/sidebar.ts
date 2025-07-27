@@ -1,6 +1,13 @@
-import { RouteName } from 'src/app/_models/route';
+import { computed, inject, Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NamedRouteData, RouteName } from 'src/app/_models/route';
 import { CampaignRole } from 'src/app/_models/token';
+import { PwaService } from 'src/app/_services/pwa.service';
+import { RoutingService } from 'src/app/_services/routing.service';
+import { AuthStore } from 'src/app/auth.store';
 import { Icon } from 'src/app/design/atoms/_models/icon';
+import { GlobalStore, hasRoleOrBetter } from 'src/app/global.store';
+import { NavigationStore } from 'src/app/navigation.store';
 
 export interface ArticleMetaData {
   title: string;
@@ -15,7 +22,7 @@ export interface ArticleMetaData {
   requiresRole: CampaignRole;
 }
 
-export const SIDEBAR_ENTRIES: ArticleMetaData[] = [
+export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   {
     title: 'Campaign Admin',
     iconClass: 'hammer',
@@ -248,3 +255,139 @@ export const SIDEBAR_ENTRIES: ArticleMetaData[] = [
     requiresRole: 'guest',
   },
 ];
+
+export type SidebarLinkEntry = {
+  kind: 'link';
+  extraClass?: string;
+} & Pick<
+  ArticleMetaData,
+  | 'title'
+  | 'iconClass'
+  | 'route'
+  | 'requiresRole'
+  | 'associatedRoutes'
+  | 'availableOffline'
+  | 'isActiveTab'
+>;
+export type SidebarButtonEntry = {
+  kind: 'button';
+  actionName: string;
+  extraClass?: string;
+} & Pick<
+  ArticleMetaData,
+  'availableOffline' | 'title' | 'iconClass' | 'requiresRole' | 'isActiveTab'
+>;
+export type SidebarEntry = SidebarLinkEntry | SidebarButtonEntry;
+
+@Injectable({
+  providedIn: 'root',
+})
+export class SidebarService {
+  readonly pwaService = inject(PwaService);
+  readonly routingService = inject(RoutingService);
+  readonly globalStore = inject(GlobalStore);
+  readonly authStore = inject(AuthStore);
+
+  readonly currentRoute = inject(NavigationStore).currentRoute;
+  readonly activeRouteName = computed(
+    () => (this.currentRoute()?.data as NamedRouteData | undefined)?.name,
+  );
+  readonly canInstallPwa = toSignal(this.pwaService.canInstall$);
+  readonly profileUrl = this.routingService.getRoutePath('direct-profile');
+
+  readonly sidebarEntries = computed<SidebarEntry[]>(() => {
+    const campaign = this.globalStore.currentCampaign();
+    if (!campaign) return [];
+
+    const entries: SidebarEntry[] = [
+      {
+        kind: 'button',
+        actionName: 'search',
+        iconClass: 'search',
+        title: 'Search',
+        requiresRole: 'guest',
+        availableOffline: false,
+        isActiveTab: false,
+      },
+      ...ARTICLE_META_ENTRIES.filter((entry) => entry.showInSidebar).map(
+        (entry) => {
+          const route = this.routingService.hasRoutePath(entry.route)
+            ? this.routingService.getRoutePath(entry.route, {
+                campaign: campaign.name,
+              })
+            : entry.route;
+          const activeRouteName = this.activeRouteName();
+          const isActiveTab = activeRouteName
+            ? entry.associatedRoutes.has(activeRouteName)
+            : false;
+
+          return {
+            kind: 'link',
+            availableOffline: entry.availableOffline,
+            iconClass: entry.iconClass,
+            route,
+            title: entry.title,
+            requiresRole: entry.requiresRole,
+            associatedRoutes: entry.associatedRoutes,
+            isActiveTab,
+          } satisfies SidebarLinkEntry;
+        },
+      ),
+    ];
+
+    const currentRole = this.authStore.isGlobalAdmin()
+      ? 'admin'
+      : (this.authStore.getCampaignRole(campaign.name) ?? 'guest');
+
+    return entries.filter((entry) =>
+      hasRoleOrBetter(currentRole, entry.requiresRole),
+    );
+  });
+
+  readonly sidebarFooterEntries = computed<SidebarEntry[]>(() => {
+    const campaign = this.globalStore.currentCampaign();
+    if (!campaign) return [];
+
+    const currentRole = this.authStore.isGlobalAdmin()
+      ? 'admin'
+      : (this.authStore.getCampaignRole(campaign.name) ?? 'guest');
+
+    const entries: SidebarEntry[] = [
+      {
+        kind: 'link',
+        title: 'Profile',
+        iconClass: 'circle-user',
+        route: this.profileUrl,
+        availableOffline: true,
+        requiresRole: 'guest',
+        isActiveTab: this.activeRouteName() === 'direct-profile',
+        associatedRoutes: new Set(),
+      },
+      {
+        kind: 'button',
+        actionName: 'logout',
+        iconClass: 'right-from-bracket',
+        title: 'Logout',
+        requiresRole: 'guest',
+        availableOffline: true,
+        isActiveTab: false,
+      },
+    ];
+
+    if (this.canInstallPwa()) {
+      entries.unshift({
+        kind: 'button',
+        actionName: 'pwaInstall',
+        iconClass: 'file-arrow-down',
+        title: 'Install App',
+        requiresRole: 'guest',
+        availableOffline: false,
+        isActiveTab: false,
+        extraClass: 'sidebar__entry--install-button',
+      } satisfies SidebarButtonEntry);
+    }
+    return entries.filter((entry) =>
+      hasRoleOrBetter(currentRole, entry.requiresRole),
+    );
+  });
+}

@@ -29,20 +29,19 @@ export class SearchFieldComponent {
   );
 
   readonly appSearch = output<string>();
+  readonly searchInput = output<string>();
 
-  searchString = '';
-
-  startSearch(): void {
-    if (this.searchString == null) {
+  startSearch(searchString: string): void {
+    if (searchString == null || searchString === '') {
       return;
     }
 
-    this.searchString = this.cleanText(this.searchString);
+    const cleanSearchString = this.cleanText(searchString);
 
-    if (this.searchString == null || this.searchString === '') {
+    if (!cleanSearchString) {
       return;
     }
-    this.appSearch.emit(this.searchString);
+    this.appSearch.emit(cleanSearchString);
   }
 
   private cleanText(str: string): string {

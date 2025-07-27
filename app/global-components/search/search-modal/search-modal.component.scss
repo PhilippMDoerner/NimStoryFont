@@ -1,0 +1,58 @@
+@use "/src/screens.scss" as screen;
+
+:host {
+  display: block;
+}
+::ng-deep {
+  @include screen.media-breakpoint-up(md) {
+    .search-modal {
+      max-width: 1000px !important;
+    }
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+
+  &__search-field-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--spacer-4);
+  }
+
+  &__search-field {
+    margin: 0;
+    width: 100%;
+  }
+
+  &__search-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-2);
+    height: 450px;
+    overflow-y: scroll;
+
+    &--hidden {
+      visibility: hidden;
+    }
+  }
+
+  &__search-result-link {
+    font-weight: unset;
+    text-decoration: unset;
+    outline: none;
+
+    &:hover,
+    &:focus,
+    &--in-focus {
+      background-color: var(--bs-black);
+      color: var(--bs-link-hover-color);
+    }
+  }
+
+  &__search-result {
+    background-color: inherit;
+  }
+}

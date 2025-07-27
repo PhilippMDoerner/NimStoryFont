@@ -21,6 +21,7 @@ import { AuthStore } from './auth.store';
 import { PageComponent } from './design/organisms/page/page.component';
 import { ToastOverlayComponent } from './design/organisms/toast-overlay/toast-overlay.component';
 import { OnboardingModalComponent } from './global-components/onboarding/onboarding-modal/onboarding-modal.component';
+import { SearchModalComponent } from './global-components/search/search-modal/search-modal.component';
 import { GlobalStore } from './global.store';
 import { ServiceWorkerService } from './service-worker.service';
 @Component({
@@ -33,6 +34,7 @@ import { ServiceWorkerService } from './service-worker.service';
     AsyncPipe,
     OnboardingModalComponent,
     BypassBlockDirective,
+    SearchModalComponent,
   ],
   host: {
     '[@.disabled]': 'disableAnimation()',

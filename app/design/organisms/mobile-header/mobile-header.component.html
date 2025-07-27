@@ -24,6 +24,14 @@
       </strong>
     </a>
 
+    <button
+      btn
+      [kind]="'NONE'"
+      [icon]="'search'"
+      aria-label="Search for articles"
+      (click)="openSearchModal()"
+    ></button>
+
     @if ((online$ | async) === false) {
       <button
         btn
