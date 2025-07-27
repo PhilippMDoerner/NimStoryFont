@@ -8,7 +8,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest, filter, map, withLatestFrom } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { OverviewItem } from 'src/app/_models/overview';
 import { HotkeyService } from 'src/app/_services/hotkey.service';
@@ -81,9 +81,16 @@ export class SearchModalComponent {
   });
 
   constructor() {
+    const hasCurrentCampaign$ = toObservable(
+      this.globalStore.currentCampaign,
+    ).pipe(map((campaign) => !!campaign));
     this.hotkeyService
       .watchAction('search')
-      .pipe(takeUntilDestroyed())
+      .pipe(
+        withLatestFrom(hasCurrentCampaign$),
+        filter(([, hasCurrentCampaign]) => hasCurrentCampaign),
+        takeUntilDestroyed(),
+      )
       .subscribe(() => this.openModal());
   }
 
@@ -101,13 +108,13 @@ export class SearchModalComponent {
     if (this.modalService.hasOpenModals()) return;
 
     this.modalService.open(SearchModalComponent, {
-      modalDialogClass: 'search-modal',
       centered: true,
       ariaLabelledBy: this.titleId,
     });
   }
 
   dismiss() {
+    console.log('dismiss');
     this.modalService.dismissAll();
   }
 }
