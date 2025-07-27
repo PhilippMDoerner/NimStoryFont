@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-import { shareReplay, switchMap, take } from 'rxjs';
+import { of, shareReplay, switchMap, take } from 'rxjs';
+import { OverviewItem } from 'src/app/_models/overview';
 import { ArticleService } from 'src/app/_services/article/article.service';
 import { GlobalStore } from 'src/app/global.store';
 import { filterNil } from 'src/utils/rxjs-operators';
@@ -25,9 +26,16 @@ export const SearchPageStore = signalStore(
       searchArticles: (searchString: string) =>
         campaignName$.pipe(
           take(1),
-          switchMap((campaignName) =>
-            articleService.getCampaignSearchArticle(campaignName, searchString),
-          ),
+          switchMap((campaignName) => {
+            if (searchString) {
+              return articleService.getCampaignSearchArticle(
+                campaignName,
+                searchString,
+              );
+            } else {
+              return of({ emptyResponse: '', articles: [] as OverviewItem[] });
+            }
+          }),
         ),
     };
   }),

@@ -6,7 +6,7 @@ import { ArticleNode, ArticleNodeKind, NodeLink } from 'src/app/_models/graph';
 import { ArticleService } from 'src/app/_services/article/article.service';
 import { ellipsize } from 'src/utils/string';
 import { LinkClickEvent, SELECTORS } from '../_model/graph';
-import { SIDEBAR_ENTRIES } from '../_model/sidebar';
+import { ARTICLE_META_ENTRIES } from '../_model/sidebar';
 
 export type NodeMenuData = {
   title: string | undefined;
@@ -170,12 +170,12 @@ export class GraphMenuService implements OnDestroy {
     const iconClass = `fas fa-${this.toIconClass(data.kind)}`;
 
     return `
-      <div class="d-flex flex-row justify-content-between"> 
+      <div class="d-flex flex-row justify-content-between">
         <a class="d-inline-block mb-2" href="${data.link}">
           <h2 class="fs-5 text-dark m-0"> ${data.title ?? 'Unknown'} <i class="${iconClass}"></i></h2>
         </a>
         <button class="border rounded" style="height: fit-content;" id="${SELECTORS.nodeMenuCloseBtnId}">
-          <i class="fas fa-times"></i> 
+          <i class="fas fa-times"></i>
         </button>
       </div>
       <div>${data.description ?? ''}</div>
@@ -190,10 +190,10 @@ export class GraphMenuService implements OnDestroy {
       : 'disabled text-decoration-line-through';
     const menu = `
       <div class="list-group" id="link-context-menu">
-        <button 
+        <button
           id="${SELECTORS.deleteLinkId}"
           class="list-group-item list-group-item-action bg-danger ${extraClasses}" ${isCustomLink ? '' : 'disabled'} title="${linkLabel}"
-        > 
+        >
           <i class="fas fa-trash"></i>
           Delete Link "${ellipsize(linkLabel, 15)}"
         </button>
@@ -214,7 +214,7 @@ export class GraphMenuService implements OnDestroy {
 
   private toIconClass(kind: ArticleNodeKind | undefined): string | undefined {
     if (!kind) return undefined;
-    const entry = SIDEBAR_ENTRIES.find((entry) =>
+    const entry = ARTICLE_META_ENTRIES.find((entry) =>
       entry.article_types.includes(kind),
     );
     return entry ? entry.iconClass : undefined;

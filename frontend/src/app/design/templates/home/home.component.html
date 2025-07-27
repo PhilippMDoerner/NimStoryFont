@@ -23,15 +23,6 @@
       <app-placeholder class="heading-container--placeholder" />
     }
 
-    <!-- Search Bar -->
-    <app-search-field
-      class="home__search-bar"
-      [placeholder]="'Search for articles in ' + (campaignData()?.name ?? '')"
-      [btnAriaLabel]="'Start search!'"
-      [canSearch]="(isOnline$ | async) === true"
-      (appSearch)="appSearch.emit($event)"
-    ></app-search-field>
-
     <!-- News -->
     @let feedId = id + "-feed";
     @let feedLabelId = id + "-feed-heading";
