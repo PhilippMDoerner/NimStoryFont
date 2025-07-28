@@ -45,7 +45,7 @@
           class="body__search-result-link"
           [class.body__search-result-link--in-focus]="context.isInFocus"
           [routerLink]="context.data.url"
-          [tabIndex]="-1"
+          [tabIndex]="context.isInFocus ? 0 : -1"
         >
           @let color = context.data.color + " !important";
           <app-overview-entry
