@@ -46,6 +46,7 @@
           [class.body__search-result-link--in-focus]="context.isInFocus"
           [routerLink]="context.data.url"
           [tabIndex]="context.isInFocus ? 0 : -1"
+          [ngbTooltip]="context.data.name"
         >
           @let color = context.data.color + " !important";
           <app-overview-entry
