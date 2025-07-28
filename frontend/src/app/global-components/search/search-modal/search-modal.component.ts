@@ -65,6 +65,7 @@ export class SearchModalComponent {
 
   id = componentId();
   titleId = `${this.id}-title`;
+  listId = `${this.id}-list`;
   DEFAULT_URL = 'assets/default_images/icon_default.webp';
 
   campaignName = this.globalStore.campaignName;

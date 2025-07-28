@@ -16,6 +16,7 @@
       [type]="'search'"
       [hotkeyAction]="'focus'"
       [autofocus]="autofocus()"
+      [ariaControls]="ariaControls()"
       (actionTriggered)="input.focus()"
       (changed)="startSearch($event)"
     />
