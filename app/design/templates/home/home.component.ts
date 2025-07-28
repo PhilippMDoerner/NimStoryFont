@@ -17,7 +17,7 @@ import {
 } from 'src/app/_models/overview';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
-import { AsyncPipe, NgOptimizedImage } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { OnlineService } from 'src/app/_services/online.service';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
@@ -30,7 +30,6 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import { SwitchComponent } from '../../atoms/switch/switch.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
-import { SearchFieldComponent } from '../../molecules/search-field/search-field.component';
 import { IconCardListComponent } from '../../organisms/icon-card-list/icon-card-list.component';
 
 const FILTER_MODES = ['NONE', '1WEEK', '1DAY'] as const;
@@ -53,10 +52,8 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
   imports: [
     PageContainerComponent,
     HtmlTextComponent,
-    SearchFieldComponent,
     IconCardListComponent,
     PlaceholderComponent,
-    AsyncPipe,
     NgOptimizedImage,
     ButtonComponent,
     IconComponent,

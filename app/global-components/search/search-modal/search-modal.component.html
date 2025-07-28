@@ -23,6 +23,7 @@
         [placeholder]="'Search for articles in ' + campaignName()"
         [btnAriaLabel]="'Start search!'"
         [canSearch]="!isLoading()"
+        [ariaControls]="listId"
         (appSearch)="searchStore.loadSearchArticles($event)"
       />
       @if (isLoading()) {
@@ -31,6 +32,7 @@
     </div>
     @let hasEntries = (entries()?.length ?? 0) > 0;
     <app-list
+      [id]="listId"
       class="body__search-results"
       [class.body__search-results--hidden]="!hasEntries"
       [entries]="entries() ?? []"
@@ -45,7 +47,8 @@
           class="body__search-result-link"
           [class.body__search-result-link--in-focus]="context.isInFocus"
           [routerLink]="context.data.url"
-          [tabIndex]="-1"
+          [tabIndex]="context.isInFocus ? 0 : -1"
+          [ngbTooltip]="context.data.name"
         >
           @let color = context.data.color + " !important";
           <app-overview-entry

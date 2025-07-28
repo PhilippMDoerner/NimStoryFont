@@ -29,6 +29,7 @@ export class SearchFieldComponent {
   _placeholder = computed(() =>
     this.canSearch() ? this.placeholder() : 'Search is currently disabled',
   );
+  ariaControls = input<string>();
 
   readonly appSearch = output<string>();
   readonly searchInput = output<string>();
