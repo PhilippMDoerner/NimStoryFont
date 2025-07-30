@@ -1,8 +1,12 @@
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
+  Signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
@@ -62,6 +66,12 @@ export class SearchModalComponent {
   onlineService = inject(OnlineService);
   searchStore = inject(SearchPageStore);
   router = inject(Router);
+  announcer = inject(LiveAnnouncer);
+
+  private readonly listElement: Signal<ElementRef<HTMLElement>> =
+    viewChild.required('list', {
+      read: ElementRef<HTMLElement>,
+    });
 
   id = componentId();
   titleId = `${this.id}-title`;
@@ -103,6 +113,7 @@ export class SearchModalComponent {
   });
 
   constructor() {
+    this.announcer.announce('test');
     const hasCurrentCampaign$ = toObservable(
       this.globalStore.currentCampaign,
     ).pipe(map((campaign) => !!campaign));
@@ -144,5 +155,9 @@ export class SearchModalComponent {
 
   dismiss() {
     this.modalService.dismissAll();
+  }
+
+  shiftToSearch() {
+    this.listElement().nativeElement.focus();
   }
 }
