@@ -28,6 +28,7 @@ import {
   merge,
   startWith,
   switchMap,
+  tap,
   withLatestFrom,
 } from 'rxjs';
 import { encodeKey, encodeKeyCombination } from 'src/app/_functions/keyMapper';
@@ -49,6 +50,7 @@ export interface ListEntryTemplateContext<T> {
   index: number;
   first: boolean;
   last: boolean;
+  entryLabelId: string;
 }
 
 @Component({
@@ -70,7 +72,9 @@ export class ListComponent<T> {
   private host = inject(ElementRef<HTMLElement>);
 
   entries = input.required<ListEntry<T>[]>();
-  arrowKeyNavigationOptions = input<WatchOptions | undefined>();
+  arrowKeyNavigationOptions = input<
+    Omit<WatchOptions, 'keyEventType'> | undefined
+  >();
   listItemClasses = input<string | string[]>('');
 
   entryActivated = output<T>();
@@ -144,18 +148,42 @@ export class ListComponent<T> {
   }
 
   private setupKeyboardNavigation() {
-    const options$ = toObservable(this.arrowKeyNavigationOptions);
-    const toNextEntry$ = options$.pipe(
+    const options$ = toObservable(this.arrowKeyNavigationOptions).pipe(
+      map(
+        (opt) => ({ ...opt, keyEventType: 'keydown' }) satisfies WatchOptions,
+      ),
+    );
+    const toNextEntryAction$ = options$.pipe(
       switchMap((options) =>
         this.shortcutService.watchAction('jump-to-next-entry', options),
       ),
+    );
+    const arrowDown$ = options$.pipe(
+      switchMap((options) =>
+        this.shortcutService.watchKey('ArrowDown', options),
+      ),
+      tap((event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }),
+    );
+    const toNextEntry$ = merge(toNextEntryAction$, arrowDown$).pipe(
       map(() => 'jump-to-next-entry' as const),
     );
 
-    const toPriorEntry$ = options$.pipe(
+    const toPriorEntryAction$ = options$.pipe(
       switchMap((options) =>
         this.shortcutService.watchAction('jump-to-prior-entry', options),
       ),
+    );
+    const arrowUp$ = options$.pipe(
+      switchMap((options) => this.shortcutService.watchKey('ArrowUp', options)),
+      tap((event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }),
+    );
+    const toPriorEntry$ = merge(toPriorEntryAction$, arrowUp$).pipe(
       map(() => 'jump-to-prior-entry' as const),
     );
 

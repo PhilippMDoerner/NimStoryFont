@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
   combineLatest,
   filter,
@@ -40,6 +41,8 @@ import { componentId } from 'src/utils/DOM';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditShortcutDialogComponent {
+  modalService = inject(NgbModal);
+
   action = model.required<ShortcutAction>();
   modified = model.required<boolean>();
 
@@ -108,5 +111,10 @@ export class EditShortcutDialogComponent {
 
   emitShortcutReset() {
     this.shortcutReset.emit(this.action());
+  }
+
+  closeDialog() {
+    this.modalService.dismissAll();
+    this.cancelled.emit();
   }
 }

@@ -9,7 +9,7 @@
       [kind]="'NONE'"
       [icon]="'xmark'"
       aria-label="Close"
-      (clicked)="cancelled.emit()"
+      (clicked)="closeDialog()"
     ></button>
   </div>
 
@@ -58,7 +58,7 @@
           [icon]="'times'"
           [text]="'Cancel'"
           [type]="'submit'"
-          (clicked)="cancelled.emit()"
+          (clicked)="closeDialog()"
         ></button>
         <button
           btn

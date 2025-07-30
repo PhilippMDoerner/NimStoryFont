@@ -131,8 +131,8 @@ export class UserSettingsComponent {
     this.shortcutResetRequested.emit(action);
   }
 
-  onEditButtonClicked(entry: MappingEntry, event: Event) {
+  onEditButtonClicked(entry: MappingEntry['data'], event: Event) {
     event.stopPropagation();
-    this.openEditShortcutDialog(entry.data.action, entry.data.modified);
+    this.openEditShortcutDialog(entry.action, entry.modified);
   }
 }

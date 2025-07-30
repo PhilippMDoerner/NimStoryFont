@@ -27,7 +27,9 @@
         (appSearch)="searchStore.loadSearchArticles($event)"
       />
       @if (isLoading()) {
-        <app-spinner />
+        <div class="body__spinner-container">
+          <app-spinner />
+        </div>
       }
     </div>
     @let hasEntries = (entries()?.length ?? 0) > 0;
@@ -39,6 +41,7 @@
       [arrowKeyNavigationOptions]="{
         isModalAction: true,
       }"
+      [attr.aria-busy]="isLoading()"
       (entryActivated)="routeToEntry($event)"
     >
       <ng-template #entryTemplate let-templateContext>
@@ -49,6 +52,7 @@
           [routerLink]="context.data.url"
           [tabIndex]="context.isInFocus ? 0 : -1"
           [ngbTooltip]="context.data.name"
+          [id]="context.entryLabelId"
         >
           @let color = context.data.color + " !important";
           <app-overview-entry

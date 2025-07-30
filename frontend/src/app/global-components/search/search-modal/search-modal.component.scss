@@ -21,6 +21,7 @@
     flex-direction: row;
     align-items: center;
     margin-bottom: var(--spacer-4);
+    gap: var(--bs-modal-padding);
   }
 
   &__search-field {
@@ -67,6 +68,11 @@
     font-size: 30px;
     opacity: 0.5;
     margin-right: var(--spacer-2);
+  }
+
+  &__spinner-container {
+    width: 36px;
+    height: 36px;
   }
 }
 
