@@ -30,6 +30,7 @@ export interface WatchOptions {
   isModalAction?: boolean;
   suppressEvent?: boolean;
   eventSource?: HTMLElement;
+  keyEventType?: 'keyup' | 'keydown';
 }
 
 @Injectable({
@@ -50,13 +51,27 @@ export class HotkeyService {
     options: WatchOptions = {},
   ): Observable<void> {
     const actions$ = options.eventSource
-      ? this.createActionListener(options.eventSource)
+      ? this.createActionListener(options.eventSource, options)
       : this.globalActions$;
 
     return actions$.pipe(
       filter((a) => a === action),
       filter(() => this.modalActionFilter(!!options.isModalAction)),
       map(() => void 0),
+    );
+  }
+
+  public watchKey(
+    key: string,
+    options: WatchOptions = {},
+  ): Observable<KeyboardEvent> {
+    const actions$ = options.eventSource
+      ? this.createKeyListener(options.eventSource, options)
+      : this.createKeyListener(document.body, options);
+
+    return actions$.pipe(
+      filter((a) => a.key === key),
+      filter(() => this.modalActionFilter(!!options.isModalAction)),
     );
   }
 
@@ -73,25 +88,11 @@ export class HotkeyService {
     return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
   }
 
-  private createKeyListener(eventSource: HTMLElement) {
-    return fromEvent<KeyboardEvent>(eventSource, 'keyup').pipe(
-      filter((event) => {
-        // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
-        const isFromTextInput =
-          event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLTextAreaElement;
-        if (isFromTextInput) return false;
-
-        // Ignore keyup events from modifier keys. We only care about "real" keys
-        return !MODIFIER_KEYS.has(event.key);
-      }),
-      debugLog('keyup'),
-      share(),
-    );
-  }
-
-  private createActionListener(eventSource: HTMLElement) {
-    const keyup$ = this.createKeyListener(eventSource);
+  private createActionListener(
+    eventSource: HTMLElement,
+    options?: WatchOptions,
+  ) {
+    const keyup$ = this.createKeyListener(eventSource, options);
 
     return this.hotkeyMap$.pipe(
       map((hotkeyMap) => {
@@ -133,6 +134,24 @@ export class HotkeyService {
           repeat(),
         );
       }),
+      share(),
+    );
+  }
+
+  private createKeyListener(eventSource: HTMLElement, options?: WatchOptions) {
+    const keyEventType = options?.keyEventType ?? 'keyup';
+    return fromEvent<KeyboardEvent>(eventSource, keyEventType).pipe(
+      filter((event) => {
+        // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
+        const isFromTextInput =
+          event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement;
+        if (isFromTextInput) return false;
+
+        // Ignore keyup events from modifier keys. We only care about "real" keys
+        return !MODIFIER_KEYS.has(event.key);
+      }),
+      debugLog(keyEventType),
       share(),
     );
   }
