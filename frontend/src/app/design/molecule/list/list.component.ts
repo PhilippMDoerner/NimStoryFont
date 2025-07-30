@@ -73,7 +73,7 @@ export class ListComponent<T> {
 
   entries = input.required<ListEntry<T>[]>();
   arrowKeyNavigationOptions = input<
-    Omit<WatchOptions, 'keyEventType'> | undefined
+    Omit<WatchOptions, 'keyEventType' | 'eventSource'> | undefined
   >();
   listItemClasses = input<string | string[]>('');
 
@@ -150,7 +150,12 @@ export class ListComponent<T> {
   private setupKeyboardNavigation() {
     const options$ = toObservable(this.arrowKeyNavigationOptions).pipe(
       map(
-        (opt) => ({ ...opt, keyEventType: 'keydown' }) satisfies WatchOptions,
+        (opt) =>
+          ({
+            ...opt,
+            eventSource: this.host.nativeElement,
+            keyEventType: 'keydown',
+          }) satisfies WatchOptions,
       ),
     );
     const toNextEntryAction$ = options$.pipe(
