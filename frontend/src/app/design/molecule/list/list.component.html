@@ -1,10 +1,11 @@
 @let focusIndex = focusIndex$ | async;
 @for (entry of entries(); track entry.trackId) {
-  @let isInFocus = focusIndex === $index;
+  @let isInFocusForTab = (focusIndex ?? 0) === $index;
+  @let isInFocusVisibly = focusIndex === $index;
   @let entryLabelId = entry.trackId + "-label";
   <li
     [class]="'list__item ' + listItemClassStr()"
-    tabindex="-1"
+    [tabindex]="isInFocusForTab ? 0 : -1"
     #listItem
     [attr.aria-labelledb]="entryLabelId"
     (click)="entryActivated.emit(entry.data)"
@@ -16,7 +17,7 @@
         context: {
           $implicit: {
             data: entry.data,
-            isInFocus: isInFocus,
+            isInFocus: isInFocusVisibly,
             entryLabelId: entryLabelId,
             index: $index,
             first: $first,

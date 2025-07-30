@@ -4,7 +4,7 @@
   class="search"
   role="search"
   [attr.aria-labelledby]="searchLabelId"
-  (submit)="startSearch(input.value())"
+  (submit)="submitSearch(input.value())"
 >
   <div class="search__bar" [class.search__bar--disabled]="!canSearch()">
     <app-input

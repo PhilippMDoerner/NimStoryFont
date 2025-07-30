@@ -32,6 +32,7 @@ export class SearchFieldComponent {
   ariaControls = input<string>();
 
   readonly appSearch = output<string>();
+  readonly searchSubmit = output<string>();
   readonly searchInput = output<string>();
 
   startSearch(searchString: string): void {
@@ -45,6 +46,11 @@ export class SearchFieldComponent {
       return;
     }
     this.appSearch.emit(cleanSearchString);
+  }
+
+  submitSearch(searchString: string): void {
+    this.searchSubmit.emit(searchString);
+    this.searchInput.emit(searchString);
   }
 
   private cleanText(str: string): string {

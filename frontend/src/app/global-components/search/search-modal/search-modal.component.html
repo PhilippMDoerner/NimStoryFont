@@ -25,6 +25,7 @@
         [canSearch]="!isLoading()"
         [ariaControls]="listId"
         (appSearch)="searchStore.loadSearchArticles($event)"
+        (searchSubmit)="shiftToSearch()"
       />
       @if (isLoading()) {
         <div class="body__spinner-container">
@@ -34,10 +35,12 @@
     </div>
     @let hasEntries = (entries()?.length ?? 0) > 0;
     <app-list
+      #list
       [id]="listId"
       class="body__search-results"
       [class.body__search-results--hidden]="!hasEntries"
       [entries]="entries() ?? []"
+      aria-label="Search Results"
       [arrowKeyNavigationOptions]="{
         isModalAction: true,
       }"

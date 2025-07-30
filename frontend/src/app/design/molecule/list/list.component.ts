@@ -61,7 +61,7 @@ export interface ListEntryTemplateContext<T> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [NgbTooltip],
   host: {
-    tabindex: '0',
+    tabindex: '-1',
     role: 'list',
     'aria-keyshortcuts': 'A',
   },
