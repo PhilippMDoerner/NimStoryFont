@@ -20,7 +20,7 @@
         [autofocus]="true"
         [showButton]="false"
         class="body__search-field"
-        [placeholder]="'Search for articles in ' + campaignName()"
+        [placeholder]="'Search Query'"
         [btnAriaLabel]="'Start search!'"
         [canSearch]="!isLoading()"
         [ariaControls]="listId"
@@ -86,5 +86,11 @@
         </div>
       </div>
     }
+
+    <div class="cdk-visually-hidden" aria-live="polite">
+      @if (searchStore.searchArticlesQueryState() === "success") {
+        {{ searchStore.searchArticles()?.articles?.length }} results found
+      }
+    </div>
   </div>
 </div>
