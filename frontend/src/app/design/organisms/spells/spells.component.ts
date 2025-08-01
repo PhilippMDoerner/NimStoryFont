@@ -120,9 +120,12 @@ export class SpellsComponent {
 
   onSpellClassClick(event: MouseEvent, connection: SpellPlayerClassConnection) {
     event.preventDefault();
-    if (connection.player_class_details) {
-      this.spellClassClick.emit(connection.player_class_details);
-    }
+    event.stopPropagation();
+    document.startViewTransition(() => {
+      if (connection.player_class_details) {
+        this.spellClassClick.emit(connection.player_class_details);
+      }
+    });
   }
 
   onSpellCreate(spell: Partial<SpellRaw>) {

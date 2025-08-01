@@ -49,17 +49,19 @@
     </div>
 
     @if (canUpdate() && state() === "EDIT") {
-      <h2 class="diaryentry__contents-heading">Contents</h2>
-      <app-drag-and-drop-list
-        class="diaryentry__contents"
-        [entries]="sortedEncounters()"
-        [labelProp]="'title'"
-        [idProp]="'pk'"
-        [isUpdating]="isUpdatingEncounters()"
-        aria-label="Rearrangeable encounters in this diaryentry"
-        (changed)="rearrangeEncounters($event)"
-        (swapEntries)="swapEncounters($event)"
-      />
+      <div class="diaryentry__contents contents">
+        <h2 class="contents__heading">Contents</h2>
+        <app-drag-and-drop-list
+          class="contents__drag-and-drop-list"
+          [entries]="sortedEncounters()"
+          [labelProp]="'title'"
+          [idProp]="'pk'"
+          [isUpdating]="isUpdatingEncounters()"
+          aria-label="Rearrangeable encounters in this diaryentry"
+          (changed)="rearrangeEncounters($event)"
+          (swapEntries)="swapEncounters($event)"
+        />
+      </div>
     }
 
     @if (state() === "DISPLAY") {
@@ -73,6 +75,7 @@
 
     <!-- DiaryEntry Text In Encounters -->
     <app-diaryentry-encounters
+      class="diaryentry__encounter-list"
       [state]="state() === 'DISPLAY' ? 'READ' : 'EDIT'"
       (connectionDelete)="encounterConnectionDelete.emit($event)"
       (connectionCreate)="encounterConnectionCreate.emit($event)"

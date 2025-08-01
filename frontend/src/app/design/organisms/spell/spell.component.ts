@@ -203,7 +203,9 @@ export class SpellComponent implements OnInit {
   onActionTriggered(action: string): void {
     switch (action) {
       case 'update':
-        this.toggleAwayFromState(this.state());
+        document.startViewTransition(() =>
+          this.toggleAwayFromState(this.state()),
+        );
         break;
       case 'delete':
         this.onSpellDelete();

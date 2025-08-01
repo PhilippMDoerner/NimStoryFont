@@ -262,10 +262,13 @@ export class EncounterComponent implements OnInit {
   onContextMenuAction(action: string) {
     switch (action) {
       case 'edit-metadata':
+        document.startViewTransition(() =>
+          this.toggleAwayFromState(this.cardState()),
+        );
         this.toggleAwayFromState(this.cardState());
         break;
       case 'edit-description':
-        this.toggleTextField();
+        document.startViewTransition(() => this.toggleTextField());
         break;
       case 'delete':
         this.onEncounterDelete();

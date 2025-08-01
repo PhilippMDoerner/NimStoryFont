@@ -16,6 +16,22 @@
   }
 }
 
+.subline {
+  margin-top: var(--spacer-3);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  &__inner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: var(--spacer-3);
+    max-width: 500px;
+    flex-wrap: wrap;
+  }
+}
+
 .back-link {
   width: fit-content;
   display: inline-block;

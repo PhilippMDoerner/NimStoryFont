@@ -86,11 +86,13 @@ export class SmallCreateFormComponent<T> {
   }
 
   toggleForm() {
-    switch (this.state()) {
-      case 'DISPLAY':
-        return this.changeState('CREATE');
-      case 'CREATE':
-        return this.onCancel();
-    }
+    document.startViewTransition(() => {
+      switch (this.state()) {
+        case 'DISPLAY':
+          return this.changeState('CREATE');
+        case 'CREATE':
+          return this.onCancel();
+      }
+    });
   }
 }

@@ -82,6 +82,8 @@ export class SpellsTemplateComponent {
   onClassRemove(className: string): void {
     const newSet = new Set(this.selectedClassNames());
     newSet.delete(className);
-    this.selectedClassNames.set(newSet);
+    document.startViewTransition(() => {
+      this.selectedClassNames.set(newSet);
+    });
   }
 }

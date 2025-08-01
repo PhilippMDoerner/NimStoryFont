@@ -71,11 +71,13 @@ export class EditableTextComponent {
   }
 
   toggleEdit() {
-    if (this.state() === 'UPDATE') {
-      this.cancelEdit();
-    } else {
-      this.startEdit();
-    }
+    document.startViewTransition(() => {
+      if (this.state() === 'UPDATE') {
+        this.cancelEdit();
+      } else {
+        this.startEdit();
+      }
+    });
   }
 
   startEdit() {
