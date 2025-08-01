@@ -50,7 +50,8 @@
             },
             "index": "src/index.html",
             "polyfills": [
-              "@angular/localize/init"
+              "@angular/localize/init",
+              "src/polyfills.ts"
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -160,7 +161,9 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
-            "polyfills": [],
+            "polyfills": [
+              "src/polyfills.ts"
+            ],
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -175,6 +178,9 @@
         "storybook": {
           "builder": "@storybook/angular:start-storybook",
           "options": {
+            "polyfills": [
+              "src/polyfills.ts"
+            ],
             "configDir": ".storybook",
             "browserTarget": "nimstoryfont-gui:build",
             "compodoc": false,
@@ -187,7 +193,10 @@
             "configDir": ".storybook",
             "browserTarget": "nimstoryfont-gui:build",
             "compodoc": false,
-            "outputDir": "storybook-static"
+            "outputDir": "storybook-static",
+            "polyfills": [
+              "src/polyfills.ts"
+            ]
           }
         },
         "lint": {
