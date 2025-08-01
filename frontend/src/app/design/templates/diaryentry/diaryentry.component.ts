@@ -120,10 +120,8 @@ export class DiaryentryComponent {
   toggleState(action: string, modalRef: TemplateRef<HTMLElement>): void {
     switch (action) {
       case 'toggleState': {
-        document.startViewTransition(() => {
-          const isDisplayState = this.state() === 'DISPLAY';
-          this.state.set(isDisplayState ? 'EDIT' : 'DISPLAY');
-        });
+        const isDisplayState = this.state() === 'DISPLAY';
+        this.state.set(isDisplayState ? 'EDIT' : 'DISPLAY');
         break;
       }
       case 'deletionRequested':
