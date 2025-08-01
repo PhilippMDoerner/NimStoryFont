@@ -202,6 +202,7 @@ export class EncounterComponent implements OnInit {
   }
 
   changeState(newState: FormState, newModel: Partial<Encounter> | undefined) {
+    console.trace('Changing state', newState, newModel);
     this.cardState.set(newState);
     this.userModel.set({ ...newModel });
   }
@@ -265,7 +266,6 @@ export class EncounterComponent implements OnInit {
         document.startViewTransition(() =>
           this.toggleAwayFromState(this.cardState()),
         );
-        this.toggleAwayFromState(this.cardState());
         break;
       case 'edit-description':
         document.startViewTransition(() => this.toggleTextField());
