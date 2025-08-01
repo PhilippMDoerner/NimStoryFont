@@ -189,6 +189,16 @@ export class HomeComponent {
     }
   }
 
+  updateTimeFilter(event: string) {
+    switch (event) {
+      case '1WEEK':
+      case '1DAY':
+      case 'NONE':
+        document.startViewTransition(() => this.timeFilter.set(event));
+        break;
+    }
+  }
+
   private toIconCardEntry(article: OverviewItem): IconCardEntry {
     return {
       entryType: article.article_type.toUpperCase() as ArticleKind,
