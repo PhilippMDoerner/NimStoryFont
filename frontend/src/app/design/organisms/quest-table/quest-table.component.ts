@@ -76,7 +76,7 @@ export class QuestTableComponent {
 
   updateDisplayState(filterStateStr: string) {
     const filterState = filterStateStr as DisplayState;
-    this.state.set(filterState);
+    document.startViewTransition(() => this.state.set(filterState));
   }
 
   shouldDisplayQuest(quest: OverviewItem, displayState: DisplayState): boolean {

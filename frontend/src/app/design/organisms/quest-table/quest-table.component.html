@@ -17,21 +17,6 @@
       "
       (actionTriggered)="updateDisplayState($event)"
     />
-    <!-- <label class="col-sm-3 d-flex align-items-center justify-content-end">
-      <select
-        class="heading__select flex-1"
-        [attr.aria-label]="
-          'Filter quests of ' + questTaker() + ' by QuestState'
-        "
-        (change)="updateDisplayState($event)"
-      >
-        @for (state of DISPLAY_STATES; track state) {
-          <option [value]="state">
-            {{ state }}
-          </option>
-        }
-      </select>
-    </label> -->
   </div>
 
   <div class="row">
