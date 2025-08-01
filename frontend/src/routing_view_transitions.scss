@@ -1,0 +1,29 @@
+@media (prefers-reduced-motion: no-preference) {
+  // Animation when CampaignOverviewPage animates out
+  ::view-transition-old(page) {
+    animation: slide-out 1000ms ease-in-out;
+  }
+
+  // Animation when CampaignOverviewPage animates in
+  ::view-transition-new(page) {
+    animation: slide-in 1000ms ease-in-out;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}

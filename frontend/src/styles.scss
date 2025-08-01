@@ -1,4 +1,5 @@
 @use "@angular/cdk";
+@use "./routing_view_transitions";
 
 @import "./custom_bootstrap.scss";
 //Must be imported after custom_bootstrap so that values from custom_bootstrap are available for overriding

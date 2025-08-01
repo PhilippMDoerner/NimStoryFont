@@ -32,8 +32,6 @@ import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { MobileHeaderComponent } from '../mobile-header/mobile-header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
-export const showSidebarSignal = signal(true);
-
 @Component({
   selector: 'app-page',
   templateUrl: './page.component.html',
@@ -108,8 +106,7 @@ export class PageComponent {
   showSidebar = signal(this.screenService.isMobile() ? false : true);
   canShowSidebar = computed(() => {
     const hasCampaign = !!this.globalStore.currentCampaign();
-    const allowSidebarVisibility = showSidebarSignal();
-    return allowSidebarVisibility && hasCampaign;
+    return hasCampaign;
   });
   homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {

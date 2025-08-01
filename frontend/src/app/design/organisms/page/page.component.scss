@@ -116,12 +116,3 @@
     opacity: 0.75;
   }
 }
-
-// Necessary so that the slide animation of campaign-overview does not mix with the component underneath it
-:host {
-  ::ng-deep {
-    router-outlet + * {
-      z-index: 1;
-    }
-  }
-}
