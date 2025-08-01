@@ -202,9 +202,10 @@ export class EncounterComponent implements OnInit {
   }
 
   changeState(newState: FormState, newModel: Partial<Encounter> | undefined) {
-    console.trace('Changing state', newState, newModel);
-    this.cardState.set(newState);
-    this.userModel.set({ ...newModel });
+    document.startViewTransition(() => {
+      this.cardState.set(newState);
+      this.userModel.set({ ...newModel });
+    });
   }
 
   onEncounterCreate(encounter: Partial<EncounterRaw> | Encounter) {
@@ -263,9 +264,7 @@ export class EncounterComponent implements OnInit {
   onContextMenuAction(action: string) {
     switch (action) {
       case 'edit-metadata':
-        document.startViewTransition(() =>
-          this.toggleAwayFromState(this.cardState()),
-        );
+        this.toggleAwayFromState(this.cardState());
         break;
       case 'edit-description':
         document.startViewTransition(() => this.toggleTextField());
