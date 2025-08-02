@@ -170,7 +170,7 @@ export class DiaryentryCreateUpdatePageComponent {
           showWrapperLabel: false,
           labelProp: 'name',
           sortProp: 'session_details',
-          sortDirection: 'desc',
+          sortDirection: 'asc',
         }),
       ],
     },
