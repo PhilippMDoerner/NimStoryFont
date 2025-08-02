@@ -1,4 +1,3 @@
-import { JsonPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -40,7 +39,7 @@ import { DiaryEntryCreateUpdatePageStore } from './diaryentry-create-update-page
 
 @Component({
   selector: 'app-diaryentry-create-update-page',
-  imports: [CreateUpdateComponent, ButtonComponent, JsonPipe],
+  imports: [CreateUpdateComponent, ButtonComponent],
   templateUrl: './diaryentry-create-update-page.component.html',
   styleUrl: './diaryentry-create-update-page.component.scss',
   changeDetection: ChangeDetectionStrategy.Default,
