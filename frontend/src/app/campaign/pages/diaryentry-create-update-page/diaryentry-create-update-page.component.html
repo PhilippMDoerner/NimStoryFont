@@ -7,4 +7,28 @@
   (create)="create($event)"
   (update)="update($event)"
   (cancelled)="cancel()"
-></app-create-update>
+>
+  <ng-container sub-forms>
+    <div class="d-flex mb-4">
+      <button
+        btn
+        class="me-2"
+        [kind]="'INFO'"
+        [disabled]="hasMainSessionToday()"
+        [text]="'Add Main Session Today'"
+        [icon]="'calendar-alt'"
+        (clicked)="addSessionToday(true)"
+      ></button>
+
+      <button
+        btn
+        class="ms-2"
+        [kind]="'INFO'"
+        [disabled]="hasSideSessionToday()"
+        [text]="'Add Side Session Today'"
+        [icon]="'calendar-alt'"
+        (clicked)="addSessionToday(false)"
+      ></button>
+    </div>
+  </ng-container>
+</app-create-update>

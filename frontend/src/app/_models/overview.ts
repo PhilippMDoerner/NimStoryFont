@@ -44,6 +44,8 @@ export interface OverviewItem extends ApiObject {
   //For Diaryentry-Type OverviewItems
   session_details?: OverviewSession; //Also for Session Audio Type overview-items
   author_details?: { pk: number; name: string };
+  session_date: string;
+  is_main_session: boolean;
 
   //For Session Audio-Type OverviewItems
   audio_url?: string;

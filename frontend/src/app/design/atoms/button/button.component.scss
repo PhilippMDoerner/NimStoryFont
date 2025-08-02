@@ -13,8 +13,8 @@
     outline: var(--focus-outline);
   }
 
-  :disabled {
-    cursor: not-allowed;
+  &.disabled {
+    pointer-events: unset;
   }
 }
 

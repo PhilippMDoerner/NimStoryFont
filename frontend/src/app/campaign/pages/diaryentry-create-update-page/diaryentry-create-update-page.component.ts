@@ -1,3 +1,4 @@
+import { JsonPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -30,6 +31,7 @@ import { OverviewItem } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { sessionAlreadyHasAuthor } from 'src/app/_services/formly/validators';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
 import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
 import { GlobalStore } from 'src/app/global.store';
@@ -38,7 +40,7 @@ import { DiaryEntryCreateUpdatePageStore } from './diaryentry-create-update-page
 
 @Component({
   selector: 'app-diaryentry-create-update-page',
-  imports: [CreateUpdateComponent],
+  imports: [CreateUpdateComponent, ButtonComponent, JsonPipe],
   templateUrl: './diaryentry-create-update-page.component.html',
   styleUrl: './diaryentry-create-update-page.component.scss',
   changeDetection: ChangeDetectionStrategy.Default,
@@ -95,6 +97,31 @@ export class DiaryentryCreateUpdatePageComponent {
     }
   });
   userModel$ = toObservable(this.userModel);
+
+  hasMainSessionToday = computed<boolean>(() => {
+    const todayDate = this.getTodaysSessionDateInFormat();
+    return (
+      this.store
+        .sessions()
+        ?.some(
+          (session) =>
+            session?.is_main_session === true &&
+            session?.session_date.startsWith(todayDate),
+        ) ?? false
+    );
+  });
+  hasSideSessionToday = computed<boolean>(() => {
+    const todayDate = this.getTodaysSessionDateInFormat();
+    return (
+      this.store
+        .sessions()
+        ?.some(
+          (session) =>
+            session?.is_main_session === false &&
+            session?.session_date.startsWith(todayDate),
+        ) ?? false
+    );
+  });
 
   formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'title', inputKind: 'NAME' }),
@@ -185,43 +212,30 @@ export class DiaryentryCreateUpdatePageComponent {
     this.globalStore.trackIsPageLoading(this.isPageLoading);
   }
 
-  disableSessionOption(
-    sessionOption: OverviewItem,
-    selectedAuthor: number,
-    model: Partial<DiaryEntry> | undefined,
-  ) {
-    if (selectedAuthor == null) return false;
+  addSessionToday(isMainSession: boolean) {
+    const hasLoadedExistingSessions =
+      this.store.sessionsQueryState() === 'success';
+    if (!hasLoadedExistingSessions) return; // Otherwise you can not infer session_number
 
-    const isSelectedOption = model?.session === sessionOption.pk;
-    if (isSelectedOption) return false;
+    const campaignId = this.globalStore.currentCampaign()?.pk;
+    if (!campaignId) return;
 
-    const authorsWithDiaryentry = sessionOption.author_ids;
-    if (authorsWithDiaryentry == null) return false;
+    const format = this.getTodaysSessionDateInFormat();
+    const latestSessionNumber = (this.store.sessions() ?? []).reduce(
+      (acc, session) => {
+        if (acc == null) return undefined;
+        if (session.session_number == null) return acc;
+        return Math.max(acc, session.session_number);
+      },
+      0 as number | undefined,
+    );
 
-    const hasDiaryentryInSession =
-      authorsWithDiaryentry.includes(selectedAuthor);
-    return hasDiaryentryInSession;
-  }
-
-  canSelectedAuthorAddDiaryentry(
-    authorPk: number,
-    sessionPk: number,
-    selectedSessionPk: number,
-  ) {
-    if (sessionPk === selectedSessionPk) return true;
-
-    const session = this.store
-      .sessions()
-      ?.find((session) => session.pk === sessionPk);
-    if (!session) return true;
-
-    const authorsWithDiaryentryInSession = session.author_ids;
-    if (authorsWithDiaryentryInSession == null) return true;
-
-    if (authorsWithDiaryentryInSession.includes(authorPk)) {
-      return false;
-    }
-    return true;
+    this.store.createSession({
+      campaign: campaignId,
+      is_main_session: isMainSession,
+      session_date: format,
+      session_number: latestSessionNumber == null ? 0 : latestSessionNumber + 1,
+    });
   }
 
   create(diaryentry: Partial<DiaryEntryRaw>) {
@@ -273,5 +287,34 @@ export class DiaryentryCreateUpdatePageComponent {
       sessionNumber: diaryentry.session_details?.session_number,
       isMainSession: diaryentry.session_details?.is_main_session_int,
     });
+  }
+
+  private canSelectedAuthorAddDiaryentry(
+    authorPk: number,
+    sessionPk: number,
+    selectedSessionPk: number,
+  ) {
+    if (sessionPk === selectedSessionPk) return true;
+
+    const session = this.store
+      .sessions()
+      ?.find((session) => session.pk === sessionPk);
+    if (!session) return true;
+
+    const authorsWithDiaryentryInSession = session.author_ids;
+    if (authorsWithDiaryentryInSession == null) return true;
+
+    if (authorsWithDiaryentryInSession.includes(authorPk)) {
+      return false;
+    }
+    return true;
+  }
+
+  getTodaysSessionDateInFormat(): string {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
