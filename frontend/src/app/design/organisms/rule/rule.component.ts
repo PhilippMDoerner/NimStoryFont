@@ -14,6 +14,7 @@ import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
 import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
+import { withViewTransition } from 'src/utils/animation';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -109,9 +110,7 @@ export class RuleComponent implements OnInit {
   onActionTriggered(action: string): void {
     switch (action) {
       case 'update':
-        document.startViewTransition(() =>
-          this.toggleAwayFromState(this.state()),
-        );
+        withViewTransition(() => this.toggleAwayFromState(this.state()));
         break;
       case 'delete':
         this.onRuleDelete();

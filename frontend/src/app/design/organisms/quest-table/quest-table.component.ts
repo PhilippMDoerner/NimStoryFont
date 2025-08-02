@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { OverviewItem } from 'src/app/_models/overview';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { withViewTransition } from 'src/utils/animation';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
@@ -76,7 +77,7 @@ export class QuestTableComponent {
 
   updateDisplayState(filterStateStr: string) {
     const filterState = filterStateStr as DisplayState;
-    document.startViewTransition(() => this.state.set(filterState));
+    withViewTransition(() => this.state.set(filterState));
   }
 
   shouldDisplayQuest(quest: OverviewItem, displayState: DisplayState): boolean {

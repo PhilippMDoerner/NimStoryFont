@@ -31,6 +31,7 @@ import {
   BadgeListEntry,
   CollapsiblePanelComponent,
 } from 'src/app/design/molecules';
+import { withViewTransition } from 'src/utils/animation';
 import { getPseudoRandomId } from 'src/utils/math';
 import { filterNil } from 'src/utils/rxjs-operators';
 import {
@@ -121,7 +122,7 @@ export class SpellsComponent {
   onSpellClassClick(event: MouseEvent, connection: SpellPlayerClassConnection) {
     event.preventDefault();
     event.stopPropagation();
-    document.startViewTransition(() => {
+    withViewTransition(() => {
       if (connection.player_class_details) {
         this.spellClassClick.emit(connection.player_class_details);
       }

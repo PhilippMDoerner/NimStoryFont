@@ -23,6 +23,7 @@ import { Icon } from 'src/app/design/atoms/_models/icon';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import { IconCardEntry } from 'src/app/design/organisms/_model/icon-card-list';
 import { ContentScrollEvent, GlobalStore } from 'src/app/global.store';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
@@ -194,7 +195,7 @@ export class HomeComponent {
       case '1WEEK':
       case '1DAY':
       case 'NONE':
-        document.startViewTransition(() => this.timeFilter.set(event));
+        withViewTransition(() => this.timeFilter.set(event));
         break;
     }
   }

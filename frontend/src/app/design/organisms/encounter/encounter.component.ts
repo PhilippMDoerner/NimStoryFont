@@ -43,6 +43,7 @@ import {
   CompareFormComponent,
   FormComponent,
 } from 'src/app/design/molecules';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
@@ -206,7 +207,7 @@ export class EncounterComponent implements OnInit {
   }
 
   changeState(newState: FormState, newModel: Partial<Encounter> | undefined) {
-    document.startViewTransition(() => {
+    withViewTransition(() => {
       this.cardState.set(newState);
       this.userModel.set({ ...newModel });
     });
@@ -271,7 +272,7 @@ export class EncounterComponent implements OnInit {
         this.toggleAwayFromState(this.cardState());
         break;
       case 'edit-description':
-        document.startViewTransition(() => this.toggleTextField());
+        withViewTransition(() => this.toggleTextField());
         break;
       case 'delete':
         this.onEncounterDelete();

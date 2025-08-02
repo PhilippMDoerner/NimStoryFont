@@ -13,6 +13,7 @@ import {
   GroupByFirstLetterPipe,
   GroupByPipe,
 } from 'src/app/design/atoms/_pipes/groupObjects.pipe';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
@@ -107,6 +108,6 @@ export class FilterListComponent<T> {
   }
 
   onFilterChange(newFilterValue: string): void {
-    document.startViewTransition(() => this.filterValue.set(newFilterValue));
+    withViewTransition(() => this.filterValue.set(newFilterValue));
   }
 }
