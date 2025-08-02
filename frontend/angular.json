@@ -178,9 +178,6 @@
         "storybook": {
           "builder": "@storybook/angular:start-storybook",
           "options": {
-            "polyfills": [
-              "src/polyfills.ts"
-            ],
             "configDir": ".storybook",
             "browserTarget": "nimstoryfont-gui:build",
             "compodoc": false,
@@ -193,10 +190,7 @@
             "configDir": ".storybook",
             "browserTarget": "nimstoryfont-gui:build",
             "compodoc": false,
-            "outputDir": "storybook-static",
-            "polyfills": [
-              "src/polyfills.ts"
-            ]
+            "outputDir": "storybook-static"
           }
         },
         "lint": {
