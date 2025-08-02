@@ -20,7 +20,7 @@
     gap: var(--spacer-2);
     margin-bottom: var(--spacer-4);
 
-    &:focus-within,
+    &:has(:focus-visible),
     &--active {
       border-color: var(--bs-link-hover-color);
     }

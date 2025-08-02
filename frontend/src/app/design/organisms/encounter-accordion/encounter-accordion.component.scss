@@ -8,7 +8,7 @@
   justify-content: space-between;
 
   &:focus,
-  &:focus-within,
+  &:has(:focus-visible),
   &:hover,
   &:focus-visible {
     outline: var(--focus-outline);
