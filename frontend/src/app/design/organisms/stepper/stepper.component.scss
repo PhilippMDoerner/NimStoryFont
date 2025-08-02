@@ -53,11 +53,14 @@
   }
 
   &__marker {
-    transition: transform 0.2s ease-in-out;
     line-height: 20px;
     display: inline;
     vertical-align: middle;
     transform: scale(0.6);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: transform 0.2s ease-in-out;
+    }
 
     &--active {
       transform: scale(1.3);

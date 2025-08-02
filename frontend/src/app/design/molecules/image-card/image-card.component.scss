@@ -21,9 +21,11 @@
       0 0 20px rgba(0, 0, 0, 0.6),
       0 10px 20px rgba(0, 0, 0, 0.8);
 
-    @include screen.media-breakpoint-up(lg) {
-      transition: transform ease-in-out 0.2s;
-      transform: scale(1.2);
+    @media (prefers-reduced-motion: no-preference) {
+      @include screen.media-breakpoint-up(lg) {
+        transition: transform ease-in-out 0.2s;
+        transform: scale(1.2);
+      }
     }
 
     .card__img-container {
