@@ -1,11 +1,17 @@
 .profile {
-  &__heading {
+  margin-bottom: var(--spacer-3);
+  position: relative;
+
+  &__header-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   &__memberships {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-1);
   }
 
   &__data {
@@ -15,6 +21,11 @@
   &__edit-container {
     display: flex;
     justify-content: end;
+  }
+
+  &__menu {
+    position: absolute;
+    right: 0%;
   }
 }
 

@@ -24,6 +24,7 @@ import {
   take,
   timer,
 } from 'rxjs';
+import { HeadingDirective } from 'src/app/_directives/heading.directive';
 import { CharacterEncounter } from 'src/app/_models/character';
 import {
   Encounter,
@@ -45,6 +46,7 @@ import {
 import { componentId } from 'src/utils/DOM';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
+import { HeadingLevel } from '../../atoms/_models/heading';
 import { formatSearchTerm } from '../../atoms/_models/typeahead';
 import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
 import {
@@ -75,6 +77,7 @@ const UPDATE_MARKER_TIMEOUT_MS = 3000;
     AsyncPipe,
     SuccessAnimationComponent,
     ContextMenuComponent,
+    HeadingDirective,
   ],
 })
 export class EncounterComponent implements OnInit {
@@ -91,6 +94,7 @@ export class EncounterComponent implements OnInit {
   initialCardState = input<FormState>('DISPLAY');
   isInFocus = input.required<boolean>();
   headingId = input.required<string>();
+  ariaLevel = input.required<HeadingLevel>();
 
   component = inject(ElementRef);
 

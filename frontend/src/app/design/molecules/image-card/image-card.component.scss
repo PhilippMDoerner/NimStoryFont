@@ -9,6 +9,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
 
   &--active {
     position: absolute;
@@ -120,11 +121,12 @@
     border-radius: 50%;
     width: var(--spacer-5);
     height: var(--spacer-5);
-    border: var(--bs-dark) 2px solid;
-    background-color: var(--bs-secondary);
+    border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+    background-color: var(--bs-dark);
 
     &--active {
-      background-color: var(--bs-dark);
+      background-color: var(--bs-secondary);
+      border-width: calc(var(--bs-border-width) * 2);
     }
   }
 

@@ -16,7 +16,7 @@
     />
 
     <!-- Heading -->
-    <div class="row">
+    <section aria-label="Character Names & Titles" class="row">
       <h1 class="col-12 character__heading">
         @let title = character().title;
         @if (title) {
@@ -48,7 +48,7 @@
           </div>
         }
       </div>
-    </div>
+    </section>
 
     <div class="character__images">
       <!-- Image Gallery -->
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Quote -->
-    <div class="character__quote">
+    <section aria-label="Character Quote" class="character__quote">
       <app-quote-field
         [quote]="characterQuote()"
         [character]="character()"
@@ -84,7 +84,7 @@
         (connectionCreate)="quoteConnectionCreate.emit($event)"
         (connectionDelete)="quoteConnectionDelete.emit($event)"
       ></app-quote-field>
-    </div>
+    </section>
 
     <div class="character__badge-list">
       <app-badge-list

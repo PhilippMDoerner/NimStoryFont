@@ -64,7 +64,7 @@
       ></app-image-carousel-card>
     </div>
 
-    <div class="organization__members">
+    <section aria-label="Organization Members" class="organization__members">
       <app-badge-list
         [canCreate]="canCreate()"
         [canDelete]="canDelete()"
@@ -82,7 +82,7 @@
         (entryCreate)="organizationMembershipCreate.emit($event)"
         (entryDelete)="organizationMembershipDelete.emit($event)"
       ></app-badge-list>
-    </div>
+    </section>
 
     <!-- Description -->
     <app-editable-text

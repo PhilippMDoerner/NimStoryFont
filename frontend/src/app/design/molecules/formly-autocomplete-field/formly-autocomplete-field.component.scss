@@ -2,7 +2,7 @@
   &__input {
     display: flex;
     flex-direction: row;
-    background-color: #4c4c4c;
+    background-color: var(--bs-gray-700);
     border-radius: var(--bs-border-radius);
     align-items: center;
     flex-wrap: wrap;
@@ -10,7 +10,7 @@
     transition:
       border-color 0.15s ease-in-out,
       box-shadow 0.15s ease-in-out;
-    border: 1px solid #222;
+    border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
     line-height: 1.5;
     font-weight: bold;
     font-size: 0.9375rem;

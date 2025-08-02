@@ -13,6 +13,7 @@
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
+  border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
 
   &:focus-visible,
   &:hover {

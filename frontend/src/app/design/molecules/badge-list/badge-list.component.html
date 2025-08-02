@@ -1,6 +1,8 @@
 <div class="badge-list">
   <div class="badge-list__list">
-    <span class="badge-list__label"> {{ label() }}: </span>
+    <span [id]="headingId" class="badge-list__label">
+      {{ label() }} <span aria-hidden="true">:</span>
+    </span>
     @for (entry of entries(); track $index) {
       <app-interactive-badge
         class="badge-list__entry"

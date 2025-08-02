@@ -1,12 +1,12 @@
 :host {
+  border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+
   &:has(.card__button:focus-visible) {
     outline: var(--focus-outline);
   }
 }
 
 .card {
-  padding: 0;
-
   &__heading {
     display: flex;
     justify-content: space-between;

@@ -50,7 +50,7 @@ import { SidebarService } from '../_model/sidebar';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'navigation',
-    '[attr.aria-labelledby]': 'headerId',
+    '[attr.aria-label]': 'navbarLabel()',
   },
 })
 export class SidebarComponent {
@@ -83,6 +83,7 @@ export class SidebarComponent {
   readonly sidebarFooterEntries = this.sidebarService.sidebarFooterEntries;
 
   readonly headerId = `${componentId()}-header`;
+  readonly navbarLabel = computed(() => `${this.campaign()?.name} Pages`);
 
   readonly campaignOverviewUrl: string =
     this.routingService.getRoutePath('campaign-overview');

@@ -46,7 +46,7 @@
             [updateState]="entryEncounter.requestState"
             [state]="state()"
             [isInFocus]="encounterIndexInFocus() === $index"
-            [ariaLevel]="2"
+            [ariaLevel]="3"
             (connectionDelete)="connectionDelete.emit($event)"
             (connectionCreate)="connectionCreate.emit($event)"
             (encounterDelete)="onEncounterDelete($index)"

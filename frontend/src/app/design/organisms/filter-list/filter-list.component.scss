@@ -3,6 +3,11 @@
 
 @include utils.reset-list-styles();
 
+.container {
+  margin: unset;
+  max-width: unset;
+}
+
 .filter {
   &__input-container {
     display: flex;
