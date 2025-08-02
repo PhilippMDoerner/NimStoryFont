@@ -18,6 +18,7 @@ import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { FormComponent } from '../../molecules/form/form.component';
 import { CampaignMembership } from '../_models/campaign-membership';
 
@@ -36,6 +37,7 @@ export interface PasswordModel {
     TitleCasePipe,
     ConfirmationToggleButtonComponent,
     ProfileTabLayoutComponent,
+    ContextMenuComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -55,8 +57,9 @@ export class ProfileComponent {
   readonly campaignLeave = output<CampaignMembership>();
   readonly profileDelete = output<User>();
 
-  showPasswordEditForm = signal<boolean>(false);
-  showProfileEditForm = signal<boolean>(false);
+  displayState = signal<'DISPLAY' | 'EDIT-PW' | 'EDIT-PROFILE'>('DISPLAY');
+  showProfileEditForm = computed(() => this.displayState() === 'EDIT-PROFILE');
+  showPasswordEditForm = computed(() => this.displayState() === 'EDIT-PW');
   passwordModel: Partial<PasswordModel & { passwordConfirm: string }> = {};
   oldPasswordField: FormlyFieldConfig =
     this.formlyService.buildSinglePasswordConfig({
@@ -91,12 +94,6 @@ export class ProfileComponent {
   ];
   contextMenuEntries = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [
-      {
-        kind: 'LINK',
-        label: 'Profile Settings',
-        icon: 'cog',
-        url: this.routingService.getRoutePath('user-settings'),
-      },
       {
         kind: 'BUTTON',
         actionName: 'edit-data',
@@ -135,7 +132,7 @@ export class ProfileComponent {
     showPasswordEditFormOnInit$
       .pipe(takeOnceOrUntilDestroyed())
       .subscribe((canResetWithoutPassword) => {
-        this.showPasswordEditForm.set(canResetWithoutPassword);
+        this.displayState.set(canResetWithoutPassword ? 'EDIT-PW' : 'DISPLAY');
       });
   }
 
@@ -154,7 +151,15 @@ export class ProfileComponent {
   }
 
   toggleProfileEditState(): void {
-    this.showProfileEditForm.set(!this.showProfileEditForm());
+    this.displayState.update((state) => {
+      switch (state) {
+        case 'EDIT-PW':
+        case 'EDIT-PROFILE':
+          return 'DISPLAY';
+        case 'DISPLAY':
+          return 'EDIT-PROFILE';
+      }
+    });
 
     if (this.showProfileEditForm()) {
       this.profileModel = {
@@ -166,11 +171,19 @@ export class ProfileComponent {
 
   submitProfileUpdate(): void {
     this.profileUpdate.emit(this.profileModel);
-    this.showProfileEditForm.set(false);
+    this.displayState.set('DISPLAY');
   }
 
   togglePasswordEditState(): void {
-    this.showPasswordEditForm.set(!this.showPasswordEditForm());
+    this.displayState.update((state) => {
+      switch (state) {
+        case 'EDIT-PW':
+        case 'EDIT-PROFILE':
+          return 'DISPLAY';
+        case 'DISPLAY':
+          return 'EDIT-PW';
+      }
+    });
 
     if (this.showPasswordEditForm()) {
       this.passwordModel = {};
@@ -186,7 +199,7 @@ export class ProfileComponent {
     }
 
     this.passwordUpdate.emit(model as PasswordModel);
-    this.showPasswordEditForm.set(false);
+    this.displayState.set('DISPLAY');
   }
 
   leaveCampaign(membership: CampaignMembership): void {

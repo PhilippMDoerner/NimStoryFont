@@ -11,6 +11,7 @@ import { ShortcutAction } from 'src/app/_models/hotkey';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
 import { InteractiveBadgeComponent } from 'src/app/design/atoms/interactive-badge/interactive-badge.component';
+import { componentId } from 'src/utils/DOM';
 import { BadgeListEntry, BadgeListSelectOptions } from '../_models/badge-list';
 import { SmallCreateFormComponent } from '../small-create-form/small-create-form.component';
 
@@ -45,6 +46,10 @@ type CreateOptions<T> =
     NgTemplateOutlet,
     BadgeComponent,
   ],
+  host: {
+    role: 'region',
+    '[attr.aria-labelledby]': 'headingId',
+  },
 })
 export class BadgeListComponent<T, O> {
   entries = input.required<BadgeListEntry<T>[]>();
@@ -59,6 +64,7 @@ export class BadgeListComponent<T, O> {
   readonly entryDelete = output<T>();
   readonly entryCreate = output<O>();
 
+  headingId = componentId();
   createKind = computed<CreateBadgeKind | undefined>(
     () => this.createOptions()?.kind,
   );

@@ -49,17 +49,24 @@
     </div>
 
     @if (canUpdate() && state() === "EDIT") {
-      <h2 class="diaryentry__contents-heading">Contents</h2>
-      <app-drag-and-drop-list
-        class="diaryentry__contents"
-        [entries]="sortedEncounters()"
-        [labelProp]="'title'"
-        [idProp]="'pk'"
-        [isUpdating]="isUpdatingEncounters()"
-        aria-label="Rearrangeable encounters in this diaryentry"
-        (changed)="rearrangeEncounters($event)"
-        (swapEntries)="swapEncounters($event)"
-      />
+      <section
+        class="diaryentry__contents contents"
+        aria-labelledby="diaryentry-contents-drag-and-drop"
+      >
+        <h2 class="contents__heading" id="diaryentry-contents-drag-and-drop">
+          Contents
+        </h2>
+        <app-drag-and-drop-list
+          class="contents__drag-and-drop-list"
+          [entries]="sortedEncounters()"
+          [labelProp]="'title'"
+          [idProp]="'pk'"
+          [isUpdating]="isUpdatingEncounters()"
+          aria-label="Rearrangeable encounters in this diaryentry"
+          (changed)="rearrangeEncounters($event)"
+          (swapEntries)="swapEncounters($event)"
+        />
+      </section>
     }
 
     @if (state() === "DISPLAY") {
@@ -67,21 +74,28 @@
       <ng-container *ngTemplateOutlet="navButtons" />
     }
 
-    @if (state() === "EDIT") {
-      <h3 [id]="encountersListId" class="fs-2">Encounters</h3>
-    }
+    <section [attr.aria-labelledby]="encountersListId">
+      <h2
+        [id]="encountersListId"
+        class="fs-2"
+        [class.cdk-visually-hidden]="state() !== 'EDIT'"
+      >
+        Encounters
+      </h2>
 
-    <!-- DiaryEntry Text In Encounters -->
-    <app-diaryentry-encounters
-      [state]="state() === 'DISPLAY' ? 'READ' : 'EDIT'"
-      (connectionDelete)="encounterConnectionDelete.emit($event)"
-      (connectionCreate)="encounterConnectionCreate.emit($event)"
-      (encounterDelete)="encounterDelete.emit($event)"
-      (encounterUpdate)="encounterUpdate.emit($event)"
-      (encounterCreate)="encounterCreate.emit($event)"
-      (encounterCutInsert)="encounterCutInsert.emit($event)"
-      (addUnfinishedEncounter)="addUnfinishedEncounter.emit($event)"
-    ></app-diaryentry-encounters>
+      <!-- DiaryEntry Text In Encounters -->
+      <app-diaryentry-encounters
+        class="diaryentry__encounter-list"
+        [state]="state() === 'DISPLAY' ? 'READ' : 'EDIT'"
+        (connectionDelete)="encounterConnectionDelete.emit($event)"
+        (connectionCreate)="encounterConnectionCreate.emit($event)"
+        (encounterDelete)="encounterDelete.emit($event)"
+        (encounterUpdate)="encounterUpdate.emit($event)"
+        (encounterCreate)="encounterCreate.emit($event)"
+        (encounterCutInsert)="encounterCutInsert.emit($event)"
+        (addUnfinishedEncounter)="addUnfinishedEncounter.emit($event)"
+      />
+    </section>
 
     @if (state() === "DISPLAY") {
       <!-- Next/Prior Diaryentry Buttons -->

@@ -107,12 +107,6 @@ export class FilterListComponent<T> {
   }
 
   onFilterChange(newFilterValue: string): void {
-    if (document.startViewTransition) {
-      document?.startViewTransition(() => {
-        this.filterValue.set(newFilterValue);
-      });
-    } else {
-      this.filterValue.set(newFilterValue);
-    }
+    document.startViewTransition(() => this.filterValue.set(newFilterValue));
   }
 }

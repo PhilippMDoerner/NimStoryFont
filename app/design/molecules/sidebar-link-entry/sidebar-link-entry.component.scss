@@ -14,6 +14,8 @@
 
     &:focus-visible {
       outline: var(--focus-outline);
+      outline-offset: -2px;
+      border-radius: var(--bs-border-radius-lg);
     }
 
     &--install-button {

@@ -15,6 +15,9 @@ import { capitalize } from 'src/utils/string';
   styleUrls: ['./icon-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent, DatePipe, TitleCasePipe],
+  host: {
+    class: 'card',
+  },
 })
 export class IconCardComponent {
   icon = input.required<Icon>();

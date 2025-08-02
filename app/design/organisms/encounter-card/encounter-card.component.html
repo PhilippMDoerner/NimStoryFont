@@ -35,6 +35,7 @@
       [isInFocus]="isInFocus()"
       [initialCardState]="encounter().pk == null ? 'CREATE' : 'DISPLAY'"
       [headingId]="headingId()"
+      [ariaLevel]="ariaLevel()"
       (connectionDelete)="connectionDelete.emit($event)"
       (connectionCreate)="connectionCreate.emit($event)"
       (encounterDelete)="encounterDelete.emit($event)"

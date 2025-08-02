@@ -20,7 +20,6 @@ import { debounceTime, filter, fromEvent, map, switchMap } from 'rxjs';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { ScreenService } from 'src/app/_services/screen.service';
 import { SwipeService } from 'src/app/_services/swipe.service';
-import { FaviconService } from 'src/app/_services/utils/favicon.service';
 import { SCROLL_UP_DISTANCE, SWIPE_X_THRESHOLD } from 'src/app/app.constants';
 import { PageBackgroundComponent } from 'src/app/design/molecules';
 import { GlobalStore } from 'src/app/global.store';
@@ -53,7 +52,6 @@ export const showSidebarSignal = signal(true);
   providers: [NgbOffcanvas],
 })
 export class PageComponent {
-  titleService = inject(FaviconService);
   globalStore = inject(GlobalStore);
   sidebarService = inject(NgbOffcanvas);
   swipeService = inject(SwipeService);

@@ -1,18 +1,27 @@
 <app-page-container>
   <article>
-    <h1 class="heading">
-      Spells
-
-      @for (name of selectedClassNames(); track name) {
-        <app-badge
-          class="heading__player-class-badge"
-          [text]="name"
-          [icon]="'times'"
-          [kind]="'DARK'"
-          (click)="onClassRemove(name)"
-        ></app-badge>
-      }
-    </h1>
+    <h1 class="heading">Spells</h1>
+    @if (selectedClassNames().size > 0) {
+      <div class="w-100 d-flex justify-content-center">
+        <div class="subline">
+          <div class="subline__inner h3">
+            <span>Spells for:</span>
+            @for (name of selectedClassNames(); track name) {
+              <app-badge
+                class="heading__player-class-badge"
+                [text]="name"
+                [icon]="'times'"
+                [kind]="'DARK'"
+                (click)="onClassRemove(name)"
+              ></app-badge>
+              @if (!$last) {
+                or
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
 
     <app-spells
       [spells]="filteredSpells()"

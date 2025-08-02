@@ -10,7 +10,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { Observable, of, pipe, take } from 'rxjs';
+import { Observable, of, pipe, switchMap } from 'rxjs';
 import { log } from 'src/utils/logging';
 import { CampaignOverview } from './_models/campaign';
 import { CampaignRole } from './_models/token';
@@ -133,14 +133,18 @@ export const GlobalStore = signalStore(
         });
         return computed<boolean>(() => hasRolePermissions() && !!isOnline());
       },
-      loadCampaignOverview: () => {
-        campaignService
-          .campaignOverview()
-          .pipe(take(1))
-          .subscribe((campaigns) =>
-            patchState(store, { campaigns: campaigns }),
-          );
-      },
+      loadCampaignOverview: rxMethod<void>(
+        pipe(
+          switchMap(() => campaignService.campaignOverview()),
+          tapResponse({
+            next: (campaigns) =>
+              document.startViewTransition(() =>
+                patchState(store, { campaigns }),
+              ),
+            error: () => {},
+          }),
+        ),
+      ),
       fireScrollEvent: (event: ContentScrollEvent) => {
         patchState(store, { contentScrollEvents: event });
       },

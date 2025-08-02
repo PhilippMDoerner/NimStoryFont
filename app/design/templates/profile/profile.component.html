@@ -1,72 +1,89 @@
 <app-profile-tab-layout>
-  <article class="profile">
+  <section class="profile" aria-labelledby="profile-heading">
     <!-- Section Heading -->
-    <h1 class="cdk-visually-hidden">Profile</h1>
-
+    <h1 id="profile-heading" class="cdk-visually-hidden">Profile</h1>
+    <app-context-menu
+      class="profile__menu"
+      [menuButtonKind]="'NONE'"
+      [menuButtonIcon]="'ellipsis-vertical'"
+      [menuItems]="contextMenuEntries()"
+      (actionTriggered)="onContextMenuAction($event)"
+    />
     <!-- Profile -->
-    @if (!showProfileEditForm()) {
-      <div class="row profile__data">
-        <h2 class="h3">Profile Data</h2>
-        <div class="col-4">Username</div>
-        <div class="col-8">{{ user().username }}</div>
-        <div class="col-4">Email</div>
-        <div class="col-8">{{ user().email }}</div>
-      </div>
-      <section
-        class="row profile__memberships"
-        aria-labelledby="campaign-membership-label"
-      >
-        <h2 id="campaign-membership-label" class="h3">Campaign Memberships</h2>
-        @for (
-          membership of memberships();
-          track membership.campaignName && membership.role;
-          let i = $index
-        ) {
-          <div class="row pe-0">
-            <div class="col-5">{{ membership.campaignName | titlecase }}</div>
-            <div class="col-4">{{ membership.role | titlecase }}</div>
-            <div class="col-3 pe-0 d-flex justify-content-end">
-              <app-confirmation-toggle-button
-                [attr.aria-label]="
-                  'Leave campaign of ' + membership.campaignName
-                "
-                [itemToDelete]="
-                  'your ' +
-                  (membership.campaignName | titlecase) +
-                  ' membership'
-                "
-                [icon]="'sign-out-alt'"
-                [toggleType]="'SECONDARY'"
-                [enableHotkey]="false"
-                (confirm)="leaveCampaign(membership)"
-              />
-            </div>
-          </div>
-        }
-      </section>
-    } @else {
-      <app-card>
-        <app-form
-          [model]="profileModel"
-          [fields]="profileFields"
-          [cancelButtonType]="'DARK'"
-          (formlyCancel)="toggleProfileEditState()"
-          (formlySubmit)="submitProfileUpdate()"
-        />
-      </app-card>
+    @switch (displayState()) {
+      @case ("DISPLAY") {
+        <section
+          class="row profile__data"
+          aria-labelledby="campaign-profile-data-label"
+        >
+          <h2 class="h3 col-12" id="campaign-profile-data-label">
+            Profile Data
+          </h2>
+          <div class="col-4">Username</div>
+          <div class="col-8">{{ user().username }}</div>
+          <div class="col-4">Email</div>
+          <div class="col-8">{{ user().email }}</div>
+        </section>
+        <section class="row" aria-labelledby="campaign-membership-label">
+          <h2 id="campaign-membership-label" class="h3 col-12">
+            Campaign Memberships
+          </h2>
+          <ul class="profile__memberships">
+            @for (
+              membership of memberships();
+              track membership.campaignName && membership.role;
+              let i = $index
+            ) {
+              <li class="row">
+                <div class="col-4">
+                  {{ membership.campaignName | titlecase }}
+                </div>
+                <div class="col-4">{{ membership.role | titlecase }}</div>
+                <div class="col-3 d-flex justify-content-end">
+                  <app-confirmation-toggle-button
+                    [attr.aria-label]="
+                      'Leave campaign ' + membership.campaignName
+                    "
+                    [itemToDelete]="
+                      'your ' +
+                      (membership.campaignName | titlecase) +
+                      ' membership'
+                    "
+                    [icon]="'sign-out-alt'"
+                    [toggleType]="'SECONDARY'"
+                    [enableHotkey]="false"
+                    (confirm)="leaveCampaign(membership)"
+                  />
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+      @case ("EDIT-PW") {
+        <app-card>
+          <h2>Change Password</h2>
+          <app-form
+            [model]="passwordModel"
+            [fields]="passwordFields()"
+            [cancelButtonType]="'DARK'"
+            (formlyCancel)="togglePasswordEditState()"
+            (formlySubmit)="updatePassword($event)"
+          ></app-form>
+        </app-card>
+      }
+      @case ("EDIT-PROFILE") {
+        <app-card>
+          <h2>Edit Profile Data</h2>
+          <app-form
+            [model]="profileModel"
+            [fields]="profileFields"
+            [cancelButtonType]="'DARK'"
+            (formlyCancel)="toggleProfileEditState()"
+            (formlySubmit)="submitProfileUpdate()"
+          />
+        </app-card>
+      }
     }
-
-    <!-- Password Form -->
-    @if (showPasswordEditForm()) {
-      <app-card>
-        <app-form
-          [model]="passwordModel"
-          [fields]="passwordFields()"
-          [cancelButtonType]="'DARK'"
-          (formlyCancel)="togglePasswordEditState()"
-          (formlySubmit)="updatePassword($event)"
-        ></app-form>
-      </app-card>
-    }
-  </article>
+  </section>
 </app-profile-tab-layout>

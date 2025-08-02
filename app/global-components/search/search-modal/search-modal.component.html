@@ -32,59 +32,69 @@
         </div>
       }
     </div>
-    @let hasEntries = (entries()?.length ?? 0) > 0;
-    <app-list
-      #list
-      [id]="listId"
-      class="body__search-results"
-      [class.body__search-results--hidden]="!hasEntries"
-      [entries]="entries() ?? []"
-      aria-label="Search Results"
-      [arrowKeyNavigationOptions]="{
-        isModalAction: true,
-      }"
-      [attr.aria-busy]="isLoading()"
-      (entryActivated)="routeToEntry($event)"
-    >
-      <ng-template #entryTemplate let-templateContext>
-        @let context = typecastContext(templateContext);
-        <a
-          class="body__search-result-link"
-          [class.body__search-result-link--in-focus]="context.isInFocus"
-          [routerLink]="context.data.url"
-          [tabIndex]="context.isInFocus ? 0 : -1"
-          [ngbTooltip]="context.data.name"
-          [id]="context.entryLabelId"
-        >
-          @let color = context.data.color + " !important";
-          <app-overview-entry
-            class="body__search-result"
-            [style]="{
-              'border-left-color': color,
-            }"
-            [header]="context.data.name"
-            [defaultBorder]="false"
-            [body]="context.data.description"
-            [img]="{
-              src: context.data.images?.[0] ?? DEFAULT_URL,
-              alt: '',
-              placeholder: DEFAULT_URL,
-            }"
-          />
-          <app-icon
-            class="body__search-result-icon"
-            [icon]="context.data.icon"
-            [ngbTooltip]="context.data.article_type"
-          />
-        </a>
-      </ng-template>
-    </app-list>
-    @if (isEmptySearch()) {
+    @if (searchStore.searchArticlesQueryState() !== "init") {
+      @let hasEntries = (entries()?.length ?? 0) > 0;
+      <app-list
+        #list
+        [id]="listId"
+        class="body__search-results"
+        [class.body__search-results--hidden]="!hasEntries"
+        [entries]="entries() ?? []"
+        aria-label="Search Results"
+        [arrowKeyNavigationOptions]="{
+          isModalAction: true,
+        }"
+        [attr.aria-busy]="isLoading()"
+        (entryActivated)="routeToEntry($event)"
+      >
+        <ng-template #entryTemplate let-templateContext>
+          @let context = typecastContext(templateContext);
+          <a
+            class="body__search-result-link"
+            [class.body__search-result-link--in-focus]="context.isInFocus"
+            [routerLink]="context.data.url"
+            [tabIndex]="context.isInFocus ? 0 : -1"
+            [ngbTooltip]="context.data.name"
+            [id]="context.entryLabelId"
+          >
+            @let color = context.data.color + " !important";
+            <app-overview-entry
+              class="body__search-result"
+              [style]="{
+                'border-left-color': color,
+              }"
+              [header]="context.data.name"
+              [defaultBorder]="false"
+              [body]="context.data.description"
+              [img]="{
+                src: context.data.images?.[0] ?? DEFAULT_URL,
+                alt: '',
+                placeholder: DEFAULT_URL,
+              }"
+            />
+            <app-icon
+              class="body__search-result-icon"
+              [icon]="context.data.icon"
+              [ngbTooltip]="context.data.article_type"
+            />
+          </a>
+        </ng-template>
+      </app-list>
+      @if (isEmptySearch()) {
+        <div class="body__empty empty">
+          <app-icon class="empty__icon" [icon]="'search'" />
+          <div class="empty__text">
+            {{ searchStore.searchArticles()?.emptyResponse }} <br />
+            <div class="h4">We couldn't find any hits</div>
+          </div>
+        </div>
+      }
+    } @else {
       <div class="body__empty empty">
         <app-icon class="empty__icon" [icon]="'search'" />
         <div class="empty__text">
           {{ searchStore.searchArticles()?.emptyResponse }} <br />
-          <div class="h4">We couldn't find any hits</div>
+          <div class="h4">Enter a search query to explore your content</div>
         </div>
       </div>
     }

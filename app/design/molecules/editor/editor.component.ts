@@ -22,9 +22,8 @@ import {
   debounceTime,
   distinctUntilChanged,
   filter,
-  interval,
   Subject,
-  take,
+  timer,
 } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ScreenService } from 'src/app/_services/screen.service';
@@ -100,11 +99,11 @@ export class EditorComponent {
   }));
   textModel = '';
 
-  editorField = viewChild.required<TinyMCEEditorComponent>('editor');
+  editorField = viewChild<TinyMCEEditorComponent>('editor');
 
   constructor() {
     this.startAutosaveBehavior();
-
+    const editorField$ = toObservable(this.editorField);
     toObservable(this.state)
       .pipe(takeUntilDestroyed())
       .subscribe((state) => {
@@ -113,6 +112,7 @@ export class EditorComponent {
             return this.resetTextfield();
           case 'UPDATE':
           case 'OUTDATED_UPDATE':
+            this.focusField();
             return this.toUpdateState();
         }
       });
@@ -157,10 +157,8 @@ export class EditorComponent {
   }
 
   private focusField() {
-    interval(100)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.editorField().editor.iframeElement?.focus();
-      });
+    timer(100)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.editorField()?.editor.focus());
   }
 }

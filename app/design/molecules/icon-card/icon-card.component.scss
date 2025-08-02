@@ -3,16 +3,18 @@
 :host {
   --icon-height: 6rem;
   --icon-size: 4rem;
-}
 
-.card {
+  border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  display: block;
+  border-radius: var(--bs-border-radius);
   position: relative;
   overflow: clip;
-
   &:hover {
     box-shadow: inset 0 0 30px var(--bs-link-hover-color);
   }
+}
 
+.card {
   &-decoration {
     display: flex;
     justify-content: center;

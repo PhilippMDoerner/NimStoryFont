@@ -45,7 +45,7 @@
           [menuItems]="timeFilterOptions()"
           [menuButtonAriaLabel]="'Time filter options for update feed'"
           [attr.aria-controls]="feedId"
-          (actionTriggered)="timeFilter.set($any($event))"
+          (actionTriggered)="updateTimeFilter($event)"
         ></app-context-menu>
       </div>
 

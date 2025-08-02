@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
+import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map } from 'rxjs';
 import { fadeOut } from 'src/app/design/animations/fadeIn';
 import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
@@ -44,6 +45,7 @@ import { ServiceWorkerService } from './service-worker.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
+  readonly tooltipService = inject(NgbTooltipConfig);
   readonly pwaService = inject(PwaService);
   readonly globalStore = inject(GlobalStore);
   readonly authStore = inject(AuthStore);
@@ -66,6 +68,7 @@ export class AppComponent {
 
   constructor() {
     this.trackAnimationSetting();
+    this.configureTooltips();
     this.serviceWorkerService.initializeServiceWorkerInteractions();
   }
 
@@ -88,5 +91,9 @@ export class AppComponent {
         this.disableAnimation.set(event.matches);
       });
     });
+  }
+
+  private configureTooltips() {
+    this.tooltipService.tooltipClass = 'my-tooltip';
   }
 }

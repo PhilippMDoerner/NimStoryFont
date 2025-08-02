@@ -71,8 +71,10 @@ label {
 }
 
 .my-tooltip {
-  border-color: #c6e2f5;
-  --bs-tooltip-bg: #d6eaf8;
+  border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  --bs-tooltip-opacity: 1;
+  --bs-tooltip-bg: var(--bs-gray-100);
   --bs-tooltip-color: var(--bs-black);
 }
 

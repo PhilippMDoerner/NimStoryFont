@@ -25,6 +25,7 @@
               [canCreate]="canCreate()"
               [isInFocus]="false"
               [headingId]="headingId"
+              [ariaLevel]="4"
               (connectionDelete)="connectionDelete.emit($event)"
               (connectionCreate)="connectionCreate.emit($event)"
               (encounterDelete)="encounterDelete.emit($event)"

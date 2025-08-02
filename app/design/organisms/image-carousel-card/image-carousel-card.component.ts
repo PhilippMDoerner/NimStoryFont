@@ -34,6 +34,10 @@ type State = 'DISPLAY' | 'DELETE' | 'UPDATE' | 'UPDATE_OUTDATED' | 'CREATE';
     NgbTooltip,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    role: 'region',
+    'aria-label': 'Article Images',
+  },
 })
 export class ImageCarouselCardComponent {
   images = input.required<Image[]>();

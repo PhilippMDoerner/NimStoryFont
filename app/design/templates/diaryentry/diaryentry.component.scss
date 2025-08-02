@@ -21,12 +21,6 @@
     text-transform: unset;
   }
 
-  &__contents-heading {
-    display: flex;
-    align-items: center;
-    gap: var(--spacer-4);
-  }
-
   &__images {
     margin-bottom: var(--spacer-3);
   }
@@ -88,5 +82,17 @@
   &__button {
     margin-top: var(--spacer-1);
     margin-bottom: var(--spacer-1);
+  }
+}
+
+.contents {
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-4);
+  }
+
+  &__drag-and-drop-list {
+    margin-bottom: var(--spacer-4);
   }
 }
