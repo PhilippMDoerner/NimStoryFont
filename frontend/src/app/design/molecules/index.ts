@@ -20,5 +20,4 @@ export { ImageCardComponent } from './image-card/image-card.component';
 export { LinkListComponent } from './link-list/link-list.component';
 export { PageBackgroundComponent } from './page-background/page-background.component';
 export { SearchFieldComponent } from './search-field/search-field.component';
-export { SidebarLegendComponent } from './sidebar-legend/sidebar-legend.component';
 export { SmallCreateFormComponent } from './small-create-form/small-create-form.component';
