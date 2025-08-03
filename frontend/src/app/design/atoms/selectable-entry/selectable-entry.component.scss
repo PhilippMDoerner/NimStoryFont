@@ -19,7 +19,6 @@
 }
 
 button {
-  &:hover,
   &:focus-visible {
     color: var(--bs-white);
     outline: 3px solid var(--bs-link-hover-color);
