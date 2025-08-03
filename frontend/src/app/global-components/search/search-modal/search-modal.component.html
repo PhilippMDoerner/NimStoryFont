@@ -28,12 +28,18 @@
         (searchInput)="searchString.set($event)"
         (searchSubmit)="shiftToSearch()"
       >
-        <app-toggle-row
-          class="body__search-filters"
-          prefix
-          [toggles]="filterToggles()"
-          (activated)="updateFilters($event)"
-        />
+        <div prefix>
+          <label id="search-filters" class="h6 mb-2 fw-bold">
+            Search Filters
+          </label>
+
+          <app-toggle-row
+            aria-labelledby="search-filters"
+            class="body__search-filters"
+            [toggles]="filterToggles()"
+            (activated)="updateFilters($event)"
+          />
+        </div>
       </app-search-field>
     </div>
     @if (searchStore.searchArticlesQueryState() !== "init") {

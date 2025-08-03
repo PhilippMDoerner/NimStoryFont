@@ -1,4 +1,4 @@
-import { ARTICLE_COLORS } from 'src/app/_models/overview';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
 import {
   SEARCHABLE_ARTICLE_KINDS,
   SearchableArticleKind,
@@ -33,6 +33,9 @@ export const SEARCH_TOGGLES: Toggle<SearchableArticleKind[]>[] = [
           ],
         value: [kind],
         text: capitalize(kind.replaceAll('_', ' ')),
+        icon: ARTICLE_ICONS[
+          kind.toUpperCase() as Uppercase<SearchableArticleKind>
+        ],
       }) satisfies Toggle<SearchableArticleKind[]>,
   ),
 ];
