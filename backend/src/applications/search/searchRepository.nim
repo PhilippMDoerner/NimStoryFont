@@ -17,18 +17,22 @@ proc toBodyQueryParam(tokens: seq[string]): string =
   result.add(fmt"{joinedTokens}*")
 
 proc search*(
-    campaignName: string, searchText: string, searchLimit: int = 100
+    campaignName: string,
+    searchText: string,
+    searchLimit: int = 100,
+    tables: seq[ArticleTable],
 ): seq[SearchHit] =
   let campaign: Campaign = getCampaignByName(campaignName)
+  let tables = fmt"""("{tables.join("\",\"")}")"""
   let searchSQLStatement: string = fmt """
-      SELECT 
+      SELECT
           title,
           table_name,
           campaign_id,
           record_id,
           record,
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
-      FROM {SEARCH_TABLE} 
+      FROM {SEARCH_TABLE}
       WHERE
           campaign_id = ?
           AND (
@@ -37,6 +41,7 @@ proc search*(
               OR body MATCH ?
               OR body_rev MATCH ?
           )
+          AND table_name IN {tables}
       ORDER BY search_score
       LIMIT ?
   """
@@ -62,14 +67,14 @@ proc search*(
   let campaign: Campaign = getCampaignByName(campaignName)
 
   const searchSQLStatement: string = fmt """
-      SELECT 
+      SELECT
           title,
           table_name,
           campaign_id,
           record_id,
           record,
           bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
-      FROM {SEARCH_TABLE} 
+      FROM {SEARCH_TABLE}
       WHERE
           campaign_id = ?
           AND table_name = ?
@@ -101,14 +106,14 @@ proc search*(
 
 proc searchByGuid*(articleGuid: string): SearchHit =
   const searchSQLStatement: string = fmt """
-    SELECT 
+    SELECT
         title,
         table_name,
         campaign_id,
         record_id,
         record,
         bm25(search_article_content, 15) as search_score -- 15 states that a match in the title is 15 times as valuable as a match in the body
-    FROM {SEARCH_TABLE} 
+    FROM {SEARCH_TABLE}
     WHERE guid = ?
   """
 
@@ -151,7 +156,7 @@ proc updateSearchEntryContent*(
 ) =
   const updateSearchEntryQuery =
     fmt"""
-    UPDATE {SEARCH_TABLE} 
+    UPDATE {SEARCH_TABLE}
     SET
       title = ?,
       title_rev = ?,

@@ -38,9 +38,14 @@ proc addSearchEntry*(connection: DbConn, article: Article) =
   )
 
 proc findArticles*(
-    campaignName: string, searchText: string, searchLimit: int = 100
+    campaignName: string,
+    searchText: string,
+    searchLimit: int = 100,
+    articleTypes: seq[ArticleType] = @[],
 ): seq[SearchSerializable] =
-  let searchHits: seq[SearchHit] = search(campaignName, searchText, searchLimit)
+  let articleTables = articleTypes.mapIt(it.toTable())
+  let searchHits: seq[SearchHit] =
+    search(campaignName, searchText, searchLimit, articleTables)
   result = searchHits.mapIt(it.record.parseJson())
 
 proc findArticlesOfType*(
