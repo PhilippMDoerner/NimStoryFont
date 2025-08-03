@@ -1,27 +1,70 @@
+import { Icon } from '../design/atoms/_models/icon';
 import { ApiObject, MinimumCampaignOverview } from './article';
 
 export type QuestStatus = 'Completed' | 'Failed' | 'In progress' | 'On Hold';
 
-export type ArticleKind =
-  | 'CHARACTER'
-  | 'CREATURE'
-  | 'DIARYENTRY'
-  | 'ENCOUNTER'
-  | 'ITEM'
-  | 'LOCATION'
-  | 'MAP'
-  | 'MARKER_TYPE'
-  | 'MARKER_TYPE_TYPE'
-  | 'ORGANIZATION'
-  | 'QUEST'
-  | 'QUOTE'
-  | 'RULE'
-  | 'SPELL'
-  | 'USER'
-  | 'SESSION'
-  | 'SESSIONAUDIO';
+export const ARTICLE_KINDS = [
+  'CHARACTER',
+  'CREATURE',
+  'DIARYENTRY',
+  'ENCOUNTER',
+  'ITEM',
+  'LOCATION',
+  'MAP',
+  'MARKER_TYPE',
+  'MARKER_TYPE_TYPE',
+  'ORGANIZATION',
+  'QUEST',
+  'QUOTE',
+  'RULE',
+  'SPELL',
+  'USER',
+  'SESSION',
+  'SESSIONAUDIO',
+] as const;
 
-// export type OverviewItem = any;
+export type ArticleKind = (typeof ARTICLE_KINDS)[number];
+
+export const ARTICLE_COLORS: { [key in ArticleKind]: string } = {
+  CHARACTER: 'var(--character-color)',
+  CREATURE: 'var(--creature-color)',
+  DIARYENTRY: 'var(--diaryentry-color)',
+  ENCOUNTER: 'var(--encounter-color)',
+  ITEM: 'var(--item-color)',
+  LOCATION: 'var(--location-color)',
+  MAP: 'var(--map-color)',
+  MARKER_TYPE: 'var(--marker-type-color)',
+  MARKER_TYPE_TYPE: 'var(--marker-type-type-color)',
+  ORGANIZATION: 'var(--organization-color)',
+  QUEST: 'var(--quest-color)',
+  QUOTE: 'var(--quote-color)',
+  RULE: 'var(--rule-color)',
+  SPELL: 'var(--spell-color)',
+  USER: 'var(--user-color)',
+  SESSION: 'var(--session-color)',
+  SESSIONAUDIO: 'var(--sessionaudio-color)',
+};
+
+export const ARTICLE_ICONS: { [key in ArticleKind]: Icon } = {
+  CHARACTER: 'male',
+  CREATURE: 'dragon',
+  DIARYENTRY: 'book-open',
+  ENCOUNTER: 'comments',
+  ITEM: 'magic',
+  LOCATION: 'compass',
+  MAP: 'map',
+  ORGANIZATION: 'sitemap',
+  QUEST: 'question-circle',
+  RULE: 'book',
+  SPELL: 'hand-sparkles',
+  USER: 'user',
+  SESSIONAUDIO: 'file-audio',
+  SESSION: 'calendar-alt',
+  // The values below are dummy icons
+  MARKER_TYPE: 'anchor',
+  MARKER_TYPE_TYPE: 'anchor',
+  QUOTE: 'anchor',
+};
 
 export type VisitedState = 'SEEN' | 'NEW_UPDATED' | 'NEW_CREATED';
 

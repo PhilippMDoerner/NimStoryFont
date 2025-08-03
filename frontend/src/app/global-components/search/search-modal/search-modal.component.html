@@ -23,14 +23,18 @@
         [btnAriaLabel]="'Start search!'"
         [canSearch]="!isLoading()"
         [ariaControls]="listId"
-        (appSearch)="searchStore.loadSearchArticles($event)"
+        [inLoadingState]="isLoading()"
+        (appSearch)="searchString.set($event)"
+        (searchInput)="searchString.set($event)"
         (searchSubmit)="shiftToSearch()"
-      />
-      @if (isLoading()) {
-        <div class="body__spinner-container">
-          <app-spinner />
-        </div>
-      }
+      >
+        <app-toggle-row
+          class="body__search-filters"
+          prefix
+          [toggles]="filterToggles()"
+          (activated)="updateFilters($event)"
+        />
+      </app-search-field>
     </div>
     @if (searchStore.searchArticlesQueryState() !== "init") {
       @let hasEntries = (entries()?.length ?? 0) > 0;

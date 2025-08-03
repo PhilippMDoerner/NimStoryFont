@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { CampaignOverview } from 'src/app/_models/campaign';
 import {
+  ARTICLE_ICONS,
   ArticleKind,
   OverviewItem,
   VisitedState,
@@ -67,21 +68,7 @@ export class HomeComponent {
   globalStore = inject(GlobalStore);
   PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
   DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
-  ARTICLE_ICON_MAP: { [key: string]: Icon } = {
-    location: 'compass',
-    encounter: 'comments',
-    creature: 'dragon',
-    character: 'male',
-    diaryentry: 'book-open',
-    item: 'magic',
-    map: 'map',
-    organization: 'sitemap',
-    quest: 'question-circle',
-    sessionaudio: 'file-audio',
-    rules: 'book',
-    spell: 'hand-sparkles',
-    session: 'calendar-alt',
-  };
+  ARTICLE_ICON_MAP = ARTICLE_ICONS;
 
   serverUrl = input.required<string>();
   campaignData = input.required<CampaignOverview | undefined>();
@@ -201,9 +188,10 @@ export class HomeComponent {
   }
 
   private toIconCardEntry(article: OverviewItem): IconCardEntry {
+    const articleKind = article.article_type.toUpperCase() as ArticleKind;
     return {
-      entryType: article.article_type.toUpperCase() as ArticleKind,
-      icon: this.ARTICLE_ICON_MAP[article.article_type],
+      entryType: articleKind,
+      icon: ARTICLE_ICONS[articleKind],
       link: article.getAbsoluteRouterUrl(),
       title: article.name,
       subText: article.article_type.toLowerCase(),

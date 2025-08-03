@@ -24,6 +24,10 @@
     gap: var(--bs-modal-padding);
   }
 
+  &__search-filters {
+    margin-bottom: var(--spacer-3);
+  }
+
   &__search-field {
     margin: 0;
     width: 100%;
@@ -35,6 +39,7 @@
     gap: var(--spacer-2);
     overflow-y: scroll;
     height: 100%;
+
     &--hidden {
       display: none;
     }

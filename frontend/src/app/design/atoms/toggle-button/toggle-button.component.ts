@@ -4,6 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { AriaText } from 'src/app/_models/aria';
 import { ButtonKind, ElementKind, ElementSize } from '../_models/button';
 import { Icon } from '../_models/icon';
 import { ButtonComponent } from '../button/button.component';
@@ -20,7 +21,7 @@ export class ToggleButtonComponent {
   inactiveElementKind = input<ButtonKind>('LIGHT-OUTLINE');
   active = input.required<boolean>();
   id = input.required<string>();
-  ariaLabel = input<string>();
+  ariaText = input<AriaText>();
   disabled = input<boolean>(false);
   icon = input<Icon>();
   text = input<string>();

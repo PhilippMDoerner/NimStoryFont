@@ -1,0 +1,15 @@
+:host {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: calc(1.5 * var(--spacer-1));
+}
+
+.btn {
+  display: flex;
+  gap: var(--spacer-2);
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}

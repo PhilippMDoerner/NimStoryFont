@@ -1,0 +1,19 @@
+@for (toggle of toggles(); track toggle.value) {
+  <button
+    type="button"
+    class="btn border rounded-pill"
+    [class.btn-dark]="!toggle.active"
+    [class.btn-primary]="toggle.active"
+    (click)="togglesChanged(!toggle.active, $index)"
+  >
+    @if (toggle.icon) {
+      <app-icon [icon]="toggle.icon" />
+    }
+
+    <span>{{ toggle.text }}</span>
+
+    @if (toggle.active) {
+      <app-icon [icon]="'check'" />
+    }
+  </button>
+}
