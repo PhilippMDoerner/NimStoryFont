@@ -43,8 +43,7 @@
 }
 
 .letter-list {
-  padding-top: var(--spacer-4);
-  padding-bottom: var(--spacer-4);
+  padding: var(--spacer-4) var(--spacer-0);
   border-bottom: var(--bs-border-width) var(--bs-border-style)
     var(--bs-border-color);
 
