@@ -26,14 +26,16 @@ export class SearchFieldComponent {
   canSearch = input.required<boolean>();
   autofocus = input<boolean>(false);
   showButton = input(true);
-  _placeholder = computed(() =>
-    this.canSearch() ? this.placeholder() : 'Search is currently disabled',
-  );
   ariaControls = input<string>();
+  inLoadingState = input(false);
 
   readonly appSearch = output<string>();
   readonly searchSubmit = output<string>();
   readonly searchInput = output<string>();
+
+  _placeholder = computed(() =>
+    this.canSearch() ? this.placeholder() : 'Search is currently disabled',
+  );
 
   startSearch(searchString: string): void {
     if (searchString == null || searchString === '') {

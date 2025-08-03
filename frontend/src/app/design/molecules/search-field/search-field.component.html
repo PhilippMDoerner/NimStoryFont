@@ -6,13 +6,15 @@
   [attr.aria-labelledby]="searchLabelId"
   (submit)="submitSearch(input.value())"
 >
+  <ng-content select="[prefix]"></ng-content>
+
   <div class="search__bar" [class.search__bar--disabled]="!canSearch()">
     <app-input
       #input
       class="search__input"
       [label]="_placeholder()"
       [labelId]="searchLabelId"
-      [disabled]="!canSearch()"
+      [disabled]="!canSearch() || inLoadingState()"
       [type]="'search'"
       [hotkeyAction]="'focus'"
       [autofocus]="autofocus()"
@@ -20,7 +22,8 @@
       (actionTriggered)="input.focus()"
       (changed)="startSearch($event)"
     />
-    @let canTriggerSearch = canSearch() && !!input._value();
+    @let canTriggerSearch =
+      canSearch() && !!input._value() && !inLoadingState();
     @if (showButton()) {
       <button
         btn
@@ -28,9 +31,11 @@
         [attr.aria-label]="'Search for ' + input._value()"
         [disabled]="!canTriggerSearch"
         [kind]="canTriggerSearch ? 'PRIMARY' : 'LIGHT-OUTLINE'"
-        [icon]="'search'"
+        [icon]="inLoadingState() ? 'spinner' : 'search'"
         [type]="'submit'"
       ></button>
     }
   </div>
+
+  <ng-content select="[suffix]"></ng-content>
 </form>
