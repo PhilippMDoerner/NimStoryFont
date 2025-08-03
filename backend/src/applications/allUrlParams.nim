@@ -1,9 +1,15 @@
-import std/[strformat]
+import std/[strformat, uri, tables]
+import prologue
 import constructor/defaults
 import ./authentication/[authenticationModels]
 import ../applicationConstants
 
 export authenticationModels
+
+proc getQueryParams*(ctx: Context): Table[string, string] =
+  let queryParamsStr = ctx.request.query
+  for (key, value) in queryParamsStr.decodeQuery():
+    result[key] = value
 
 const CAMPAIGN_NAME_PARAM* = "campaignName"
 const CAMPAIGN_NAME_PATTERN* = fmt r"(?P<{CAMPAIGN_NAME_PARAM}>[^/]+)"

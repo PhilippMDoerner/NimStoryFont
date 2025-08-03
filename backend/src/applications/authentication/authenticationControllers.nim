@@ -211,11 +211,6 @@ proc getClientUrl*(ctx: Context, queryParams: varargs[(string, string)]): string
     else:
       fmt"https://{domain}/wiki2"
 
-proc getQueryParams*(ctx: Context): Table[string, string] =
-  let queryParamsStr = ctx.request.query
-  for (key, value) in queryParamsStr.decodeQuery():
-    result[key] = value
-
 proc getKeyOption*(tbl: Table[string, string], key: string): Option[string] =
   if tbl.hasKey(key):
     return some(tbl[key])
