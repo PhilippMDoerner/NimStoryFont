@@ -12,4 +12,13 @@
   &:focus-visible {
     outline: var(--focus-outline);
   }
+
+  &__icon {
+    width: 0px;
+    transition: width 0.2s ease-in-out;
+
+    &--active {
+      width: 16px;
+    }
+  }
 }

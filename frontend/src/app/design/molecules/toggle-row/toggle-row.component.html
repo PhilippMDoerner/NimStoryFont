@@ -16,8 +16,10 @@
 
     <span>{{ toggle.text }}</span>
 
-    @if (toggle.active) {
-      <app-icon [icon]="'check'" />
-    }
+    <app-icon
+      class="btn__icon"
+      [class.btn__icon--active]="toggle.active"
+      [icon]="'check'"
+    />
   </button>
 }
