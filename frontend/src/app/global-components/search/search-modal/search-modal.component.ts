@@ -78,8 +78,8 @@ export class SearchModalComponent {
   router = inject(Router);
   announcer = inject(LiveAnnouncer);
 
-  private readonly listElement: Signal<ElementRef<HTMLElement>> =
-    viewChild.required('list', {
+  private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
+    viewChild('list', {
       read: ElementRef<HTMLElement>,
     });
 
@@ -199,6 +199,6 @@ export class SearchModalComponent {
   }
 
   shiftToSearch() {
-    this.listElement().nativeElement.focus();
+    this.listElement()?.nativeElement.focus();
   }
 }
