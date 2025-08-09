@@ -59,13 +59,9 @@
       >
         <ng-template #entryTemplate let-templateContext>
           @let context = typecastContext(templateContext);
-          <a
+          <div
             class="body__search-result-link"
             [class.body__search-result-link--in-focus]="context.isInFocus"
-            [routerLink]="context.data.url"
-            [tabIndex]="context.isInFocus ? 0 : -1"
-            [ngbTooltip]="context.data.name"
-            [id]="context.entryLabelId"
           >
             @let color = context.data.color + " !important";
             <app-overview-entry
@@ -81,13 +77,17 @@
                 alt: '',
                 placeholder: DEFAULT_URL,
               }"
+              [routerLink]="context.data.url"
+              [tabIndex]="context.isInFocus ? 0 : -1"
+              [ngbTooltip]="context.data.name"
+              [id]="context.entryLabelId"
             />
             <app-icon
               class="body__search-result-icon"
               [icon]="context.data.icon"
               [ngbTooltip]="context.data.article_type"
             />
-          </a>
+          </div>
         </ng-template>
       </app-list>
       @if (isEmptySearch()) {

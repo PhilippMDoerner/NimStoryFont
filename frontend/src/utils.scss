@@ -15,3 +15,21 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: $lineCount;
 }
+
+@mixin blockLink() {
+  text-decoration: underline;
+
+  &:focus-visible {
+    outline: none;
+    border-radius: unset;
+    color: var(--bs-link-hover-color);
+  }
+
+  &::after {
+    content: "";
+    display: block;
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+  }
+}

@@ -7,7 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import {
   GroupByFirstLetterPipe,
@@ -37,7 +37,6 @@ export type GroupConfig<T> =
     GroupByFirstLetterPipe,
     NgClass,
     GroupByPipe,
-    RouterLink,
     NgTemplateOutlet,
     HotkeyDirective,
     ButtonComponent,
