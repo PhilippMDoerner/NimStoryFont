@@ -19,7 +19,8 @@
 @mixin blockLink() {
   text-decoration: underline;
 
-  &:focus-visible {
+  &:focus-visible,
+  &:hover {
     outline: none;
     border-radius: unset;
     color: var(--bs-link-hover-color);
