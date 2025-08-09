@@ -10,16 +10,10 @@
       ></app-info-circle-tooltip>
     </h2>
     <div class="row mb-3">
-      @for (category of nodeCategories(); track category.label) {
-        <app-selectable-entry
-          class="col-12 col-sm-6 col-lg-4 col-xl-3 row-entry"
-          [label]="category.label"
-          [style]="{ '--border-color': 'var(' + category.color + ')' }"
-          [isActive]="category.active"
-          [isSelectable]="true"
-          (entryClick)="toggleNodeCategory(category, $event)"
-        ></app-selectable-entry>
-      }
+      <app-toggle-row
+        [toggles]="nodeToggles()"
+        (activated)="toggleNodeCategory($event)"
+      />
     </div>
     <h2 class="fs-5">
       <app-info-circle-tooltip
@@ -32,17 +26,10 @@
     <div class="row mb-3">
       @let linkCategories = linkCategories$ | async;
       @if (linkCategories) {
-        @for (category of linkCategories; track category) {
-          <app-selectable-entry
-            class="col-12 col-sm-6 col-lg-4 row-entry"
-            [label]="category.label"
-            [style]="{ '--border-color': category.color }"
-            [icon]="category.icon"
-            [isActive]="category.active"
-            [isSelectable]="true"
-            (entryClick)="toggleLinkCategory(category, linkCategories, $event)"
-          ></app-selectable-entry>
-        }
+        <app-toggle-row
+          [toggles]="linkCategories"
+          (activated)="toggleLinkCategory($event, linkCategories)"
+        />
       } @else {
         @for (_ of linkCategoryFallbackList; track $index) {
           <app-placeholder

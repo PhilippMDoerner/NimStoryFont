@@ -38,12 +38,12 @@ import {
   ParsedNodeMap,
   toGroupLabel,
 } from 'src/app/_models/graph';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
 import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { CardComponent } from 'src/app/design//atoms/card/card.component';
 import { InfoCircleTooltipComponent } from 'src/app/design//atoms/info-circle-tooltip/info-circle-tooltip.component';
 import { PlaceholderComponent } from 'src/app/design//atoms/placeholder/placeholder.component';
-import { SelectableEntryComponent } from 'src/app/design//atoms/selectable-entry/selectable-entry.component';
 import { ArticleFooterComponent } from 'src/app/design//molecules/article-footer/article-footer.component';
 import { CollapsiblePanelComponent } from 'src/app/design//molecules/collapsible-panel/collapsible-panel.component';
 import { ConfirmationToggleButtonComponent } from 'src/app/design//molecules/confirmation-toggle-button/confirmation-toggle-button.component';
@@ -52,11 +52,9 @@ import { SearchFieldComponent } from 'src/app/design//molecules/search-field/sea
 import { GraphComponent } from 'src/app/design//organisms/graph/graph.component';
 import { PageContainerComponent } from 'src/app/design//organisms/page-container/page-container.component';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SidebarOption } from 'src/app/design/molecules';
-import {
-  ItemCategory,
-  NODE_TYPE_OPTIONS,
-} from 'src/app/design/molecules/_models/search-preferences';
+import { NODE_TYPE_OPTIONS } from 'src/app/design/molecules/_models/search-preferences';
+import { Toggle } from 'src/app/design/molecules/_models/toggle';
+import { ToggleRowComponent } from 'src/app/design/molecules/toggle-row/toggle-row.component';
 import { GRAPH_SETTINGS } from 'src/app/design/organisms/_model/graph';
 import { GraphMenuService } from 'src/app/design/organisms/graph/graph-menu.service';
 import { GraphService } from 'src/app/design/organisms/graph/graph.service';
@@ -73,7 +71,6 @@ import { GraphPageStore } from './graph-page.store';
   imports: [
     PageContainerComponent,
     GraphComponent,
-    SelectableEntryComponent,
     ArticleFooterComponent,
     ButtonComponent,
     NgbTooltip,
@@ -88,6 +85,7 @@ import { GraphPageStore } from './graph-page.store';
     PlaceholderComponent,
     AsyncPipe,
     InfoCircleTooltipComponent,
+    ToggleRowComponent,
   ],
   templateUrl: './graph-page.component.html',
   styleUrl: './graph-page.component.scss',
@@ -168,39 +166,52 @@ export class GraphPageComponent {
   private activeNodeCategories = signal(
     new Set<string>(NODE_TYPE_OPTIONS.map((option) => option.value)),
   );
-  nodeCategories = computed(() =>
-    NODE_TYPE_OPTIONS.map((option) => ({
-      ...option,
-      active: this.activeNodeCategories().has(option.value),
-    })),
+  nodeToggles = computed<Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>[]>(
+    () =>
+      NODE_TYPE_OPTIONS.map((option) => ({
+        value: option.value,
+        active: this.activeNodeCategories().has(option.value),
+        color:
+          ARTICLE_COLORS[
+            option.value.toUpperCase() as Uppercase<
+              (typeof NODE_TYPE_OPTIONS)[number]['value']
+            >
+          ],
+        text: option.label,
+        icon: ARTICLE_ICONS[
+          option.value.toUpperCase() as Uppercase<
+            (typeof NODE_TYPE_OPTIONS)[number]['value']
+          >
+        ],
+      })),
   );
 
-  private linkTypeOptions = computed<ItemCategory[] | undefined>(() => {
+  private linkToggles = computed<Toggle<LinkGroup>[] | undefined>(() => {
     return this.store.graph()?.links.map((linkGroup) => {
       const firstLink: NodeLink | undefined = linkGroup.links[0];
       return {
         active: false,
         color: firstLink?.color ?? DEFAULT_LINK_CATEGORY_COLOR,
-        value: linkGroup.name,
+        value: linkGroup,
         icon: firstLink.icon ?? undefined,
-        label: toGroupLabel(linkGroup.name),
+        text: toGroupLabel(linkGroup.name),
       };
     });
   });
   private activeLinkCategories$ = new ReplaySubject<Set<LinkKind>>(1);
   private activeLinkCategories = toSignal(this.activeLinkCategories$);
-  linkCategories$: Observable<ItemCategory[] | undefined> =
+  linkCategories$: Observable<Toggle<LinkGroup>[] | undefined> =
     this.activeLinkCategories$.pipe(
       map((activeLinkCategories) => {
-        const linkTypeOptions = this.linkTypeOptions();
+        const linkTypeOptions = this.linkToggles();
         if (!linkTypeOptions) return undefined;
 
         return linkTypeOptions
           .map((option) => ({
             ...option,
-            active: activeLinkCategories.has(option.value),
+            active: activeLinkCategories.has(option.value.name),
           }))
-          .sort((a, b) => sortAlphabetically(a.label, b.label));
+          .sort((a, b) => sortAlphabetically(a.text, b.text));
       }),
     );
   linkCategoryFallbackList = Array(6).fill(0); // Any nodemap is guaranteed to have at least 6 entries
@@ -233,13 +244,15 @@ export class GraphPageComponent {
       );
   }
 
-  toggleNodeCategory(option: SidebarOption, mode: 'INACTIVE' | 'ACTIVE') {
+  toggleNodeCategory(
+    option: Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>,
+  ) {
     const newActiveEntries = new Set(this.activeNodeCategories());
-    switch (mode) {
-      case 'INACTIVE':
+    switch (option.active) {
+      case false:
         newActiveEntries.delete(option.value);
         break;
-      case 'ACTIVE':
+      case true:
         newActiveEntries.add(option.value);
         break;
     }
@@ -247,19 +260,18 @@ export class GraphPageComponent {
   }
 
   toggleLinkCategory(
-    option: SidebarOption,
-    linkCategories: ItemCategory[],
-    mode: 'INACTIVE' | 'ACTIVE',
+    option: Toggle<LinkGroup>,
+    linkCategories: Toggle<LinkGroup>[],
   ) {
     const newActiveEntries = new Set(
-      linkCategories.filter((cat) => cat.active).map((cat) => cat.value),
+      linkCategories.filter((cat) => cat.active).map((cat) => cat.value.name),
     );
-    switch (mode) {
-      case 'INACTIVE':
-        newActiveEntries.delete(option.value);
+    switch (option.active) {
+      case false:
+        newActiveEntries.delete(option.value.name);
         break;
-      case 'ACTIVE':
-        newActiveEntries.add(option.value);
+      case true:
+        newActiveEntries.add(option.value.name);
         break;
     }
     this.activeLinkCategories$.next(newActiveEntries);
