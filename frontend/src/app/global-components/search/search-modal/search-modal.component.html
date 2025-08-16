@@ -21,17 +21,15 @@
         class="body__search-field"
         [placeholder]="'Search Query'"
         [btnAriaLabel]="'Start search!'"
-        [canSearch]="!isLoading()"
+        [canSearch]="true"
         [ariaControls]="listId"
         [inLoadingState]="isLoading()"
         (appSearch)="searchString.set($event)"
         (searchInput)="searchString.set($event)"
         (searchSubmit)="shiftToSearch()"
       >
-        <div prefix>
-          <label id="search-filters" class="h6 mb-2 fw-bold">
-            Search Filters
-          </label>
+        <fieldset prefix>
+          <legend class="h6 mb-2 fw-bold">Search Filters</legend>
 
           <app-toggle-row
             aria-labelledby="search-filters"
@@ -39,81 +37,74 @@
             [toggles]="filterToggles()"
             (activated)="updateFilters($event)"
           />
-        </div>
+        </fieldset>
       </app-search-field>
     </div>
-    @if (searchStore.searchArticlesQueryState() !== "init") {
-      @let hasEntries = (entries()?.length ?? 0) > 0;
-      <app-list
-        #list
-        [id]="listId"
-        class="body__search-results"
-        [class.body__search-results--hidden]="!hasEntries"
-        [entries]="entries() ?? []"
-        aria-label="Search Results"
-        [arrowKeyNavigationOptions]="{
-          isModalAction: true,
-        }"
-        [attr.aria-busy]="isLoading()"
-        (entryActivated)="routeToEntry($event)"
-      >
-        <ng-template #entryTemplate let-templateContext>
-          @let context = typecastContext(templateContext);
-          <div
-            class="body__search-result-link"
-            [class.body__search-result-link--in-focus]="context.isInFocus"
-          >
-            @let color = context.data.color + " !important";
-            <app-overview-entry
-              class="body__search-result"
-              [style]="{
-                'border-left-color': color,
-              }"
-              [header]="context.data.name"
-              [defaultBorder]="false"
-              [body]="context.data.description"
-              [img]="{
-                src: context.data.images?.[0] ?? DEFAULT_URL,
-                alt: '',
-                placeholder: DEFAULT_URL,
-              }"
-              [routerLink]="context.data.url"
-              [tabIndex]="context.isInFocus ? 0 : -1"
-              [ngbTooltip]="context.data.name"
-              [id]="context.entryLabelId"
-            />
-            <app-icon
-              class="body__search-result-icon"
-              [icon]="context.data.icon"
-              [ngbTooltip]="context.data.article_type"
-            />
-          </div>
-        </ng-template>
-      </app-list>
-      @if (isEmptySearch()) {
-        <div class="body__empty empty">
-          <app-icon class="empty__icon" [icon]="'search'" />
-          <div class="empty__text">
-            {{ searchStore.searchArticles()?.emptyResponse }} <br />
-            <div class="h4">We couldn't find any hits</div>
-          </div>
-        </div>
-      }
-    } @else {
-      <div class="body__empty empty">
-        <app-icon class="empty__icon" [icon]="'search'" />
-        <div class="empty__text">
-          {{ searchStore.searchArticles()?.emptyResponse }} <br />
-          <div class="h4 text-center">
-            Enter a search query to explore your content
-          </div>
-        </div>
+    <div class="body__search-results search-results">
+      <div class="fs-3 fw-bold search-results__heading" aria-live="polite">
+        @if (searchStore.searchArticlesQueryState() === "success") {
+          {{ searchStore.searchArticles()?.articles?.length }} results found
+        }
       </div>
-    }
 
-    <div class="cdk-visually-hidden" aria-live="polite">
-      @if (searchStore.searchArticlesQueryState() === "success") {
-        {{ searchStore.searchArticles()?.articles?.length }} results found
+      @switch (searchStore.searchArticlesQueryState()) {
+        @case ("init") {
+          <div class="search-results__empty empty">
+            <app-icon class="empty__icon" [icon]="'search'" />
+            <div class="empty__text">
+              {{ searchStore.searchArticles()?.emptyResponse }} <br />
+              <div class="h4 text-center">
+                Enter a search query to explore your content
+              </div>
+            </div>
+          </div>
+        }
+        @case ("loading") {
+          <div class="search-results__placeholders placeholders">
+            <app-placeholder class="placeholders__heading" />
+            <app-placeholder class="placeholders__body" />
+          </div>
+        }
+        @case ("success") {
+          @if (!isEmptySearch()) {
+            <ul class="search-results__list">
+              @for (entry of entries(); track entry.trackId) {
+                @let context = entry;
+                <li class="search-results__search-result-link">
+                  @let color = context.data.color + " !important";
+                  <app-overview-entry
+                    class="search-results__search-result"
+                    [style]="{
+                      'border-left-color': color,
+                    }"
+                    [header]="context.data.name"
+                    [defaultBorder]="false"
+                    [body]="context.data.description"
+                    [img]="{
+                      src: DEFAULT_URL,
+                      alt: '',
+                      placeholder: DEFAULT_URL,
+                    }"
+                    [link]="context.data.url"
+                  />
+                  <app-icon
+                    class="search-results__search-result-icon"
+                    [icon]="context.data.icon"
+                    [ngbTooltip]="context.data.article_type"
+                  />
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="search-results__empty empty">
+              <app-icon class="empty__icon" [icon]="'search'" />
+              <div class="empty__text">
+                {{ searchStore.searchArticles()?.emptyResponse }} <br />
+                <div class="h4">We couldn't find any hits</div>
+              </div>
+            </div>
+          }
+        }
       }
     </div>
   </div>

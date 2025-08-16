@@ -1,4 +1,4 @@
-import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { CdkAriaLive } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -25,6 +25,7 @@ import { OnlineService } from 'src/app/_services/online.service';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import {
   ListComponent,
   ListEntry,
@@ -64,6 +65,8 @@ type SearchEntry = Pick<
     IconComponent,
     NgbTooltip,
     ToggleRowComponent,
+    CdkAriaLive,
+    PlaceholderComponent,
   ],
   templateUrl: './search-modal.component.html',
   styleUrl: './search-modal.component.scss',
@@ -76,7 +79,6 @@ export class SearchModalComponent {
   onlineService = inject(OnlineService);
   searchStore = inject(SearchPageStore);
   router = inject(Router);
-  announcer = inject(LiveAnnouncer);
 
   private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
     viewChild('list', {

@@ -58,6 +58,11 @@ label {
   cursor: pointer;
 }
 
+ul {
+  padding: unset;
+  margin: unset;
+}
+
 .highlight {
   background-color: var(--highlight-gray);
 }
