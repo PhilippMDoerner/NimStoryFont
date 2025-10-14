@@ -24,7 +24,7 @@ import { EncounterService } from 'src/app/_services/article/encounter.service';
 import { LocationService } from 'src/app/_services/article/location.service';
 import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from 'src/app/global.store';
-import { replaceItem, sortByProp } from 'src/utils/array';
+import { replaceItem, sortByNumProp, sortByProp } from 'src/utils/array';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { RequestState } from 'src/utils/store/factory-types';
 import { withQueries } from 'src/utils/store/withQueries';
@@ -94,7 +94,7 @@ export const DiaryentryPageStore = signalStore(
   withComputed((store) => {
     return {
       sortedEncounters: computed<Encounter[]>(() =>
-        sortByProp(store.diaryentry()?.encounters ?? [], 'order_index'),
+        sortByNumProp(store.diaryentry()?.encounters ?? [], 'order_index'),
       ),
     };
   }),
