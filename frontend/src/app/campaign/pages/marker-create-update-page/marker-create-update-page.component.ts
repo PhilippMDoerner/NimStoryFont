@@ -61,11 +61,14 @@ export class MarkerCreateUpdatePageComponent {
       key: 'location',
       label: 'Location',
       getOptions: () => this.campaignLocations$,
-      formatSearchTerm: searchTerm => formatSearchTerm(searchTerm),
+      formatSearchTerm: (searchTerm) => formatSearchTerm(searchTerm),
       optionLabelProp: 'name_full',
       optionValueProp: 'pk',
-      initialOption$: of(this.store.campaignLocations()?.find(loc => loc.pk === this.userModel().location) ?? null),
-      required: false,
+      initialOption$: of(
+        this.store
+          .campaignLocations()
+          ?.find((loc) => loc.pk === this.userModel().location) ?? null,
+      ),
     }),
     this.formlyService.buildOverviewSelectConfig({
       key: 'map',
