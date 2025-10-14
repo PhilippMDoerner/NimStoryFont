@@ -164,7 +164,7 @@ run_compose(){
 
 run_on_host(){
   echo "$1"
-  ssh -t -i nimstoryfont_ansible ansible@$HOST_IP "$1"
+  ssh -t -o IdentitiesOnly=yes -i nimstoryfont_ansible ansible@$HOST_IP "$1"
 }
 
 ## FRONTEND_DISPATCHERS
@@ -229,7 +229,7 @@ local_command(){
 
 host_command(){
   case $2 in
-    ssh) ssh -i nimstoryfont_ansible ansible@$HOST_IP;;
+    ssh) ssh -o IdentitiesOnly=yes -i nimstoryfont_ansible ansible@$HOST_IP;;
     download_images) scp -r -i ./nimstoryfont_ansible ansible@$HOST_IP:$HOST_VOLUME_PATH/media/image $LOCAL_VOLUME_PATH/media ;;
     proxy)
       case $3 in
