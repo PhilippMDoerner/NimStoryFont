@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -10,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, withLatestFrom } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
@@ -74,6 +75,7 @@ export class SearchModalComponent {
   onlineService = inject(OnlineService);
   searchStore = inject(SearchPageStore);
   router = inject(Router);
+  destroyRef = inject(DestroyRef);
 
   private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
     viewChild('list', {
@@ -156,6 +158,8 @@ export class SearchModalComponent {
         filters: this.activeFilters(),
       });
     });
+
+    this.closeSearchOnRouteChange();
   }
 
   updateFilters(event: Toggle<SearchableArticleKind[]>) {
@@ -197,5 +201,17 @@ export class SearchModalComponent {
 
   shiftToSearch() {
     this.listElement()?.nativeElement.focus();
+  }
+
+  /**
+   * Route Change means the user clicked on a link somewhere, therefore we want to close the search
+   */
+  private closeSearchOnRouteChange() {
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.modalService.dismissAll());
   }
 }
