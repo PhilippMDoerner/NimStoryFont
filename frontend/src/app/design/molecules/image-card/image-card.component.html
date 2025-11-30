@@ -43,22 +43,24 @@
   }
   <div class="card-body">
     @if (imageUrls().length > 1) {
-      <div class="card__img-selectors">
+      <ul class="card__img-selectors">
         @for (_ of imageUrls(); track $index) {
-          @let imageIndex = $index + 1;
-          @let isActiveButton = $index === currentImageIndex();
-          <button
-            class="card__img-selector"
-            [class.card__img-selector--active]="isActiveButton"
-            [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
-            [attr.aria-controls]="imageId"
-            [attr.aria-current]="isActiveButton ? 'location' : null"
-            (click)="selectorClicked$.next({ index: $index, event: $event })"
-          >
-            {{ imageIndex }}
-          </button>
+          <li>
+            @let imageIndex = $index + 1;
+            @let isActiveButton = $index === currentImageIndex();
+            <button
+              class="card__img-selector"
+              [class.card__img-selector--active]="isActiveButton"
+              [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
+              [attr.aria-controls]="imageId"
+              [attr.aria-current]="isActiveButton ? 'true' : null"
+              (click)="selectorClicked$.next({ index: $index, event: $event })"
+            >
+              {{ imageIndex }}
+            </button>
+          </li>
         }
-      </div>
+      </ul>
     }
   </div>
 </div>

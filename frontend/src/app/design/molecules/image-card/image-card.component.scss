@@ -116,6 +116,8 @@
     margin-top: var(--spacer-2);
     margin-bottom: var(--spacer-2);
     gap: var(--spacer-2);
+    list-style: none;
+    padding: unset;
   }
 
   &__img-selector {
