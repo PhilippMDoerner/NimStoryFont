@@ -1,4 +1,3 @@
-import { CdkAriaLive } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, withLatestFrom } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
@@ -27,7 +26,6 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import {
-  ListComponent,
   ListEntry,
   ListEntryTemplateContext,
 } from 'src/app/design/molecule/list/list.component';
@@ -60,12 +58,9 @@ type SearchEntry = Pick<
     HotkeyDirective,
     SearchFieldComponent,
     OverviewEntryComponent,
-    ListComponent,
-    RouterLink,
     IconComponent,
     NgbTooltip,
     ToggleRowComponent,
-    CdkAriaLive,
     PlaceholderComponent,
   ],
   templateUrl: './search-modal.component.html',

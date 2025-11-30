@@ -165,8 +165,9 @@ export class HomeComponent {
       return;
     }
 
-    this.pageNumber.set(currentPageNumber + 1);
-    this.loadArticlePage.emit(currentPageNumber);
+    const nextPage = currentPageNumber + 1;
+    this.pageNumber.set(nextPage);
+    this.loadArticlePage.emit(nextPage);
   }
 
   toggleFeedMode(isSwitchedOn: boolean) {
