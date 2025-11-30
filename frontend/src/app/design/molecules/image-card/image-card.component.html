@@ -46,11 +46,13 @@
       <div class="card__img-selectors">
         @for (_ of imageUrls(); track $index) {
           @let imageIndex = $index + 1;
+          @let isActiveButton = $index === currentImageIndex();
           <button
             class="card__img-selector"
-            [class.card__img-selector--active]="$index === currentImageIndex()"
+            [class.card__img-selector--active]="isActiveButton"
             [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
             [attr.aria-controls]="imageId"
+            [attr.aria-current]="isActiveButton ? 'location' : null"
             (click)="selectorClicked$.next({ index: $index, event: $event })"
           >
             {{ imageIndex }}
