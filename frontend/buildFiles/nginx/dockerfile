@@ -11,7 +11,7 @@ RUN apk -U add nodejs npm
 # The --mount option here is a cache-layer for local development.
 # It caches the node_modules dir when re-running docker commands.
 # TODO: Remove npm i --force. This is a temporary addition until ngrx updates their lib for Angular20
-RUN node -v
+RUN npm install -g npm@11.6.2 # NOTE: Downgrades npm to 11.6.2. Necessary as of 25.01.2026, Alpine provides 11.6.3 by default, which as this issue (https://github.com/npm/cli/issues/8757#issuecomment-3559726720). Remove this once that is no longer the case
 RUN --mount=type=cache,target=./node_modules \
   npm i --force && npm run build
 
