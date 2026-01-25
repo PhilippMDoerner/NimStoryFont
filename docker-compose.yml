@@ -13,6 +13,8 @@ services:
       - $VOLUME_DIR:/data
     container_name: production_nginx
     restart: on-failure
+    environment:
+      - DOCKER_BUILDKIT=1 # This is specifically for docker compose and thus not part of .env
 
   #NimStoryfont backend webserver that receives requests on port 8080
   nimstoryfont:
@@ -23,3 +25,5 @@ services:
       - $VOLUME_DIR:/data
     container_name: nswebserver
     restart: on-failure
+    environment:
+      - DOCKER_BUILDKIT=1 # This is specifically for docker compose and thus not part of .env
