@@ -14,7 +14,7 @@
     color: unset;
 
     &:focus,
-    &:focus-within,
+    &:has(:focus-visible),
     &:hover,
     &:focus-visible {
       outline: var(--focus-outline);

@@ -9,12 +9,12 @@
   />
 </div>
 <div class="text-content border-start">
-  <div
+  <a
     class="text-content__header fs-5 fw-bold"
-    [class.border-bottom]="!!body()"
     [id]="headerId"
+    [routerLink]="link()"
   >
     {{ header() }}
-  </div>
+  </a>
   <div class="text-content__body">{{ body() }}</div>
 </div>

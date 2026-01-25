@@ -1,31 +1,41 @@
-import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  effect,
   ElementRef,
   inject,
+  signal,
   Signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, withLatestFrom } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { OverviewItem } from 'src/app/_models/overview';
+import {
+  SEARCHABLE_ARTICLE_KINDS,
+  SearchableArticleKind,
+} from 'src/app/_models/search';
 import { HotkeyService } from 'src/app/_services/hotkey.service';
 import { OnlineService } from 'src/app/_services/online.service';
 import { Icon } from 'src/app/design/atoms/_models/icon';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
+import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import {
-  ListComponent,
   ListEntry,
   ListEntryTemplateContext,
 } from 'src/app/design/molecule/list/list.component';
+import {
+  SEARCH_TOGGLES,
+  Toggle,
+} from 'src/app/design/molecules/_models/toggle';
 import { OverviewEntryComponent } from 'src/app/design/molecules/overview-entry/overview-entry.component';
+import { ToggleRowComponent } from 'src/app/design/molecules/toggle-row/toggle-row.component';
 import { getMetadataForType } from 'src/app/design/organisms/_model/sidebar';
 import { SearchPageStore } from 'src/app/global-components/search/search-modal/search-page.store';
 import { GlobalStore } from 'src/app/global.store';
@@ -48,12 +58,11 @@ type SearchEntry = Pick<
     ButtonComponent,
     HotkeyDirective,
     SearchFieldComponent,
-    SpinnerComponent,
     OverviewEntryComponent,
-    ListComponent,
-    RouterLink,
     IconComponent,
     NgbTooltip,
+    ToggleRowComponent,
+    PlaceholderComponent,
   ],
   templateUrl: './search-modal.component.html',
   styleUrl: './search-modal.component.scss',
@@ -66,10 +75,10 @@ export class SearchModalComponent {
   onlineService = inject(OnlineService);
   searchStore = inject(SearchPageStore);
   router = inject(Router);
-  announcer = inject(LiveAnnouncer);
+  destroyRef = inject(DestroyRef);
 
-  private readonly listElement: Signal<ElementRef<HTMLElement>> =
-    viewChild.required('list', {
+  private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
+    viewChild('list', {
       read: ElementRef<HTMLElement>,
     });
 
@@ -79,6 +88,18 @@ export class SearchModalComponent {
   DEFAULT_URL = 'assets/default_images/icon_default.webp';
 
   campaignName = this.globalStore.campaignName;
+  activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
+  filterToggles = computed(() => {
+    const activeFilterSet = new Set(this.activeFilters());
+    return SEARCH_TOGGLES.map((toggle) => ({
+      ...toggle,
+      active: toggle.value.every((filterKind) =>
+        activeFilterSet.has(filterKind),
+      ),
+    }));
+  });
+  searchString = signal('');
+
   isLoading = computed(
     () => this.searchStore.searchArticlesQueryState() === 'loading',
   );
@@ -103,7 +124,7 @@ export class SearchModalComponent {
           icon: metadata?.iconClass as Icon,
           article_type: capitalize(article.article_type),
         },
-        trackId: article.pk ?? componentId(),
+        trackId: `${article.article_type}-${article.pk}`,
         ariaText: {
           kind: 'aria-labelledby',
           id: `overview-entry-${article.article_type}-${article.pk}`,
@@ -113,7 +134,6 @@ export class SearchModalComponent {
   });
 
   constructor() {
-    this.announcer.announce('test');
     const hasCurrentCampaign$ = toObservable(
       this.globalStore.currentCampaign,
     ).pipe(map((campaign) => !!campaign));
@@ -128,6 +148,28 @@ export class SearchModalComponent {
         takeUntilDestroyed(),
       )
       .subscribe(() => this.openModal());
+
+    effect(() => {
+      const searchString = this.searchString();
+      if (!searchString) return;
+
+      this.searchStore.loadSearchArticles({
+        searchString: searchString,
+        filters: this.activeFilters(),
+      });
+    });
+
+    this.closeSearchOnRouteChange();
+  }
+
+  updateFilters(event: Toggle<SearchableArticleKind[]>) {
+    if (event.active) {
+      this.activeFilters.update((filters) => [...filters, ...event.value]);
+    } else {
+      this.activeFilters.update((filters) =>
+        filters.filter((f) => !event.value.includes(f)),
+      );
+    }
   }
 
   routeToEntry(data: SearchEntry) {
@@ -158,6 +200,18 @@ export class SearchModalComponent {
   }
 
   shiftToSearch() {
-    this.listElement().nativeElement.focus();
+    this.listElement()?.nativeElement.focus();
+  }
+
+  /**
+   * Route Change means the user clicked on a link somewhere, therefore we want to close the search
+   */
+  private closeSearchOnRouteChange() {
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.modalService.dismissAll());
   }
 }

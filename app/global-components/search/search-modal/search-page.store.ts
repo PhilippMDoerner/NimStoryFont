@@ -23,7 +23,13 @@ export const SearchPageStore = signalStore(
       shareReplay(1),
     );
     return {
-      searchArticles: (searchString: string) =>
+      searchArticles: ({
+        searchString,
+        filters,
+      }: {
+        searchString: string;
+        filters: string[];
+      }) =>
         campaignName$.pipe(
           take(1),
           switchMap((campaignName) => {
@@ -31,6 +37,7 @@ export const SearchPageStore = signalStore(
               return articleService.getCampaignSearchArticle(
                 campaignName,
                 searchString,
+                filters,
               );
             } else {
               return of({ emptyResponse: '', articles: [] as OverviewItem[] });

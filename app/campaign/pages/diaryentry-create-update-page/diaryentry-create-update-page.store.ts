@@ -2,8 +2,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-import { shareReplay, switchMap, take } from 'rxjs';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, shareReplay, switchMap, take, tap } from 'rxjs';
 import { DiaryEntry, DiaryEntryRaw } from 'src/app/_models/diaryentry';
+import { SessionRaw } from 'src/app/_models/session';
 import { DiaryentryService } from 'src/app/_services/article/diaryentry.service';
 import { SessionService } from 'src/app/_services/article/session.service';
 import { UserService } from 'src/app/_services/article/user.service';
@@ -71,6 +73,7 @@ export const DiaryEntryCreateUpdatePageStore = signalStore(
   withMethods((store) => {
     const diaryentryService = inject(DiaryentryService);
     const toastService = inject(ToastService);
+    const sessionService = inject(SessionService);
     return {
       reset: () => {
         patchState(store, {
@@ -100,6 +103,12 @@ export const DiaryEntryCreateUpdatePageStore = signalStore(
               handleError(store, err, toastService),
           });
       },
+      createSession: rxMethod<SessionRaw>(
+        pipe(
+          switchMap((sessionData) => sessionService.create(sessionData)),
+          tap(() => store.loadSessions()),
+        ),
+      ),
     };
   }),
 );

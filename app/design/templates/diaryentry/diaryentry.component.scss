@@ -1,3 +1,5 @@
+@use "/src/screens.scss" as screen;
+
 ::ng-deep li.entry.drag-and-drop-list-entry {
   background-color: var(--bs-secondary);
   color: var(--bs-white);
@@ -94,5 +96,13 @@
 
   &__drag-and-drop-list {
     margin-bottom: var(--spacer-4);
+  }
+}
+
+article.container {
+  max-width: unset;
+  margin: unset;
+  padding: unset;
+  @include screen.media-breakpoint-down(md) {
   }
 }

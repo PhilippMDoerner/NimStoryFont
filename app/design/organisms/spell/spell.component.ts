@@ -31,6 +31,7 @@ import {
   CompareFormComponent,
   FormComponent,
 } from 'src/app/design/molecules';
+import { withViewTransition } from 'src/utils/animation';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -203,9 +204,7 @@ export class SpellComponent implements OnInit {
   onActionTriggered(action: string): void {
     switch (action) {
       case 'update':
-        document.startViewTransition(() =>
-          this.toggleAwayFromState(this.state()),
-        );
+        withViewTransition(() => this.toggleAwayFromState(this.state()));
         break;
       case 'delete':
         this.onSpellDelete();

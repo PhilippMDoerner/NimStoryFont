@@ -7,12 +7,13 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import {
   GroupByFirstLetterPipe,
   GroupByPipe,
 } from 'src/app/design/atoms/_pipes/groupObjects.pipe';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
@@ -36,7 +37,6 @@ export type GroupConfig<T> =
     GroupByFirstLetterPipe,
     NgClass,
     GroupByPipe,
-    RouterLink,
     NgTemplateOutlet,
     HotkeyDirective,
     ButtonComponent,
@@ -107,6 +107,6 @@ export class FilterListComponent<T> {
   }
 
   onFilterChange(newFilterValue: string): void {
-    document.startViewTransition(() => this.filterValue.set(newFilterValue));
+    withViewTransition(() => this.filterValue.set(newFilterValue));
   }
 }

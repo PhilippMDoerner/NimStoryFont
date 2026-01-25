@@ -1,3 +1,4 @@
+@let ariaTex = ariaText();
 <button
   btn
   [id]="id()"
@@ -9,7 +10,12 @@
   [disabled]="disabled()"
   [attr.aria-disabled]="disabled()"
   [attr.aria-pressed]="active()"
-  [attr.aria-label]="ariaLabel()"
+  [attr.aria-label]="
+    ariaTex?.kind === 'aria-label' ? $any(ariaTex)?.label : null
+  "
+  [attr.aria-labelledby]="
+    ariaTex?.kind === 'aria-labelledby' ? $any(ariaTex)?.id : null
+  "
   [attr.aria-controls]="ariaControls()"
   (clicked)="changed.emit(!active())"
 ></button>

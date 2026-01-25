@@ -14,6 +14,7 @@
       align-items: center;
       padding: var(--spacer-2);
       outline-offset: -2px;
+      word-break: break-all;
 
       &:hover {
         background-color: color-mix(

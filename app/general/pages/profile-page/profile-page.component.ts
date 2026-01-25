@@ -4,9 +4,10 @@ import {
   Component,
   computed,
   inject,
+  Signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { map } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { AuthData, CampaignRole } from 'src/app/_models/token';
 import { RoutingService } from 'src/app/_services/routing.service';
 import { TokenService } from 'src/app/_services/utils/token.service';
@@ -54,8 +55,17 @@ export class ProfilePageComponent {
     }),
   );
 
+  private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
+    computed(
+      () =>
+        this.authStore.authData() == null ||
+        this.profilePageStore.user() == null,
+    );
+
   constructor(private tokenService: TokenService) {
     this.profilePageStore.loadThisUser();
+
+    this.globalStore.trackIsPageLoading(this.isPageLoading);
   }
 
   private mapMemberships(

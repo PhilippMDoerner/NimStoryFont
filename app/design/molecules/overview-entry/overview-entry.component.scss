@@ -9,6 +9,13 @@
   width: 100%;
   align-items: center;
   overflow: hidden;
+  position: relative;
+
+  &:hover,
+  &:has(:focus-visible) {
+    color: var(--bs-link-hover-color);
+    background-color: var(--bs-black);
+  }
 }
 
 .img {
@@ -31,6 +38,7 @@
 
   &__header {
     width: fit-content;
+    @include blockLink();
     @include clampToLines(1);
   }
 

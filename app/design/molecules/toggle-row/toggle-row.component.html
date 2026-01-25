@@ -1,0 +1,25 @@
+@let focusIndex = (focusIndex$ | async) ?? 0;
+@for (toggle of toggles(); track toggle.value) {
+  <button
+    #toggle
+    type="button"
+    class="btn border rounded-pill"
+    [attr.aria-pressed]="toggle.active"
+    [class.btn-dark]="!toggle.active"
+    [class.btn-primary]="toggle.active"
+    [tabIndex]="focusIndex === $index ? 0 : -1"
+    (click)="togglesChanged(!toggle.active, $index)"
+  >
+    @if (toggle.icon) {
+      <app-icon [icon]="toggle.icon" />
+    }
+
+    <span>{{ toggle.text }}</span>
+
+    <app-icon
+      class="btn__icon"
+      [class.btn__icon--active]="toggle.active"
+      [icon]="'check'"
+    />
+  </button>
+}

@@ -3,29 +3,27 @@
 <div class="card" [class.card--active]="inFocus()" data-register-focus>
   @if (currentImage()) {
     <div class="card__img-container">
+      <img
+        #img
+        class="card-img-top"
+        [id]="imageId"
+        [ngSrc]="currentImage()"
+        [alt]="alt()"
+        [height]="300"
+        [width]="100"
+        priority
+      />
+      @if ((isImageLoading$ | async) === true) {
+        <div class="card__loading-spinner">
+          <app-spinner />
+        </div>
+      }
       <a
-        class="card__img-link"
+        class="card__img-link card__title-link fs-5"
         [routerLink]="link()"
         [attr.aria-label]="text()"
       >
-        <img
-          #img
-          class="card-img-top"
-          [id]="imageId"
-          [ngSrc]="currentImage()"
-          [alt]="alt()"
-          [height]="300"
-          [width]="100"
-          priority
-        />
-        @if ((isImageLoading$ | async) === true) {
-          <div class="card__loading-spinner">
-            <app-spinner />
-          </div>
-        }
-        <div class="card__title-link fs-5">
-          {{ text() }}
-        </div>
+        {{ text() }}
       </a>
 
       <button
@@ -45,20 +43,24 @@
   }
   <div class="card-body">
     @if (imageUrls().length > 1) {
-      <div class="card__img-selectors">
+      <ul class="card__img-selectors">
         @for (_ of imageUrls(); track $index) {
-          @let imageIndex = $index + 1;
-          <button
-            class="card__img-selector"
-            [class.card__img-selector--active]="$index === currentImageIndex()"
-            [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
-            [attr.aria-controls]="imageId"
-            (click)="selectorClicked$.next({ index: $index, event: $event })"
-          >
-            {{ imageIndex }}
-          </button>
+          <li>
+            @let imageIndex = $index + 1;
+            @let isActiveButton = $index === currentImageIndex();
+            <button
+              class="card__img-selector"
+              [class.card__img-selector--active]="isActiveButton"
+              [attr.aria-label]="'Show image ' + imageIndex + ' of ' + text()"
+              [attr.aria-controls]="imageId"
+              [attr.aria-current]="isActiveButton ? 'true' : null"
+              (click)="selectorClicked$.next({ index: $index, event: $event })"
+            >
+              {{ imageIndex }}
+            </button>
+          </li>
         }
-      </div>
+      </ul>
     }
   </div>
 </div>

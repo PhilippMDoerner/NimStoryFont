@@ -3,7 +3,7 @@
   display: flex;
 
   &:focus,
-  &:focus-within,
+  &:has(:focus-visible),
   &:focus-visible,
   &:hover {
     outline: var(--focus-outline);

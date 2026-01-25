@@ -82,7 +82,7 @@ export class SessionComponent implements OnInit {
       menuItems.push({
         kind: 'BUTTON',
         actionName: 'update',
-        label: 'Edit',
+        label: 'Edit Session',
         icon: 'pencil',
         active: this.state() === 'UPDATE' || this.state() === 'OUTDATED_UPDATE',
         hotkeyAction: this.disabledHotkeys() ? undefined : 'update',
@@ -93,7 +93,7 @@ export class SessionComponent implements OnInit {
       menuItems.push({
         kind: 'CONFIRM',
         actionName: 'delete',
-        label: 'Delete',
+        label: 'Delete Session',
         icon: 'trash',
         hotkeyAction: this.disabledHotkeys() ? undefined : 'delete',
         modal: {

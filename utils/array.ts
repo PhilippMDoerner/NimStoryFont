@@ -26,6 +26,21 @@ export const sortByProp = <T>(
   return newList;
 };
 
+export const sortByNumProp = <T>(
+  list: T[],
+  prop: keyof T,
+  sortDirection: 'asc' | 'desc' = 'asc',
+): T[] => {
+  const newList = [...list];
+  newList.sort((a, b) => {
+    const valueA = typeof a[prop] === 'number' ? a[prop] : Number(a[prop]);
+    const valueB = typeof b[prop] === 'number' ? b[prop] : Number(b[prop]);
+    const sortValue = valueA > valueB ? 1 : -1;
+    return sortDirection === 'desc' ? -1 * sortValue : sortValue;
+  });
+  return newList;
+};
+
 export const sortBy = <T>(
   a: T,
   b: T,

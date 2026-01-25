@@ -61,11 +61,16 @@ export class ArticleService {
   getCampaignSearchArticle(
     campaign: string,
     searchString: string,
+    filters: string[],
   ): Observable<{ articles: OverviewItem[]; emptyResponse: string }> {
     const resultObservable = this.http.get<{
       articles: OverviewItem[];
       emptyResponse: string;
-    }>(`${this.searchUrl}/${campaign}/${searchString}`);
+    }>(`${this.searchUrl}/${campaign}/${searchString}`, {
+      params: {
+        articletypes: filters.join(','),
+      },
+    });
     return resultObservable.pipe(
       map((searchResponse) => {
         const searchArticles: any[] = searchResponse.articles;

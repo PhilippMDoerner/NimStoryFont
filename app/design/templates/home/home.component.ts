@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { CampaignOverview } from 'src/app/_models/campaign';
 import {
+  ARTICLE_ICONS,
   ArticleKind,
   OverviewItem,
   VisitedState,
@@ -23,6 +24,7 @@ import { Icon } from 'src/app/design/atoms/_models/icon';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import { IconCardEntry } from 'src/app/design/organisms/_model/icon-card-list';
 import { ContentScrollEvent, GlobalStore } from 'src/app/global.store';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
@@ -66,21 +68,7 @@ export class HomeComponent {
   globalStore = inject(GlobalStore);
   PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
   DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
-  ARTICLE_ICON_MAP: { [key: string]: Icon } = {
-    location: 'compass',
-    encounter: 'comments',
-    creature: 'dragon',
-    character: 'male',
-    diaryentry: 'book-open',
-    item: 'magic',
-    map: 'map',
-    organization: 'sitemap',
-    quest: 'question-circle',
-    sessionaudio: 'file-audio',
-    rules: 'book',
-    spell: 'hand-sparkles',
-    session: 'calendar-alt',
-  };
+  ARTICLE_ICON_MAP = ARTICLE_ICONS;
 
   serverUrl = input.required<string>();
   campaignData = input.required<CampaignOverview | undefined>();
@@ -177,8 +165,9 @@ export class HomeComponent {
       return;
     }
 
-    this.pageNumber.set(currentPageNumber + 1);
-    this.loadArticlePage.emit(currentPageNumber);
+    const nextPage = currentPageNumber + 1;
+    this.pageNumber.set(nextPage);
+    this.loadArticlePage.emit(nextPage);
   }
 
   toggleFeedMode(isSwitchedOn: boolean) {
@@ -194,15 +183,16 @@ export class HomeComponent {
       case '1WEEK':
       case '1DAY':
       case 'NONE':
-        document.startViewTransition(() => this.timeFilter.set(event));
+        withViewTransition(() => this.timeFilter.set(event));
         break;
     }
   }
 
   private toIconCardEntry(article: OverviewItem): IconCardEntry {
+    const articleKind = article.article_type.toUpperCase() as ArticleKind;
     return {
-      entryType: article.article_type.toUpperCase() as ArticleKind,
-      icon: this.ARTICLE_ICON_MAP[article.article_type],
+      entryType: articleKind,
+      icon: ARTICLE_ICONS[articleKind],
       link: article.getAbsoluteRouterUrl(),
       title: article.name,
       subText: article.article_type.toLowerCase(),

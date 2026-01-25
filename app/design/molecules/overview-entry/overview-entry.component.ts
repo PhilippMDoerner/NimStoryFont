@@ -5,11 +5,12 @@ import {
   computed,
   input,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { componentId } from 'src/utils/DOM';
 
 @Component({
   selector: 'app-overview-entry',
-  imports: [NgOptimizedImage],
+  imports: [NgOptimizedImage, RouterLink],
   templateUrl: './overview-entry.component.html',
   styleUrl: './overview-entry.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,6 +28,7 @@ export class OverviewEntryComponent {
   header = input.required<string>();
   body = input<string>();
   defaultBorder = input(true);
+  link = input<string>();
 
   headerId = `header-${componentId()}`;
   bodyId = computed(() => {

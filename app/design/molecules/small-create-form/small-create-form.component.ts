@@ -15,6 +15,7 @@ import { ShortcutAction } from 'src/app/_models/hotkey';
 import { ElementKind } from 'src/app/design/atoms/_models/button';
 import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
 import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { withViewTransition } from 'src/utils/animation';
 import { componentId } from 'src/utils/DOM';
 import { TypeaheadComponent } from '../../atoms/typeahead/typeahead.component';
 
@@ -86,7 +87,7 @@ export class SmallCreateFormComponent<T> {
   }
 
   toggleForm() {
-    document.startViewTransition(() => {
+    withViewTransition(() => {
       switch (this.state()) {
         case 'DISPLAY':
           return this.changeState('CREATE');

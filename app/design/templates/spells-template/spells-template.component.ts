@@ -14,6 +14,7 @@ import {
   SpellRaw,
 } from 'src/app/_models/spell';
 import { RoutingService } from 'src/app/_services/routing.service';
+import { withViewTransition } from 'src/utils/animation';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
@@ -82,7 +83,7 @@ export class SpellsTemplateComponent {
   onClassRemove(className: string): void {
     const newSet = new Set(this.selectedClassNames());
     newSet.delete(className);
-    document.startViewTransition(() => {
+    withViewTransition(() => {
       this.selectedClassNames.set(newSet);
     });
   }

@@ -1,5 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
 import { NamedRouteData, RouteName } from 'src/app/_models/route';
 import { CampaignRole } from 'src/app/_models/token';
 import { PwaService } from 'src/app/_services/pwa.service';
@@ -37,9 +38,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Creatures',
-    iconClass: 'dragon',
+    iconClass: ARTICLE_ICONS['CREATURE'],
     route: 'creature-overview',
-    color: 'var(--creature-color)',
+    color: ARTICLE_COLORS['CREATURE'],
     article_types: ['creature'],
     showInSidebar: true,
     availableOffline: true,
@@ -54,9 +55,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Characters',
-    iconClass: 'male',
+    iconClass: ARTICLE_ICONS['CHARACTER'],
     route: 'character-overview',
-    color: 'var(--character-color)',
+    color: ARTICLE_COLORS['CHARACTER'],
     article_types: ['character'],
     showInSidebar: true,
     availableOffline: true,
@@ -72,9 +73,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'DiaryEntries',
-    iconClass: 'book-open',
+    iconClass: ARTICLE_ICONS['DIARYENTRY'],
     route: 'diaryentry-overview',
-    color: 'var(--diaryentry-color)',
+    color: ARTICLE_COLORS['DIARYENTRY'],
     article_types: ['diaryentry'],
     showInSidebar: true,
     availableOffline: true,
@@ -90,9 +91,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Items',
-    iconClass: 'magic',
+    iconClass: ARTICLE_ICONS['ITEM'],
     route: 'item-overview',
-    color: 'var(--item-color)',
+    color: ARTICLE_COLORS['ITEM'],
     article_types: ['item'],
     showInSidebar: true,
     availableOffline: true,
@@ -107,9 +108,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Locations',
-    iconClass: 'compass',
+    iconClass: ARTICLE_ICONS['LOCATION'],
     route: 'location-overview',
-    color: 'var(--location-color)',
+    color: ARTICLE_COLORS['LOCATION'],
     article_types: ['location'],
     showInSidebar: true,
     availableOffline: true,
@@ -127,9 +128,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Maps',
-    iconClass: 'map',
+    iconClass: ARTICLE_ICONS['MAP'],
     route: 'default-map',
-    color: 'var(--map-color)',
+    color: ARTICLE_COLORS['MAP'],
     article_types: ['map'],
     showInSidebar: true,
     availableOffline: true,
@@ -145,9 +146,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Organizations',
-    iconClass: 'sitemap',
+    iconClass: ARTICLE_ICONS['ORGANIZATION'],
     route: 'organization-overview',
-    color: 'var(--organization-color)',
+    color: ARTICLE_COLORS['ORGANIZATION'],
     article_types: ['organization'],
     showInSidebar: true,
     availableOffline: true,
@@ -162,9 +163,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Quests',
-    iconClass: 'question-circle',
+    iconClass: ARTICLE_ICONS['QUEST'],
     route: 'quest-overview',
-    color: 'var(--quest-color)',
+    color: ARTICLE_COLORS['QUEST'],
     article_types: ['quest'],
     showInSidebar: true,
     availableOffline: true,
@@ -179,9 +180,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Recordings',
-    iconClass: 'file-audio',
+    iconClass: ARTICLE_ICONS['SESSIONAUDIO'],
     route: 'sessionaudio-overview',
-    color: 'var(--sessionaudio-color)',
+    color: ARTICLE_COLORS['SESSIONAUDIO'],
     article_types: ['sessionaudio', 'recording'],
     showInSidebar: true,
     availableOffline: false,
@@ -196,9 +197,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Rules',
-    iconClass: 'book',
+    iconClass: ARTICLE_ICONS['RULE'],
     route: 'rules',
-    color: 'var(--rules-color)',
+    color: ARTICLE_COLORS['RULE'],
     article_types: ['rule', 'rules'],
     showInSidebar: true,
     availableOffline: true,
@@ -208,9 +209,9 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Spells',
-    iconClass: 'hand-sparkles',
+    iconClass: ARTICLE_ICONS['SPELL'],
     route: 'spells',
-    color: 'var(--spell-color)',
+    color: ARTICLE_COLORS['SPELL'],
     article_types: ['spell', 'spells'],
     showInSidebar: true,
     availableOffline: true,
@@ -220,7 +221,7 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: 'Sessions',
-    iconClass: 'calendar-alt',
+    iconClass: ARTICLE_ICONS['SESSION'],
     route: 'sessions',
     color: 'green',
     article_types: ['session', 'sessions'],
@@ -256,8 +257,8 @@ export const ARTICLE_META_ENTRIES: ArticleMetaData[] = [
   },
   {
     title: '',
-    iconClass: 'comments',
-    color: 'var(--encounter-color)',
+    iconClass: ARTICLE_ICONS['ENCOUNTER'],
+    color: ARTICLE_COLORS['ENCOUNTER'],
     article_types: ['encounter'],
     showInSidebar: false,
     availableOffline: false,
