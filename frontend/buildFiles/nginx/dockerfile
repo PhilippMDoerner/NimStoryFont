@@ -11,6 +11,7 @@ RUN apk -U add nodejs npm
 # The --mount option here is a cache-layer for local development.
 # It caches the node_modules dir when re-running docker commands.
 # TODO: Remove npm i --force. This is a temporary addition until ngrx updates their lib for Angular20
+RUN node -v
 RUN --mount=type=cache,target=./node_modules \
   npm i --force && npm run build
 
