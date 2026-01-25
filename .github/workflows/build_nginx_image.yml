@@ -25,7 +25,8 @@ jobs:
           username: ${{github.actor}}
           password: ${{secrets.GITHUB_TOKEN}}
 
-      - name: "Build and push backend Image"
+      - name: "Build and push frontend Image"
         run: |
+          echo node -v
           sudo docker build --file ./buildFiles/nginx/dockerfile --tag ghcr.io/philippmdoerner/nginx_frontend-dev:latest ../
           docker push ghcr.io/philippmdoerner/nginx_frontend-dev:latest
