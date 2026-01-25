@@ -105,7 +105,7 @@ export class DiaryentryCreateUpdatePageComponent {
         ?.some(
           (session) =>
             session?.is_main_session === true &&
-            session?.session_date.startsWith(todayDate),
+            session?.session_date?.startsWith(todayDate),
         ) ?? false
     );
   });
@@ -117,7 +117,7 @@ export class DiaryentryCreateUpdatePageComponent {
         ?.some(
           (session) =>
             session?.is_main_session === false &&
-            session?.session_date.startsWith(todayDate),
+            session?.session_date?.startsWith(todayDate),
         ) ?? false
     );
   });
