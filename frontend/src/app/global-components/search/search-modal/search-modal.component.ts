@@ -114,10 +114,11 @@ export class SearchModalComponent {
     const articles = this.searchStore.searchArticles()?.articles;
     return articles?.map((article) => {
       const metadata = getMetadataForType(article.article_type);
+      const isDiaryEntry = article.article_type === 'diaryentry';
 
       return {
         data: {
-          name: article.name,
+          name: isDiaryEntry ? article.name_full : article.name,
           description: article.description,
           url: article.getAbsoluteRouterUrl(),
           color: metadata?.color,
