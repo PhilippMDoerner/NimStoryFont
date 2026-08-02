@@ -226,6 +226,11 @@ $close-text-shadow: none;
 
 $pre-color: inherit;
 
+// Badges
+$badge-padding-y: 0.65em;
+$badge-padding-x: 0.95em;
+$badge-font-size: 0.8em;
+
 // Accordion
 .accordion {
   --bs-accordion-active-bg: var(--bs-gray-900) !important;
