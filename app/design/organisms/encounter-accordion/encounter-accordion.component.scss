@@ -32,3 +32,9 @@
   color: var(--bs-white);
   width: 100%;
 }
+
+.encounter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

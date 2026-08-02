@@ -1,6 +1,8 @@
-<div class="encounter-list mb-5 mt-3">
+<div class="encounter-list mb-5 mt-3 gap-3">
+  <ng-container *ngTemplateOutlet="pagination" />
   <div ngbAccordion [closeOthers]="true" [animation]="true">
-    @for (encounter of encounters(); track encounter.pk) {
+
+    @for (encounter of displayedEncounters(); track encounter.pk) {
       @let headingId = "encounter-heading-" + $index;
       <div ngbAccordionItem [id]="'static-' + $index">
         <div ngbAccordionHeader [heading]="3" [id]="headingId">
@@ -35,5 +37,17 @@
         </div>
       </div>
     }
+
   </div>
+  <ng-container *ngTemplateOutlet="pagination" />
 </div>
+
+<ng-template #pagination>
+  <ngb-pagination
+    [collectionSize]="encounters().length"
+    [(page)]="page"
+    [pageSize]="PAGE_SIZE"
+    [boundaryLinks]="true"
+    (pageChange)="page.set($event)"
+  />
+</ng-template>
