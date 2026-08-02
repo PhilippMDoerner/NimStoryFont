@@ -168,13 +168,14 @@ $pagination-bg: $success;
 $pagination-border-width: 0;
 $pagination-border-color: transparent;
 $pagination-hover-color: $white;
-$pagination-hover-bg: lighten($success, 10%);
+$pagination-hover-bg: lighten($primary, 10%);
 $pagination-hover-border-color: transparent;
 $pagination-active-bg: $pagination-hover-bg;
 $pagination-active-border-color: transparent;
 $pagination-disabled-color: $white;
-$pagination-disabled-bg: darken($success, 15%);
+$pagination-disabled-bg: darken($primary, 15%);
 $pagination-disabled-border-color: transparent;
+$pagination-bg: $primary;
 
 // Jumbotron
 
