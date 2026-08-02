@@ -293,6 +293,7 @@ db_command(){
     init) touch $LOCAL_VOLUME_PATH/database/db.sqlite3 && ./ns db migrate local;;
     download) scp -i ./nimstoryfont_ansible ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3 $LOCAL_VOLUME_PATH/database/db.sqlite3 ;;
     upload) scp -i ./nimstoryfont_ansible $LOCAL_VOLUME_PATH/database/db.sqlite3 ansible@$HOST_IP:$HOST_VOLUME_PATH/database/db.sqlite3;;
+    repair) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql repair;;
     migrate)
       case $3 in
         local) flyway -url="jdbc:sqlite:$LOCAL_VOLUME_PATH/database/db.sqlite3" -locations=filesystem:./backend/sql migrate;;
