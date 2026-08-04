@@ -17,6 +17,7 @@ import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component
 import { BadgeListComponent, BadgeListEntry } from 'src/app/design/molecules';
 import { copyToClipboard } from 'src/utils/clipboard';
 import { componentId } from 'src/utils/DOM';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { ToastService } from '../toast-overlay/toast.service';
@@ -50,6 +51,7 @@ type QuoteControl = MenuItem & {
     SeparatorComponent,
     SpinnerComponent,
     ContextMenuComponent,
+    ButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -110,7 +112,7 @@ export class QuoteComponent implements OnChanges {
     },
     {
       controlKind: 'CREATE',
-      isVisible: this.canCreate(),
+      isVisible: this.hasQuote() && this.canCreate(),
       kind: 'BUTTON',
       label: 'Create Quote',
       icon: 'plus',
