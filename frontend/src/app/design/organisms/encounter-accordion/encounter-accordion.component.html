@@ -43,13 +43,15 @@
 </div>
 
 <ng-template #pagination>
-  <ngb-pagination
-    [collectionSize]="encounters().length"
-    [maxSize]="5"
-    [rotate]="true"
-    [(page)]="page"
-    [pageSize]="PAGE_SIZE"
-    [boundaryLinks]="true"
-    (pageChange)="page.set($event)"
-  />
+  @if(displayedEncounters().length > 0){
+    <ngb-pagination
+      [collectionSize]="encounters().length"
+      [maxSize]="5"
+      [rotate]="true"
+      [(page)]="page"
+      [pageSize]="PAGE_SIZE"
+      [boundaryLinks]="true"
+      (pageChange)="page.set($event)"
+    />
+  }
 </ng-template>
