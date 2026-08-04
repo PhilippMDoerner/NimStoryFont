@@ -92,11 +92,16 @@ const BS_KIND_CLASS_MAP: { [key in ButtonKind]: string } = {
   NONE: 'btn-none',
 };
 
-export function toButtonClasses(kind: ButtonKind, size: ElementSize): string {
+export function toButtonClasses(
+  kind: ButtonKind,
+  size: ElementSize,
+  hideBorder: boolean,
+): string {
   const btnClass = kind !== 'NONE' ? 'btn' : '';
   const sizeClass = BS_SIZE_CLASS_MAP[size];
   const kindClass = BS_KIND_CLASS_MAP[kind];
-  return `${btnClass} ${sizeClass} ${kindClass}`;
+  const hideBorderClass = hideBorder ? 'btn--hide-border' : '';
+  return `${btnClass} ${sizeClass} ${kindClass} ${hideBorderClass}`;
 }
 
 export const ELEMENT_SIZES = ['SMALL', 'MEDIUM', 'LARGE'] as const;

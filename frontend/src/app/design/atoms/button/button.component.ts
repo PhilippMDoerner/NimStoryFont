@@ -25,15 +25,16 @@ import { SpinnerComponent } from '../spinner/spinner.component';
   },
 })
 export class ButtonComponent {
-  kind = input.required<ButtonKind>();
-  text = input<string>();
-  icon = input<Icon>();
-  size = input<ElementSize>('MEDIUM');
-  type = input<'button' | 'reset' | 'submit'>('button');
-  isLoading = input<boolean>(false);
-  disabled = input<boolean>(false);
+  readonly kind = input.required<ButtonKind>();
+  readonly text = input<string>();
+  readonly icon = input<Icon>();
+  readonly size = input<ElementSize>('MEDIUM');
+  readonly type = input<'button' | 'reset' | 'submit'>('button');
+  readonly isLoading = input<boolean>(false);
+  readonly disabled = input<boolean>(false);
+  readonly hideBorder = input<boolean>(false);
 
-  clicked = output<MouseEvent>();
+  readonly clicked = output<MouseEvent>();
 
   onClick(event: MouseEvent) {
     if (!this.isLoading() && !this.disabled()) {
@@ -41,9 +42,10 @@ export class ButtonComponent {
     }
   }
 
-  disabledClass = computed(() => (this.disabled() ? 'disabled' : ''));
-  classes = computed(
+  readonly disabledClass = computed(() => (this.disabled() ? 'disabled' : ''));
+  readonly classes = computed(
     () =>
-      toButtonClasses(this.kind(), this.size()) + ` ${this.disabledClass()}`,
+      toButtonClasses(this.kind(), this.size(), this.hideBorder()) +
+      ` ${this.disabledClass()}`,
   );
 }

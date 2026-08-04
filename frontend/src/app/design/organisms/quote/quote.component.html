@@ -42,39 +42,15 @@
         </div>
       </div>
     }
+    @if(showQuoteControls()){
+      <app-context-menu
+        [menuItems]="shownQuoteControlls()"
+        [menuButtonKind]="'LIGHT-OUTLINE'"
+        [menuButtonIcon]="'ellipsis-vertical'"
+        (actionTriggered)="onContextMenuAction($event)"
+      />
+    }
 
-    <!-- Quote Refresh/Create/Edit/Delete Icons -->
-    <footer class="field__controls">
-      @for (control of quoteControlls(); track $index) {
-        @switch (control.config.kind) {
-          @case ("CLICK") {
-            <button
-              btn
-              class="field__control"
-              [attr.aria-label]="control.title"
-              [attr.title]="control.title"
-              [kind]="control.type"
-              [text]="control.label"
-              [icon]="control.icon"
-              (clicked)="control.config.onClick()"
-            ></button>
-          }
-          @case ("LINK") {
-            <a
-              btn
-              class="field__control"
-              [attr.aria-label]="control.title"
-              [ngbTooltip]="control.title"
-              [kind]="control.type"
-              [text]="control.label"
-              [icon]="control.icon"
-              [routerLink]="control.config.link"
-            >
-            </a>
-          }
-        }
-      }
-    </footer>
   </section>
 }
 

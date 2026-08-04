@@ -16,6 +16,10 @@
   &.disabled {
     pointer-events: unset;
   }
+
+  &.btn--hide-border {
+    --bs-btn-border-width: unset;
+  }
 }
 
 .btn {

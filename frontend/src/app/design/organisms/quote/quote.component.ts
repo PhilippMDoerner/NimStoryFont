@@ -10,19 +10,15 @@ import {
 import { OverviewItem } from 'src/app/_models/overview';
 import { RoutingService } from 'src/app/_services/routing.service';
 
-import { RouterLink } from '@angular/router';
-import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { CharacterDetails } from 'src/app/_models/character';
 import { Quote, QuoteConnection } from 'src/app/_models/quote';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
 import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
 import { BadgeListComponent, BadgeListEntry } from 'src/app/design/molecules';
 import { copyToClipboard } from 'src/utils/clipboard';
 import { componentId } from 'src/utils/DOM';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { MenuItem } from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { ToastService } from '../toast-overlay/toast.service';
 
 type QuoteState =
@@ -39,23 +35,11 @@ export type QuoteControlKind =
   | 'UPDATE'
   | 'LIST'
   | 'COPY';
-interface QuoteControl {
-  controlKind: QuoteControlKind;
+
+type QuoteControl = MenuItem & {
   isVisible: boolean;
-  title?: string;
-  type: ElementKind;
-  label?: string;
-  icon: Icon;
-  config:
-    | {
-        kind: 'LINK';
-        link: string;
-      }
-    | {
-        kind: 'CLICK';
-        onClick: () => void;
-      };
-}
+  controlKind: QuoteControlKind;
+};
 
 @Component({
   selector: 'app-quote',
@@ -64,25 +48,19 @@ interface QuoteControl {
   imports: [
     BadgeListComponent,
     SeparatorComponent,
-    ButtonComponent,
-    ButtonLinkComponent,
-    RouterLink,
     SpinnerComponent,
-    NgbTooltip,
+    ContextMenuComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuoteComponent implements OnChanges {
-  quote = input<Quote>();
-  quoteControlsBlacklist = input<QuoteControlKind[]>([]);
-  _quoteControlsBlacklist = computed(
-    () => new Set(this.quoteControlsBlacklist()),
-  );
-  character = input.required<CharacterDetails>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  canCreate = input(false);
-  canUpdate = input(false);
-  canDelete = input(false);
+  readonly quote = input<Quote>();
+  readonly quoteControlsBlacklist = input<QuoteControlKind[]>([]);
+  readonly character = input.required<CharacterDetails>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly canCreate = input(false);
+  readonly canUpdate = input(false);
+  readonly canDelete = input(false);
 
   readonly quoteDelete = output<Quote>();
   readonly quoteCreate = output<void>();
@@ -91,108 +69,112 @@ export class QuoteComponent implements OnChanges {
   readonly connectionCreate = output<QuoteConnection>();
   readonly refreshQuote = output<void>();
 
-  state: QuoteState = 'DISPLAY';
-  quoteId = componentId();
+  readonly _quoteControlsBlacklist = computed(
+    () => new Set(this.quoteControlsBlacklist()),
+  );
+  readonly state: QuoteState = 'DISPLAY';
+  readonly quoteId = componentId();
 
-  badgeEntries = computed<BadgeListEntry<QuoteConnection>[]>(() =>
+  readonly badgeEntries = computed<BadgeListEntry<QuoteConnection>[]>(() =>
     this.parseConnection(this.quote()?.connections ?? []),
   );
-  campaignName = computed(() => this.character().campaign_details?.name);
-  isLoadingQuote = signal(false);
-  quoteOverviewUrl = computed(() =>
+  readonly campaignName = computed(
+    () => this.character().campaign_details?.name,
+  );
+  readonly isLoadingQuote = signal(false);
+  readonly quoteOverviewUrl = computed(() =>
     this.routingService.getRoutePath('quote-overview', {
       name: this.character.name,
       campaign: this.campaignName,
     }),
   );
-  hasQuote = computed(() => !!this.quote());
-  quoteLabel = computed(() => `Quotes of ${this.character()?.name}`);
+  readonly hasQuote = computed(() => !!this.quote());
+  readonly quoteLabel = computed(() => `Quotes of ${this.character()?.name}`);
 
-  private _quoteControlls = computed<QuoteControl[]>(() => [
+  private readonly allQuoteControlls = computed<QuoteControl[]>(() => [
     {
       controlKind: 'REFRESH',
       isVisible: this.hasQuote(),
-      title: 'Load new quote',
-      type: 'INFO',
+      kind: 'BUTTON',
+      label: 'Load new quote',
       icon: 'refresh',
-      config: {
-        kind: 'CLICK',
-        onClick: () => this.getNextRandomQuote(),
-      },
+      actionName: 'refresh',
     },
     {
       controlKind: 'UPDATE',
       isVisible: this.hasQuote() && this.canUpdate(),
-      title: 'Edit Quote',
-      type: 'SECONDARY',
+      kind: 'BUTTON',
+      label: 'Edit Quote',
       icon: 'pencil',
-      config: {
-        kind: 'CLICK',
-        onClick: () => this.quoteUpdate.emit(this.quote() as Quote),
-      },
+      actionName: 'update',
     },
     {
       controlKind: 'CREATE',
       isVisible: this.canCreate(),
-      title: this.hasQuote() ? 'Create Quote' : undefined,
-      label: this.hasQuote() ? undefined : 'Create Quote',
-      type: 'PRIMARY',
+      kind: 'BUTTON',
+      label: 'Create Quote',
       icon: 'plus',
-      config: {
-        kind: 'CLICK',
-        onClick: () => this.quoteCreate.emit(),
-      },
+      actionName: 'create',
     },
     {
       controlKind: 'DELETE',
       isVisible: !!this.quote() && this.canDelete(),
-      title: 'Delete Quote',
-      type: 'DANGER',
+      kind: 'BUTTON',
+      label: 'Delete Quote',
       icon: 'trash',
-      config: {
-        kind: 'CLICK',
-        onClick: () => this.quoteDelete.emit(this.quote() as Quote),
-      },
+      actionName: 'delete',
     },
     {
       controlKind: 'COPY',
       isVisible: !!this.quote(),
-      title: 'Copy Quote to Clipboard',
-      type: 'DARK',
+      kind: 'BUTTON',
+      label: 'Copy Quote to Clipboard',
       icon: 'copy',
-      config: {
-        kind: 'CLICK',
-        onClick: () => this.copyQuoteToClipboard(),
-      },
+      actionName: 'copy',
     },
     {
       controlKind: 'LIST',
       isVisible: !!this.quote(),
-      title: 'See all quotes',
-      type: 'SECONDARY',
+      kind: 'LINK',
+      label: 'See all quotes',
       icon: 'th-list',
-      config: {
-        kind: 'LINK',
-        link: this.routingService.getRoutePath('quote-overview', {
-          name: this.character().name,
-          campaign: this.campaignName(),
-        }),
-      },
+      url: this.routingService.getRoutePath('quote-overview', {
+        name: this.character().name,
+        campaign: this.campaignName(),
+      }),
     },
   ]);
-  quoteControlls = computed(() =>
-    this._quoteControlls()
+  protected readonly shownQuoteControlls = computed(() =>
+    this.allQuoteControlls()
       .filter((ctrl) => ctrl.isVisible)
       .filter((ctrl) => !this._quoteControlsBlacklist().has(ctrl.controlKind)),
   );
+  protected readonly showQuoteControls = computed(
+    () => this.shownQuoteControlls()?.length > 0,
+  );
 
   constructor(
-    private routingService: RoutingService,
-    private toastService: ToastService,
+    private readonly routingService: RoutingService,
+    private readonly toastService: ToastService,
   ) {}
 
   ngOnChanges(): void {
     this.isLoadingQuote.set(false);
+  }
+
+  onContextMenuAction(actionName: string) {
+    switch (actionName) {
+      case 'copy':
+        return this.copyQuoteToClipboard();
+      case 'refresh':
+        return this.getNextRandomQuote();
+      case 'create':
+        return this.quoteCreate.emit();
+      case 'delete':
+        return this.quoteDelete.emit(this.quote() as Quote);
+      case 'update':
+        return this.quoteUpdate.emit(this.quote() as Quote);
+    }
   }
 
   onConnectionDelete(connection: QuoteConnection) {
