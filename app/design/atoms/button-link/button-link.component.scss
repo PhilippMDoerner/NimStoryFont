@@ -13,6 +13,10 @@
   &:focus-visible {
     outline: var(--focus-outline);
   }
+
+  &.btn--hide-border {
+    --bs-btn-border-width: unset;
+  }
 }
 
 .btn {

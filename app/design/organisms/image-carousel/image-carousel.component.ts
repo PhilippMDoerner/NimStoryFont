@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
@@ -11,28 +12,82 @@ import {
   NgbTooltip,
 } from '@ng-bootstrap/ng-bootstrap';
 import { Image } from 'src/app/_models/image';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { CardComponent } from '../../atoms/card/card.component';
+import { MenuItem } from '../../molecules/_models/menu';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
+
+type ImageContextAction =
+  | 'create-image-requested'
+  | 'update-image-requested'
+  | 'delete-image-requested';
 
 @Component({
   selector: 'app-image-carousel',
   templateUrl: './image-carousel.component.html',
   styleUrls: ['./image-carousel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgbCarouselModule, NgbTooltip, ButtonComponent, NgTemplateOutlet],
+  imports: [
+    NgbCarouselModule,
+    NgbTooltip,
+    NgTemplateOutlet,
+    CardComponent,
+    ContextMenuComponent,
+  ],
 })
 export class ImageCarouselComponent {
-  images = input.required<Image[]>();
-  serverUrl = input.required<string>();
-  canDelete = input<boolean>(false);
-  canCreate = input<boolean>(false);
-  canUpdate = input<boolean>(false);
-  currentSlideIndex = input.required<number>();
+  readonly images = input.required<Image[]>();
+  readonly serverUrl = input.required<string>();
+  readonly canDelete = input<boolean>(false);
+  readonly canCreate = input<boolean>(false);
+  readonly canUpdate = input<boolean>(false);
+  readonly currentSlideIndex = input.required<number>();
 
   readonly deleteImage = output<Image>();
   readonly createImage = output<void>();
   readonly updateImage = output<Image>();
   readonly slide = output<{ event: NgbSlideEvent; index: number }>();
   readonly slideEnd = output<{ event: NgbSlideEvent; index: number }>();
+
+  protected readonly contextActions = computed<MenuItem[]>(() => {
+    const hasImages = this.images()?.length > 0;
+    const showCreateEntry = this.canCreate();
+    const showDeleteEntry = this.canDelete() && hasImages;
+    const showUpdateEntry = this.canUpdate() && hasImages;
+
+    const result: MenuItem[] = [];
+
+    if (showCreateEntry) {
+      result.push({
+        kind: 'BUTTON',
+        actionName: 'create-image-requested' satisfies ImageContextAction,
+        label: 'Create Image',
+        icon: 'plus-square',
+      });
+    }
+
+    if (showUpdateEntry) {
+      result.push({
+        kind: 'BUTTON',
+        actionName: 'update-image-requested' satisfies ImageContextAction,
+        label: 'Update Image',
+        icon: 'pencil',
+      });
+    }
+
+    if (showDeleteEntry) {
+      result.push({
+        kind: 'BUTTON',
+        actionName: 'delete-image-requested' satisfies ImageContextAction,
+        label: 'Delete Image',
+        icon: 'trash',
+      });
+    }
+
+    return result;
+  });
+  protected readonly showContextMenu = computed<boolean>(
+    () => this.contextActions().length > 0,
+  );
 
   onSlide(event: NgbSlideEvent) {
     const slideIndexStr: string | undefined = event.current.split('-').pop();
@@ -49,7 +104,18 @@ export class ImageCarouselComponent {
     this.slide.emit({ event, index: this.currentSlideIndex() });
   }
 
-  onImageCreate() {
+  protected onContextMenuAction(action: string) {
+    switch (action) {
+      case 'create-image-requested':
+        return this.onImageCreate();
+      case 'update-image-requested':
+        return this.onImageUpdate();
+      case 'delete-image-requested':
+        return this.onImageDelete();
+    }
+  }
+
+  private onImageCreate() {
     if (!this.canCreate()) {
       return;
     }
@@ -57,7 +123,7 @@ export class ImageCarouselComponent {
     this.createImage.emit();
   }
 
-  onImageUpdate() {
+  private onImageUpdate() {
     if (!this.canUpdate()) {
       return;
     }
@@ -66,7 +132,7 @@ export class ImageCarouselComponent {
     this.updateImage.emit(image);
   }
 
-  onImageDelete() {
+  private onImageDelete() {
     if (!this.canDelete()) {
       return;
     }

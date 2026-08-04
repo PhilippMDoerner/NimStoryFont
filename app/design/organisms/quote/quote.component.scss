@@ -1,5 +1,7 @@
 .field {
   margin-bottom: var(--spacer-3);
+  display: flex;
+  flex-direction: row;
 
   &__controls {
     display: flex;
@@ -10,6 +12,10 @@
 
   &__control {
     width: fit-content;
+  }
+
+  &__quote {
+    width: 100%;
   }
 }
 .quote {

@@ -22,12 +22,15 @@ import { IconComponent } from '../icon/icon.component';
   },
 })
 export class ButtonLinkComponent {
-  kind = input.required<ButtonKind>();
-  text = input<string>();
-  icon = input<Icon>();
-  size = input<ElementSize>('MEDIUM');
+  readonly kind = input.required<ButtonKind>();
+  readonly text = input<string>();
+  readonly icon = input<Icon>();
+  readonly size = input<ElementSize>('MEDIUM');
+  readonly hideBorder = input<boolean>(false);
 
   readonly host = inject(ElementRef<HTMLAnchorElement>);
 
-  classes = computed(() => toButtonClasses(this.kind(), this.size()));
+  classes = computed(() =>
+    toButtonClasses(this.kind(), this.size(), this.hideBorder()),
+  );
 }
