@@ -1,66 +1,34 @@
-@if (images() && images().length > 0) {
-  <ngb-carousel
-    #imageCarousel
-    [interval]="0"
-    [showNavigationArrows]="images().length > 1"
-    [showNavigationIndicators]="images().length > 1"
-    [activeId]="'imageIndex-' + currentSlideIndex()"
-    (slide)="onSlide($event)"
-    (slid)="onSlideEnd($event)"
-  >
-    @for (image of images(); track image.pk) {
-      <ng-template ngbSlide [id]="'imageIndex-' + $index">
-        <div class="image-container" [ngbTooltip]="image.name">
-          <img [src]="serverUrl() + image.image" [alt]="'Image ' + $index" />
-        </div>
-      </ng-template>
-    }
-  </ngb-carousel>
-} @else {
-  <ng-container *ngTemplateOutlet="defaultImage"></ng-container>
-}
-
-<!-- Image Edit/Delete/Create Buttons -->
-<div class="edit-image-buttons">
-  <!-- Create Image Button -->
-  @if (canCreate()) {
-    <button
-      btn
-      [ngbTooltip]="'Create Image'"
-      class="mx-2"
-      aria-label="'Create Image'"
-      [kind]="'PRIMARY'"
-      [icon]="'plus-square'"
-      (clicked)="onImageCreate()"
-    ></button>
+<app-card class="carousel">
+  @if(showContextMenu()){
+    <app-context-menu
+      class="carousel__actions"
+      [menuItems]="contextActions()"
+      [menuButtonKind]="'DARK'"
+      [menuButtonIcon]="'ellipsis-vertical'"
+    />
   }
-
-  <!-- Update Image button -->
-  @if (images().length > 0 && canUpdate()) {
-    <button
-      btn
-      aria-label="'Update Image'"
-      [ngbTooltip]="'Update Image'"
-      class="mx-2"
-      [kind]="'SECONDARY'"
-      [icon]="'pencil'"
-      (clicked)="onImageUpdate()"
-    ></button>
+  @if (images() && images().length > 0) {
+    <ngb-carousel
+      #imageCarousel
+      [interval]="0"
+      [showNavigationArrows]="images().length > 1"
+      [showNavigationIndicators]="images().length > 1"
+      [activeId]="'imageIndex-' + currentSlideIndex()"
+      (slide)="onSlide($event)"
+      (slid)="onSlideEnd($event)"
+    >
+      @for (image of images(); track image.pk) {
+        <ng-template ngbSlide [id]="'imageIndex-' + $index">
+          <div class="image-container" [ngbTooltip]="image.name">
+            <img [src]="serverUrl() + image.image" [alt]="'Image ' + $index" />
+          </div>
+        </ng-template>
+      }
+    </ngb-carousel>
+  } @else {
+    <ng-container *ngTemplateOutlet="defaultImage"></ng-container>
   }
-
-  <!-- Delete Image Button -->
-  @if (images().length > 0 && canDelete()) {
-    <button
-      btn
-      aria-label="'Delete Image'"
-      [ngbTooltip]="'Delete Image'"
-      class="mx-2"
-      [kind]="'DANGER'"
-      [icon]="'trash'"
-      (clicked)="onImageDelete()"
-    ></button>
-  }
-</div>
+</app-card>
 
 <ng-template #defaultImage>
   <ngb-carousel

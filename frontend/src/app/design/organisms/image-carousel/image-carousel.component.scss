@@ -1,5 +1,13 @@
 @use "/src/screens.scss" as screen;
 
+.carousel {
+  --card-padding: 0;
+  &__actions {
+    display: flex;
+    justify-content: end;
+  }
+}
+
 .image-container img {
   object-fit: contain;
   width: 100%;
