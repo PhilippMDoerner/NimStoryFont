@@ -5,6 +5,7 @@
       [menuItems]="contextActions()"
       [menuButtonKind]="'DARK'"
       [menuButtonIcon]="'ellipsis-vertical'"
+      (actionTriggered)="onContextMenuAction($event)"
     />
   }
   @if (images() && images().length > 0) {

@@ -12,10 +12,14 @@ import {
   NgbTooltip,
 } from '@ng-bootstrap/ng-bootstrap';
 import { Image } from 'src/app/_models/image';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
+
+type ImageContextAction =
+  | 'create-image-requested'
+  | 'update-image-requested'
+  | 'delete-image-requested';
 
 @Component({
   selector: 'app-image-carousel',
@@ -25,7 +29,6 @@ import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.
   imports: [
     NgbCarouselModule,
     NgbTooltip,
-    ButtonComponent,
     NgTemplateOutlet,
     CardComponent,
     ContextMenuComponent,
@@ -56,7 +59,7 @@ export class ImageCarouselComponent {
     if (showCreateEntry) {
       result.push({
         kind: 'BUTTON',
-        actionName: 'create-image-requested',
+        actionName: 'create-image-requested' satisfies ImageContextAction,
         label: 'Create Image',
         icon: 'plus-square',
       });
@@ -65,7 +68,7 @@ export class ImageCarouselComponent {
     if (showUpdateEntry) {
       result.push({
         kind: 'BUTTON',
-        actionName: 'update-image-requested',
+        actionName: 'update-image-requested' satisfies ImageContextAction,
         label: 'Update Image',
         icon: 'pencil',
       });
@@ -74,7 +77,7 @@ export class ImageCarouselComponent {
     if (showDeleteEntry) {
       result.push({
         kind: 'BUTTON',
-        actionName: 'delete-image-requested',
+        actionName: 'delete-image-requested' satisfies ImageContextAction,
         label: 'Delete Image',
         icon: 'trash',
       });
@@ -101,7 +104,18 @@ export class ImageCarouselComponent {
     this.slide.emit({ event, index: this.currentSlideIndex() });
   }
 
-  onImageCreate() {
+  protected onContextMenuAction(action: string) {
+    switch (action) {
+      case 'create-image-requested':
+        return this.onImageCreate();
+      case 'update-image-requested':
+        return this.onImageUpdate();
+      case 'delete-image-requested':
+        return this.onImageDelete();
+    }
+  }
+
+  private onImageCreate() {
     if (!this.canCreate()) {
       return;
     }
@@ -109,7 +123,7 @@ export class ImageCarouselComponent {
     this.createImage.emit();
   }
 
-  onImageUpdate() {
+  private onImageUpdate() {
     if (!this.canUpdate()) {
       return;
     }
@@ -118,7 +132,7 @@ export class ImageCarouselComponent {
     this.updateImage.emit(image);
   }
 
-  onImageDelete() {
+  private onImageDelete() {
     if (!this.canDelete()) {
       return;
     }
