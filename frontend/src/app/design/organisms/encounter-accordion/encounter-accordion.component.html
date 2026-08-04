@@ -45,6 +45,8 @@
 <ng-template #pagination>
   <ngb-pagination
     [collectionSize]="encounters().length"
+    [maxSize]="5"
+    [rotate]="true"
     [(page)]="page"
     [pageSize]="PAGE_SIZE"
     [boundaryLinks]="true"
