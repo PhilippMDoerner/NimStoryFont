@@ -203,7 +203,8 @@ export class EncounterComponent implements OnInit {
     const isInCreateScenario =
       this.initialCardState() === 'CREATE' && this.canCreate();
     const model = isInCreateScenario ? {} : undefined;
-    this.changeState(this.initialCardState(), model);
+    this.cardState.set(this.initialCardState());
+    this.userModel.set({ ...model });
   }
 
   changeState(newState: FormState, newModel: Partial<Encounter> | undefined) {
