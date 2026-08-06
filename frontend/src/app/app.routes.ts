@@ -67,7 +67,6 @@ export const ROUTES: Routes = [
       {
         path: '',
         resolve: {
-          campaignSetResolver,
           loadGeneralPreferences: () =>
             inject(UserPreferencesStore).loadGeneral(),
           loadShortcuts: () =>
@@ -77,7 +76,6 @@ export const ROUTES: Routes = [
           ...generalRoutes,
           {
             path: '',
-
             children: [
               {
                 path: '',
@@ -104,6 +102,9 @@ export const ROUTES: Routes = [
                 resolve: { trackCampaignName },
               },
             ],
+            resolve: {
+              campaignSetResolver,
+            },
           },
         ],
       },
