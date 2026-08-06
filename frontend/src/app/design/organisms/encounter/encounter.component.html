@@ -27,7 +27,7 @@
       @if (cardState() !== "CREATE" && contextMenuItems().length > 0) {
         <app-context-menu
           [menuItems]="contextMenuItems()"
-          [menuButtonKind]="'NONE'"
+          [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"
           [menuButtonText]="'Actions for Encounter ' + encounter()?.title"
           [menuButtonShowText]="false"
