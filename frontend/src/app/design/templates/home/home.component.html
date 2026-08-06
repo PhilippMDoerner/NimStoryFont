@@ -43,7 +43,8 @@
           [menuButtonIcon]="'filter'"
           [menuButtonKind]="'DARK'"
           [menuItems]="timeFilterOptions()"
-          [menuButtonAriaLabel]="'Time filter options for update feed'"
+          [menuButtonText]="'Time filter options for update feed'"
+          [menuButtonShowText]="false"
           [attr.aria-controls]="feedId"
           (actionTriggered)="updateTimeFilter($event)"
         ></app-context-menu>

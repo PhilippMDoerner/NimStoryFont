@@ -33,7 +33,8 @@
           [menuItems]="option.menuItems"
           [menuButtonIcon]="'plus'"
           [menuButtonSize]="'SMALL'"
-          [menuButtonAriaLabel]="'Create ' + heading()"
+          [menuButtonText]="'Create ' + heading()"
+          [menuButtonShowText]="false"
           [menuButtonKind]="'PRIMARY'"
           (actionTriggered)="menuOptionClick.emit($event)"
         />

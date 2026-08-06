@@ -12,9 +12,10 @@
       [menuButtonText]="state()"
       [menuButtonKind]="'DARK'"
       [menuButtonIcon]="'filter'"
-      [menuButtonAriaLabel]="
+      [menuButtonText]="
         'Filter quests of ' + questTaker() + ' by QuestState'
       "
+      [menuButtonShowText]="false"
       (actionTriggered)="updateDisplayState($event)"
     />
   </div>
