@@ -9,6 +9,7 @@ import { CampaignRole } from './token';
 //Route Data Models
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ROUTE_NAMES = [
+  '404',
   'login',
   'login-state',
   'direct-profile',
@@ -17,6 +18,7 @@ const ROUTE_NAMES = [
   'character-overview',
   'creature-overview',
   'diaryentry-overview',
+  'error',
   'item-overview',
   'location-overview',
   'organization-overview',
@@ -40,6 +42,7 @@ const ROUTE_NAMES = [
   'location-create',
   'location',
   'location-update',
+  'no-campaigns',
   'organization-create',
   'organization',
   'organization-update',
@@ -68,6 +71,7 @@ const ROUTE_NAMES = [
   'graph',
   'campaign-config-tables',
   'registration',
+  'start',
 ] as const;
 
 export type RouteName = (typeof ROUTE_NAMES)[number];
@@ -76,13 +80,13 @@ export interface NamedRouteData {
   name: RouteName;
 }
 
-interface RoleRouteData extends NamedRouteData {
+type RoleRouteData = NamedRouteData & {
   requiredMinimumRole: CampaignRole;
-}
+};
 
-export interface BaseNamedRoute extends Route {
+export type BaseNamedRoute = Route & {
   data: NamedRouteData;
-}
+};
 
 //Route Models
 export interface GeneralRoute extends BaseNamedRoute {
