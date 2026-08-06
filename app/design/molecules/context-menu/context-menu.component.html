@@ -6,7 +6,7 @@
     [id]="triggerId"
     class="dropdown-toggle"
     [kind]="menuButtonKind()"
-    [text]="menuButtonText()"
+    [text]="menuButtonShowText() ? menuButtonText() : undefined"
     [icon]="menuButtonIcon()"
     [size]="menuButtonSize()"
     [hideBorder]="true"

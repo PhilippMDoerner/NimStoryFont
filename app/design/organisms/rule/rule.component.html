@@ -22,7 +22,8 @@
         [menuItems]="contextMenuItems()"
         [menuButtonIcon]="'ellipsis-vertical'"
         [menuButtonKind]="'NONE'"
-        [menuButtonAriaLabel]="'Rule actions'"
+        [menuButtonText]="'Rule actions'"
+        [menuButtonShowText]="false"
         (actionTriggered)="onActionTriggered($event)"
       />
     }

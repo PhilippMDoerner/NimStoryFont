@@ -29,7 +29,8 @@
           [menuItems]="contextMenuItems()"
           [menuButtonKind]="'NONE'"
           [menuButtonIcon]="'ellipsis-vertical'"
-          [menuButtonAriaLabel]="'Actions for Encounter ' + encounter()?.title"
+          [menuButtonText]="'Actions for Encounter ' + encounter()?.title"
+          [menuButtonShowText]="false"
           (actionTriggered)="onContextMenuAction($event)"
         />
       }

@@ -48,6 +48,8 @@
           [menuItems]="shownQuoteControlls()"
           [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"
+          [menuButtonText]="'Quote Action Menu'"
+          [menuButtonShowText]="false"
           (actionTriggered)="onContextMenuAction($event)"
         />
       }

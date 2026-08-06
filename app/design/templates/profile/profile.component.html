@@ -6,6 +6,8 @@
       class="profile__menu"
       [menuButtonKind]="'NONE'"
       [menuButtonIcon]="'ellipsis-vertical'"
+      [menuButtonText]="'Profile Action Menu'"
+      [menuButtonShowText]="false"
       [menuItems]="contextMenuEntries()"
       (actionTriggered)="onContextMenuAction($event)"
     />

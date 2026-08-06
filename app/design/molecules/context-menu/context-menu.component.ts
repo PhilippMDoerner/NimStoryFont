@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   inject,
   input,
@@ -51,22 +52,25 @@ export type PlacementArray = Placement | Placement[] | string;
   ],
 })
 export class ContextMenuComponent {
-  menuItems = input.required<MenuItem[]>();
-  menuButtonKind = input.required<ButtonKind>();
-  menuButtonText = input<string>();
-  menuButtonIcon = input<Icon>();
-  menuButtonSize = input<ElementSize>('MEDIUM');
-  menuButtonHotkey = input<ShortcutAction>();
-  menuButtonAriaLabel = input<string>();
-  placement = input<PlacementArray>([
+  readonly menuItems = input.required<MenuItem[]>();
+  readonly menuButtonKind = input.required<ButtonKind>();
+  readonly menuButtonText = input.required<string>();
+  readonly menuButtonIcon = input<Icon>();
+  readonly menuButtonSize = input<ElementSize>('MEDIUM');
+  readonly menuButtonHotkey = input<ShortcutAction>();
+  readonly menuButtonShowText = input<boolean>(true);
+  readonly placement = input<PlacementArray>([
     'bottom-start',
     'bottom-end',
     'top-start',
     'top-end',
   ]);
 
-  actionTriggered = output<string>();
+  readonly actionTriggered = output<string>();
 
+  readonly menuButtonAriaLabel = computed(() =>
+    this.menuButtonShowText() ? undefined : this.menuButtonText(),
+  );
   private readonly trigger: Signal<ElementRef<HTMLButtonElement>> =
     viewChild.required('triggerElement', {
       read: ElementRef<HTMLButtonElement>,
