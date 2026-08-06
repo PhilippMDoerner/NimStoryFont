@@ -54,7 +54,7 @@ export type PlacementArray = Placement | Placement[] | string;
 export class ContextMenuComponent {
   readonly menuItems = input.required<MenuItem[]>();
   readonly menuButtonKind = input.required<ButtonKind>();
-  readonly menuButtonText = input<string>();
+  readonly menuButtonText = input.required<string>();
   readonly menuButtonIcon = input<Icon>();
   readonly menuButtonSize = input<ElementSize>('MEDIUM');
   readonly menuButtonHotkey = input<ShortcutAction>();
