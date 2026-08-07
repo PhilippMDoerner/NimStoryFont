@@ -34,7 +34,7 @@ export const dummyUserData: UserData = {
   providedIn: 'root',
 })
 export class TokenMockService {
-  private ID_IDENTIFIER_PREFIX = 'id_';
+  private readonly ID_IDENTIFIER_PREFIX = 'id_';
 
   public login(): Observable<UserData> {
     return of(dummyUserData);

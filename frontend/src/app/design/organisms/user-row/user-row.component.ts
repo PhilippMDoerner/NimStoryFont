@@ -30,16 +30,16 @@ import {
   ],
 })
 export class UserRowComponent {
-  user = input.required<User>();
-  groups = input<PermissionGroup[] | undefined>();
-  canCreate = input<boolean>(false);
-  canDelete = input<boolean>(false);
+  readonly user = input.required<User>();
+  readonly groups = input<PermissionGroup[] | undefined>();
+  readonly canCreate = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
 
   readonly addGroup = output<PermissionGroup>();
   readonly removeGroup = output<number>();
   readonly deleteUser = output<User>();
 
-  userGroupEntries = computed<BadgeListEntry<number>[]>(() => {
+  readonly userGroupEntries = computed<BadgeListEntry<number>[]>(() => {
     return (
       this.user().group_details?.map((group) => ({
         badgeValue: group.pk,

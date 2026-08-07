@@ -12,5 +12,5 @@ import { TINYMCE_SETTINGS } from 'src/app/app.constants';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormlyEditorFieldComponent extends FieldType<FieldTypeConfig> {
-  settings = TINYMCE_SETTINGS;
+  readonly settings = TINYMCE_SETTINGS;
 }

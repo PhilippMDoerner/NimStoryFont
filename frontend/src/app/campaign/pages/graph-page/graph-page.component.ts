@@ -93,28 +93,28 @@ import { GraphPageStore } from './graph-page.store';
   providers: [GraphMenuService, GraphService],
 })
 export class GraphPageComponent {
-  EMPTY_LABEL = '<label>';
-  globalStore = inject(GlobalStore);
-  store = inject(GraphPageStore);
-  routingService = inject(RoutingService);
-  formlyService = inject(FormlyService);
-  graphService = inject(GraphService);
-  graphMenuService = inject(GraphMenuService);
+  readonly EMPTY_LABEL = '<label>';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(GraphPageStore);
+  readonly routingService = inject(RoutingService);
+  readonly formlyService = inject(FormlyService);
+  readonly graphService = inject(GraphService);
+  readonly graphMenuService = inject(GraphMenuService);
 
-  selectedNodes = toSignal(this.graphService.nodeSelectionChanged$);
-  firstSelectedNode = computed(() => this.selectedNodes()?.[0]);
-  secondSelectedNode = computed(() => this.selectedNodes()?.[1]);
-  nodeQuery$ = new Subject<string>();
-  graphData = computed<ParsedNodeMap | undefined>(() => {
+  readonly selectedNodes = toSignal(this.graphService.nodeSelectionChanged$);
+  readonly firstSelectedNode = computed(() => this.selectedNodes()?.[0]);
+  readonly secondSelectedNode = computed(() => this.selectedNodes()?.[1]);
+  readonly nodeQuery$ = new Subject<string>();
+  readonly graphData = computed<ParsedNodeMap | undefined>(() => {
     return this.filterGraphData(
       this.store.graph(),
       this.activeNodeCategories(),
       this.activeLinkCategories(),
     );
   });
-  graphData$ = toObservable(this.graphData);
-  customLinkTypes$ = toObservable(this.store.customLinkTypes);
-  searchedNode$ = this.nodeQuery$.pipe(
+  readonly graphData$ = toObservable(this.graphData);
+  readonly customLinkTypes$ = toObservable(this.store.customLinkTypes);
+  readonly searchedNode$ = this.nodeQuery$.pipe(
     withLatestFrom(this.graphData$.pipe(map((graphData) => graphData?.nodes))),
     filter(([query, nodes]) => query.length >= 3 && !!nodes),
     map(([query, nodes]) =>
@@ -124,12 +124,12 @@ export class GraphPageComponent {
     ),
     shareReplay(1),
   );
-  graphSettings = signal(GRAPH_SETTINGS);
+  readonly graphSettings = signal(GRAPH_SETTINGS);
 
-  pageState = signal<'DISPLAY' | 'CREATE'>('DISPLAY');
-  isPanelOpen = signal<boolean>(false);
+  readonly pageState = signal<'DISPLAY' | 'CREATE'>('DISPLAY');
+  readonly isPanelOpen = signal<boolean>(false);
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig<NodeLinkRaw>({
       inputKind: 'NAME',
       key: 'label',
@@ -147,14 +147,14 @@ export class GraphPageComponent {
       valueProp: 'id',
     }),
   ]);
-  userModel = signal<Partial<NodeLinkRaw>>({});
-  createLabel = signal<string>(this.EMPTY_LABEL);
-  formTitle = computed(
+  readonly userModel = signal<Partial<NodeLinkRaw>>({});
+  readonly createLabel = signal<string>(this.EMPTY_LABEL);
+  readonly formTitle = computed(
     () =>
       `${this.firstSelectedNode()?.record.name} ${this.createLabel()} ${this.secondSelectedNode()?.record.name}`,
   );
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.globalStore.campaignName(),
     }),
@@ -163,10 +163,10 @@ export class GraphPageComponent {
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.graphData() == null);
 
-  private activeNodeCategories = signal(
+  private readonly activeNodeCategories = signal(
     new Set<string>(NODE_TYPE_OPTIONS.map((option) => option.value)),
   );
-  nodeToggles = computed<Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>[]>(
+  readonly nodeToggles = computed<Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>[]>(
     () =>
       NODE_TYPE_OPTIONS.map((option) => ({
         value: option.value,
@@ -186,7 +186,7 @@ export class GraphPageComponent {
       })),
   );
 
-  private linkToggles = computed<Toggle<LinkGroup>[] | undefined>(() => {
+  private readonly linkToggles = computed<Toggle<LinkGroup>[] | undefined>(() => {
     return this.store.graph()?.links.map((linkGroup) => {
       const firstLink: NodeLink | undefined = linkGroup.links[0];
       return {
@@ -198,9 +198,9 @@ export class GraphPageComponent {
       };
     });
   });
-  private activeLinkCategories$ = new ReplaySubject<Set<LinkKind>>(1);
-  private activeLinkCategories = toSignal(this.activeLinkCategories$);
-  linkCategories$: Observable<Toggle<LinkGroup>[] | undefined> =
+  private readonly activeLinkCategories$ = new ReplaySubject<Set<LinkKind>>(1);
+  private readonly activeLinkCategories = toSignal(this.activeLinkCategories$);
+  readonly linkCategories$: Observable<Toggle<LinkGroup>[] | undefined> =
     this.activeLinkCategories$.pipe(
       map((activeLinkCategories) => {
         const linkTypeOptions = this.linkToggles();
@@ -214,9 +214,9 @@ export class GraphPageComponent {
           .sort((a, b) => sortAlphabetically(a.text, b.text));
       }),
     );
-  linkCategoryFallbackList = Array(6).fill(0); // Any nodemap is guaranteed to have at least 6 entries
-  private createLinkState$ = toObservable(this.store.createLinkState);
-  private destructor = inject(DestroyRef);
+  readonly linkCategoryFallbackList = Array(6).fill(0); // Any nodemap is guaranteed to have at least 6 entries
+  private readonly createLinkState$ = toObservable(this.store.createLinkState);
+  private readonly destructor = inject(DestroyRef);
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

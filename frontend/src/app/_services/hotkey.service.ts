@@ -37,13 +37,13 @@ export interface WatchOptions {
   providedIn: 'root',
 })
 export class HotkeyService {
-  private modalService = inject(NgbModal);
-  private preferencesStore = inject(UserPreferencesStore);
+  private readonly modalService = inject(NgbModal);
+  private readonly preferencesStore = inject(UserPreferencesStore);
 
-  private hotkeyMap = this.preferencesStore.shortcutMappings;
-  private hotkeyMap$ = toObservable(this.hotkeyMap);
+  private readonly hotkeyMap = this.preferencesStore.shortcutMappings;
+  private readonly hotkeyMap$ = toObservable(this.hotkeyMap);
 
-  private globalActions$: Observable<ShortcutAction> =
+  private readonly globalActions$: Observable<ShortcutAction> =
     this.createActionListener(document.body);
 
   public watchAction(

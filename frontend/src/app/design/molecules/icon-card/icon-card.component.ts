@@ -20,11 +20,11 @@ import { capitalize } from 'src/utils/string';
   },
 })
 export class IconCardComponent {
-  icon = input.required<Icon>();
-  title = input.required<string>();
-  subText = input.required<string>();
-  updateDatetime = input.required<string>();
-  decoration = input<string>();
+  readonly icon = input.required<Icon>();
+  readonly title = input.required<string>();
+  readonly subText = input.required<string>();
+  readonly updateDatetime = input.required<string>();
+  readonly decoration = input<string>();
 
-  _title = computed(() => capitalize(this.title()));
+  readonly _title = computed(() => capitalize(this.title()));
 }

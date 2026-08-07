@@ -46,21 +46,21 @@ interface SessionCard {
   animations: [slideOutFromBottom, slideUpFromBottom],
 })
 export class SessionsComponent {
-  DEFAULT_TITLE = 'New Session';
+  readonly DEFAULT_TITLE = 'New Session';
 
-  campaignId = input.required<number>();
-  sessions = input.required<Session[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Session | undefined>();
+  readonly campaignId = input.required<number>();
+  readonly sessions = input.required<Session[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Session | undefined>();
 
   readonly sessionDelete = output<Session>();
   readonly sessionUpdate = output<Session>();
   readonly sessionCreate = output<SessionRaw>();
 
-  isCreatingSession = signal(false);
-  createSessionData = linkedSignal(() => {
+  readonly isCreatingSession = signal(false);
+  readonly createSessionData = linkedSignal(() => {
     const lastSession = this.sessions()[0];
     const currentDate = new Date().toISOString().split('T')[0];
     return {
@@ -73,7 +73,7 @@ export class SessionsComponent {
     } as Session;
   });
 
-  sessionCards = computed<FocusItem<SessionCard>[]>(() =>
+  readonly sessionCards = computed<FocusItem<SessionCard>[]>(() =>
     this.sessions().map((session) => ({
       id: session.pk ?? getPseudoRandomId(),
       data: { session: session, isOpen: false },

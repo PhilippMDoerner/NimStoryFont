@@ -54,10 +54,10 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignAdminComponent {
-  campaign = input.required<Campaign>();
-  serverUrl = input.required<string>();
-  campaignStatistics = input.required<WikiStatistics>();
-  users = input<User[]>();
+  readonly campaign = input.required<Campaign>();
+  readonly serverUrl = input.required<string>();
+  readonly campaignStatistics = input.required<WikiStatistics>();
+  readonly users = input<User[]>();
 
   readonly removeMember = output<User>();
   readonly removeAdmin = output<User>();
@@ -69,21 +69,21 @@ export class CampaignAdminComponent {
   readonly addEmptySearchResponse = output<EmptySearchResponse>();
   readonly deactivateCampaign = output<Campaign>();
 
-  updateUrl = computed<string>(() =>
+  readonly updateUrl = computed<string>(() =>
     this.routingService.getRoutePath('campaign-update', {
       campaign: this.campaign().name,
     }),
   );
-  homeUrl = computed<string>(() =>
+  readonly homeUrl = computed<string>(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.campaign().name,
     }),
   );
-  users$ = toObservable(this.users).pipe(map((x) => x ?? []));
-  memberModel = signal<Partial<User>>({});
-  showMemberAddForm = signal(false);
-  memberTooltip = `Allows creating, reading, updating and deleting articles in this campaign. Also makes the person a possible "author" for diaryentries.`;
-  memberFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly users$ = toObservable(this.users).pipe(map((x) => x ?? []));
+  readonly memberModel = signal<Partial<User>>({});
+  readonly showMemberAddForm = signal(false);
+  readonly memberTooltip = `Allows creating, reading, updating and deleting articles in this campaign. Also makes the person a possible "author" for diaryentries.`;
+  readonly memberFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -106,10 +106,10 @@ export class CampaignAdminComponent {
     }),
   ]);
 
-  adminModel = signal<Partial<User>>({});
-  showAdminAddForm = signal(false);
-  adminTooltip = `Allows adding admins, members and guests to a campaign. Does not add the person to the list of possible "authors" for diaryentries.`;
-  adminFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly adminModel = signal<Partial<User>>({});
+  readonly showAdminAddForm = signal(false);
+  readonly adminTooltip = `Allows adding admins, members and guests to a campaign. Does not add the person to the list of possible "authors" for diaryentries.`;
+  readonly adminFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -131,10 +131,10 @@ export class CampaignAdminComponent {
     }),
   ]);
 
-  guestModel = signal<Partial<User>>({});
-  showGuestAddForm = signal(false);
-  guestTooltip = `Allows only reading articles in this campaign.`;
-  guestFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly guestModel = signal<Partial<User>>({});
+  readonly showGuestAddForm = signal(false);
+  readonly guestTooltip = `Allows only reading articles in this campaign.`;
+  readonly guestFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -170,8 +170,8 @@ export class CampaignAdminComponent {
   ]);
 
   responseModel!: Partial<EmptySearchResponse>;
-  showResponseForm = false;
-  responseFormlyFields: FormlyFieldConfig[] = [
+  readonly showResponseForm = signal(false);
+  readonly responseFormlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'text',
       placeholder: 'Text to show for empty searches',
@@ -224,9 +224,9 @@ export class CampaignAdminComponent {
   }
 
   toggleResponseAddForm(): void {
-    this.showResponseForm = !this.showResponseForm;
+    this.showResponseForm.update((show) => !show);
 
-    if (this.showResponseForm) {
+    if (this.showResponseForm()) {
       this.responseModel = { campaign: this.campaign().pk as number };
     }
   }

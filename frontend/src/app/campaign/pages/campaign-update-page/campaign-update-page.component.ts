@@ -23,14 +23,14 @@ import { CampaignUpdatePageStore } from './campaign-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  campaignUpdatePageStore = inject(CampaignUpdatePageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly campaignUpdatePageStore = inject(CampaignUpdatePageStore);
 
-  serverUrl = '';
-  campaign = this.campaignUpdatePageStore.campaign;
-  campaign$ = toObservable(this.campaign);
-  mapOptions = this.campaignUpdatePageStore.mapOptions;
-  serverModel = this.campaignUpdatePageStore.serverModel;
+  readonly serverUrl = '';
+  readonly campaign = this.campaignUpdatePageStore.campaign;
+  readonly campaign$ = toObservable(this.campaign);
+  readonly mapOptions = this.campaignUpdatePageStore.mapOptions;
+  readonly serverModel = this.campaignUpdatePageStore.serverModel;
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.campaignUpdatePageStore.campaign() == null);
 

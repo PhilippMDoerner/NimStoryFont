@@ -93,10 +93,10 @@ const GRAPH_INTERACTIONS = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraphHelpModalComponent {
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  infoRules = GRAPH_INFO_RULES;
-  infoInteractions = GRAPH_INTERACTIONS;
+  readonly infoRules = GRAPH_INFO_RULES;
+  readonly infoInteractions = GRAPH_INTERACTIONS;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   openModal(content: TemplateRef<any>) {

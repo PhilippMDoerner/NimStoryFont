@@ -21,10 +21,10 @@ import { CreaturePageStore } from './creature-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreaturePageComponent {
-  serverUrl = '';
-  globalStore = inject(GlobalStore);
-  store = inject(CreaturePageStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(CreaturePageStore);
+  readonly routingService = inject(RoutingService);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.creature() == null);

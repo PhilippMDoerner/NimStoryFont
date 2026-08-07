@@ -29,7 +29,7 @@ export class ConfigAdministrationPageComponent {
   readonly globalStore = inject(GlobalStore);
   readonly authStore = inject(AuthStore);
 
-  tableData = computed<ConfigTableData>(() => {
+  readonly tableData = computed<ConfigTableData>(() => {
     return {
       MARKER_TYPE: this.store.markerTypes(),
       PLAYER_CLASS: this.store.playerClasses(),

@@ -69,27 +69,27 @@ type SearchEntry = Pick<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchModalComponent {
-  modalService = inject(NgbModal);
-  hotkeyService = inject(HotkeyService);
-  globalStore = inject(GlobalStore);
-  onlineService = inject(OnlineService);
-  searchStore = inject(SearchPageStore);
-  router = inject(Router);
-  destroyRef = inject(DestroyRef);
+  readonly modalService = inject(NgbModal);
+  readonly hotkeyService = inject(HotkeyService);
+  readonly globalStore = inject(GlobalStore);
+  readonly onlineService = inject(OnlineService);
+  readonly searchStore = inject(SearchPageStore);
+  readonly router = inject(Router);
+  readonly destroyRef = inject(DestroyRef);
 
   private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
     viewChild('list', {
       read: ElementRef<HTMLElement>,
     });
 
-  id = componentId();
-  titleId = `${this.id}-title`;
-  listId = `${this.id}-list`;
-  DEFAULT_URL = 'assets/default_images/icon_default.webp';
+  readonly id = componentId();
+  readonly titleId = `${this.id}-title`;
+  readonly listId = `${this.id}-list`;
+  readonly DEFAULT_URL = 'assets/default_images/icon_default.webp';
 
-  campaignName = this.globalStore.campaignName;
-  activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
-  filterToggles = computed(() => {
+  readonly campaignName = this.globalStore.campaignName;
+  readonly activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
+  readonly filterToggles = computed(() => {
     const activeFilterSet = new Set(this.activeFilters());
     return SEARCH_TOGGLES.map((toggle) => ({
       ...toggle,
@@ -98,19 +98,19 @@ export class SearchModalComponent {
       ),
     }));
   });
-  searchString = signal('');
+  readonly searchString = signal('');
 
-  isLoading = computed(
+  readonly isLoading = computed(
     () => this.searchStore.searchArticlesQueryState() === 'loading',
   );
-  isEmptySearch = computed(() => {
+  readonly isEmptySearch = computed(() => {
     const hasEntries =
       (this.searchStore.searchArticles()?.articles?.length ?? 0) > 0;
     const hasLoaded = this.searchStore.searchArticlesQueryState() === 'success';
     return hasLoaded && !hasEntries;
   });
 
-  entries = computed(() => {
+  readonly entries = computed(() => {
     const articles = this.searchStore.searchArticles()?.articles;
     return articles?.map((article) => {
       const metadata = getMetadataForType(article.article_type);

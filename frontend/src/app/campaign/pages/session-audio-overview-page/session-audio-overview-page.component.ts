@@ -27,18 +27,18 @@ import { SessionAudioOverviewPageStore } from './session-audio-overview-page.sto
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionAudioOverviewPageComponent {
-  serverUrl = '';
-  store = inject(SessionAudioOverviewPageStore);
-  globalStore = inject(GlobalStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly store = inject(SessionAudioOverviewPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.globalStore.campaignName(),
     }),
   );
 
-  createUrl = computed(() =>
+  readonly createUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio-create', {
       campaign: this.globalStore.campaignName(),
     }),

@@ -30,7 +30,7 @@ export class ButtonLinkComponent {
 
   readonly host = inject(ElementRef<HTMLAnchorElement>);
 
-  classes = computed(() =>
+  readonly classes = computed(() =>
     toButtonClasses(this.kind(), this.size(), this.hideBorder()),
   );
 }

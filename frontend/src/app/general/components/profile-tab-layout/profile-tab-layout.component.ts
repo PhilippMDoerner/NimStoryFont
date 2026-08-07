@@ -26,21 +26,21 @@ import { getProfileTabs } from '../../_models/profileTabs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileTabLayoutComponent {
-  routingService = inject(RoutingService);
-  navStore = inject(NavigationStore);
-  globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
+  readonly navStore = inject(NavigationStore);
+  readonly globalStore = inject(GlobalStore);
 
-  backUrl = computed(() => {
+  readonly backUrl = computed(() => {
     const campaignName = this.globalStore.campaignName();
     const fallbackUrl = this.routingService.getRoutePath('campaign-overview');
     return campaignName
       ? this.routingService.getRoutePath('home', { campaign: campaignName })
       : fallbackUrl;
   });
-  footerLabel = computed(() => {
+  readonly footerLabel = computed(() => {
     const campaignName = this.globalStore.campaignName();
     return `Back to ${campaignName ?? 'Campaigns'}`;
   });
 
-  tabs = getProfileTabs(this.routingService);
+  readonly tabs = getProfileTabs(this.routingService);
 }

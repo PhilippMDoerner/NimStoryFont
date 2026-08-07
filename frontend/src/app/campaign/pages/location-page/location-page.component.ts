@@ -21,12 +21,12 @@ import { LocationPageStore } from './location-page.store';
   styleUrl: './location-page.component.scss',
 })
 export class LocationPageComponent {
-  serverUrl = '';
-  globalStore = inject(GlobalStore);
-  store = inject(LocationPageStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(LocationPageStore);
+  readonly routingService = inject(RoutingService);
 
-  locationDeleteState$ = toObservable(this.store.locationDeleteState);
+  readonly locationDeleteState$ = toObservable(this.store.locationDeleteState);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.location() == null);

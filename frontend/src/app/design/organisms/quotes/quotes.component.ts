@@ -22,25 +22,25 @@ import { QuoteControlKind } from '../quote/quote.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuotesComponent {
-  campaignId = input.required<number>();
-  character = input.required<CharacterDetails>();
-  quoteServerModel = input.required<Quote | undefined>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  campaignSessions = input.required<OverviewItem[]>();
-  campaignEncounters = input.required<OverviewItem[]>();
-  quotes = input.required<Quote[]>();
-  serverModel = input.required<Quote | undefined>();
-  quoteControlsBlacklist = input<QuoteControlKind[]>([]);
-  canUpdate = input<boolean>(false);
-  canDelete = input<boolean>(false);
-  canCreate = input<boolean>(false);
+  readonly campaignId = input.required<number>();
+  readonly character = input.required<CharacterDetails>();
+  readonly quoteServerModel = input.required<Quote | undefined>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly campaignSessions = input.required<OverviewItem[]>();
+  readonly campaignEncounters = input.required<OverviewItem[]>();
+  readonly quotes = input.required<Quote[]>();
+  readonly serverModel = input.required<Quote | undefined>();
+  readonly quoteControlsBlacklist = input<QuoteControlKind[]>([]);
+  readonly canUpdate = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
+  readonly canCreate = input<boolean>(false);
 
-  quoteCreate = output<QuoteRaw>();
-  quoteDelete = output<Quote>();
-  quoteUpdate = output<Quote>();
-  connectionCreate = output<QuoteConnection>();
-  connectionDelete = output<QuoteConnection>();
+  readonly quoteCreate = output<QuoteRaw>();
+  readonly quoteDelete = output<Quote>();
+  readonly quoteUpdate = output<Quote>();
+  readonly connectionCreate = output<QuoteConnection>();
+  readonly connectionDelete = output<QuoteConnection>();
 
-  isCreatingQuote = signal(false);
-  createQuoteData = computed(() => ({}) as Quote);
+  readonly isCreatingQuote = signal(false);
+  readonly createQuoteData = computed(() => ({}) as Quote);
 }

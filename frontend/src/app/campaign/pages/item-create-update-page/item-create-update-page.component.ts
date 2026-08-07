@@ -28,22 +28,22 @@ import { ItemCreateUpdateStore } from './item-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemCreateUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(ItemCreateUpdateStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(ItemCreateUpdateStore);
 
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  campaignCharacters$ = toObservable(this.store.campaignCharacters).pipe(
+  readonly campaignCharacters$ = toObservable(this.store.campaignCharacters).pipe(
     filterNil(),
   );
-  itemUpdateState$ = toObservable(this.store.itemUpdateState);
-  itemCreateState$ = toObservable(this.store.createState);
-  item$ = toObservable(this.store.item);
+  readonly itemUpdateState$ = toObservable(this.store.itemUpdateState);
+  readonly itemCreateState$ = toObservable(this.store.createState);
+  readonly item$ = toObservable(this.store.item);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -60,7 +60,7 @@ export class ItemCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -72,7 +72,7 @@ export class ItemCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Item';
@@ -82,7 +82,7 @@ export class ItemCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
     this.formlyService.buildTypeaheadConfig<ItemRaw, OverviewItem>({
       key: 'owner',

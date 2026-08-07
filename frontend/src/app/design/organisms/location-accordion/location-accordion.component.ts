@@ -26,12 +26,12 @@ import { LocationComponent } from '../location/location.component';
   ],
 })
 export class LocationAccordionComponent {
-  locations = input.required<Location[]>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  canCreate = input(false);
-  campaignName = input.required<string>();
+  readonly locations = input.required<Location[]>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly canCreate = input(false);
+  readonly campaignName = input.required<string>();
 
-  createUrl = computed(() =>
+  readonly createUrl = computed(() =>
     this.routingService.getRoutePath('location-create', {
       campaign: this.campaignName(),
     }),

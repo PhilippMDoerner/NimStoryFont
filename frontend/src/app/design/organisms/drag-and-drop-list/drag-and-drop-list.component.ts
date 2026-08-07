@@ -41,13 +41,13 @@ export interface MoveEvent<T> {
   },
 })
 export class DragAndDropListComponent<T> {
-  entries = input.required<T[]>();
-  labelProp = input.required<keyof T>();
-  idProp = input.required<keyof T>();
-  isUpdating = input.required<boolean>();
+  readonly entries = input.required<T[]>();
+  readonly labelProp = input.required<keyof T>();
+  readonly idProp = input.required<keyof T>();
+  readonly isUpdating = input.required<boolean>();
 
-  changed = output<CdkDragDrop<T[]>>();
-  swapEntries = output<MoveEvent<T>>();
+  readonly changed = output<CdkDragDrop<T[]>>();
+  readonly swapEntries = output<MoveEvent<T>>();
 
   constructor(directive: CdkDropList<T[]>) {
     directive.dropped

@@ -8,8 +8,8 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root',
 })
 export class AdminService {
-  apiUrl = environment.apiUrl;
-  adminUrl = `${this.apiUrl}/admin`;
+  readonly apiUrl = environment.apiUrl;
+  readonly adminUrl = `${this.apiUrl}/admin`;
 
   constructor(private http: HttpClient) {}
 

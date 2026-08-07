@@ -61,7 +61,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryEncountersComponent {
-  state = input<EncounterCardState>('READ');
+  readonly state = input<EncounterCardState>('READ');
 
   readonly connectionDelete = output<EncounterConnection>();
   readonly connectionCreate = output<EncounterConnectionRaw>();
@@ -72,43 +72,43 @@ export class DiaryentryEncountersComponent {
     encounter: Encounter;
     newOrderIndex: number;
   }>();
-  addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
+  readonly addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
 
-  store = inject(DiaryentryPageStore);
-  route = inject(ActivatedRoute);
-  hotkeyService = inject(HotkeyService);
-  document = inject(DOCUMENT);
-  destroyRef = inject(DestroyRef);
-  injectorRef = inject(Injector);
+  readonly store = inject(DiaryentryPageStore);
+  readonly route = inject(ActivatedRoute);
+  readonly hotkeyService = inject(HotkeyService);
+  readonly document = inject(DOCUMENT);
+  readonly destroyRef = inject(DestroyRef);
+  readonly injectorRef = inject(Injector);
 
-  diaryEntryPk = computed(() => this.store.diaryentry()?.pk);
-  campaignCharacters = this.store.campaignCharacters;
-  campaignLocations = this.store.campaignLocations;
-  encounterServerModel = this.store.encounterServerModel;
-  canUpdate = this.store.hasWritePermission;
-  canDelete = this.store.hasWritePermission;
-  canCreate = this.store.hasWritePermission;
-  state$ = toObservable(this.state);
-  encounterElements = viewChildren<
+  readonly diaryEntryPk = computed(() => this.store.diaryentry()?.pk);
+  readonly campaignCharacters = this.store.campaignCharacters;
+  readonly campaignLocations = this.store.campaignLocations;
+  readonly encounterServerModel = this.store.encounterServerModel;
+  readonly canUpdate = this.store.hasWritePermission;
+  readonly canDelete = this.store.hasWritePermission;
+  readonly canCreate = this.store.hasWritePermission;
+  readonly state$ = toObservable(this.state);
+  readonly encounterElements = viewChildren<
     ElementRef<HTMLElement>,
     ElementRef<HTMLElement>
   >('encounter', {
     read: ElementRef<HTMLElement>,
   });
-  encounterElements$ = toObservable(this.encounterElements);
+  readonly encounterElements$ = toObservable(this.encounterElements);
 
-  encounterIndexInFocus = signal<number | undefined>(undefined);
-  encounterIndexInFocus$ = toObservable(this.encounterIndexInFocus).pipe(
+  readonly encounterIndexInFocus = signal<number | undefined>(undefined);
+  readonly encounterIndexInFocus$ = toObservable(this.encounterIndexInFocus).pipe(
     shareReplay(),
   );
-  encountersToAdd = signal<EncounterRaw[]>([]);
-  isUpdatingGlobally = this.store.isUpdatingGlobally;
-  isUpdatingAnything = this.store.isUpdatingAnyEncounters;
-  cutEncounterIndex = signal<number | undefined>(undefined);
-  isCutInProgress = computed(() => this.cutEncounterIndex() != null);
-  diaryEntryEncounters = this.store.diaryEntryEncounters;
+  readonly encountersToAdd = signal<EncounterRaw[]>([]);
+  readonly isUpdatingGlobally = this.store.isUpdatingGlobally;
+  readonly isUpdatingAnything = this.store.isUpdatingAnyEncounters;
+  readonly cutEncounterIndex = signal<number | undefined>(undefined);
+  readonly isCutInProgress = computed(() => this.cutEncounterIndex() != null);
+  readonly diaryEntryEncounters = this.store.diaryEntryEncounters;
 
-  id = componentId();
+  readonly id = componentId();
 
   constructor() {
     const encounterTitle = this.route.snapshot.params['encounterTitle'];

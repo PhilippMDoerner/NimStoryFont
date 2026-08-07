@@ -39,24 +39,26 @@ export interface DisableableOption<T> {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SmallCreateFormComponent<T> {
-  options = input.required<T[]>();
-  labelProp = input.required<keyof T>();
-  formFieldLabel = input.required<string>();
-  badgeText = input<string>('Add Entry');
-  valueProp = input.required<keyof T>();
-  submitButtonType = input<ElementKind>('PRIMARY');
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  createHotkey = input<ShortcutAction | undefined>();
-  disableHotkeys = input<boolean>(false);
+  readonly options = input.required<T[]>();
+  readonly labelProp = input.required<keyof T>();
+  readonly formFieldLabel = input.required<string>();
+  readonly badgeText = input<string>('Add Entry');
+  readonly valueProp = input.required<keyof T>();
+  readonly submitButtonType = input<ElementKind>('PRIMARY');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly createHotkey = input<ShortcutAction | undefined>();
+  readonly disableHotkeys = input<boolean>(false);
 
   readonly create = output<T>();
 
-  injector = inject(Injector);
-  selectFieldName = computed(() => `select-' + ${String(this.labelProp())}`);
-  form = new FormGroup({});
+  readonly injector = inject(Injector);
+  readonly selectFieldName = computed(
+    () => `select-' + ${String(this.labelProp())}`,
+  );
+  readonly form = new FormGroup({});
   userModel: T | undefined = undefined;
-  state = signal<State>('DISPLAY');
-  id = componentId();
+  readonly state = signal<State>('DISPLAY');
+  readonly id = componentId();
 
   changeState(newState: State) {
     this.state.set(newState);

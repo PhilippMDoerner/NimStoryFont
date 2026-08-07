@@ -10,5 +10,5 @@ import { Key } from 'src/app/_models/hotkey';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KeyComponent {
-  key = input.required<Key>();
+  readonly key = input.required<Key>();
 }

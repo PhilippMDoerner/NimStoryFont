@@ -50,16 +50,16 @@ type QuoteState =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuoteFieldComponent {
-  quote = input.required<Quote | undefined>();
-  character = input.required<CharacterDetails>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  serverModel = input.required<Quote | undefined>();
-  canCreate = input(false);
-  canUpdate = input(false);
-  canDelete = input(false);
-  encounters = input.required<OverviewItem[]>();
-  sessions = input.required<OverviewItem[]>();
-  quoteControlsBlacklist = input<QuoteControlKind[]>([]);
+  readonly quote = input.required<Quote | undefined>();
+  readonly character = input.required<CharacterDetails>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly serverModel = input.required<Quote | undefined>();
+  readonly canCreate = input(false);
+  readonly canUpdate = input(false);
+  readonly canDelete = input(false);
+  readonly encounters = input.required<OverviewItem[]>();
+  readonly sessions = input.required<OverviewItem[]>();
+  readonly quoteControlsBlacklist = input<QuoteControlKind[]>([]);
 
   readonly quoteDelete = output<Quote>();
   readonly quoteCreate = output<QuoteRaw>();
@@ -68,25 +68,25 @@ export class QuoteFieldComponent {
   readonly connectionCreate = output<QuoteConnection>();
   readonly refreshQuote = output<void>();
 
-  sessions$ = toObservable(this.sessions).pipe(take(1));
-  encounters$ = toObservable(this.encounters).pipe(take(1));
-  state = signal<QuoteState>('DISPLAY');
-  badgeEntries = computed<BadgeListEntry<QuoteConnection>[]>(() =>
+  readonly sessions$ = toObservable(this.sessions).pipe(take(1));
+  readonly encounters$ = toObservable(this.encounters).pipe(take(1));
+  readonly state = signal<QuoteState>('DISPLAY');
+  readonly badgeEntries = computed<BadgeListEntry<QuoteConnection>[]>(() =>
     this.parseConnection(this.quote()?.connections ?? []),
   );
-  campaignName = computed(
+  readonly campaignName = computed(
     () => this.character().campaign_details?.name as string,
   );
 
-  isLoadingQuote = signal(false);
-  quoteOverviewUrl = computed(() =>
+  readonly isLoadingQuote = signal(false);
+  readonly quoteOverviewUrl = computed(() =>
     this.routingService.getRoutePath('quote-overview', {
       name: this.character().name,
       campaign: this.campaignName,
     }),
   );
-  userModel = signal<Partial<QuoteRaw> | Quote>({});
-  formlyFields = computed<FormlyFieldConfig[]>(() => {
+  readonly userModel = signal<Partial<QuoteRaw> | Quote>({});
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => {
     return [
       this.formlyService.buildInputConfig({
         key: 'description',

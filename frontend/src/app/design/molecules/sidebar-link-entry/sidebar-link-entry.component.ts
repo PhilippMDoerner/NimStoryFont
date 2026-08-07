@@ -25,8 +25,8 @@ import { SidebarLinkEntry } from '../../organisms/_model/sidebar';
   },
 })
 export class SidebarLinkEntryComponent {
-  online$ = inject(OnlineService).online$;
-  private online = toSignal(this.online$);
-  isOffline = computed(() => this.online() === false);
-  entry = input.required<SidebarLinkEntry>();
+  readonly online$ = inject(OnlineService).online$;
+  private readonly online = toSignal(this.online$);
+  readonly isOffline = computed(() => this.online() === false);
+  readonly entry = input.required<SidebarLinkEntry>();
 }

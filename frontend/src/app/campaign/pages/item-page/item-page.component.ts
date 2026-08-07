@@ -22,13 +22,13 @@ import { ItemPageStore } from './item-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemPageComponent {
-  serverUrl = '';
-  globalStore = inject(GlobalStore);
-  store = inject(ItemPageStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(ItemPageStore);
+  readonly routingService = inject(RoutingService);
 
-  itemDeleteState$ = toObservable(this.store.itemDeleteState);
-  item$ = toObservable(this.store.item);
+  readonly itemDeleteState$ = toObservable(this.store.itemDeleteState);
+  readonly item$ = toObservable(this.store.item);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.item() == null);

@@ -82,22 +82,22 @@ const UPDATE_MARKER_TIMEOUT_MS = 3000;
   ],
 })
 export class EncounterComponent implements OnInit {
-  destroyRef = inject(DestroyRef);
+  readonly destroyRef = inject(DestroyRef);
 
-  characters = input.required<OverviewItem[]>();
-  locations = input.required<OverviewItem[]>();
-  updateState = input<RequestState>();
-  encounter = input<Encounter | CharacterEncounter>();
-  serverModel = input<Encounter>();
-  canUpdate = input(false);
-  canCreate = input(false);
-  canDelete = input(false);
-  initialCardState = input<FormState>('DISPLAY');
-  isInFocus = input.required<boolean>();
-  headingId = input.required<string>();
-  ariaLevel = input.required<HeadingLevel>();
+  readonly characters = input.required<OverviewItem[]>();
+  readonly locations = input.required<OverviewItem[]>();
+  readonly updateState = input<RequestState>();
+  readonly encounter = input<Encounter | CharacterEncounter>();
+  readonly serverModel = input<Encounter>();
+  readonly canUpdate = input(false);
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
+  readonly initialCardState = input<FormState>('DISPLAY');
+  readonly isInFocus = input.required<boolean>();
+  readonly headingId = input.required<string>();
+  readonly ariaLevel = input.required<HeadingLevel>();
 
-  component = inject(ElementRef);
+  readonly component = inject(ElementRef);
 
   readonly connectionDelete = output<EncounterConnection>();
   readonly connectionCreate = output<EncounterConnectionRaw>();
@@ -106,15 +106,15 @@ export class EncounterComponent implements OnInit {
   readonly encounterCreate = output<EncounterRaw>();
   readonly encounterCreateCancel = output<void>();
 
-  userModel = signal<Encounter | Partial<EncounterRaw>>({});
-  cardState = signal<FormState>('DISPLAY');
-  textFieldState = signal<TextFieldState>('DISPLAY');
-  badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(() => {
+  readonly userModel = signal<Encounter | Partial<EncounterRaw>>({});
+  readonly cardState = signal<FormState>('DISPLAY');
+  readonly textFieldState = signal<TextFieldState>('DISPLAY');
+  readonly badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(() => {
     const encounterConnections = this.encounter()?.encounterConnections ?? [];
     return this.parseConnection(encounterConnections);
   });
-  campaignName = computed(() => this.encounter()?.campaign_details?.name);
-  contextMenuItems = computed<MenuItem[]>(() => {
+  readonly campaignName = computed(() => this.encounter()?.campaign_details?.name);
+  readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
       const isEditingMetadata =
@@ -160,7 +160,7 @@ export class EncounterComponent implements OnInit {
     return menuItems;
   });
 
-  showUpdateSuccessMarker$ = toObservable(this.updateState).pipe(
+  readonly showUpdateSuccessMarker$ = toObservable(this.updateState).pipe(
     switchMap((state) => {
       const hasUpdatedSuccessfully = state === 'success';
       if (hasUpdatedSuccessfully) {
@@ -173,8 +173,8 @@ export class EncounterComponent implements OnInit {
       }
     }),
   );
-  locations$ = toObservable(this.locations).pipe(filterNil());
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly locations$ = toObservable(this.locations).pipe(filterNil());
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'title',
       inputKind: 'STRING',
@@ -192,7 +192,7 @@ export class EncounterComponent implements OnInit {
       optionValueProp: 'pk',
     }),
   ]);
-  editorId = componentId();
+  readonly editorId = componentId();
 
   constructor(
     private routingService: RoutingService,

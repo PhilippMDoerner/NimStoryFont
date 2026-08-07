@@ -39,10 +39,10 @@ type DisplayState = (typeof DISPLAY_STATES)[number];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestTableComponent {
-  questTaker = input.required<string>();
-  quests = input.required<OverviewItem[]>();
+  readonly questTaker = input.required<string>();
+  readonly quests = input.required<OverviewItem[]>();
 
-  menuItems = computed<MenuItem[]>(() =>
+  readonly menuItems = computed<MenuItem[]>(() =>
     DISPLAY_STATES.map(
       (state): MenuItem => ({
         kind: 'BUTTON',
@@ -53,22 +53,22 @@ export class QuestTableComponent {
       }),
     ),
   );
-  state = signal<DisplayState>('Default');
+  readonly state = signal<DisplayState>('Default');
 
-  displayQuests = computed<OverviewItem[]>(() =>
+  readonly displayQuests = computed<OverviewItem[]>(() =>
     this.quests().filter((quest) =>
       this.shouldDisplayQuest(quest, this.state()),
     ),
   );
 
-  STATE_ICON_MAPPING: { [key: string]: Icon } = {
+  readonly STATE_ICON_MAPPING: { [key: string]: Icon } = {
     Completed: 'square-check',
     'On hold': 'hourglass-half',
     Failed: 'times',
     'In progress': 'spinner',
   };
 
-  STATE_TABLE_TYPE_MAPPING: { [key: string]: string } = {
+  readonly STATE_TABLE_TYPE_MAPPING: { [key: string]: string } = {
     Completed: 'success',
     'On hold': 'warning',
     Failed: 'danger',

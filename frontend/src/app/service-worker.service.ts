@@ -12,7 +12,7 @@ export class ServiceWorkerService {
   readonly toastService = inject(ToastService);
   readonly serviceWorkerUpdate = inject(SwUpdate);
 
-  private newVersionInstalledToast: ToastConfig = {
+  private readonly newVersionInstalledToast: ToastConfig = {
     type: 'INFO',
     header: {
       text: 'New nimstoryfont version installed!',

@@ -65,23 +65,23 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
-  globalStore = inject(GlobalStore);
-  PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
-  DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
-  ARTICLE_ICON_MAP = ARTICLE_ICONS;
+  readonly globalStore = inject(GlobalStore);
+  readonly PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
+  readonly DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
+  readonly ARTICLE_ICON_MAP = ARTICLE_ICONS;
 
-  serverUrl = input.required<string>();
-  campaignData = input.required<CampaignOverview | undefined>();
-  articles = input.required<OverviewItem[] | undefined>();
-  isLoading = input.required<boolean>();
-  hasMoreArticles = input.required<boolean>();
+  readonly serverUrl = input.required<string>();
+  readonly campaignData = input.required<CampaignOverview | undefined>();
+  readonly articles = input.required<OverviewItem[] | undefined>();
+  readonly isLoading = input.required<boolean>();
+  readonly hasMoreArticles = input.required<boolean>();
 
   readonly appSearch = output<string>();
   readonly loadArticlePage = output<number>();
 
-  isOnline$ = inject(OnlineService).online$;
+  readonly isOnline$ = inject(OnlineService).online$;
 
-  timeFilterOptions = computed<MenuItem[]>(() => {
+  readonly timeFilterOptions = computed<MenuItem[]>(() => {
     return FILTER_MODES.map((mode) => ({
       actionName: mode,
       kind: 'BUTTON',
@@ -91,8 +91,8 @@ export class HomeComponent {
     }));
   });
 
-  timeFilter = signal<FilterMode>('NONE');
-  filterDate = computed<Date | undefined>(() => {
+  readonly timeFilter = signal<FilterMode>('NONE');
+  readonly filterDate = computed<Date | undefined>(() => {
     const now = new Date().getTime();
     switch (this.timeFilter()) {
       case 'NONE':
@@ -107,7 +107,7 @@ export class HomeComponent {
       }
     }
   });
-  canLoadMore = computed(() => {
+  readonly canLoadMore = computed(() => {
     if (!this.hasMoreArticles()) return false;
     if (this.isLoading()) return false;
 
@@ -125,9 +125,9 @@ export class HomeComponent {
 
     return hasMoreArticlesInFilter;
   });
-  feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>('INFINITY_SCROLL');
+  readonly feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>('INFINITY_SCROLL');
 
-  articleEntries = computed<IconCardEntry[]>(() => {
+  readonly articleEntries = computed<IconCardEntry[]>(() => {
     const filterDate = this.filterDate();
     const articles = this.articles() ?? [];
     if (!filterDate) return articles.map((art) => this.toIconCardEntry(art));
@@ -141,8 +141,8 @@ export class HomeComponent {
       .slice(0, firstArticleOutOfTimeframeIndex)
       .map((art) => this.toIconCardEntry(art));
   });
-  pageNumber = signal(0);
-  id = componentId();
+  readonly pageNumber = signal(0);
+  readonly id = componentId();
 
   constructor() {
     effect(() => {

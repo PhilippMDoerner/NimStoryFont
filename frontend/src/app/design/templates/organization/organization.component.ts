@@ -37,14 +37,14 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationComponent {
-  organization = input.required<Organization>();
-  organizationServerModel = input.required<Organization | undefined>();
-  serverUrl = input.required<string>();
-  imageServerModel = input.required<Image | undefined>();
-  campaignCharacters = input.required<OverviewItem[] | undefined>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
+  readonly organization = input.required<Organization>();
+  readonly organizationServerModel = input.required<Organization | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly imageServerModel = input.required<Image | undefined>();
+  readonly campaignCharacters = input.required<OverviewItem[] | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
 
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
@@ -54,13 +54,13 @@ export class OrganizationComponent {
   readonly organizationMembershipCreate = output<OverviewItem>();
   readonly organizationMembershipDelete = output<OrganizationMember>();
 
-  overviewUrl = computed(() => {
+  readonly overviewUrl = computed(() => {
     const campaignName = this.organization().campaign_details?.name;
     return this.routingService.getRoutePath('organization-overview', {
       campaign: campaignName,
     });
   });
-  updateUrl = computed(() => {
+  readonly updateUrl = computed(() => {
     const campaignName = this.organization().campaign_details?.name;
     return this.routingService.getRoutePath('organization-update', {
       campaign: campaignName,
@@ -68,7 +68,7 @@ export class OrganizationComponent {
     });
   });
 
-  organizationMembers = computed<BadgeListEntry<OrganizationMember>[]>(() => {
+  readonly organizationMembers = computed<BadgeListEntry<OrganizationMember>[]>(() => {
     const badgeEntries =
       this.organization().members?.map(
         (member) =>
@@ -84,7 +84,7 @@ export class OrganizationComponent {
 
     return sortByProp(badgeEntries, 'text');
   });
-  headquarterUrl = computed(() => {
+  readonly headquarterUrl = computed(() => {
     const campaignName = this.organization().campaign_details?.name;
     return this.routingService.getRoutePath('location', {
       campaign: campaignName,
@@ -92,7 +92,7 @@ export class OrganizationComponent {
       parent_name: this.organization().headquarter_details?.parent_name,
     });
   });
-  leaderUrl = computed(() => {
+  readonly leaderUrl = computed(() => {
     const campaignName = this.organization().campaign_details?.name;
     return this.routingService.getRoutePath('character', {
       campaign: campaignName,

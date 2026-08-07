@@ -55,51 +55,51 @@ export type TextFieldState = 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent {
-  destroyRef = inject(DestroyRef);
+  readonly destroyRef = inject(DestroyRef);
 
-  text = input.required<string>();
-  placeholder = input.required<string>();
-  canUpdate = input.required<boolean>();
-  serverModel = input<string>();
-  state = input.required<TextFieldState>();
-  submitButtonKind = input<ElementKind>('PRIMARY');
-  cancelButtonKind = input<ElementKind>('SECONDARY');
-  enableAutosave = input<boolean>(true);
-  maxHeightPercentage = input<number>(0.75); // Range 0-1
-  settings = input<Partial<EditorSettings>>();
-  disabledHotkeys = input<boolean>(false);
-  id = input.required<string>();
+  readonly text = input.required<string>();
+  readonly placeholder = input.required<string>();
+  readonly canUpdate = input.required<boolean>();
+  readonly serverModel = input<string>();
+  readonly state = input.required<TextFieldState>();
+  readonly submitButtonKind = input<ElementKind>('PRIMARY');
+  readonly cancelButtonKind = input<ElementKind>('SECONDARY');
+  readonly enableAutosave = input<boolean>(true);
+  readonly maxHeightPercentage = input<number>(0.75); // Range 0-1
+  readonly settings = input<Partial<EditorSettings>>();
+  readonly disabledHotkeys = input<boolean>(false);
+  readonly id = input.required<string>();
 
-  editStarted = output<void>();
-  update = output<string>();
-  autosave = output<string>();
-  cancelled = output<void>();
+  readonly editStarted = output<void>();
+  readonly update = output<string>();
+  readonly autosave = output<string>();
+  readonly cancelled = output<void>();
 
-  change$ = new Subject<string>();
-  inFocus = signal(false);
+  readonly change$ = new Subject<string>();
+  readonly inFocus = signal(false);
 
-  set = TINYMCE_SETTINGS;
-  windowHeight = toSignal(inject(ScreenService).windowHeight$);
-  maxEditorHeight = computed(() => {
+  readonly set = TINYMCE_SETTINGS;
+  readonly windowHeight = toSignal(inject(ScreenService).windowHeight$);
+  readonly maxEditorHeight = computed(() => {
     const windowHeight = this.windowHeight();
     if (!windowHeight) return undefined;
     return windowHeight * this.maxHeightPercentage();
   });
-  editorHeight = computed(() => {
+  readonly editorHeight = computed(() => {
     const maxHeight = this.maxEditorHeight();
     const defaultHeight = TINYMCE_SETTINGS.height;
     const configuredHeight = this.settings()?.height;
     if (!configuredHeight || !maxHeight) return defaultHeight;
     return Math.min(maxHeight, configuredHeight);
   });
-  _settings = computed(() => ({
+  readonly _settings = computed(() => ({
     ...TINYMCE_SETTINGS,
     ...this.settings(),
     height: this.editorHeight(),
   }));
   textModel = '';
 
-  editorField = viewChild<TinyMCEEditorComponent>('editor');
+  readonly editorField = viewChild<TinyMCEEditorComponent>('editor');
 
   constructor() {
     this.startAutosaveBehavior();

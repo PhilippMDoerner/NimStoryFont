@@ -38,12 +38,12 @@ export class FormlyFileFieldComponent
   //that FieldType.formControl contains all fields required to satisfy the interface FormControl
   //https://github.com/ngx-formly/ngx-formly/issues/2842#issuecomment-1016476706
   @ViewChild('fileInputElement')
-  fileInputElement!: ElementRef<HTMLInputElement>;
+  readonly fileInputElement!: ElementRef<HTMLInputElement>;
 
   selectedFileName?: string;
   buttonType!: ElementKind;
   fieldKind!: FileFieldKind;
-  window = inject(DOCUMENT).defaultView;
+  readonly window = inject(DOCUMENT).defaultView;
 
   constructor() {
     super();

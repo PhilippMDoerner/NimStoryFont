@@ -25,19 +25,19 @@ import { MapCreateUpdateStore } from './map-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MapCreateUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(MapCreateUpdateStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(MapCreateUpdateStore);
 
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  private mapUpdateState$ = toObservable(this.store.mapUpdateState);
-  private mapCreateState$ = toObservable(this.store.mapCreateState);
-  private map$ = toObservable(this.store.map);
+  private readonly mapUpdateState$ = toObservable(this.store.mapUpdateState);
+  private readonly mapCreateState$ = toObservable(this.store.mapCreateState);
+  private readonly map$ = toObservable(this.store.map);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -54,7 +54,7 @@ export class MapCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -66,7 +66,7 @@ export class MapCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Map';
@@ -76,7 +76,7 @@ export class MapCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'name',
       inputKind: 'NAME',

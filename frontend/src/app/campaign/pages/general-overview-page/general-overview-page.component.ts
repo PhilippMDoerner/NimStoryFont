@@ -35,8 +35,8 @@ import { filterNil } from 'src/utils/rxjs-operators';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneralOverviewPageComponent {
-  globalStore = inject(GlobalStore);
-  private OVERVIEW_ENTRIES_MAP: {
+  readonly globalStore = inject(GlobalStore);
+  private readonly OVERVIEW_ENTRIES_MAP: {
     [key in GeneralOverviewType]: BaseService<unknown, unknown>;
   } = {
     CHARACTER: inject(CharacterService),
@@ -47,19 +47,19 @@ export class GeneralOverviewPageComponent {
     ORGANIZATION: inject(OrganizationService),
   };
 
-  serverUrl = '';
+  readonly serverUrl = '';
 
-  campaignName$ = toObservable(this.globalStore.campaignName).pipe(filterNil());
-  canCreate = this.globalStore.canPerformActionsOfRole('member');
-  overviewType$ = inject(ActivatedRoute).data.pipe(
+  readonly campaignName$ = toObservable(this.globalStore.campaignName).pipe(filterNil());
+  readonly canCreate = this.globalStore.canPerformActionsOfRole('member');
+  readonly overviewType$ = inject(ActivatedRoute).data.pipe(
     map((data) => data['overviewType'] as GeneralOverviewType),
   );
-  overviewService$ = this.overviewType$.pipe(
+  readonly overviewService$ = this.overviewType$.pipe(
     map((typ) => this.OVERVIEW_ENTRIES_MAP[typ]),
   );
 
-  queryState$ = new ReplaySubject<'loading' | 'success' | 'error'>(1);
-  entries$ = combineLatest({
+  readonly queryState$ = new ReplaySubject<'loading' | 'success' | 'error'>(1);
+  readonly entries$ = combineLatest({
     service: this.overviewService$,
     campaignName: this.campaignName$,
   }).pipe(

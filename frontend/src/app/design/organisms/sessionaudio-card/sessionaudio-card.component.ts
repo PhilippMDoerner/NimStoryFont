@@ -17,10 +17,10 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
   imports: [ButtonLinkComponent, RouterLink],
 })
 export class SessionaudioCardComponent {
-  serverUrl = input.required<string>();
-  sessionAudio = input.required<OverviewItem>();
+  readonly serverUrl = input.required<string>();
+  readonly sessionAudio = input.required<OverviewItem>();
 
-  sessionAudioUrl = computed(() => {
+  readonly sessionAudioUrl = computed(() => {
     const campaignName = this.sessionAudio().campaign_details?.name;
     const isMainSession =
       this.sessionAudio().session_details?.is_main_session_int;

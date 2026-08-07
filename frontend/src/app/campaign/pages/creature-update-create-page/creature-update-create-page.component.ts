@@ -24,14 +24,14 @@ import { CreatureUpdateCreateStore } from './creature-update-create-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreatureUpdateCreateComponent {
-  store = inject(CreatureUpdateCreateStore);
-  globalStore = inject(GlobalStore);
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  readonly store = inject(CreatureUpdateCreateStore);
+  readonly globalStore = inject(GlobalStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -48,7 +48,7 @@ export class CreatureUpdateCreateComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -60,7 +60,7 @@ export class CreatureUpdateCreateComponent {
     }
   });
 
-  heading = computed<string>(() => {
+  readonly heading = computed<string>(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Creature';
@@ -70,7 +70,7 @@ export class CreatureUpdateCreateComponent {
     }
   });
 
-  formlyFields = [
+  readonly formlyFields = [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
   ];
 
@@ -79,7 +79,7 @@ export class CreatureUpdateCreateComponent {
       () => this.userModel() == null || this.globalStore.campaignName() == null,
     );
 
-  private creatureQueryState$ = toObservable(this.store.creatureQueryState);
+  private readonly creatureQueryState$ = toObservable(this.store.creatureQueryState);
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

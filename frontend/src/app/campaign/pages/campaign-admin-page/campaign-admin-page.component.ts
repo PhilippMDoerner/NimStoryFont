@@ -20,8 +20,8 @@ import { CampaignAdminPageStore } from './campaign-admin-page.store';
 export class CampaignAdminPageComponent {
   readonly store = inject(CampaignAdminPageStore);
   readonly globalStore = inject(GlobalStore);
-  campaign = this.store.campaign;
-  serverUrl = '';
+  readonly campaign = this.store.campaign;
+  readonly serverUrl = '';
   private readonly isPageLoading: Signal<boolean> = computed(
     () =>
       this.store.campaign() == null ||

@@ -18,8 +18,8 @@ import { RulesPageStore } from './rules-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RulesPageComponent {
-  store = inject(RulesPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(RulesPageStore);
+  readonly globalStore = inject(GlobalStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(

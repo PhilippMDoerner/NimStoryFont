@@ -40,35 +40,35 @@ import { BreadcrumbEntry } from '../_models/breadcrumb-entry';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LocationTemplateComponent {
-  location = input.required<Location>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  locationServerModel = input.required<Location | undefined>();
-  serverUrl = input.required<string>();
-  imageServerModel = input.required<Image | undefined>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
+  readonly location = input.required<Location>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly locationServerModel = input.required<Location | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly imageServerModel = input.required<Image | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
 
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
   readonly updateImage = output<Image>();
   readonly locationDelete = output<Location>();
-  locationUpdate = output<Location>();
+  readonly locationUpdate = output<Location>();
 
-  campaignName = computed(() => this.location().campaign_details?.name);
-  overviewUrl = computed(() =>
+  readonly campaignName = computed(() => this.location().campaign_details?.name);
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('location-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed<string>(() =>
+  readonly updateUrl = computed<string>(() =>
     this.routingService.getRoutePath('location-update', {
       name: this.location().name,
       parent_name: this.location().parent_location_details?.name,
       campaign: this.campaignName(),
     }),
   );
-  locationCharacters = computed<ListEntry[]>(() => {
+  readonly locationCharacters = computed<ListEntry[]>(() => {
     return (
       this.location().characters?.map((character) => ({
         label: character.name,
@@ -79,7 +79,7 @@ export class LocationTemplateComponent {
       })) ?? []
     );
   });
-  parentLocations = computed<BreadcrumbEntry[]>(() => {
+  readonly parentLocations = computed<BreadcrumbEntry[]>(() => {
     const parentNames = this.location().parent_location_list;
     return (
       parentNames?.map((parent) => ({
@@ -89,7 +89,7 @@ export class LocationTemplateComponent {
     );
   });
 
-  markerEntries = computed<BadgeListEntry<string>[]>(() => {
+  readonly markerEntries = computed<BadgeListEntry<string>[]>(() => {
     return (
       this.location().marker_details?.map((marker) => ({
         text: marker.map,
@@ -104,7 +104,7 @@ export class LocationTemplateComponent {
       })) ?? []
     );
   });
-  markerCreateUrl = computed(() =>
+  readonly markerCreateUrl = computed(() =>
     this.routingService.getRoutePath('marker-create', {
       parent_location_name: this.location().parent_location_details?.name,
       location_name: this.location().name,

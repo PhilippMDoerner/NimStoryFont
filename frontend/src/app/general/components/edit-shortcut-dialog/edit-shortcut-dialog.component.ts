@@ -41,25 +41,25 @@ import { componentId } from 'src/utils/DOM';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditShortcutDialogComponent {
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  action = model.required<ShortcutAction>();
-  modified = model.required<boolean>();
+  readonly action = model.required<ShortcutAction>();
+  readonly modified = model.required<boolean>();
 
-  shortcutEdited = output<{
+  readonly shortcutEdited = output<{
     action: ShortcutAction;
     shortcut: KeyCombination;
   }>();
-  shortcutReset = output<ShortcutAction>();
-  cancelled = output<void>();
+  readonly shortcutReset = output<ShortcutAction>();
+  readonly cancelled = output<void>();
 
-  keyInput = viewChild.required<ElementRef<HTMLInputElement>>('keyInput');
-  keyInput$ = toObservable(this.keyInput);
-  modalId = componentId();
-  fieldId = componentId();
+  readonly keyInput = viewChild.required<ElementRef<HTMLInputElement>>('keyInput');
+  readonly keyInput$ = toObservable(this.keyInput);
+  readonly modalId = componentId();
+  readonly fieldId = componentId();
 
-  currentKeymap$ = toObservable(inject(UserPreferencesStore).shortcutMappings);
-  value$ = this.keyInput$.pipe(
+  readonly currentKeymap$ = toObservable(inject(UserPreferencesStore).shortcutMappings);
+  readonly value$ = this.keyInput$.pipe(
     switchMap((keyInput) =>
       fromEvent<KeyboardEvent>(keyInput.nativeElement, 'keydown'),
     ),
@@ -76,9 +76,9 @@ export class EditShortcutDialogComponent {
     }, [] as KeyboardEvent[]),
   );
 
-  text$ = this.value$.pipe(map((keyEvents) => encodeKeyCombination(keyEvents)));
+  readonly text$ = this.value$.pipe(map((keyEvents) => encodeKeyCombination(keyEvents)));
 
-  conflictKind$ = combineLatest({
+  readonly conflictKind$ = combineLatest({
     currentKeymap: this.currentKeymap$,
     selectedKeys: this.value$,
   }).pipe(
@@ -95,7 +95,7 @@ export class EditShortcutDialogComponent {
     }),
   );
 
-  hasConflict$ = this.conflictKind$.pipe(
+  readonly hasConflict$ = this.conflictKind$.pipe(
     map((conflictKind) => conflictKind !== undefined),
   );
 

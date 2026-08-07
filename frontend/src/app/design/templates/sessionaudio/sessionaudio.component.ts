@@ -31,38 +31,38 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
   ],
 })
 export class SessionaudioComponent {
-  sessionaudio = input.required<SessionAudio>();
-  timestamps = input.required<Timestamp[] | undefined>();
-  serverUrl = input.required<string>();
-  canUpdate = input<boolean>(false);
-  canCreate = input<boolean>(false);
-  canDelete = input<boolean>(false);
+  readonly sessionaudio = input.required<SessionAudio>();
+  readonly timestamps = input.required<Timestamp[] | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly canUpdate = input<boolean>(false);
+  readonly canCreate = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
 
   readonly sessionaudioDelete = output<SessionAudio>();
   readonly deleteTimestamp = output<Timestamp>();
   readonly createTimestamp = output<Timestamp>();
 
-  campaignName = computed(
+  readonly campaignName = computed(
     () => this.sessionaudio().session_details?.campaign_details?.name,
   );
-  overviewUrl = computed(() =>
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() =>
+  readonly updateUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio-update', {
       campaign: this.campaignName(),
       sessionNumber: this.sessionaudio().session_details?.session_number,
       isMainSession: this.sessionaudio().session_details?.is_main_session_int,
     }),
   );
-  nextSessionAudioUrl = computed(() =>
+  readonly nextSessionAudioUrl = computed(() =>
     this.createSessionAudioUrl(
       this.sessionaudio().sessionAudioNeighbours?.nextSessionAudio,
     ),
   );
-  priorSessionAudioUrl = computed(() =>
+  readonly priorSessionAudioUrl = computed(() =>
     this.createSessionAudioUrl(
       this.sessionaudio().sessionAudioNeighbours?.priorSessionAudio,
     ),

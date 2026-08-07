@@ -26,18 +26,18 @@ import { QuestTableComponent } from '../../organisms/quest-table/quest-table.com
   ],
 })
 export class QuestOverviewComponent {
-  quests = input.required<OverviewItem[]>();
-  campaignName = input.required<string>();
+  readonly quests = input.required<OverviewItem[]>();
+  readonly campaignName = input.required<string>();
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', { campaign: this.campaignName }),
   );
-  createUrl = computed(() =>
+  readonly createUrl = computed(() =>
     this.routingService.getRoutePath('quest-create', {
       campaign: this.campaignName,
     }),
   );
-  groupedQuests = computed<{ key: string; value: OverviewItem[] }[]>(() =>
+  readonly groupedQuests = computed<{ key: string; value: OverviewItem[] }[]>(() =>
     this.groupQuestsByTaker(this.quests()),
   );
 

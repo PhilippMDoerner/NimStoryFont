@@ -60,11 +60,11 @@ export class AppComponent {
     filterNil(),
   );
 
-  campaign$ = this.globalStore.currentCampaign;
-  hasCampaignAdminRights = computed(() =>
+  readonly campaign$ = this.globalStore.currentCampaign;
+  readonly hasCampaignAdminRights = computed(() =>
     this.globalStore.isCampaignAdmin(this.globalStore.campaignName()),
   );
-  disableAnimation = signal(false);
+  readonly disableAnimation = signal(false);
 
   constructor() {
     this.trackAnimationSetting();

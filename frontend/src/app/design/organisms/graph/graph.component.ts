@@ -26,19 +26,19 @@ import { GraphService } from './graph.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraphComponent {
-  articleService = inject(ArticleService);
-  graphService = inject(GraphService); //Accessible as the parent, GraphPageComponent, provides an instance
-  destructor = inject(DestroyRef);
+  readonly articleService = inject(ArticleService);
+  readonly graphService = inject(GraphService); //Accessible as the parent, GraphPageComponent, provides an instance
+  readonly destructor = inject(DestroyRef);
 
-  data = input.required<ParsedNodeMap>();
-  activeNodesData = input.required<NodeSelection>();
-  graphSettings = input.required<typeof GRAPH_SETTINGS>();
+  readonly data = input.required<ParsedNodeMap>();
+  readonly activeNodesData = input.required<NodeSelection>();
+  readonly graphSettings = input.required<typeof GRAPH_SETTINGS>();
 
-  graphContainer = viewChild<ElementRef<HTMLDivElement>>('graphContainer');
-  elements = toSignal(this.graphService.elements$);
-  zoomLevel$ = this.graphService.zoomLevelChangedEvent$;
+  readonly graphContainer = viewChild<ElementRef<HTMLDivElement>>('graphContainer');
+  readonly elements = toSignal(this.graphService.elements$);
+  readonly zoomLevel$ = this.graphService.zoomLevelChangedEvent$;
 
-  zoomSliderEvents$ = new Subject<string>();
+  readonly zoomSliderEvents$ = new Subject<string>();
 
   constructor() {
     effect(() =>

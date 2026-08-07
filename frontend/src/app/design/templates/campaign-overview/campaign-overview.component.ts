@@ -36,10 +36,10 @@ import { IconComponent } from '../../atoms/icon/icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignOverviewComponent {
-  serverUrl = input.required<string>();
-  userName = input.required<string | undefined>();
-  campaigns = input.required<CampaignOverview[] | undefined>();
-  isGlobalAdmin = input(false);
+  readonly serverUrl = input.required<string>();
+  readonly userName = input.required<string | undefined>();
+  readonly campaigns = input.required<CampaignOverview[] | undefined>();
+  readonly isGlobalAdmin = input(false);
 
   readonly logout = output<void>();
 
@@ -52,16 +52,16 @@ export class CampaignOverviewComponent {
   readonly campaignCreateUrl =
     this.routingService.getRoutePath('campaign-create');
 
-  profileUrl = computed(() =>
+  readonly profileUrl = computed(() =>
     this.routingService.getRoutePath('direct-profile', {
       username: this.userName(),
     }),
   );
-  configTableUrl = computed(() =>
+  readonly configTableUrl = computed(() =>
     this.routingService.getRoutePath('config-tables'),
   );
-  generalAdminUrl = computed(() => this.routingService.getRoutePath('admin'));
-  gridEntries = computed<ImageGridEntry[] | undefined>(() =>
+  readonly generalAdminUrl = computed(() => this.routingService.getRoutePath('admin'));
+  readonly gridEntries = computed<ImageGridEntry[] | undefined>(() =>
     this.campaigns()?.map((campaign) => ({
       imageUrl: campaign.background_image,
       label: campaign.name,
@@ -72,7 +72,7 @@ export class CampaignOverviewComponent {
       ariaLabel: `Look at campaign ${campaign.name}`,
     })),
   );
-  dragonFrameUrl = 'assets/general_overview.webp';
+  readonly dragonFrameUrl = 'assets/general_overview.webp';
 
   constructor(private routingService: RoutingService) {}
 }

@@ -45,15 +45,15 @@ export interface Download<T> {
   providedIn: 'root',
 })
 export class OfflineRequestService {
-  private CHECK_REFRESH_INTERVAL_SECONDS = 1000 * 60 * 60;
-  private MAX_CACHE_AGE_SECONDS = 1000 * 60 * 60 * 24;
+  private readonly CHECK_REFRESH_INTERVAL_SECONDS = 1000 * 60 * 60;
+  private readonly MAX_CACHE_AGE_SECONDS = 1000 * 60 * 60 * 24;
 
-  private client = inject(HttpClient);
-  private dbService = inject(BrowserDatabaseService);
-  private globalStore = inject(GlobalStore);
-  private campaigns$ = toObservable(this.globalStore.campaigns);
-  private currentCampaignName$ = toObservable(this.globalStore.campaignName);
-  private currentCampaignRecord$ = this.currentCampaignName$.pipe(
+  private readonly client = inject(HttpClient);
+  private readonly dbService = inject(BrowserDatabaseService);
+  private readonly globalStore = inject(GlobalStore);
+  private readonly campaigns$ = toObservable(this.globalStore.campaigns);
+  private readonly currentCampaignName$ = toObservable(this.globalStore.campaignName);
+  private readonly currentCampaignRecord$ = this.currentCampaignName$.pipe(
     switchMap((name) => {
       if (!name) return of(undefined);
       return this.dbService.getCampaignData(name);

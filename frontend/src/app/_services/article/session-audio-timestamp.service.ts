@@ -9,8 +9,8 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root',
 })
 export class SessionAudioTimestampService {
-  apiUrl: string = environment.apiUrl;
-  baseUrl = `${this.apiUrl}/timestamp`;
+  readonly apiUrl: string = environment.apiUrl;
+  readonly baseUrl = `${this.apiUrl}/timestamp`;
 
   constructor(private http: HttpClient) {}
 

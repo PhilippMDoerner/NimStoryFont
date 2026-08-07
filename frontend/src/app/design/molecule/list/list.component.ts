@@ -67,26 +67,26 @@ export interface ListEntryTemplateContext<T> {
   },
 })
 export class ListComponent<T> {
-  private shortcutService = inject(HotkeyService);
-  private tooltip = inject(NgbTooltip);
-  private host = inject(ElementRef<HTMLElement>);
+  private readonly shortcutService = inject(HotkeyService);
+  private readonly tooltip = inject(NgbTooltip);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
-  entries = input.required<ListEntry<T>[]>();
-  arrowKeyNavigationOptions = input<
+  readonly entries = input.required<ListEntry<T>[]>();
+  readonly arrowKeyNavigationOptions = input<
     Omit<WatchOptions, 'keyEventType' | 'eventSource'> | undefined
   >();
-  listItemClasses = input<string | string[]>('');
+  readonly listItemClasses = input<string | string[]>('');
 
-  entryActivated = output<T>();
+  readonly entryActivated = output<T>();
 
-  entryTemplate =
+  readonly entryTemplate =
     contentChild.required<
       TemplateRef<{ $implicit: ListEntryTemplateContext<T> }>
     >('entryTemplate');
 
-  entryElements = viewChildren<ElementRef<HTMLDivElement>>('listItem');
-  tooltipContent = viewChild.required<TemplateRef<HTMLElement>>('tipContent');
-  shortcutActionKeys = toSignal(
+  readonly entryElements = viewChildren<ElementRef<HTMLDivElement>>('listItem');
+  readonly tooltipContent = viewChild.required<TemplateRef<HTMLElement>>('tipContent');
+  readonly shortcutActionKeys = toSignal(
     combineLatest({
       nextEntryKeys: this.shortcutService.getKeySequence('jump-to-next-entry'),
       priorEntryKeys: this.shortcutService.getKeySequence(
@@ -94,13 +94,13 @@ export class ListComponent<T> {
       ),
     }),
   );
-  listItemClassStr = computed(() => {
+  readonly listItemClassStr = computed(() => {
     const classes = this.listItemClasses();
     const classList = Array.isArray(classes) ? classes : [classes];
     return classList.join(' ');
   });
 
-  focusIndex$ = toObservable(this.entryElements).pipe(
+  readonly focusIndex$ = toObservable(this.entryElements).pipe(
     switchMap((entries) => {
       const indexOnItemFocus$ = merge(
         ...entries.map((entry, index) =>
@@ -111,9 +111,9 @@ export class ListComponent<T> {
     }),
     startWith(undefined),
   );
-  lastElementIndex = computed(() => this.entries().length - 1);
-  lastElementIndex$ = toObservable(this.lastElementIndex);
-  shortcutText = computed(() => {
+  readonly lastElementIndex = computed(() => this.entries().length - 1);
+  readonly lastElementIndex$ = toObservable(this.lastElementIndex);
+  readonly shortcutText = computed(() => {
     const keys = this.shortcutActionKeys();
     if (!keys) return undefined;
 
@@ -126,7 +126,7 @@ export class ListComponent<T> {
     ).replaceAll(' ', '');
     return `${nextEntryKeyStr} ${priorEntryKeyStr}`;
   });
-  tooltipLines = computed<{ text: string; icon: Icon }[] | undefined>(() => {
+  readonly tooltipLines = computed<{ text: string; icon: Icon }[] | undefined>(() => {
     const keys = this.shortcutActionKeys();
     if (!keys) return undefined;
     const nextEntryKeyStr = keys.nextEntryKeys
@@ -262,7 +262,7 @@ export class ListComponent<T> {
   selector: '[inferContextTypeFrom]',
 })
 export class ListItemContextTypecastDirective<T> {
-  inferContextTypeFrom = input.required<ListComponent<T>>();
+  readonly inferContextTypeFrom = input.required<ListComponent<T>>();
 
   static ngTemplateContextGuard<T>(
     directive: ListItemContextTypecastDirective<T>,

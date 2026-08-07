@@ -28,14 +28,14 @@ import { LoginPageStore } from './login-page.store';
 export class LoginPageComponent {
   public readonly authStore = inject(AuthStore);
   public readonly store = inject(LoginPageStore);
-  specialLoginState$: Observable<SpecialLoginState> = this.route.paramMap.pipe(
+  readonly specialLoginState$: Observable<SpecialLoginState> = this.route.paramMap.pipe(
     map((params) => {
       return (params.get('state') as SpecialLoginState) ?? undefined;
     }),
   );
 
-  private destroyRef = inject(DestroyRef);
-  private loginSucceededEvent$ = toObservable(
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly loginSucceededEvent$ = toObservable(
     this.authStore.authDataQueryState,
   ).pipe(
     pairwise(),

@@ -14,6 +14,6 @@ import { IconComponent } from '../icon/icon.component';
   },
 })
 export class ExternalLinkComponent {
-  externalHref = input.required<string>();
-  text = input.required<string>();
+  readonly externalHref = input.required<string>();
+  readonly text = input.required<string>();
 }

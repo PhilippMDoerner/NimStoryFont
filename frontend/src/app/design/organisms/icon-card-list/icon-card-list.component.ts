@@ -20,16 +20,16 @@ import { IconCardEntry } from '../_model/icon-card-list';
   imports: [IconCardComponent, RouterLink, PlaceholderComponent],
 })
 export class IconCardListComponent {
-  isLoading = input.required<boolean>();
-  articles = input.required<IconCardEntry[]>();
-  ariaLabelId = input.required<string>();
-  id = input.required<string>();
+  readonly isLoading = input.required<boolean>();
+  readonly articles = input.required<IconCardEntry[]>();
+  readonly ariaLabelId = input.required<string>();
+  readonly id = input.required<string>();
 
-  articleLinkElements = viewChildren<ElementRef<HTMLElement>>('articleLink');
-  articleCount = computed(() => this.articleLinkElements().length);
+  readonly articleLinkElements = viewChildren<ElementRef<HTMLElement>>('articleLink');
+  readonly articleCount = computed(() => this.articleLinkElements().length);
 
-  dummyArticles = Array.from({ length: 12 }, (_, idx) => idx);
-  focusedIndex = signal<number | undefined>(undefined);
+  readonly dummyArticles = Array.from({ length: 12 }, (_, idx) => idx);
+  readonly focusedIndex = signal<number | undefined>(undefined);
 
   focusNextArticle(event: Event) {
     event.preventDefault();

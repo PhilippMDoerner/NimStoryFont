@@ -29,26 +29,26 @@ import { MarkerCreateUpdateStore } from './marker-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerCreateUpdatePageComponent {
-  formlyService = inject(FormlyService);
-  store = inject(MarkerCreateUpdateStore);
-  globalStore = inject(GlobalStore);
-  navigationStore = inject(NavigationStore);
-  router = inject(Router);
-  destroyer = inject(DestroyRef);
-  private route = inject(ActivatedRoute);
-  private params = toSignal(this.route.params);
-  private routingService = inject(RoutingService);
+  readonly formlyService = inject(FormlyService);
+  readonly store = inject(MarkerCreateUpdateStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly navigationStore = inject(NavigationStore);
+  readonly router = inject(Router);
+  readonly destroyer = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly params = toSignal(this.route.params);
+  private readonly routingService = inject(RoutingService);
 
-  campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
+  readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  campaignMaps$ = toObservable(this.store.campaignMaps).pipe(filterNil());
-  markerTypes$ = toObservable(this.store.markerTypes).pipe(filterNil());
-  createMarkerState$ = toObservable(this.store.createMarkerState);
-  updateMarkerState$ = toObservable(this.store.markerUpdateState);
-  marker$ = toObservable(this.store.marker).pipe(filterNil());
+  readonly campaignMaps$ = toObservable(this.store.campaignMaps).pipe(filterNil());
+  readonly markerTypes$ = toObservable(this.store.markerTypes).pipe(filterNil());
+  readonly createMarkerState$ = toObservable(this.store.createMarkerState);
+  readonly updateMarkerState$ = toObservable(this.store.markerUpdateState);
+  readonly marker$ = toObservable(this.store.marker).pipe(filterNil());
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'latitude',
       inputKind: 'NUMBER',
@@ -92,7 +92,7 @@ export class MarkerCreateUpdatePageComponent {
     }),
   ]);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.route.snapshot.url?.map(
       (segment) => segment.path,
     );
@@ -109,7 +109,7 @@ export class MarkerCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(() => {
+  readonly userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(() => {
     switch (this.state()) {
       case 'CREATE': {
         const location = this.getPreselectedLocation();
@@ -137,7 +137,7 @@ export class MarkerCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Marker';

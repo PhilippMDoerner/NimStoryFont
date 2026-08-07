@@ -38,7 +38,7 @@ import { GeneralOverviewType } from '../_models/generalOverviewType';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneralOverviewComponent {
-  OVERVIEW_IMAGE_MAP: {
+  readonly OVERVIEW_IMAGE_MAP: {
     [key in Exclude<GeneralOverviewType, 'CHARACTER'>]: {
       url: string;
       alt: string;
@@ -66,15 +66,15 @@ export class GeneralOverviewComponent {
     },
   };
 
-  serverUrl = input.required<string>();
-  overviewType = input.required<GeneralOverviewType>();
-  entries = input.required<OverviewItem[]>();
-  campaignName = input.required<string>();
-  canCreate = input.required<boolean>();
+  readonly serverUrl = input.required<string>();
+  readonly overviewType = input.required<GeneralOverviewType>();
+  readonly entries = input.required<OverviewItem[]>();
+  readonly campaignName = input.required<string>();
+  readonly canCreate = input.required<boolean>();
 
-  defaultPlayerCharacterImage = 'assets/default_images/icon_default.webp';
+  readonly defaultPlayerCharacterImage = 'assets/default_images/icon_default.webp';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  displayEntries = computed<FilterListEntry<any>[]>(() => {
+  readonly displayEntries = computed<FilterListEntry<any>[]>(() => {
     switch (this.overviewType()) {
       case 'CHARACTER':
         return this.getCharacterEntries(this.entries());
@@ -95,25 +95,25 @@ export class GeneralOverviewComponent {
     }
   });
 
-  playerCharacters = computed<OverviewItem[] | undefined>(() => {
+  readonly playerCharacters = computed<OverviewItem[] | undefined>(() => {
     if (this.overviewType() !== 'CHARACTER') return undefined;
     return this.entries().filter((entry) => entry.player_character);
   });
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.campaignName,
     }),
   );
-  overviewTypeName = computed(() => this.overviewType().toLocaleLowerCase());
+  readonly overviewTypeName = computed(() => this.overviewType().toLocaleLowerCase());
 
-  id = componentId();
+  readonly id = componentId();
 
-  filterId = `${this.id}-filter`;
-  headingSectionId = `${this.id}-heading-section`;
-  bodySectionId = `${this.id}-body-section`;
+  readonly filterId = `${this.id}-filter`;
+  readonly headingSectionId = `${this.id}-heading-section`;
+  readonly bodySectionId = `${this.id}-body-section`;
 
-  toLocationTrees = (entries: OverviewItem[]): DataSource<TreeNode>[] => {
+  readonly toLocationTrees = (entries: OverviewItem[]): DataSource<TreeNode>[] => {
     const rootNodes = entries
       .filter((entry) => !!(entry.parent_location_details?.pk == null))
       .map((rootItem) => recursivelyBuildLocationTree(rootItem, entries, 0));

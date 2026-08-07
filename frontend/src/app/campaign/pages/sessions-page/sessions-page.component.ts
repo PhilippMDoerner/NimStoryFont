@@ -18,8 +18,8 @@ import { SessionsPageStore } from './sessions-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionsPageComponent {
-  store = inject(SessionsPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(SessionsPageStore);
+  readonly globalStore = inject(GlobalStore);
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(
       () =>

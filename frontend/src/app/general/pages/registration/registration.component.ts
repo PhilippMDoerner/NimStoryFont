@@ -28,8 +28,8 @@ export class RegistrationComponent {
     this.store.createUserRequestState,
   );
 
-  userModel: Partial<User> = {};
-  userFields: FormlyFieldConfig[] = [
+  readonly userModel: Partial<User> = {};
+  readonly userFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       inputKind: 'NAME',

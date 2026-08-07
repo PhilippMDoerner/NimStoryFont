@@ -23,5 +23,5 @@ export class FeatureService {
     stream: ({ params }) => this.http.get<FeatureConfig>(params),
   });
 
-  public features$ = this._features$.asReadonly();
+  public readonly features$ = this._features$.asReadonly();
 }

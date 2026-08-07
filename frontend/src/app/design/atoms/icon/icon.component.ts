@@ -18,11 +18,11 @@ import { Icon, IconKind, toIconKind } from '../_models/icon';
   },
 })
 export class IconComponent {
-  icon = input.required<Icon>();
+  readonly icon = input.required<Icon>();
 
-  iconType = computed<IconKind | undefined>(() => toIconKind(this.icon()));
+  readonly iconType = computed<IconKind | undefined>(() => toIconKind(this.icon()));
 
-  classes = computed(() => {
+  readonly classes = computed(() => {
     if (!this.iconType()) return '';
     return `${this.iconType()} fa-${this.icon()}`;
   });

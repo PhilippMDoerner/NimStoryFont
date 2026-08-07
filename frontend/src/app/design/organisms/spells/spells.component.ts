@@ -65,14 +65,14 @@ interface SpellCard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsComponent {
-  DEFAULT_TITLE = 'New Article Item';
-  campaignId = input.required<number>();
-  spells = input.required<Spell[]>();
-  playerClasses = input.required<PlayerClass[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Spell | undefined>();
+  readonly DEFAULT_TITLE = 'New Article Item';
+  readonly campaignId = input.required<number>();
+  readonly spells = input.required<Spell[]>();
+  readonly playerClasses = input.required<PlayerClass[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Spell | undefined>();
 
   readonly spellDelete = output<Spell>();
   readonly spellUpdate = output<Spell>();
@@ -81,13 +81,13 @@ export class SpellsComponent {
   readonly connectionCreate = output<SpellPlayerClassConnection>();
   readonly spellClassClick = output<PlayerClass>();
 
-  spellElements = viewChildren<ElementRef<HTMLDivElement>>('spell');
-  isCreatingSpell = signal(false);
-  createSpellData = computed(
+  readonly spellElements = viewChildren<ElementRef<HTMLDivElement>>('spell');
+  readonly isCreatingSpell = signal(false);
+  readonly createSpellData = computed(
     () => ({ name: this.DEFAULT_TITLE, campaign: this.campaignId() }) as Spell,
   );
 
-  spellCards = computed<FocusItem<SpellCard>[]>(() => {
+  readonly spellCards = computed<FocusItem<SpellCard>[]>(() => {
     const spells = this.spells().map((spell) => ({
       id: spell.pk ?? getPseudoRandomId(),
       data: {

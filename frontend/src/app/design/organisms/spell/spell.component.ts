@@ -56,15 +56,15 @@ type SpellState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
   ],
 })
 export class SpellComponent implements OnInit {
-  spell = input.required<Spell | undefined>();
-  playerClasses = input.required<PlayerClass[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Spell | undefined>();
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  submitButtonType = input<ElementKind>('PRIMARY');
-  disabledHotkeys = input<boolean>(false);
+  readonly spell = input.required<Spell | undefined>();
+  readonly playerClasses = input.required<PlayerClass[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Spell | undefined>();
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly submitButtonType = input<ElementKind>('PRIMARY');
+  readonly disabledHotkeys = input<boolean>(false);
 
   readonly spellDelete = output<Spell>();
   readonly spellCreate = output<Spell>();
@@ -73,9 +73,9 @@ export class SpellComponent implements OnInit {
   readonly connectionDelete = output<SpellPlayerClassConnection>();
   readonly connectionCreate = output<SpellPlayerClassConnection>();
 
-  userModel = signal<Spell | undefined>(undefined);
-  state = signal<SpellState>('DISPLAY');
-  playerClassConnections = computed<
+  readonly userModel = signal<Spell | undefined>(undefined);
+  readonly state = signal<SpellState>('DISPLAY');
+  readonly playerClassConnections = computed<
     BadgeListEntry<SpellPlayerClassConnection>[]
   >(() => {
     const classConnections: SpellPlayerClassConnection[] =
@@ -90,7 +90,7 @@ export class SpellComponent implements OnInit {
     });
   });
 
-  playerClassOptions = computed<PlayerClass[]>(() => {
+  readonly playerClassOptions = computed<PlayerClass[]>(() => {
     const playerClassInSpell = new Set(
       this.playerClassConnections().map((con) => con.badgeValue.player_class),
     );
@@ -100,7 +100,7 @@ export class SpellComponent implements OnInit {
     );
   });
 
-  contextMenuItems = computed<MenuItem[]>(() => {
+  readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
       menuItems.push({
@@ -131,7 +131,7 @@ export class SpellComponent implements OnInit {
     return menuItems;
   });
 
-  formlyFields: FormlyFieldConfig[] = [
+  readonly formlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildCheckboxConfig({
       key: 'concentration',
       label: 'Concentration',

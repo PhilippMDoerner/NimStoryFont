@@ -18,9 +18,9 @@ import { SessionaudioPageStore } from './sessionaudio-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioPageComponent {
-  serverUrl = '';
-  globalStore = inject(GlobalStore);
-  store = inject(SessionaudioPageStore);
+  readonly serverUrl = '';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(SessionaudioPageStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.sessionaudio() == null);

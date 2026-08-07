@@ -26,21 +26,21 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionsTemplateComponent {
-  campaignName = input.required<string>();
-  campaignId = input.required<number>();
-  sessions = input.required<Session[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Session | undefined>();
+  readonly campaignName = input.required<string>();
+  readonly campaignId = input.required<number>();
+  readonly sessions = input.required<Session[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Session | undefined>();
 
   readonly sessionDelete = output<Session>();
   readonly sessionUpdate = output<Session>();
   readonly sessionCreate = output<SessionRaw>();
 
-  routingService = inject(RoutingService);
+  readonly routingService = inject(RoutingService);
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', { campaign: this.campaignName() }),
   );
 }

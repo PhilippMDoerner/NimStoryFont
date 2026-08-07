@@ -62,18 +62,18 @@ export class FormlyAutocompleteFieldComponent<T>
   extends FieldType<FieldTypeConfig>
   implements OnInit, OnDestroy
 {
-  destroy$ = new Subject<void>();
-  randomId = crypto.randomUUID();
-  inputElement = viewChild<ElementRef<HTMLInputElement>>(`input`);
-  inputElement$: Observable<ElementRef<HTMLInputElement>> = toObservable(
+  readonly destroy$ = new Subject<void>();
+  readonly randomId = crypto.randomUUID();
+  readonly inputElement = viewChild<ElementRef<HTMLInputElement>>(`input`);
+  readonly inputElement$: Observable<ElementRef<HTMLInputElement>> = toObservable(
     this.inputElement,
   ).pipe(filterNil());
 
-  customProps: CustomAutocompleteProps<T> = this.props['additionalProperties'];
+  readonly customProps: CustomAutocompleteProps<T> = this.props['additionalProperties'];
 
-  htmlBadgeClickEvents$ = new Subject<void>();
-  inputValue = '';
-  htmlInputEvents$: Observable<{ event: Event; inputValue: string }> =
+  readonly htmlBadgeClickEvents$ = new Subject<void>();
+  readonly inputValue = '';
+  readonly htmlInputEvents$: Observable<{ event: Event; inputValue: string }> =
     this.inputElement$.pipe(
       switchMap((input) => fromEvent(input.nativeElement, 'input')),
       map((event) => ({
@@ -83,26 +83,26 @@ export class FormlyAutocompleteFieldComponent<T>
       tap(() => this.formControl.markAsDirty()),
     );
   // Clears select and input when backspace on an empty input field is pressed
-  htmlBackspaceClearEvents$ = this.inputElement$.pipe(
+  readonly htmlBackspaceClearEvents$ = this.inputElement$.pipe(
     switchMap((input) => fromEvent(input.nativeElement, 'keydown')),
     filter((event) => (event as KeyboardEvent).key === 'Backspace'),
     filter(() => this.inputElement()?.nativeElement.value === ''),
     map(() => void 0),
     debounceTime(100),
   );
-  manualInputTrigger$ = new Subject<string>();
-  manualInputEvents$ = this.manualInputTrigger$.pipe(
+  readonly manualInputTrigger$ = new Subject<string>();
+  readonly manualInputEvents$ = this.manualInputTrigger$.pipe(
     map((manualValue) => ({ event: null, inputValue: manualValue })),
   );
-  inputEvents$ = merge(this.htmlInputEvents$, this.manualInputEvents$);
+  readonly inputEvents$ = merge(this.htmlInputEvents$, this.manualInputEvents$);
 
   // Clears select and input when the input field has been emptied
-  inputClearSelectEvents$ = this.inputEvents$.pipe(
+  readonly inputClearSelectEvents$ = this.inputEvents$.pipe(
     filter((event) => event.inputValue.length === 0),
     map(() => void 0),
     debounceTime(100),
   );
-  clearSelectEvents$ = merge(
+  readonly clearSelectEvents$ = merge(
     this.inputClearSelectEvents$,
     this.htmlBadgeClickEvents$,
     this.htmlBackspaceClearEvents$,
@@ -113,9 +113,9 @@ export class FormlyAutocompleteFieldComponent<T>
       selectedOption: undefined,
     })),
   );
-  selectEvents$!: Observable<AutocompleteSelectEvent<T>>;
-  isLoading$ = new ReplaySubject(1);
-  options$: Observable<T[]> = this.htmlInputEvents$.pipe(
+  readonly selectEvents$!: Observable<AutocompleteSelectEvent<T>>;
+  readonly isLoading$ = new ReplaySubject(1);
+  readonly options$: Observable<T[]> = this.htmlInputEvents$.pipe(
     debounceTime(500),
     tap(() => this.isLoading$.next(true)),
     switchMap(() => {
@@ -138,8 +138,8 @@ export class FormlyAutocompleteFieldComponent<T>
     shareReplay(1),
   );
 
-  selectedOption$!: Observable<T | undefined>;
-  selectedLabel$!: Observable<string | undefined>;
+  readonly selectedOption$!: Observable<T | undefined>;
+  readonly selectedLabel$!: Observable<string | undefined>;
 
   onFocus() {
     this.inputElement()?.nativeElement.focus();

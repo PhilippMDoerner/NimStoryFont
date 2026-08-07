@@ -8,5 +8,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HtmlTextComponent {
-  text = input.required<string>();
+  readonly text = input.required<string>();
 }

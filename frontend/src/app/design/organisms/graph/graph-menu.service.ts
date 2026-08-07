@@ -29,11 +29,11 @@ const INTERACTABLE_ELEMENT_SELECTORS = [
 
 @Injectable()
 export class GraphMenuService implements OnDestroy {
-  articleService = inject(ArticleService);
+  readonly articleService = inject(ArticleService);
 
-  allGraphClickEvents$ = new Subject<MouseEvent>(); //All click events the graph registered
+  readonly allGraphClickEvents$ = new Subject<MouseEvent>(); //All click events the graph registered
 
-  private directGraphClickEvents$ = this.allGraphClickEvents$.pipe(
+  private readonly directGraphClickEvents$ = this.allGraphClickEvents$.pipe(
     filter((event) => {
       const clickTarget = event.target as Element;
       const isClickOnGraph = !INTERACTABLE_ELEMENT_SELECTORS.some(
@@ -42,12 +42,12 @@ export class GraphMenuService implements OnDestroy {
       return isClickOnGraph;
     }),
   );
-  private nodeMenuElementCreatedEvent$ = new Subject<void>();
-  private linkMenuElementCreatedEvent$ = new Subject<void>();
-  private nodeMenuClickEvents$ = new Subject<NodeMenuClickEvent>();
-  private linkMenuClickEvents$ = new Subject<LinkClickEvent>();
+  private readonly nodeMenuElementCreatedEvent$ = new Subject<void>();
+  private readonly linkMenuElementCreatedEvent$ = new Subject<void>();
+  private readonly nodeMenuClickEvents$ = new Subject<NodeMenuClickEvent>();
+  private readonly linkMenuClickEvents$ = new Subject<LinkClickEvent>();
 
-  linkDeleteEvents$ = this.linkMenuClickEvents$.pipe(
+  readonly linkDeleteEvents$ = this.linkMenuClickEvents$.pipe(
     filter((event) => {
       const clickTarget = event.event.target as Element;
       const isClickOnDeleteOption = !!clickTarget.closest(

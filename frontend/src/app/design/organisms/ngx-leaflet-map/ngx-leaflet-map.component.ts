@@ -44,24 +44,24 @@ type TextColor = 'black' | 'white';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NgxLeafletMapComponent {
-  private BRIGHT_BG_COLORS: string[] = ['beige', 'lightgreen'];
-  private MAP_BOUNDS: LatLngBoundsExpression = [
+  private readonly BRIGHT_BG_COLORS: string[] = ['beige', 'lightgreen'];
+  private readonly MAP_BOUNDS: LatLngBoundsExpression = [
     [200, 140],
     [800, 1160],
   ];
-  mapData = input.required<ExtendedMap>();
-  serverUrl = input.required<string>();
+  readonly mapData = input.required<ExtendedMap>();
+  readonly serverUrl = input.required<string>();
 
-  leafletMap = signal<Map | undefined>(undefined);
-  options: MapOptions = {
+  readonly leafletMap = signal<Map | undefined>(undefined);
+  readonly options: MapOptions = {
     minZoom: -1,
     maxZoom: 2,
     crs: CRS.Simple,
   };
-  layers = computed<Layer[]>(() =>
+  readonly layers = computed<Layer[]>(() =>
     this.initLayers(this.serverUrl(), this.mapData()),
   );
-  layersControl = computed<LeafletControlLayersConfig>(() => ({
+  readonly layersControl = computed<LeafletControlLayersConfig>(() => ({
     baseLayers: {},
     overlays: {
       ...this.markerLayers(),
@@ -71,10 +71,10 @@ export class NgxLeafletMapComponent {
     },
   }));
 
-  markerLayers = computed<{ [key: string]: LayerGroup }>(() =>
+  readonly markerLayers = computed<{ [key: string]: LayerGroup }>(() =>
     this.toMarkerLayers(this.mapData()),
   ); //Needed so I can add these layers to both leafletMap and layersControls
-  hideCoordinatesState = true;
+  readonly hideCoordinatesState = true;
 
   constructor(private routingService: RoutingService) {
     effect(() => {

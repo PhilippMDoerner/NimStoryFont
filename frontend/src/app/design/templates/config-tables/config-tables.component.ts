@@ -33,10 +33,10 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfigTablesComponent {
-  currentCampaignId = input.required<number | undefined>();
-  tableData = input.required<ConfigTableData>();
-  canDeleteGlobalEntries = input.required<boolean>();
-  hasCampaignWritePermission = input.required<boolean>();
+  readonly currentCampaignId = input.required<number | undefined>();
+  readonly tableData = input.required<ConfigTableData>();
+  readonly canDeleteGlobalEntries = input.required<boolean>();
+  readonly hasCampaignWritePermission = input.required<boolean>();
 
   readonly loadTableEntries = output<ConfigTableKind>();
   readonly deleteTableEntry = output<{
@@ -48,12 +48,12 @@ export class ConfigTablesComponent {
     entry: unknown;
   }>();
 
-  canCreate = computed<boolean>(() => {
+  readonly canCreate = computed<boolean>(() => {
     if (this.canDeleteGlobalEntries()) return true;
     const isCampaignView = this.currentCampaignId() != null;
     return isCampaignView ? this.hasCampaignWritePermission() : false;
   });
-  tables = computed(() => [
+  readonly tables = computed(() => [
     {
       name: 'Marker Type',
       kind: 'MARKER_TYPE',
@@ -141,7 +141,7 @@ export class ConfigTablesComponent {
     } satisfies ConfigTable<NodeLinkType, NodeLinkTypeRaw>,
   ]);
 
-  campaignOverviewUrl = this.routingService.getRoutePath('campaign-overview');
+  readonly campaignOverviewUrl = this.routingService.getRoutePath('campaign-overview');
 
   constructor(
     private routingService: RoutingService,

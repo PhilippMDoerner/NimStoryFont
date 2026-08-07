@@ -45,19 +45,19 @@ import { DiaryEntryCreateUpdatePageStore } from './diaryentry-create-update-page
   changeDetection: ChangeDetectionStrategy.Default,
 })
 export class DiaryentryCreateUpdatePageComponent {
-  private formlyService = inject(FormlyService);
-  store = inject(DiaryEntryCreateUpdatePageStore);
-  private globalStore = inject(GlobalStore);
-  private route = inject(ActivatedRoute);
-  private routingService = inject(RoutingService);
-  private destroyer = inject(DestroyRef);
+  private readonly formlyService = inject(FormlyService);
+  readonly store = inject(DiaryEntryCreateUpdatePageStore);
+  private readonly globalStore = inject(GlobalStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routingService = inject(RoutingService);
+  private readonly destroyer = inject(DestroyRef);
 
-  private routeUrlSegments = toSignal(this.route.url);
-  private authors$ = toObservable(this.store.authors).pipe(filterNil());
-  private sessions$ = toObservable(this.store.sessions).pipe(filterNil());
-  private queryState$ = toObservable(this.store.diaryentryQueryState);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly authors$ = toObservable(this.store.authors).pipe(filterNil());
+  private readonly sessions$ = toObservable(this.store.sessions).pipe(filterNil());
+  private readonly queryState$ = toObservable(this.store.diaryentryQueryState);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -74,7 +74,7 @@ export class DiaryentryCreateUpdatePageComponent {
     }
   });
 
-  heading = computed<string>(() => {
+  readonly heading = computed<string>(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Diaryentry';
@@ -84,7 +84,7 @@ export class DiaryentryCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed<DiaryEntry | Partial<DiaryEntryRaw>>(() => {
+  readonly userModel = computed<DiaryEntry | Partial<DiaryEntryRaw>>(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -95,9 +95,9 @@ export class DiaryentryCreateUpdatePageComponent {
         return { ...this.store.diaryentry() } as DiaryEntry;
     }
   });
-  userModel$ = toObservable(this.userModel);
+  readonly userModel$ = toObservable(this.userModel);
 
-  hasMainSessionToday = computed<boolean>(() => {
+  readonly hasMainSessionToday = computed<boolean>(() => {
     const todayDate = this.getTodaysSessionDateInFormat();
     return (
       this.store
@@ -109,7 +109,7 @@ export class DiaryentryCreateUpdatePageComponent {
         ) ?? false
     );
   });
-  hasSideSessionToday = computed<boolean>(() => {
+  readonly hasSideSessionToday = computed<boolean>(() => {
     const todayDate = this.getTodaysSessionDateInFormat();
     return (
       this.store
@@ -122,7 +122,7 @@ export class DiaryentryCreateUpdatePageComponent {
     );
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'title', inputKind: 'NAME' }),
     /**
      * This is overly complicated. The async validator out here is ONLY there to enable/disable the

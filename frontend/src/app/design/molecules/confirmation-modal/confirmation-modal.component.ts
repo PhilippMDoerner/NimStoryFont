@@ -23,23 +23,23 @@ import { DeleteModalComponent } from "../delete-modal/delete-modal.component";
   imports: [ DeleteModalComponent],
 })
 export class ConfirmationModalComponent<T> {
-  heading = input.required<string>();
-  confirmValue = input.required<T>();
-  submitIcon = input<Icon>();
-  modalType = input<ElementKind>('PRIMARY');
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  submitButtonLabel = input<string>('Yes');
-  cancelButtonLabel = input<string>('No');
+  readonly heading = input.required<string>();
+  readonly confirmValue = input.required<T>();
+  readonly submitIcon = input<Icon>();
+  readonly modalType = input<ElementKind>('PRIMARY');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly submitButtonLabel = input<string>('Yes');
+  readonly cancelButtonLabel = input<string>('No');
 
-  modalClass = computed(
+  readonly modalClass = computed(
     () => `modal-border--${this.modalType().toLowerCase()}`,
   );
   readonly modalClose = output<void>();
   readonly confirm = output<T>();
   readonly cancelled = output<T>();
 
-  id = componentId();
-  bodyId = `${this.id}-body`;
+  readonly id = componentId();
+  readonly bodyId = `${this.id}-body`;
 
   constructor(private modalService: NgbModal) {}
 

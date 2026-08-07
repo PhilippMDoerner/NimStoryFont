@@ -20,10 +20,10 @@ import { MapPageStore } from './map-page.store';
   imports: [MapComponent],
 })
 export class MapPageComponent {
-  serverUrl = '';
-  store = inject(MapPageStore);
-  globalStore = inject(GlobalStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly store = inject(MapPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.map() == null);

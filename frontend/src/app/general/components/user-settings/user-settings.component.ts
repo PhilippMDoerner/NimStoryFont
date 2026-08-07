@@ -68,19 +68,19 @@ const DESCRIPTIONS: Record<ShortcutAction, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserSettingsComponent {
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  shortcutMap = input<ShortcutMapping>();
+  readonly shortcutMap = input<ShortcutMapping>();
 
-  shortcutMapChanged = output<{
+  readonly shortcutMapChanged = output<{
     action: ShortcutAction;
     keys: KeyCombination;
   }>();
-  shortcutResetRequested = output<ShortcutAction>();
+  readonly shortcutResetRequested = output<ShortcutAction>();
 
-  isMobile$ = inject(ScreenService).isMobile$;
+  readonly isMobile$ = inject(ScreenService).isMobile$;
 
-  mappingEntries = computed<MappingEntry[] | undefined>(() => {
+  readonly mappingEntries = computed<MappingEntry[] | undefined>(() => {
     const shortcutMapping = this.shortcutMap();
     if (!shortcutMapping) return;
 
@@ -103,8 +103,8 @@ export class UserSettingsComponent {
     });
   });
 
-  displayedColumns = ['index', 'action', 'shortcut', 'actions'];
-  shortcutsSectionLabelId = `shortcuts-${componentId()}`;
+  readonly displayedColumns = ['index', 'action', 'shortcut', 'actions'];
+  readonly shortcutsSectionLabelId = `shortcuts-${componentId()}`;
 
   openEditShortcutDialog(action: ShortcutAction, modified: boolean) {
     const modalRef = this.modalService.open(EditShortcutDialogComponent, {

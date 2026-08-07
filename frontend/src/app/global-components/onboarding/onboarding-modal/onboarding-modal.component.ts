@@ -25,15 +25,15 @@ import { OnboardingStepperComponent } from '../onboarding-stepper/onboarding-ste
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnboardingModalComponent {
-  isCampaignAdmin = input<boolean>();
+  readonly isCampaignAdmin = input<boolean>();
 
-  modalService = inject(NgbModal);
-  authStore = inject(AuthStore);
-  preferencesStore = inject(UserPreferencesStore);
+  readonly modalService = inject(NgbModal);
+  readonly authStore = inject(AuthStore);
+  readonly preferencesStore = inject(UserPreferencesStore);
 
-  activeStepElement = signal<CdkStep | undefined>(undefined);
+  readonly activeStepElement = signal<CdkStep | undefined>(undefined);
 
-  modalTitle = `${componentId()}-onboarding-modal-title`;
+  readonly modalTitle = `${componentId()}-onboarding-modal-title`;
 
   constructor(hotkeyService: HotkeyService) {
     hotkeyService

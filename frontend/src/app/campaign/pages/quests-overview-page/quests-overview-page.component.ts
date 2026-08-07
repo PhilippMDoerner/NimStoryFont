@@ -18,8 +18,8 @@ import { QuestOverviewPageStore } from './quests-overview-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestsOverviewPageComponent {
-  store = inject(QuestOverviewPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(QuestOverviewPageStore);
+  readonly globalStore = inject(GlobalStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(

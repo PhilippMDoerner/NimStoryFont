@@ -14,12 +14,12 @@ import {
 export class ResizeDirective<T extends HTMLElement>
   implements OnInit, OnDestroy
 {
-  listenTo = input.required<'FIRST' | 'LAST' | 'ALL'>();
-  resized = output<ResizeObserverEntry>();
+  readonly listenTo = input.required<'FIRST' | 'LAST' | 'ALL'>();
+  readonly resized = output<ResizeObserverEntry>();
 
-  private element = inject(ElementRef<T>);
+  private readonly element = inject(ElementRef<T>);
 
-  observer = new ResizeObserver((entries) => {
+  readonly observer = new ResizeObserver((entries) => {
     if (entries.length === 0) return;
 
     switch (this.listenTo()) {

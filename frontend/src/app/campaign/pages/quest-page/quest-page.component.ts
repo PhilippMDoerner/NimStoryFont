@@ -22,11 +22,11 @@ import { QuestPageStore } from './quest-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestPageComponent {
-  store = inject(QuestPageStore);
-  globalStore = inject(GlobalStore);
-  routingService = inject(RoutingService);
+  readonly store = inject(QuestPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
 
-  questDeleteState$ = toObservable(this.store.questDeleteState);
+  readonly questDeleteState$ = toObservable(this.store.questDeleteState);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.quest() == null);

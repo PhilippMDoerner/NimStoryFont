@@ -18,7 +18,7 @@ import { MarkerPageStore } from './marker-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerPageComponent {
-  store = inject(MarkerPageStore);
+  readonly store = inject(MarkerPageStore);
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.marker() == null);
 

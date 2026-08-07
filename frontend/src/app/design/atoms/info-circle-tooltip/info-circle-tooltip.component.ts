@@ -16,11 +16,11 @@ import { IconComponent } from '../icon/icon.component';
     imports: [IconComponent, NgbTooltip]
 })
 export class InfoCircleTooltipComponent<T> {
-  tooltip = input.required<string | TemplateRef<T>>();
-  text = input.required<string>();
-  placement = input<Placement>('top');
+  readonly tooltip = input.required<string | TemplateRef<T>>();
+  readonly text = input.required<string>();
+  readonly placement = input<Placement>('top');
 
-  tooltipKind = computed(() =>
+  readonly tooltipKind = computed(() =>
     this.tooltip() instanceof TemplateRef ? 'custom' : 'text',
   );
 }

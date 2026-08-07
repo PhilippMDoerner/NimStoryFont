@@ -52,11 +52,11 @@ type UserState = 'CREATE' | 'DISPLAY';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SiteAdminComponent {
-  users = input.required<User[] | undefined>();
-  campaigns = input.required<Campaign[] | undefined>();
-  allGroups = input.required<PermissionGroup[] | undefined>();
-  statistics = input.required<WikiStatistics | undefined>();
-  serverUrl = input.required<string>();
+  readonly users = input.required<User[] | undefined>();
+  readonly campaigns = input.required<Campaign[] | undefined>();
+  readonly allGroups = input.required<PermissionGroup[] | undefined>();
+  readonly statistics = input.required<WikiStatistics | undefined>();
+  readonly serverUrl = input.required<string>();
 
   readonly createCampaign = output<BaseCampaignData>();
   readonly createUser = output<User>();
@@ -65,9 +65,10 @@ export class SiteAdminComponent {
   readonly downloadDatabase = output<void>();
   readonly deleteUser = output<User>();
 
-  campaignOverviewUrl = this.routingService.getRoutePath('campaign-overview');
+  readonly campaignOverviewUrl =
+    this.routingService.getRoutePath('campaign-overview');
 
-  userCards = computed<{ isOpen: boolean; user: User }[]>(() => {
+  readonly userCards = computed<{ isOpen: boolean; user: User }[]>(() => {
     return (this.users() ?? [])
       .map((user) => ({ isOpen: false, user }))
       .sort((entry1, entry2) =>
@@ -76,9 +77,9 @@ export class SiteAdminComponent {
           : -1,
       );
   });
-  userState = signal<UserState>('DISPLAY');
+  readonly userState = signal<UserState>('DISPLAY');
   userModel!: Partial<User>;
-  userFields: FormlyFieldConfig[] = [
+  readonly userFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       inputKind: 'NAME',
@@ -92,7 +93,8 @@ export class SiteAdminComponent {
     }),
   ];
 
-  createCampaignUrl = this.routingService.getRoutePath('campaign-create');
+  readonly createCampaignUrl =
+    this.routingService.getRoutePath('campaign-create');
   constructor(
     private routingService: RoutingService,
     private formlyService: FormlyService,

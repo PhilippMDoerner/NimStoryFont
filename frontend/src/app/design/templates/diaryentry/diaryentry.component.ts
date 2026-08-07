@@ -56,15 +56,15 @@ type DiaryEntryState = 'DISPLAY' | 'EDIT';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryComponent {
-  diaryentry = input.required<DiaryEntry>();
-  sortedEncounters = input.required<Encounter[]>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  campaignLocations = input.required<OverviewItem[]>();
-  encounterServerModel = input.required<Encounter | undefined>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  isUpdatingEncounters = input.required<boolean>();
+  readonly diaryentry = input.required<DiaryEntry>();
+  readonly sortedEncounters = input.required<Encounter[]>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly campaignLocations = input.required<OverviewItem[]>();
+  readonly encounterServerModel = input.required<Encounter | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly isUpdatingEncounters = input.required<boolean>();
 
   readonly diaryentryDelete = output<DiaryEntry>();
   readonly encounterConnectionDelete = output<EncounterConnection>();
@@ -77,18 +77,18 @@ export class DiaryentryComponent {
     newOrderIndex: number;
   }>();
   readonly encounterSwap = output<{ enc1: Encounter; enc2: Encounter }>();
-  addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
+  readonly addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
 
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  state = signal<DiaryEntryState>('DISPLAY');
-  campaignName = computed(() => this.diaryentry().campaign_details.name);
-  overviewUrl = computed(() =>
+  readonly state = signal<DiaryEntryState>('DISPLAY');
+  readonly campaignName = computed(() => this.diaryentry().campaign_details.name);
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('diaryentry-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() => {
+  readonly updateUrl = computed(() => {
     const {
       session_number: sessionNumber,
       is_main_session_int: isMainSession,
@@ -101,19 +101,19 @@ export class DiaryentryComponent {
       campaign: this.campaignName(),
     });
   });
-  nextDiaryentryUrl = computed(() => {
+  readonly nextDiaryentryUrl = computed(() => {
     const nextDiaryentryStub =
       this.diaryentry().adjacent_diaryentries.next_diaryentry;
     return this.createDiaryentryURL(nextDiaryentryStub);
   });
-  priorDiaryentryUrl = computed(() => {
+  readonly priorDiaryentryUrl = computed(() => {
     const priorDiaryentryStub =
       this.diaryentry().adjacent_diaryentries.prior_diaryentry;
     return this.createDiaryentryURL(priorDiaryentryStub);
   });
 
-  id = componentId();
-  encountersListId = `${this.id}-encounters`;
+  readonly id = componentId();
+  readonly encountersListId = `${this.id}-encounters`;
 
   constructor(public routingService: RoutingService) {}
 

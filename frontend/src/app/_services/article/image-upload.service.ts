@@ -14,8 +14,8 @@ import { CUDService } from '../service.interfaces';
   providedIn: 'root',
 })
 export class ImageUploadService implements CUDService<Image> {
-  apiUrl: string = environment.apiUrl;
-  baseUrl = `${this.apiUrl}/image`;
+  readonly apiUrl: string = environment.apiUrl;
+  readonly baseUrl = `${this.apiUrl}/image`;
 
   constructor(private http: HttpClient) {}
 

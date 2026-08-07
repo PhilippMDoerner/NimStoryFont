@@ -40,18 +40,18 @@ type MembershipFormState = 'CREATE' | 'DISPLAY';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterCreateUpdateComponent {
-  state = input.required<CreateUpdateState>();
-  campaignName = input.required<string>();
-  userModel = input<Partial<CharacterDetails>>({});
-  serverModel = input.required<CharacterDetails | undefined>();
-  lastVisitedPlaceOptions = input.required<OverviewItem[]>();
+  readonly state = input.required<CreateUpdateState>();
+  readonly campaignName = input.required<string>();
+  readonly userModel = input<Partial<CharacterDetails>>({});
+  readonly serverModel = input.required<CharacterDetails | undefined>();
+  readonly lastVisitedPlaceOptions = input.required<OverviewItem[]>();
 
   readonly create = output<CharacterDetails>();
   readonly update = output<CharacterDetails>();
   readonly cancelled = output<void>();
 
-  lastVisitedPlaceOptions$ = toObservable(this.lastVisitedPlaceOptions);
-  formlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly lastVisitedPlaceOptions$ = toObservable(this.lastVisitedPlaceOptions);
+  readonly formlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildCheckboxConfig({
       key: 'player_character',
       label: 'Player Character',
@@ -94,9 +94,9 @@ export class CharacterCreateUpdateComponent {
     }),
   ]);
 
-  heading = computed(() => this.getHeading(this.state()));
+  readonly heading = computed(() => this.getHeading(this.state()));
 
-  membershipFormState = signal<MembershipFormState>('DISPLAY');
+  readonly membershipFormState = signal<MembershipFormState>('DISPLAY');
 
   constructor(private formlyService: FormlyService) {}
 

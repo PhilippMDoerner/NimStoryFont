@@ -69,12 +69,12 @@ export class TreeNodeCountPipe implements PipeTransform {
   },
 })
 export class TreeComponent implements AfterViewInit {
-  data = input.required<DataSource<TreeNode>>();
-  expandOnInit = input<boolean>(false);
+  readonly data = input.required<DataSource<TreeNode>>();
+  readonly expandOnInit = input<boolean>(false);
 
-  tree = viewChild.required<CdkTree<TreeNode>>('tree');
+  readonly tree = viewChild.required<CdkTree<TreeNode>>('tree');
 
-  public router = inject(Router);
+  public readonly router = inject(Router);
 
   ngAfterViewInit(): void {
     if (this.expandOnInit()) {
@@ -82,10 +82,10 @@ export class TreeComponent implements AfterViewInit {
     }
   }
 
-  childrenAccessor = (dataNode: TreeNode) => dataNode.children ?? [];
+  readonly childrenAccessor = (dataNode: TreeNode) => dataNode.children ?? [];
 
-  hasChild = (_: number, node: TreeNode) =>
+  readonly hasChild = (_: number, node: TreeNode) =>
     !!node.children && node.children.length > 0;
 
-  trackByFn = (_: number, node: TreeNode) => node.id;
+  readonly trackByFn = (_: number, node: TreeNode) => node.id;
 }

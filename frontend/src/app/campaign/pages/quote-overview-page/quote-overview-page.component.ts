@@ -28,11 +28,11 @@ import { QuoteOverviewPageStore } from './quote-overview-page.store';
   providers: [],
 })
 export class QuoteOverviewPageComponent {
-  store = inject(QuoteOverviewPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(QuoteOverviewPageStore);
+  readonly globalStore = inject(GlobalStore);
 
-  routingService = inject(RoutingService);
-  characterUrl = computed(() =>
+  readonly routingService = inject(RoutingService);
+  readonly characterUrl = computed(() =>
     this.routingService.getRoutePath('character', {
       campaign: this.globalStore.campaignName(),
       name: this.store.character()?.name,

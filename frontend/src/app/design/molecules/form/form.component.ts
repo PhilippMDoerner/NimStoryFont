@@ -33,24 +33,24 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
   ],
 })
 export class FormComponent<T> {
-  form = new FormGroup({});
+  readonly form = new FormGroup({});
 
-  model = input.required<T>();
-  fields = input.required<FormlyFieldConfig[]>();
-  enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
-  enableSubmitButtons = input(true);
-  disabled = input(false);
-  submitButtonType = input<ElementKind>('PRIMARY');
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  submitIcon = input<Icon>();
-  isLoading = input<boolean>(false);
-  disabledHotkeys = input<boolean>(false);
+  readonly model = input.required<T>();
+  readonly fields = input.required<FormlyFieldConfig[]>();
+  readonly enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
+  readonly enableSubmitButtons = input(true);
+  readonly disabled = input(false);
+  readonly submitButtonType = input<ElementKind>('PRIMARY');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly submitIcon = input<Icon>();
+  readonly isLoading = input<boolean>(false);
+  readonly disabledHotkeys = input<boolean>(false);
 
   readonly formlySubmit = output<NonNullable<T>>();
   readonly formlyCancel = output<void>();
-  formChange = output<Partial<T>>();
+  readonly formChange = output<Partial<T>>();
 
-  formErrors = toSignal(
+  readonly formErrors = toSignal(
     interval(1000).pipe(
       startWith([]),
       map(() => this.form.errors),
@@ -66,7 +66,7 @@ export class FormComponent<T> {
     ),
   );
 
-  usedFields = computed<FormlyFieldConfig[]>(() => {
+  readonly usedFields = computed<FormlyFieldConfig[]>(() => {
     return this.fields().map((field) => {
       return {
         ...field,

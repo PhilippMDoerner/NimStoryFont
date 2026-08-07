@@ -17,13 +17,13 @@ import { componentId } from 'src/utils/DOM';
   },
 })
 export class SwitchComponent {
-  label = input.required<string>();
-  checked = input.required<boolean>();
-  ariaControls = input<string>();
-  disabled = input<boolean>();
+  readonly label = input.required<string>();
+  readonly checked = input.required<boolean>();
+  readonly ariaControls = input<string>();
+  readonly disabled = input<boolean>();
 
-  changed = output<boolean>();
-  id = componentId();
+  readonly changed = output<boolean>();
+  readonly id = componentId();
 
   switch(value: boolean) {
     this.changed.emit(value);

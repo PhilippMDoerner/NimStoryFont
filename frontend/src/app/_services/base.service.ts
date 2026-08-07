@@ -22,8 +22,8 @@ export interface ReadByNameParams {
 export abstract class BaseService<Raw, Detail>
   implements CampaignService<Detail>
 {
-  public apiUrl: string = environment.apiUrl;
-  public baseUrl: string;
+  public readonly apiUrl: string = environment.apiUrl;
+  public readonly baseUrl: string;
 
   constructor(
     public http: HttpClient,

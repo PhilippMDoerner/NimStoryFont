@@ -24,11 +24,11 @@ import { GlobalStore } from 'src/app/global.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignConfigAdministrationPageComponent {
-  store = inject(ConfigAdministrationPageStore);
-  globalStore = inject(GlobalStore);
-  authStore = inject(AuthStore);
+  readonly store = inject(ConfigAdministrationPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly authStore = inject(AuthStore);
 
-  tableData = computed<ConfigTableData>(() => {
+  readonly tableData = computed<ConfigTableData>(() => {
     return {
       MARKER_TYPE: this.store.campaignMarkerTypes(),
       PLAYER_CLASS: this.store.campaignPlayerClasses(),

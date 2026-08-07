@@ -15,13 +15,13 @@ import { log } from 'src/utils/logging';
   providedIn: 'root',
 })
 export class TokenService {
-  static USER_DATA_KEY = 'user_data';
+  static readonly USER_DATA_KEY = 'user_data';
 
-  apiUrl = environment.apiUrl;
+  readonly apiUrl = environment.apiUrl;
 
-  private jwtTokenUrl = `${this.apiUrl}/token`;
-  public refreshTokenUrl = `${this.jwtTokenUrl}/refresh`;
-  private ID_IDENTIFIER_PREFIX = 'id_';
+  private readonly jwtTokenUrl = `${this.apiUrl}/token`;
+  public readonly refreshTokenUrl = `${this.jwtTokenUrl}/refresh`;
+  private readonly ID_IDENTIFIER_PREFIX = 'id_';
 
   constructor(private http: HttpClient) {}
 

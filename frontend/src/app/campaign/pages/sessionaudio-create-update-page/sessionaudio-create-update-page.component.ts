@@ -38,23 +38,27 @@ import { SessionaudioCreateUpdatePageStore } from './sessionaudio-create-update-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioCreateUpdatePageComponent {
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
-  globalStore = inject(GlobalStore);
-  store = inject(SessionaudioCreateUpdatePageStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(SessionaudioCreateUpdatePageStore);
 
-  private sessions$ = toObservable(this.store.campaignSessions).pipe(
+  private readonly sessions$ = toObservable(this.store.campaignSessions).pipe(
     filterNil(),
   );
-  private audioCreateState$ = toObservable(this.store.createSessionaudioState);
-  private audioUpdateState$ = toObservable(this.store.updateSessionaudioState);
-  private item$ = toObservable(this.store.sessionaudio);
+  private readonly audioCreateState$ = toObservable(
+    this.store.createSessionaudioState,
+  );
+  private readonly audioUpdateState$ = toObservable(
+    this.store.updateSessionaudioState,
+  );
+  private readonly item$ = toObservable(this.store.sessionaudio);
 
   @HostBinding('class.uploading') isUploading = false;
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -71,7 +75,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -83,7 +87,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     const session: Session | undefined =
       this.store.sessionaudio()?.session_details;
 
@@ -96,7 +100,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'session',
       options$: this.sessions$,

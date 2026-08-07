@@ -40,24 +40,24 @@ type State = 'DISPLAY' | 'DELETE' | 'UPDATE' | 'UPDATE_OUTDATED' | 'CREATE';
   },
 })
 export class ImageCarouselCardComponent {
-  images = input.required<Image[]>();
-  serverUrl = input.required<string>();
-  serverModel = input.required<Image | undefined>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
+  readonly images = input.required<Image[]>();
+  readonly serverUrl = input.required<string>();
+  readonly serverModel = input.required<Image | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
 
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
   readonly updateImage = output<Image>();
 
-  currentImageIndex = signal(0);
-  currentImage = computed(() => this.images()[this.currentImageIndex()]);
-  state = signal<State>('DISPLAY');
-  userModel = signal<Partial<Image> | null>({});
-  isLoading = signal(false);
+  readonly currentImageIndex = signal(0);
+  readonly currentImage = computed(() => this.images()[this.currentImageIndex()]);
+  readonly state = signal<State>('DISPLAY');
+  readonly userModel = signal<Partial<Image> | null>({});
+  readonly isLoading = signal(false);
 
-  createFields: FormlyFieldConfig[] = [
+  readonly createFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'name',
       label: 'Image Description',
@@ -114,7 +114,7 @@ export class ImageCarouselCardComponent {
     }),
   ];
 
-  updateFields: FormlyFieldConfig[] = this.formlyService.toUpdateForm(
+  readonly updateFields: FormlyFieldConfig[] = this.formlyService.toUpdateForm(
     this.createFields,
   );
 

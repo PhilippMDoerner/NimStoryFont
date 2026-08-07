@@ -34,8 +34,8 @@ export class CreateCampaignComponent {
     this.store.createCampaignRequestState,
   );
 
-  campaignModel: Partial<BaseCampaignData> = {};
-  campaignFields: FormlyFieldConfig[] = [
+  readonly campaignModel: Partial<BaseCampaignData> = {};
+  readonly campaignFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'name',
       inputKind: 'NAME',

@@ -7,8 +7,8 @@ import { MOBILE_WIDTH } from '../app.constants';
   providedIn: 'root',
 })
 export class ScreenService {
-  private document = inject(DOCUMENT);
-  private resizeEvents$ = this.document.defaultView
+  private readonly document = inject(DOCUMENT);
+  private readonly resizeEvents$ = this.document.defaultView
     ? fromEvent<Event>(this.document.defaultView, 'resize', {
         passive: true,
       }).pipe(
@@ -18,8 +18,8 @@ export class ScreenService {
       )
     : EMPTY;
 
-  public windowWidth$ = this.resizeEvents$.pipe(map((doc) => doc?.innerWidth));
-  public windowHeight$ = this.resizeEvents$.pipe(
+  public readonly windowWidth$ = this.resizeEvents$.pipe(map((doc) => doc?.innerWidth));
+  public readonly windowHeight$ = this.resizeEvents$.pipe(
     map((doc) => doc?.innerHeight),
   );
 
@@ -28,7 +28,7 @@ export class ScreenService {
     return windowWidth ? windowWidth <= MOBILE_WIDTH : false;
   }
 
-  public isMobile$ = this.windowWidth$.pipe(
+  public readonly isMobile$ = this.windowWidth$.pipe(
     map((width) => width && width <= MOBILE_WIDTH),
   );
 }

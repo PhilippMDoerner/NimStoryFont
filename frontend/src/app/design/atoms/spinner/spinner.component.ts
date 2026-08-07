@@ -8,5 +8,5 @@ import { ChangeDetectionStrategy, Component, HostBinding } from '@angular/core';
     imports: []
 })
 export class SpinnerComponent {
-  @HostBinding('class.spinner-border') spinnerBorder = true;
+  @HostBinding('class.spinner-border') readonly spinnerBorder = true;
 }

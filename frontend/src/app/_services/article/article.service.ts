@@ -12,10 +12,10 @@ import { RoutingService } from '../routing.service';
   providedIn: 'root',
 })
 export class ArticleService {
-  apiUrl: string = environment.apiUrl;
+  readonly apiUrl: string = environment.apiUrl;
 
-  recentlyUpdatedUrl = `${this.apiUrl}/recentupdates`;
-  searchUrl = `${this.apiUrl}/search`;
+  readonly recentlyUpdatedUrl = `${this.apiUrl}/recentupdates`;
+  readonly searchUrl = `${this.apiUrl}/search`;
 
   constructor(
     private routingService: RoutingService,

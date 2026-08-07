@@ -17,16 +17,16 @@ import { ButtonComponent } from '../button/button.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToggleButtonComponent {
-  kind = input.required<ElementKind>();
-  inactiveElementKind = input<ButtonKind>('LIGHT-OUTLINE');
-  active = input.required<boolean>();
-  id = input.required<string>();
-  ariaText = input<AriaText>();
-  disabled = input<boolean>(false);
-  icon = input<Icon>();
-  text = input<string>();
-  size = input<ElementSize>('MEDIUM');
-  ariaControls = input<string>();
+  readonly kind = input.required<ElementKind>();
+  readonly inactiveElementKind = input<ButtonKind>('LIGHT-OUTLINE');
+  readonly active = input.required<boolean>();
+  readonly id = input.required<string>();
+  readonly ariaText = input<AriaText>();
+  readonly disabled = input<boolean>(false);
+  readonly icon = input<Icon>();
+  readonly text = input<string>();
+  readonly size = input<ElementSize>('MEDIUM');
+  readonly ariaControls = input<string>();
 
-  changed = output<boolean>();
+  readonly changed = output<boolean>();
 }

@@ -26,12 +26,12 @@ import { BadgeListComponent, BadgeListEntry } from 'src/app/design/molecules';
   ],
 })
 export class LocationComponent {
-  routingService = inject(RoutingService);
+  readonly routingService = inject(RoutingService);
 
-  location = input.required<Location>();
-  campaignCharacters = input.required<OverviewItem[]>();
+  readonly location = input.required<Location>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
 
-  link = computed(() => {
+  readonly link = computed(() => {
     const loc = this.location();
     const parentLocationName = loc.parent_location_details?.name;
     const campaignName = loc.campaign_details?.name;
@@ -44,7 +44,7 @@ export class LocationComponent {
     return link;
   });
 
-  localCharacters = computed<BadgeListEntry<LocationCharacter>[]>(() => {
+  readonly localCharacters = computed<BadgeListEntry<LocationCharacter>[]>(() => {
     const characters: LocationCharacter[] = this.location().characters ?? [];
     const campaignName: string = this.location().campaign_details
       ?.name as string;

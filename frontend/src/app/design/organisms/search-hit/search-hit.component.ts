@@ -10,5 +10,5 @@ import { OverviewItem } from 'src/app/_models/overview';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SearchHitComponent {
-  article = input.required<OverviewItem>();
+  readonly article = input.required<OverviewItem>();
 }

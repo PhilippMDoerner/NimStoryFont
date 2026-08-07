@@ -23,14 +23,14 @@ import { GRAPH_SETTINGS } from 'src/app/design/organisms/_model/graph';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraphSettingsModalComponent {
-  modalService = inject(NgbModal);
-  formlyService = inject(FormlyService);
+  readonly modalService = inject(NgbModal);
+  readonly formlyService = inject(FormlyService);
 
-  settings = input(GRAPH_SETTINGS);
+  readonly settings = input(GRAPH_SETTINGS);
 
-  newSettings = output<typeof GRAPH_SETTINGS>();
+  readonly newSettings = output<typeof GRAPH_SETTINGS>();
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig<typeof GRAPH_SETTINGS>({
       key: 'linkAttractingForce',
       inputKind: 'NUMBER_FRACTION',

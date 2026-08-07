@@ -8,12 +8,12 @@ import { debugLog } from 'src/utils/rxjs-operators';
   providedIn: 'root',
 })
 export class GlobalUrlParamsService {
-  public campaignSetTrigger$ = new Subject<void>();
+  public readonly campaignSetTrigger$ = new Subject<void>();
 
-  private currentRouteSnapshot$ =
+  private readonly currentRouteSnapshot$ =
     new ReplaySubject<ActivatedRouteSnapshot | null>(1);
 
-  public campaignNameParam$ = this.currentRouteSnapshot$.pipe(
+  public readonly campaignNameParam$ = this.currentRouteSnapshot$.pipe(
     map((snapshot) => snapshot?.params['campaign'] as string | undefined),
     debugLog('campaignName'),
   );

@@ -77,19 +77,19 @@ const ERROR_CONTENT: { [key: number]: ErrorType } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ErrorPageComponent {
-  routingService = inject(RoutingService);
-  route = inject(ActivatedRoute);
-  authStore = inject(AuthStore);
-  globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
+  readonly route = inject(ActivatedRoute);
+  readonly authStore = inject(AuthStore);
+  readonly globalStore = inject(GlobalStore);
 
-  errorStatus$ = this.route.params.pipe(
+  readonly errorStatus$ = this.route.params.pipe(
     map((params) => parseInt(params['errorStatus'])),
   );
-  errorContents$ = this.errorStatus$.pipe(
+  readonly errorContents$ = this.errorStatus$.pipe(
     map((status) => ERROR_CONTENT[status] ?? FALLBACK_ERROR),
   );
 
-  campaignHomeUrl = computed(() => {
+  readonly campaignHomeUrl = computed(() => {
     const campaignName = this.globalStore.campaignName();
     if (!campaignName)
       return this.routingService.getRoutePath('campaign-overview');

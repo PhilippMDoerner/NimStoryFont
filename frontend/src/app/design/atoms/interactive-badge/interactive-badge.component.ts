@@ -18,13 +18,13 @@ import { IconComponent } from '../icon/icon.component';
   imports: [RouterLink, NgClass, IconComponent],
 })
 export class InteractiveBadgeComponent {
-  kind = input.required<ElementKind>();
-  text = input.required<string>();
-  textLink = input<string>();
-  showDeleteButton = input<boolean>();
-  iconKind = input<ElementKind>();
+  readonly kind = input.required<ElementKind>();
+  readonly text = input.required<string>();
+  readonly textLink = input<string>();
+  readonly showDeleteButton = input<boolean>();
+  readonly iconKind = input<ElementKind>();
 
-  iconKindVal = computed(() => this.iconKind() ?? this.kind());
+  readonly iconKindVal = computed(() => this.iconKind() ?? this.kind());
 
   readonly iconClick = output<MouseEvent>();
   readonly labelClick = output<MouseEvent>();

@@ -47,31 +47,31 @@ import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
   },
 })
 export class ImageCardComponent {
-  serverUrl = input.required<string>();
-  fallbackUrl = input<string>();
-  imageUrls = input.required({
+  readonly serverUrl = input.required<string>();
+  readonly fallbackUrl = input<string>();
+  readonly imageUrls = input.required({
     transform: (value: string | string[]): string[] => {
       if (!value) return [];
       return Array.isArray(value) ? value : [value];
     },
   });
-  link = input<string>();
-  text = input.required<string>();
-  alt = input.required<string>();
+  readonly link = input<string>();
+  readonly text = input.required<string>();
+  readonly alt = input.required<string>();
 
-  imgElement = viewChild<ElementRef<HTMLImageElement>>('img');
+  readonly imgElement = viewChild<ElementRef<HTMLImageElement>>('img');
 
-  currentImageIndex = signal(0);
-  currentImage = computed(
+  readonly currentImageIndex = signal(0);
+  readonly currentImage = computed(
     () => this.imageUrls()[this.currentImageIndex()] ?? this.fallbackUrl(),
   );
 
-  element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
-  selectorClicked$ = new Subject<{ index: number; event: MouseEvent }>();
-  closeBtnClicked$ = new Subject<MouseEvent>();
-  openBtnClicked$ = new Subject<MouseEvent>();
-  inFocus = toSignal(
+  readonly selectorClicked$ = new Subject<{ index: number; event: MouseEvent }>();
+  readonly closeBtnClicked$ = new Subject<MouseEvent>();
+  readonly openBtnClicked$ = new Subject<MouseEvent>();
+  readonly inFocus = toSignal(
     merge(
       fromEvent<FocusEvent>(this.element, 'focusin').pipe(map(() => true)),
       fromEvent<FocusEvent>(this.element, 'focusout').pipe(
@@ -95,7 +95,7 @@ export class ImageCardComponent {
     ).pipe(debounceTime(50), startWith(false)),
   );
 
-  isImageLoading$ = merge(
+  readonly isImageLoading$ = merge(
     toObservable(this.imgElement).pipe(
       filterNil(),
       switchMap((element) =>
@@ -105,8 +105,8 @@ export class ImageCardComponent {
     toObservable(this.currentImageIndex).pipe(map(() => true)),
   );
 
-  id = componentId();
-  imageId = `image-${this.id}`;
+  readonly id = componentId();
+  readonly imageId = `image-${this.id}`;
 
   constructor() {
     this.selectorClicked$

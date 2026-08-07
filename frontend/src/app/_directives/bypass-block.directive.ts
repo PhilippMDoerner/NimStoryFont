@@ -16,9 +16,9 @@ import { filterNil } from 'src/utils/rxjs-operators';
   },
 })
 export class BypassBlockDirective {
-  skipToId = input.required<string>();
+  readonly skipToId = input.required<string>();
 
-  isInFocus = signal(false);
+  readonly isInFocus = signal(false);
   private readonly router = inject(Router);
   private readonly baseHref = inject(APP_BASE_HREF);
 
@@ -32,5 +32,5 @@ export class BypassBlockDirective {
   );
   private readonly currentUrl = toSignal(this.currentUrl$);
 
-  link = computed(() => `${this.currentUrl()}#${this.skipToId()}`);
+  readonly link = computed(() => `${this.currentUrl()}#${this.skipToId()}`);
 }

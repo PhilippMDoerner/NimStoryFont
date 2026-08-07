@@ -76,14 +76,14 @@ export class ContextMenuComponent {
       read: ElementRef<HTMLButtonElement>,
     });
 
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  isOpen = signal(false);
-  activeModalItem = signal<Extract<MenuItem, { kind: 'CONFIRM' }> | null>(null);
+  readonly isOpen = signal(false);
+  readonly activeModalItem = signal<Extract<MenuItem, { kind: 'CONFIRM' }> | null>(null);
 
-  id = componentId();
-  menuId = `menu-${this.id}`;
-  triggerId = `trigger-${this.id}`;
+  readonly id = componentId();
+  readonly menuId = `menu-${this.id}`;
+  readonly triggerId = `trigger-${this.id}`;
 
   openAndScrollToMenu(): void {
     const element = this.trigger().nativeElement;

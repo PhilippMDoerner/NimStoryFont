@@ -34,13 +34,13 @@ import { ToastService } from './toast.service';
   },
 })
 export class ToastOverlayComponent {
-  toastService = inject(ToastService);
+  readonly toastService = inject(ToastService);
 
-  currentToast = this.toastService.currentToast;
-  isCurrentlyImportant = computed(
+  readonly currentToast = this.toastService.currentToast;
+  readonly isCurrentlyImportant = computed(
     () => this.currentToast()?.important ?? false,
   );
-  icon = computed<Icon | undefined>(() => {
+  readonly icon = computed<Icon | undefined>(() => {
     const currentToast = this.currentToast();
     if (!currentToast) return undefined;
 

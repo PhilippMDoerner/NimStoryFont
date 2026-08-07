@@ -52,34 +52,34 @@ export const showSidebarSignal = signal(true);
   providers: [NgbOffcanvas],
 })
 export class PageComponent {
-  globalStore = inject(GlobalStore);
-  sidebarService = inject(NgbOffcanvas);
-  swipeService = inject(SwipeService);
-  screenService = inject(ScreenService);
-  routingService = inject(RoutingService);
-  host = inject(ElementRef);
-  navStore = inject(NavigationStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly sidebarService = inject(NgbOffcanvas);
+  readonly swipeService = inject(SwipeService);
+  readonly screenService = inject(ScreenService);
+  readonly routingService = inject(RoutingService);
+  readonly host = inject(ElementRef);
+  readonly navStore = inject(NavigationStore);
 
-  contentId = input.required<string>();
+  readonly contentId = input.required<string>();
 
   readonly logout = output<void>();
 
-  contentElement = viewChild.required<ElementRef<HTMLDivElement>>('content');
-  innerContentElement =
+  readonly contentElement = viewChild.required<ElementRef<HTMLDivElement>>('content');
+  readonly innerContentElement =
     viewChild.required<ElementRef<HTMLDivElement>>('innerContent');
-  sidebarTemplate =
+  readonly sidebarTemplate =
     viewChild.required<TemplateRef<SidebarComponent>>('sidebar');
-  sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
-  isMobile$ = this.screenService.isMobile$;
-  mobileHeaderTitle = computed(() => {
+  readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
+  readonly isMobile$ = this.screenService.isMobile$;
+  readonly mobileHeaderTitle = computed(() => {
     const campaignName = this.globalStore.campaignName();
     return campaignName ? capitalize(campaignName) : '';
   });
-  isLoading = this.globalStore.isLoadingPage;
-  titleContainer =
+  readonly isLoading = this.globalStore.isLoadingPage;
+  readonly titleContainer =
     viewChild.required<ElementRef<HTMLDivElement>>('titleContainer');
 
-  contentScrollEvents$ = toObservable(this.innerContentElement).pipe(
+  readonly contentScrollEvents$ = toObservable(this.innerContentElement).pipe(
     filterNil(),
     switchMap((innerContent) =>
       fromEvent<Event>(innerContent.nativeElement, 'scroll', {
@@ -87,7 +87,7 @@ export class PageComponent {
       }),
     ),
   );
-  showScrollupIndicator$ = this.contentScrollEvents$.pipe(
+  readonly showScrollupIndicator$ = this.contentScrollEvents$.pipe(
     debounceTime(100),
     map((event) => {
       const scrollTop = (event.target as HTMLDivElement | undefined)?.scrollTop;
@@ -95,28 +95,28 @@ export class PageComponent {
     }),
   );
 
-  showScrollUpIndicator = signal(true);
+  readonly showScrollUpIndicator = signal(true);
 
-  pageSwipesRight$ = this.swipeService
+  readonly pageSwipesRight$ = this.swipeService
     .getSwipeEvents(this.host)
     .pipe(filter((swipeDistance) => swipeDistance > SWIPE_X_THRESHOLD));
 
-  hasCampaignAdminPrivileges =
+  readonly hasCampaignAdminPrivileges =
     this.globalStore.canPerformActionsOfRole('admin');
-  showSidebar = signal(this.screenService.isMobile() ? false : true);
-  canShowSidebar = computed(() => {
+  readonly showSidebar = signal(this.screenService.isMobile() ? false : true);
+  readonly canShowSidebar = computed(() => {
     const hasCampaign = !!this.globalStore.currentCampaign();
     const allowSidebarVisibility = showSidebarSignal();
     return allowSidebarVisibility && hasCampaign;
   });
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.globalStore.campaignName(),
     }),
   );
-  title = computed(() => this.navStore.currentRoute()?.title);
+  readonly title = computed(() => this.navStore.currentRoute()?.title);
 
-  campaignBackgroundImage$ = toObservable(
+  readonly campaignBackgroundImage$ = toObservable(
     this.globalStore.currentCampaign,
   ).pipe(
     map((campaign) => campaign?.background_image),

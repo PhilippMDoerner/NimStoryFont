@@ -33,19 +33,19 @@ import { capitalize } from 'src/utils/string';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnboardingStepperComponent {
-  hotkeyService = inject(HotkeyService);
+  readonly hotkeyService = inject(HotkeyService);
 
-  isCampaignAdmin = input<boolean>();
+  readonly isCampaignAdmin = input<boolean>();
 
-  selectionChange = output<CdkStep>();
-  finished = output<void>();
-  firstStep = viewChild.required<CdkStep>('firstStep');
+  readonly selectionChange = output<CdkStep>();
+  readonly finished = output<void>();
+  readonly firstStep = viewChild.required<CdkStep>('firstStep');
 
-  host = window ? capitalize(window.location.hostname) : 'Nimstoryfont';
-  openOnboardingKeys$ = this.hotkeyService
+  readonly host = window ? capitalize(window.location.hostname) : 'Nimstoryfont';
+  readonly openOnboardingKeys$ = this.hotkeyService
     .getKeySequence('show-onboarding')
     .pipe(map((keys) => encodeKeyCombination(keys)));
-  showHotkeyTooltipsKeys$ = this.hotkeyService
+  readonly showHotkeyTooltipsKeys$ = this.hotkeyService
     .getKeySequence('show-tooltips')
     .pipe(map((keys) => encodeKeyCombination(keys)));
 

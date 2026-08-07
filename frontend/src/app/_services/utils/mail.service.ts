@@ -8,8 +8,8 @@ import { mapVoid } from 'src/utils/rxjs-operators';
   providedIn: 'root',
 })
 export class MailService {
-  apiUrl: string = environment.apiUrl;
-  mailUrl = `${this.apiUrl}/mail`;
+  readonly apiUrl: string = environment.apiUrl;
+  readonly mailUrl = `${this.apiUrl}/mail`;
 
   constructor(private http: HttpClient) {}
 

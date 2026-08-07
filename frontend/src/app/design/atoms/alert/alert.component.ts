@@ -10,5 +10,5 @@ import { ElementKind } from '../_models/button';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AlertComponent {
-  kind = input.required<ElementKind>();
+  readonly kind = input.required<ElementKind>();
 }

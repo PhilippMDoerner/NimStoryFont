@@ -15,7 +15,7 @@ export class SessionAudioService extends BaseService<
   SessionAudioRaw,
   SessionAudio
 > {
-  UPLOAD_URL = `${this.apiUrl}/uploads`;
+  readonly UPLOAD_URL = `${this.apiUrl}/uploads`;
 
   constructor(
     private routingService: RoutingService,

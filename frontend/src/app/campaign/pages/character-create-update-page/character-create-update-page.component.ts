@@ -29,8 +29,8 @@ export class CharacterUpdatePageComponent {
   readonly route = inject(ActivatedRoute);
   readonly routingService = inject(RoutingService);
 
-  routeUrlSegments = toSignal(this.route.url);
-  state = computed<CreateUpdateState>(() => {
+  readonly routeUrlSegments = toSignal(this.route.url);
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -47,7 +47,7 @@ export class CharacterUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -64,7 +64,7 @@ export class CharacterUpdatePageComponent {
       () => this.userModel() == null || this.globalStore.campaignName() == null,
     );
 
-  private characterQueryState$ = toObservable(this.store.characterQueryState);
+  private readonly characterQueryState$ = toObservable(this.store.characterQueryState);
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

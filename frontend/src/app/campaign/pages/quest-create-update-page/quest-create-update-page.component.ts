@@ -27,24 +27,24 @@ import { QuestCreateUpdatePageStore } from './quest-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestCreateUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(QuestCreateUpdatePageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(QuestCreateUpdatePageStore);
 
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  questGivers$ = toObservable(this.store.questGivers).pipe(filterNil());
-  questTakers$ = toObservable(this.store.questTakers).pipe(filterNil());
-  questStates$ = toObservable(this.store.questStates).pipe(filterNil());
-  sessions$ = toObservable(this.store.campaignSessions).pipe(filterNil());
+  readonly questGivers$ = toObservable(this.store.questGivers).pipe(filterNil());
+  readonly questTakers$ = toObservable(this.store.questTakers).pipe(filterNil());
+  readonly questStates$ = toObservable(this.store.questStates).pipe(filterNil());
+  readonly sessions$ = toObservable(this.store.campaignSessions).pipe(filterNil());
 
-  questUpdateState$ = toObservable(this.store.questUpdateState);
-  questCreateState$ = toObservable(this.store.createState);
-  quest$ = toObservable(this.store.quest);
+  readonly questUpdateState$ = toObservable(this.store.questUpdateState);
+  readonly questCreateState$ = toObservable(this.store.createState);
+  readonly quest$ = toObservable(this.store.quest);
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'name',
       placeholder: 'Quest Name',
@@ -112,7 +112,7 @@ export class QuestCreateUpdatePageComponent {
     }),
   ]);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -129,7 +129,7 @@ export class QuestCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -141,7 +141,7 @@ export class QuestCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Quest';

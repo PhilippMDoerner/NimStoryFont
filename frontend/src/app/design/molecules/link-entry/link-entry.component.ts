@@ -18,14 +18,14 @@ type State = 'DISPLAY' | 'DELETE';
   imports: [ButtonComponent, NgTemplateOutlet],
 })
 export class LinkEntryComponent<T> {
-  entry = input.required<LinkEntry<T>>();
-  canDelete = input(false);
-  deleteMessage = input('Delete entry?');
+  readonly entry = input.required<LinkEntry<T>>();
+  readonly canDelete = input(false);
+  readonly deleteMessage = input('Delete entry?');
 
   readonly delete = output<T>();
   readonly linkClick = output<T>();
 
-  state = signal<State>('DISPLAY');
+  readonly state = signal<State>('DISPLAY');
 
   changeState(newState: State) {
     this.state.set(newState);

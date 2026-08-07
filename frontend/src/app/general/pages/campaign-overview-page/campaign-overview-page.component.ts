@@ -26,7 +26,7 @@ import { GlobalStore } from 'src/app/global.store';
 export class CampaignOverviewPageComponent {
   public readonly authStore = inject(AuthStore);
   public readonly globalStore = inject(GlobalStore);
-  serverUrl = '';
+  readonly serverUrl = '';
 
   @HostListener('@slideInOut.start', ['$event'])
   @HostListener('@slideInOut.done', ['$event'])

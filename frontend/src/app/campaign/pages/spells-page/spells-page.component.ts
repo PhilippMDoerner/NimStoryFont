@@ -18,8 +18,8 @@ import { SpellsPageStore } from './spells-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsPageComponent {
-  store = inject(SpellsPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(SpellsPageStore);
+  readonly globalStore = inject(GlobalStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(

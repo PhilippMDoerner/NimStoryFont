@@ -42,11 +42,11 @@ export class FormlySelectDisableFieldComponent
   extends FieldType<FieldTypeConfig>
   implements OnInit, OnChanges
 {
-  public static EMPTY_OPTION_LABEL = '------';
-  public static EMPTY_OPTION_VALUE = null;
+  public static readonly EMPTY_OPTION_LABEL = '------';
+  public static readonly EMPTY_OPTION_VALUE = null;
 
   selectOptions$!: Observable<CanDisableOption[]>;
-  modelValue = signal<any>(undefined);
+  readonly modelValue = signal<any>(undefined);
 
   ngOnInit(): void {
     const templateOptions: Pick<FormlyFieldConfig, 'props'> = {

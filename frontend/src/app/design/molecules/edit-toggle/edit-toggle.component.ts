@@ -18,13 +18,13 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
   imports: [ButtonComponent, HotkeyDirective, NgbTooltip],
 })
 export class EditToggleComponent {
-  buttonKind = input<ElementKind>('SECONDARY');
-  toggled = input<boolean>(false);
-  disabledHotkey = input(false);
-  title = input.required<string>();
-  _toggled = linkedSignal(() => this.toggled());
+  readonly buttonKind = input<ElementKind>('SECONDARY');
+  readonly toggled = input<boolean>(false);
+  readonly disabledHotkey = input(false);
+  readonly title = input.required<string>();
+  readonly _toggled = linkedSignal(() => this.toggled());
 
-  toggleEdit = output<boolean>();
+  readonly toggleEdit = output<boolean>();
 
   onClick() {
     this._toggled.set(!this._toggled());

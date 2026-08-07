@@ -20,24 +20,24 @@ import { CreateUpdateComponent } from '../create-update/create-update.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignUpdateComponent {
-  userModel = input.required<Partial<Campaign>>();
-  _userModel = computed(() => this.removeFileValues(this.userModel()));
-  serverModel = input<Campaign | undefined>(undefined);
-  _serverModel = computed(() => {
+  readonly userModel = input.required<Partial<Campaign>>();
+  readonly _userModel = computed(() => this.removeFileValues(this.userModel()));
+  readonly serverModel = input<Campaign | undefined>(undefined);
+  readonly _serverModel = computed(() => {
     if (this.serverModel() == null) return undefined;
     return this.removeFileValues(this.serverModel() as Campaign);
   });
-  mapOptions = input.required<OverviewItem[]>();
-  formState = computed((): CreateUpdateState => {
+  readonly mapOptions = input.required<OverviewItem[]>();
+  readonly formState = computed((): CreateUpdateState => {
     const hasAttempedOutdatedUpdate = this.serverModel() != null;
     return hasAttempedOutdatedUpdate ? 'OUTDATED_UPDATE' : 'UPDATE';
   });
 
-  cancelled = output<void>();
-  update = output<Partial<Campaign>>();
+  readonly cancelled = output<void>();
+  readonly update = output<Partial<Campaign>>();
 
-  mapOptions$ = toObservable(this.mapOptions);
-  formlyFields = computed(() => [
+  readonly mapOptions$ = toObservable(this.mapOptions);
+  readonly formlyFields = computed(() => [
     this.formlyService.buildInputConfig({
       key: 'name',
       inputKind: 'NAME',

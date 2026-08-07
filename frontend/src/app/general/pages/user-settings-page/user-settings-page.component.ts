@@ -11,9 +11,9 @@ import { UserPreferencesStore } from 'src/app/user-preferences.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserSettingsPageComponent {
-  preferencesStore = inject(UserPreferencesStore);
+  readonly preferencesStore = inject(UserPreferencesStore);
 
-  shortcuts = this.preferencesStore.shortcutMappings;
+  readonly shortcuts = this.preferencesStore.shortcutMappings;
 
   updateShortcut(event: { action: ShortcutAction; keys: KeyCombination }) {
     this.preferencesStore.updateShortcut(event);

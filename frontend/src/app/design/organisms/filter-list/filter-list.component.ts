@@ -46,18 +46,18 @@ export type GroupConfig<T> =
   ],
 })
 export class FilterListComponent<T> {
-  entries = input.required<FilterListEntry<T>[]>();
-  labelProp = input.required<Exclude<keyof T, symbol | number>>();
-  bodyProp = input<Exclude<keyof T, symbol | number>>();
-  heading = input.required<string>();
-  groupConfig = input<GroupConfig<T>>({ mode: 'LETTER' });
-  forceSingleLine = input(false);
+  readonly entries = input.required<FilterListEntry<T>[]>();
+  readonly labelProp = input.required<Exclude<keyof T, symbol | number>>();
+  readonly bodyProp = input<Exclude<keyof T, symbol | number>>();
+  readonly heading = input.required<string>();
+  readonly groupConfig = input<GroupConfig<T>>({ mode: 'LETTER' });
+  readonly forceSingleLine = input(false);
 
-  filterValue = signal<string | undefined>(undefined);
-  listId = componentId();
-  searchId = `${this.listId}-search`;
+  readonly filterValue = signal<string | undefined>(undefined);
+  readonly listId = componentId();
+  readonly searchId = `${this.listId}-search`;
 
-  displayEntries = computed<FilterListEntry<T>[]>(() => {
+  readonly displayEntries = computed<FilterListEntry<T>[]>(() => {
     const filterValue = this.filterValue()?.toLowerCase();
     if (filterValue == null || filterValue === '') {
       return this.entries();
@@ -69,13 +69,13 @@ export class FilterListComponent<T> {
     });
   });
 
-  mode = computed<GroupMode>(() => {
+  readonly mode = computed<GroupMode>(() => {
     const isSearching = (this.filterValue()?.length ?? 0) > 0;
     if (isSearching) return 'SEARCH';
     return this.groupConfig().mode;
   });
 
-  treeData = computed<DataSource<TreeNode>[] | undefined>(() => {
+  readonly treeData = computed<DataSource<TreeNode>[] | undefined>(() => {
     const config = this.groupConfig();
     const hasTreeMode = config.mode === 'TREE';
     if (!hasTreeMode) return undefined;
@@ -83,9 +83,9 @@ export class FilterListComponent<T> {
     return config.toTreeData(this.entries());
   });
 
-  firstArticle = computed<T>(() => this.displayEntries()[0]);
-  canOpenArticle = computed(() => !!this.firstArticle());
-  searchButtonLabel = computed(() => {
+  readonly firstArticle = computed<T>(() => this.displayEntries()[0]);
+  readonly canOpenArticle = computed(() => !!this.firstArticle());
+  readonly searchButtonLabel = computed(() => {
     const targetArticle = this.firstArticle();
     if (targetArticle) {
       return `Open first article found: ${targetArticle[this.labelProp()]}`;

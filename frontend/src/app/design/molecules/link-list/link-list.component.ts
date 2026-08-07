@@ -38,11 +38,11 @@ export type CreateKind =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LinkListComponent {
-  heading = input.required<string>();
-  entries = input.required<ListEntry[]>();
-  ariaLevel = input.required<HeadingLevel>();
-  createOption = input<CreateKind>({ kind: 'none' });
-  emptyListText = input('No entries yet');
+  readonly heading = input.required<string>();
+  readonly entries = input.required<ListEntry[]>();
+  readonly ariaLevel = input.required<HeadingLevel>();
+  readonly createOption = input<CreateKind>({ kind: 'none' });
+  readonly emptyListText = input('No entries yet');
 
   readonly createButtonClick = output<void>();
   readonly menuOptionClick = output<string>();

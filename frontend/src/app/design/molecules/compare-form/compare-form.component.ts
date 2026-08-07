@@ -21,11 +21,11 @@ export class CompareFormComponent<
   T extends { update_datetime: string | undefined },
 > implements OnInit
 {
-  fields = input.required<FormlyFieldConfig[]>();
-  modelFromUser = input.required<T>();
-  modelFromServer = input.required<T | undefined>();
-  displayVertically = input(false);
-  enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
+  readonly fields = input.required<FormlyFieldConfig[]>();
+  readonly modelFromUser = input.required<T>();
+  readonly modelFromServer = input.required<T | undefined>();
+  readonly displayVertically = input(false);
+  readonly enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
 
   readonly formlySubmit = output<NonNullable<T>>();
   readonly formlyCancel = output<void>();

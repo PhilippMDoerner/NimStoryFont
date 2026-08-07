@@ -38,11 +38,11 @@ const openDbErrorToast: ToastConfig = {
   providedIn: 'root',
 })
 export class BrowserDatabaseService {
-  private dbName = 'aldrune-wiki-db';
-  private storeName = 'campaign-offline-data';
-  private currentDbVersion = 1;
-  private toastService = inject(ToastService);
-  private db$ = createIndexedDBDatabase(
+  private readonly dbName = 'aldrune-wiki-db';
+  private readonly storeName = 'campaign-offline-data';
+  private readonly currentDbVersion = 1;
+  private readonly toastService = inject(ToastService);
+  private readonly db$ = createIndexedDBDatabase(
     this.dbName,
     this.currentDbVersion,
     (db) => this.createTables(db),

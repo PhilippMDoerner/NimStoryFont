@@ -10,5 +10,5 @@ import { BreadcrumbEntry } from '../../templates/_models/breadcrumb-entry';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BreadcrumbListComponent {
-  linkEntries = input.required<BreadcrumbEntry[]>();
+  readonly linkEntries = input.required<BreadcrumbEntry[]>();
 }

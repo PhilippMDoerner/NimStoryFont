@@ -42,24 +42,24 @@ export interface FocusItem<T> {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FocusListComponent<T> {
-  entries = input.required<FocusItem<T>[]>();
-  disableHotkeyNavigation = input(false);
-  listLabel = input.required<string>();
+  readonly entries = input.required<FocusItem<T>[]>();
+  readonly disableHotkeyNavigation = input(false);
+  readonly listLabel = input.required<string>();
 
-  itemTemplate =
+  readonly itemTemplate =
     contentChild.required<
       TemplateRef<{ $implicit: { data: T; index: number } }>
     >('itemTemplate');
-  separatorTemplate =
+  readonly separatorTemplate =
     contentChild<TemplateRef<{ $implicit: { data: T; index: number } }>>(
       'separator',
     );
 
   private readonly hotkeyService = inject(HotkeyService);
-  itemContainers: Signal<readonly ElementRef<HTMLDivElement>[]> =
+  readonly itemContainers: Signal<readonly ElementRef<HTMLDivElement>[]> =
     viewChildren('itemContainer');
-  focusItemEvent$ = new Subject<number>();
-  private arrowEvents$ = merge(
+  readonly focusItemEvent$ = new Subject<number>();
+  private readonly arrowEvents$ = merge(
     this.hotkeyService
       .watchAction('jump-to-next-entry')
       .pipe(map(() => ({ type: 'down' }) as const)),
@@ -67,7 +67,7 @@ export class FocusListComponent<T> {
       .watchAction('jump-to-prior-entry')
       .pipe(map(() => ({ type: 'up' }) as const)),
   );
-  focusIndex$ = this.deriveFocusItemIndex();
+  readonly focusIndex$ = this.deriveFocusItemIndex();
 
   constructor() {
     this.scrollAndFocusOnArrowNavigation(
@@ -165,7 +165,7 @@ export interface ChildTemplateContext<T> {
   selector: '[inferContextTypeFrom]',
 })
 export class FocusListContextTypecastDirective<T> {
-  inferContextTypeFrom = input.required<FocusListComponent<T>>();
+  readonly inferContextTypeFrom = input.required<FocusListComponent<T>>();
 
   static ngTemplateContextGuard<T>(
     directive: FocusListContextTypecastDirective<T>,

@@ -27,11 +27,11 @@ import { CharacterStore } from './character-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterPageComponent {
-  store = inject(CharacterStore);
-  private globalStore = inject(GlobalStore);
-  private routingService = inject(RoutingService);
+  readonly store = inject(CharacterStore);
+  private readonly globalStore = inject(GlobalStore);
+  private readonly routingService = inject(RoutingService);
 
-  serverUrl = '';
+  readonly serverUrl = '';
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.character() == null);

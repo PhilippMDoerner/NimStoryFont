@@ -24,14 +24,14 @@ import { HeadingLevel } from '../../atoms/_models/heading';
   },
 })
 export class CollapsiblePanelComponent {
-  ariaLevel = input.required<HeadingLevel>();
-  isOpen = input(false);
-  _isOpen = linkedSignal(() => this.isOpen());
+  readonly ariaLevel = input.required<HeadingLevel>();
+  readonly isOpen = input(false);
+  readonly _isOpen = linkedSignal(() => this.isOpen());
 
-  id = componentId();
-  headingId = `heading-${this.id}`;
-  triggerId = `trigger-${this.id}`;
-  contentId = `content-${this.id}`;
+  readonly id = componentId();
+  readonly headingId = `heading-${this.id}`;
+  readonly triggerId = `trigger-${this.id}`;
+  readonly contentId = `content-${this.id}`;
 
   togglePanel() {
     this._isOpen.set(!this._isOpen());

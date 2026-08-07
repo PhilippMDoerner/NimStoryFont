@@ -15,11 +15,11 @@ export class SiteAdministrationPageComponent {
   readonly globalStore = inject(GlobalStore);
   readonly store = inject(SiteAdministrationPageStore);
 
-  serverUrl = '';
-  allSiteUsers = this.store.allSiteUsers;
-  allSiteCampaigns = this.store.allSiteCampaigns;
-  siteStatistics = this.store.siteStatistics;
-  allPermissionGroups = this.store.allPermissionGroups;
+  readonly serverUrl = '';
+  readonly allSiteUsers = this.store.allSiteUsers;
+  readonly allSiteCampaigns = this.store.allSiteCampaigns;
+  readonly siteStatistics = this.store.siteStatistics;
+  readonly allPermissionGroups = this.store.allPermissionGroups;
 
   constructor() {
     this.store.loadUsers();

@@ -19,20 +19,20 @@ import { ButtonComponent } from '../../atoms/button/button.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DeleteModalComponent {
-  heading = input.required<string>();
-  submitIcon = input<Icon>();
-  modalType = input<ElementKind>('PRIMARY');
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  submitButtonLabel = input<string>('Yes');
-  cancelButtonLabel = input<string>('No');
+  readonly heading = input.required<string>();
+  readonly submitIcon = input<Icon>();
+  readonly modalType = input<ElementKind>('PRIMARY');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly submitButtonLabel = input<string>('Yes');
+  readonly cancelButtonLabel = input<string>('No');
 
   readonly confirm = output<void>();
   readonly modalClose = output<void>();
 
-  modalClass = computed(
+  readonly modalClass = computed(
     () => `modal-border--${this.modalType().toLowerCase()}`,
   );
 
-  id = componentId();
-  bodyId = `${this.id}-body`;
+  readonly id = componentId();
+  readonly bodyId = `${this.id}-body`;
 }
