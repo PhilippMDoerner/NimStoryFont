@@ -5,6 +5,7 @@ import {
   computed,
   DestroyRef,
   inject,
+  Injector,
   input,
   output,
   signal,
@@ -23,7 +24,7 @@ import {
   distinctUntilChanged,
   filter,
   Subject,
-  timer,
+  timeout,
 } from 'rxjs';
 import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
 import { ScreenService } from 'src/app/_services/screen.service';
@@ -56,6 +57,7 @@ export type TextFieldState = 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
 })
 export class EditorComponent {
   readonly destroyRef = inject(DestroyRef);
+  readonly injector = inject(Injector);
 
   readonly text = input.required<string>();
   readonly placeholder = input.required<string>();
@@ -157,8 +159,8 @@ export class EditorComponent {
   }
 
   private focusField() {
-    timer(100)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.editorField()?.editor.focus());
+    toObservable(this.editorField, { injector: this.injector })
+      .pipe(timeout(3000), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.editorField()?.editor?.focus());
   }
 }
