@@ -1,0 +1,36 @@
+:host {
+  display: block;
+  background-color: var(--bs-gray-800);
+  margin-bottom: 10rem;
+  --toolbar-color: white;
+}
+
+::ng-deep {
+  .ql-toolbar.ql-snow {
+    border-top-left-radius: var(--bs-border-radius);
+    border-top-right-radius: var(--bs-border-radius);
+
+    .ql-stroke {
+      stroke: var(--toolbar-color);
+    }
+
+    .ql-fill {
+      fill: var(--toolbar-color);
+    }
+
+    .ql-header {
+      color: var(--toolbar-color);
+    }
+
+    .ql-picker-options {
+      background-color: var(--bs-gray-800);
+    }
+  }
+
+  .ql-container.ql-snow {
+    height: 500px;
+    font-size: unset;
+    border-bottom-left-radius: var(--bs-border-radius);
+    border-bottom-right-radius: var(--bs-border-radius);
+  }
+}

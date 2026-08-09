@@ -77,6 +77,7 @@
               "src/styles.scss",
               "node_modules/plyr/dist/plyr.css",
               "node_modules/leaflet/dist/leaflet.css",
+              "node_modules/quill/dist/quill.snow.css",
               "src/assets/icons/css/solid.min.css",
               "src/assets/icons/css/regular.min.css",
               "src/assets/icons/css/brands.min.css",

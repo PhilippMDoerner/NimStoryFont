@@ -1,3 +1,5 @@
+import { QuillOptions } from 'quill';
+
 export const MOBILE_WIDTH = 767; //medium screen size
 export const SWIPE_X_THRESHOLD = 125;
 export const SWIPE_Y_THRESHOLD = 150;
@@ -39,3 +41,33 @@ export const TINYMCE_SETTINGS = {
 };
 
 export type EditorSettings = typeof TINYMCE_SETTINGS;
+
+export const QUILL_SETTINGS: QuillOptions = {
+  theme: 'snow',
+  modules: {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{ script: 'sub' }, { script: 'super' }],
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ color: [] }, { background: [] }],
+      [
+        { align: '' },
+        { align: 'center' },
+        { align: 'right' },
+        { align: 'justify' },
+      ],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      ['link', 'image', 'video'],
+      ['clean'],
+    ],
+    // Quill's history module is roughly equivalent to
+    // TinyMCE's undo/redo functionality.
+    history: {
+      delay: 1000,
+      maxStack: 100,
+      userOnly: true,
+    },
+  },
+  placeholder: '',
+} as const;
