@@ -44,12 +44,10 @@
 
 <ng-template #pagination>
   @if(displayedEncounters().length > 0){
-    <ngb-pagination
+    <app-pagination
       [collectionSize]="encounters().length"
-      [rotate]="false"
       [(page)]="page"
-      [pageSize]="PAGE_SIZE"
-      (pageChange)="page.set($event)"
+      [pageSize]="5"
     />
   }
 </ng-template>

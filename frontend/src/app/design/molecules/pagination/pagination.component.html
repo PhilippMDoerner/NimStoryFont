@@ -1,0 +1,25 @@
+<ngb-pagination [collectionSize]="collectionSize()" [(page)]="page" [pageSize]="pageSize()">
+	<ng-template ngbPaginationPages let-page let-pages="pages">
+		@if (pages.length > 0) {
+			<li class="ngb-custom-pages-item">
+				<div class="d-flex flex-nowrap px-2">
+					<label [id]="labelId" [for]="inputId" class="col-form-label me-2 ms-1">Page</label>
+					<input
+						#pageInput
+						type="text"
+						inputmode="numeric"
+						pattern="[0-9]*"
+						class="form-control custom-pages-input"
+						[id]="inputId"
+						[value]="page"
+						(keyup.enter)="selectPage(pageInput.value)"
+						(blur)="selectPage(pageInput.value)"
+						(input)="formatInput(pageInput)"
+						[attr.aria-labelledby]="labelId + ' ' + descriptionId"
+					/>
+					<span [id]="descriptionId" class="col-form-label text-nowrap px-2"> of {{ pages.length }}</span>
+				</div>
+			</li>
+		}
+	</ng-template>
+</ngb-pagination>
