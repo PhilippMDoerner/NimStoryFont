@@ -19,5 +19,6 @@ export { IconCardComponent } from './icon-card/icon-card.component';
 export { ImageCardComponent } from './image-card/image-card.component';
 export { LinkListComponent } from './link-list/link-list.component';
 export { PageBackgroundComponent } from './page-background/page-background.component';
+export { PaginationComponent } from './pagination/pagination.component';
 export { SearchFieldComponent } from './search-field/search-field.component';
 export { SmallCreateFormComponent } from './small-create-form/small-create-form.component';
