@@ -4,17 +4,22 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
+import {
+  NgbPaginationConfig,
+  NgbTooltipConfig,
+} from '@ng-bootstrap/ng-bootstrap';
 import { filter, map } from 'rxjs';
 import { fadeOut } from 'src/app/design/animations/fadeIn';
 import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { filterNil } from 'src/utils/rxjs-operators';
 import { BypassBlockDirective } from './_directives/bypass-block.directive';
 import { BeforeInstallPromptEvent, PwaService } from './_services/pwa.service';
+import { ScreenService } from './_services/screen.service';
 import { CampaignService } from './_services/utils/campaign.service';
 import { GlobalUrlParamsService } from './_services/utils/global-url-params.service';
 import { TokenService } from './_services/utils/token.service';
@@ -54,6 +59,8 @@ export class AppComponent {
   readonly campaignService = inject(CampaignService);
   readonly toastService = inject(ToastService);
   readonly serviceWorkerService = inject(ServiceWorkerService);
+  private readonly ngbPaginationConfig = inject(NgbPaginationConfig);
+  private readonly screenService = inject(ScreenService);
   readonly currentUrl$ = inject(Router).events.pipe(
     filter((event) => event instanceof NavigationEnd),
     map((event) => event.url.split('#')[0]), //Remove any fragment it might have
@@ -69,6 +76,7 @@ export class AppComponent {
   constructor() {
     this.trackAnimationSetting();
     this.configureTooltips();
+    this.setupUpdateNgbPaginationConfig();
     this.serviceWorkerService.initializeServiceWorkerInteractions();
   }
 
@@ -95,5 +103,12 @@ export class AppComponent {
 
   private configureTooltips() {
     this.tooltipService.tooltipClass = 'my-tooltip';
+  }
+
+  private setupUpdateNgbPaginationConfig() {
+    this.ngbPaginationConfig.boundaryLinks = false;
+    effect(() => {
+      this.ngbPaginationConfig.maxSize = this.screenService.isMobile() ? 1 : 5;
+    });
   }
 }

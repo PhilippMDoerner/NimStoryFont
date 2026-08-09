@@ -46,11 +46,9 @@
   @if(displayedEncounters().length > 0){
     <ngb-pagination
       [collectionSize]="encounters().length"
-      [maxSize]="5"
-      [rotate]="true"
+      [rotate]="false"
       [(page)]="page"
       [pageSize]="PAGE_SIZE"
-      [boundaryLinks]="true"
       (pageChange)="page.set($event)"
     />
   }

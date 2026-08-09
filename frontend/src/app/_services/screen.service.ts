@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { debounceTime, EMPTY, fromEvent, map, startWith } from 'rxjs';
 import { MOBILE_WIDTH } from '../app.constants';
 
@@ -18,17 +19,17 @@ export class ScreenService {
       )
     : EMPTY;
 
-  public readonly windowWidth$ = this.resizeEvents$.pipe(map((doc) => doc?.innerWidth));
+  public readonly windowWidth$ = this.resizeEvents$.pipe(
+    map((doc) => doc?.innerWidth),
+  );
   public readonly windowHeight$ = this.resizeEvents$.pipe(
     map((doc) => doc?.innerHeight),
   );
-
-  public isMobile() {
-    const windowWidth = this.document.defaultView?.innerWidth;
-    return windowWidth ? windowWidth <= MOBILE_WIDTH : false;
-  }
+  public readonly windowWidth = toSignal(this.windowWidth$);
+  public readonly windowHeight = toSignal(this.windowHeight$);
 
   public readonly isMobile$ = this.windowWidth$.pipe(
-    map((width) => width && width <= MOBILE_WIDTH),
+    map((width) => !!width && width <= MOBILE_WIDTH),
   );
+  public readonly isMobile = toSignal(this.isMobile$, { initialValue: true });
 }
