@@ -143,7 +143,7 @@ export class GraphMenuService implements OnDestroy {
       .append('div')
       .attr(
         'class',
-        'bg-secondary-subtle p-3 border border-info my-body rounded text-dark w-50 h-25',
+        'bg-secondary-subtle p-3 border border-info my-body rounded text-dark w-50 clamp-to-9-lines',
       )
       .attr('id', SELECTORS.nodeMenuId);
 
@@ -153,7 +153,6 @@ export class GraphMenuService implements OnDestroy {
       .style('top', `${position.y}px`)
       .style('min-width', '300px')
       .style('max-width', '600px')
-      .style('min-height', '200px')
       .style('overflow', 'auto')
       .style('position', 'absolute')
       .style('display', 'block')
@@ -238,17 +237,20 @@ export class GraphMenuService implements OnDestroy {
 
   private getMenuPosition(event: MouseEvent): { x: number; y: number } {
     const halfScreenWidth = window.innerWidth / 2;
+    const minElementWidth = 300;
+    const expectedElementWidth = Math.max(minElementWidth, halfScreenWidth);
+
     const defaultX = event.pageX - 2;
-    const isOverflowingX = defaultX + halfScreenWidth > window.innerWidth;
+    const isOverflowingX = defaultX + expectedElementWidth > window.innerWidth;
     const safeX = isOverflowingX
-      ? window.innerWidth - halfScreenWidth
+      ? window.innerWidth - expectedElementWidth
       : defaultX;
 
-    const quarterScreenHeight = window.innerHeight / 4;
+    const halfScreenHeight = window.innerHeight / 2;
     const defaultY = event.pageY - 2;
-    const isOverflowingY = defaultY + quarterScreenHeight > window.innerHeight;
+    const isOverflowingY = defaultY + halfScreenHeight > window.innerHeight;
     const safeY = isOverflowingY
-      ? window.innerHeight - quarterScreenHeight
+      ? window.innerHeight - halfScreenHeight
       : defaultY;
 
     return {
