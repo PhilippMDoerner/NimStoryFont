@@ -20,6 +20,7 @@ import { debugLog } from 'src/utils/rxjs-operators';
 import {
   ACTIONS,
   equals,
+  HOTKEY_IGNORE_ATTR,
   Key,
   MODIFIER_KEYS,
   ShortcutAction,
@@ -143,10 +144,13 @@ export class HotkeyService {
     return fromEvent<KeyboardEvent>(eventSource, keyEventType).pipe(
       filter((event) => {
         // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
+        const isInHotkeyIgnoreRegion = !!(event.target as HTMLElement).closest(
+          `[${HOTKEY_IGNORE_ATTR}]`,
+        );
         const isFromTextInput =
           event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement;
-        if (isFromTextInput) return false;
+        if (isFromTextInput || isInHotkeyIgnoreRegion) return false;
 
         // Ignore keyup events from modifier keys. We only care about "real" keys
         return !MODIFIER_KEYS.has(event.key);

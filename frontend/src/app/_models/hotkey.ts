@@ -99,3 +99,5 @@ export function parseKeyStr(str: string): Key | undefined {
     shiftKey: segments.includes('shift'),
   };
 }
+
+export const HOTKEY_IGNORE_ATTR = 'hotkey-ignore';
