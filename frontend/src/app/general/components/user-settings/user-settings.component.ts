@@ -19,7 +19,7 @@ import { ScreenService } from 'src/app/_services/screen.service';
 import {
   ListComponent,
   ListEntry,
-} from 'src/app/design/molecule/list/list.component';
+} from 'src/app/design/molecules/list/list.component';
 import { EditShortcutDialogComponent } from 'src/app/general/components/edit-shortcut-dialog/edit-shortcut-dialog.component';
 import { componentId } from 'src/utils/DOM';
 import { capitalize } from 'src/utils/string';

@@ -27,13 +27,13 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
 import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
 import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
 import {
-  ListEntry,
-  ListEntryTemplateContext,
-} from 'src/app/design/molecule/list/list.component';
-import {
   SEARCH_TOGGLES,
   Toggle,
 } from 'src/app/design/molecules/_models/toggle';
+import {
+  ListEntry,
+  ListEntryTemplateContext,
+} from 'src/app/design/molecules/list/list.component';
 import { OverviewEntryComponent } from 'src/app/design/molecules/overview-entry/overview-entry.component';
 import { ToggleRowComponent } from 'src/app/design/molecules/toggle-row/toggle-row.component';
 import { getMetadataForType } from 'src/app/design/organisms/_model/sidebar';
