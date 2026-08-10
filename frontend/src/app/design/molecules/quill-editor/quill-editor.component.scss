@@ -3,6 +3,14 @@
   background-color: var(--bs-gray-800);
   margin-bottom: 10rem;
   --toolbar-color: white;
+
+  &:focus-within {
+    ::ng-deep .ql-toolbar.ql-snow,
+    ::ng-deep .ql-container.ql-snow {
+      border-color: var(--bs-link-hover-color);
+      border-width: 2px;
+    }
+  }
 }
 
 ::ng-deep {
