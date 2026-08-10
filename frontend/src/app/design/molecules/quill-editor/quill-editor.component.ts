@@ -9,7 +9,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import Quill, { QuillOptions } from 'quill';
+import Quill, { QuillOptions, Range } from 'quill';
 import E from 'quill/core/emitter';
 import { HOTKEY_IGNORE_ATTR } from 'src/app/_models/hotkey';
 import { QUILL_SETTINGS } from 'src/app/app.constants';
@@ -41,13 +41,29 @@ export class QuillEditorComponent {
   private quillConfig = computed<QuillOptions>(() => ({
     ...QUILL_SETTINGS,
     readOnly: this.readOnly(),
+    modules: {
+      ...QUILL_SETTINGS.modules,
+      keyboard: {
+        bindings: {
+          shiftEnter: {
+            key: ['Enter'],
+            shiftKey: true,
+            handler: (range: Range) => {
+              this.handleLinebreakKeybindings(range);
+            },
+          },
+        },
+      },
+    },
   }));
 
   public readonly quill = computed(() => {
     const el = this.container()?.nativeElement;
     console.log('Running with ', el);
+    if (!el) return undefined;
 
-    return el ? new Quill(el, this.quillConfig()) : undefined;
+    const quill = new Quill(el, this.quillConfig());
+    return quill;
   });
 
   constructor() {
@@ -80,5 +96,28 @@ export class QuillEditorComponent {
         );
       };
     });
+  }
+
+  private handleLinebreakKeybindings(range: Range) {
+    const q = this.quill();
+    if (!q) return;
+
+    const [line, offset] = q.getLine(range.index);
+    const isAtEndOfBlock = offset >= (line?.length() ?? 0) - 1;
+
+    this.insertSoftbreak(q, range.index);
+    if (isAtEndOfBlock) {
+      // insert a second break as <br /> at end of a line does not push the cursor into the next line
+      this.insertSoftbreak(q, range.index + 1);
+    }
+
+    q.setSelection(
+      Math.min(range.index + 1, q.getLength()),
+      Quill.sources.SILENT,
+    );
+  }
+
+  private insertSoftbreak(quill: Quill, position: number) {
+    quill.insertEmbed(position, 'softbreak', '', Quill.sources.SILENT);
   }
 }

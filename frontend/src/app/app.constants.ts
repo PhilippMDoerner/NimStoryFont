@@ -1,5 +1,13 @@
-import { QuillOptions } from 'quill';
-
+import { EmbedBlot } from 'parchment';
+import Quill, { QuillOptions } from 'quill';
+import TableUp, {
+  defaultCustomSelect,
+  TableAlign,
+  TableMenuContextmenu,
+  TableResizeScale,
+  TableSelection,
+  TableVirtualScrollbar,
+} from 'quill-table-up';
 export const MOBILE_WIDTH = 767; //medium screen size
 export const SWIPE_X_THRESHOLD = 125;
 export const SWIPE_Y_THRESHOLD = 150;
@@ -42,6 +50,14 @@ export const TINYMCE_SETTINGS = {
 
 export type EditorSettings = typeof TINYMCE_SETTINGS;
 
+Quill.register({ [`modules/${TableUp.moduleName}`]: TableUp }, true);
+
+class SoftBreak extends EmbedBlot {}
+SoftBreak.blotName = 'softbreak';
+SoftBreak.tagName = 'BR';
+
+Quill.register(SoftBreak);
+
 export const QUILL_SETTINGS: QuillOptions = {
   theme: 'snow',
   modules: {
@@ -59,6 +75,10 @@ export const QUILL_SETTINGS: QuillOptions = {
       [{ list: 'ordered' }, { list: 'bullet' }],
       [{ indent: '-1' }, { indent: '+1' }],
       ['link', 'image', 'video'],
+      [
+        // use picker to enable the customSelect option
+        { [TableUp.toolName]: [] },
+      ],
       ['clean'],
     ],
     // Quill's history module is roughly equivalent to
@@ -67,6 +87,16 @@ export const QUILL_SETTINGS: QuillOptions = {
       delay: 1000,
       maxStack: 100,
       userOnly: true,
+    },
+    [TableUp.moduleName]: {
+      customSelect: defaultCustomSelect,
+      modules: [
+        { module: TableVirtualScrollbar },
+        { module: TableAlign },
+        { module: TableResizeScale },
+        { module: TableSelection },
+        { module: TableMenuContextmenu },
+      ],
     },
   },
   placeholder: '',

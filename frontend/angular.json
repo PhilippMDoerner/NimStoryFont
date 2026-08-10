@@ -78,6 +78,8 @@
               "node_modules/plyr/dist/plyr.css",
               "node_modules/leaflet/dist/leaflet.css",
               "node_modules/quill/dist/quill.snow.css",
+              "node_modules/quill-table-up/dist/index.css",
+              "node_modules/quill-table-up/dist/table-creator.css",
               "src/assets/icons/css/solid.min.css",
               "src/assets/icons/css/regular.min.css",
               "src/assets/icons/css/brands.min.css",

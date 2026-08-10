@@ -32,5 +32,14 @@
     font-size: unset;
     border-bottom-left-radius: var(--bs-border-radius);
     border-bottom-right-radius: var(--bs-border-radius);
+
+    p {
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+
+    .table-up-menu {
+      background-color: var(--bs-gray-800);
+    }
   }
 }
