@@ -38,6 +38,10 @@
       margin-bottom: 16px;
     }
 
+    .ql-editor > :first-child {
+      margin-top: unset;
+    }
+
     .table-up-menu {
       background-color: var(--bs-gray-800);
     }
