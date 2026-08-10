@@ -3,12 +3,25 @@
   background-color: var(--bs-gray-800);
   margin-bottom: 10rem;
   --toolbar-color: white;
+  --focus-border-width: 2px;
 
   &:focus-within {
-    ::ng-deep .ql-toolbar.ql-snow,
     ::ng-deep .ql-container.ql-snow {
-      border-color: var(--bs-link-hover-color);
-      border-width: 2px;
+      border-bottom-color: var(--bs-link-hover-color);
+      border-bottom-width: var(--focus-border-width);
+      border-left-color: var(--bs-link-hover-color);
+      border-left-width: var(--focus-border-width);
+      border-right-color: var(--bs-link-hover-color);
+      border-right-width: var(--focus-border-width);
+    }
+
+    ::ng-deep .ql-toolbar.ql-snow {
+      border-top-color: var(--bs-link-hover-color);
+      border-top-width: var(--focus-border-width);
+      border-left-color: var(--bs-link-hover-color);
+      border-left-width: var(--focus-border-width);
+      border-right-color: var(--bs-link-hover-color);
+      border-right-width: var(--focus-border-width);
     }
   }
 }
