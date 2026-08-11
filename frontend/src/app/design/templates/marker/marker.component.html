@@ -14,9 +14,9 @@
       [deleteLabel]="
         canDelete()
           ? 'Marker of ' +
-            marker().location_details?.name +
+            $safeNavigationMigration(marker().location_details?.name) +
             ' on the map of ' +
-            marker().map_details?.name
+            $safeNavigationMigration(marker().map_details?.name)
           : undefined
       "
       (deleteConfirmed)="markerDelete.emit(marker())"
@@ -75,7 +75,11 @@
           ( <app-icon [icon]="icon"></app-icon> )
         } @else {
           {{ marker().type_details?.icon }}
-          ( <app-icon [icon]="marker().type_details?.icon!"></app-icon> )
+          (
+          <app-icon
+            [icon]="$safeNavigationMigration(marker().type_details?.icon)!"
+          ></app-icon>
+          )
           <span class="hint"> (from marker type) </span>
         }
       </span>
@@ -99,7 +103,9 @@
     <!-- Footer (Move to other Article + Delete Article) -->
     <app-article-footer
       [buttonLink]="locationUrl()"
-      [buttonLabel]="'Back to ' + marker().location_details?.name"
+      [buttonLabel]="
+        'Back to ' + $safeNavigationMigration(marker().location_details?.name)
+      "
     />
   </article>
 </app-page-container>

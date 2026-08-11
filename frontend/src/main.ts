@@ -1,5 +1,9 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withInterceptors,
+  withXhr,
+} from '@angular/common/http';
 import {
   importProvidersFrom,
   inject,
@@ -27,7 +31,10 @@ bootstrapApplication(AppComponent, {
     provideRouter(ROUTES, withViewTransitions()),
     { provide: TINYMCE_SCRIPT_SRC, useValue: 'tinymce/tinymce.min.js' },
     { provide: APP_BASE_HREF, useValue: '/wiki2' },
-    provideHttpClient(withInterceptors([offlineInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withXhr(),
+      withInterceptors([offlineInterceptor, errorInterceptor]),
+    ),
     GlobalStore,
     NavigationStore,
     provideAnimationsAsync(),

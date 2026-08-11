@@ -42,7 +42,7 @@ import { DiaryEntryCreateUpdatePageStore } from './diaryentry-create-update-page
   imports: [CreateUpdateComponent, ButtonComponent],
   templateUrl: './diaryentry-create-update-page.component.html',
   styleUrl: './diaryentry-create-update-page.component.scss',
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class DiaryentryCreateUpdatePageComponent {
   private readonly formlyService = inject(FormlyService);
@@ -53,8 +53,12 @@ export class DiaryentryCreateUpdatePageComponent {
   private readonly destroyer = inject(DestroyRef);
 
   private readonly routeUrlSegments = toSignal(this.route.url);
-  private readonly authors$ = toObservable(this.store.authors).pipe(filterNil());
-  private readonly sessions$ = toObservable(this.store.sessions).pipe(filterNil());
+  private readonly authors$ = toObservable(this.store.authors).pipe(
+    filterNil(),
+  );
+  private readonly sessions$ = toObservable(this.store.sessions).pipe(
+    filterNil(),
+  );
   private readonly queryState$ = toObservable(this.store.diaryentryQueryState);
 
   readonly state = computed<CreateUpdateState>(() => {

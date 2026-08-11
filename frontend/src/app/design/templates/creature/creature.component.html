@@ -44,7 +44,9 @@
       [ariaLevel]="2"
       [placeholder]="'Add a description for ' + creature().name"
       [text]="creature().description"
-      [serverModel]="creatureServerModel()?.description"
+      [serverModel]="
+        $safeNavigationMigration(creatureServerModel()?.description)
+      "
       [canUpdate]="canUpdate()"
       (update)="onDescriptionUpdate($event)"
     ></app-editable-text>

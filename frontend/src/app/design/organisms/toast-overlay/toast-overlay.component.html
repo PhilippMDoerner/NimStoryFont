@@ -1,5 +1,5 @@
 @let toast = currentToast();
-@let onToastClick = toast?.onToastClick;
+@let onToastClick = $safeNavigationMigration(toast?.onToastClick);
 @if (toast && onToastClick) {
   <button
     class="button-container"
@@ -67,13 +67,16 @@
   @let hasHeader = !!toast?.header;
   <div class="toast__body body">
     <span class="body__text">
-      @let bodyIcon = toast?.body?.icon;
+      @let bodyIcon = $safeNavigationMigration(toast?.body?.icon);
       @if (bodyIcon) {
         <app-icon class="body__icon" [icon]="bodyIcon" />
       }
 
       @if (toast?.body?.text) {
-        <div class="body__text-container" [innerHTML]="toast?.body?.text"></div>
+        <div
+          class="body__text-container"
+          [innerHTML]="$safeNavigationMigration(toast?.body?.text)"
+        ></div>
       }
 
       @if (!hasHeader) {
@@ -90,7 +93,7 @@
     </span>
 
     <div class="body__button-container">
-      @let firstButton = toast?.body?.buttons?.[0];
+      @let firstButton = $safeNavigationMigration(toast?.body?.buttons?.[0]);
       @if (firstButton) {
         <button
           btn
@@ -102,7 +105,7 @@
           (clicked)="firstButton.onClick(dismissCurrentToast.bind(this))"
         ></button>
       }
-      @let secondButton = toast?.body?.buttons?.[1];
+      @let secondButton = $safeNavigationMigration(toast?.body?.buttons?.[1]);
       @if (secondButton) {
         <button
           btn

@@ -29,7 +29,10 @@
           [menuItems]="contextMenuItems()"
           [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"
-          [menuButtonText]="'Actions for Encounter ' + encounter()?.title"
+          [menuButtonText]="
+            'Actions for Encounter ' +
+            $safeNavigationMigration(encounter()?.title)
+          "
           [menuButtonShowText]="false"
           (actionTriggered)="onContextMenuAction($event)"
         />
@@ -73,7 +76,7 @@
       [state]="textFieldState()"
       [canUpdate]="canUpdate()"
       [text]="encounterVal.description"
-      [serverModel]="serverModel()?.description"
+      [serverModel]="$safeNavigationMigration(serverModel()?.description)"
       [placeholder]="'What happened during ' + encounterVal.title + ' ?'"
       [cancelButtonKind]="'SECONDARY'"
       (update)="onDescriptionUpdateFinished($event)"

@@ -49,8 +49,10 @@
             [icon]="'arrow-left'"
             [text]="
               'Session' +
-              sessionaudio().sessionAudioNeighbours?.nextSessionAudio
-                ?.sessionNumber
+              $safeNavigationMigration(
+                sessionaudio().sessionAudioNeighbours?.nextSessionAudio
+                  ?.sessionNumber
+              )
             "
           >
           </a>
@@ -67,8 +69,10 @@
             [icon]="'arrow-right'"
             [text]="
               'Session' +
-              sessionaudio().sessionAudioNeighbours?.priorSessionAudio
-                ?.sessionNumber
+              $safeNavigationMigration(
+                sessionaudio().sessionAudioNeighbours?.priorSessionAudio
+                  ?.sessionNumber
+              )
             "
           >
           </a>

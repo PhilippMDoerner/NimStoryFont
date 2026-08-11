@@ -1,6 +1,6 @@
 @let sessions = store.sessions();
 @let campaignName = globalStore.campaignName();
-@let campaignId = globalStore.currentCampaign()?.pk;
+@let campaignId = $safeNavigationMigration(globalStore.currentCampaign()?.pk);
 
 @if (campaignId && campaignName && sessions) {
   <app-sessions-template

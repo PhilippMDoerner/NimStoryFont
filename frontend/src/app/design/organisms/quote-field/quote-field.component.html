@@ -94,7 +94,9 @@
 
       <div class="quote__description">
         @if (quote()?.description) {
-          <app-html-text [text]="'- ' + quote()?.description"></app-html-text>
+          <app-html-text
+            [text]="'- ' + $safeNavigationMigration(quote()?.description)"
+          ></app-html-text>
         }
 
         @if (!quote()?.description) {

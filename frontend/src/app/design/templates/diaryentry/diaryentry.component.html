@@ -45,7 +45,11 @@
       </h1>
       <p class="col-12 fs-6 fw-normal diaryentry__subheading">
         Written by: {{ diaryentry().author_details?.name }} <br />
-        on {{ diaryentry().session_details?.session_date | date: "longDate" }}
+        on
+        {{
+          $safeNavigationMigration(diaryentry().session_details?.session_date)
+            | date: "longDate"
+        }}
       </p>
     </div>
 

@@ -1,6 +1,6 @@
 @let quotes = store.quotes();
 @let character = store.character();
-@let campaignId = globalStore.currentCampaign()?.pk;
+@let campaignId = $safeNavigationMigration(globalStore.currentCampaign()?.pk);
 @if (quotes && character && campaignId != null) {
   <app-page-container>
     <article class="container">
@@ -28,7 +28,9 @@
         <a
           btn
           [kind]="'SECONDARY'"
-          [text]="'Back to ' + store.character()?.name"
+          [text]="
+            'Back to ' + $safeNavigationMigration(store.character()?.name)
+          "
           [routerLink]="characterUrl()"
         >
         </a>
