@@ -79,6 +79,7 @@
   "overrides": {
     "@ngrx/signals": {
       "@angular/core": "$@angular/core"
-    }
+    },
+    "@angular-devkit/build-angular": "22.1.3"
   }
 }
