@@ -63,6 +63,10 @@
       margin-top: unset;
     }
 
+    .ql-editor > :last-child {
+      margin-bottom: unset;
+    }
+
     .table-up-menu {
       background-color: var(--bs-gray-800);
     }

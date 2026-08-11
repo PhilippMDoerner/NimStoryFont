@@ -5,7 +5,6 @@ import {
   effect,
   ElementRef,
   input,
-  model,
   output,
   viewChild,
 } from '@angular/core';
@@ -31,10 +30,10 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
 export class QuillEditorComponent {
   private readonly container = viewChild<ElementRef<HTMLElement>>('editor');
 
-  readonly value = model.required<string>();
+  readonly value = input.required<string>();
   readonly readOnly = input<boolean>(false);
 
-  public readonly input = output<string>();
+  public readonly inputChanged = output<string>();
   public readonly onBlur = output<void>();
   public readonly onFocus = output<void>();
 
@@ -45,13 +44,14 @@ export class QuillEditorComponent {
       ...QUILL_SETTINGS.modules,
       keyboard: {
         bindings: {
-          shiftEnter: {
-            key: ['Enter'],
-            shiftKey: true,
-            handler: (range: Range) => {
-              this.handleLinebreakKeybindings(range);
-            },
-          },
+          tab: false,
+          // shiftEnter: {
+          //   key: ['Enter'],
+          //   shiftKey: true,
+          //   handler: (range: Range) => {
+          //     this.handleLinebreakKeybindings(range);
+          //   },
+          // },
         },
       },
     },
@@ -59,7 +59,6 @@ export class QuillEditorComponent {
 
   public readonly quill = computed(() => {
     const el = this.container()?.nativeElement;
-    console.log('Running with ', el);
     if (!el) return undefined;
 
     const quill = new Quill(el, this.quillConfig());
@@ -72,8 +71,14 @@ export class QuillEditorComponent {
     effect(() => {
       const q = this.quill();
       if (!q) return;
+      console.log('DBB Setting', this.value());
+      const selection = q.getSelection();
 
-      q.clipboard.dangerouslyPasteHTML(this.value());
+      q.clipboard.dangerouslyPasteHTML(this.value(), 'silent');
+
+      if (selection) {
+        q.setSelection(selection.index, selection.length, 'silent');
+      }
     });
   }
 
@@ -83,7 +88,11 @@ export class QuillEditorComponent {
       if (!q) return;
 
       const eventListeners = {
-        'text-change': () => this.input.emit(q.root.innerHTML ?? ''),
+        'text-change': () => {
+          const value = q.root.innerHTML ?? '';
+          this.inputChanged.emit(value);
+          console.log('DBB Emitting', value);
+        },
       } satisfies Partial<Record<QuillEvent, Function>>;
 
       Object.entries(eventListeners).forEach(([eventName, callback]) =>
@@ -111,13 +120,10 @@ export class QuillEditorComponent {
       this.insertSoftbreak(q, range.index + 1);
     }
 
-    q.setSelection(
-      Math.min(range.index + 1, q.getLength()),
-      Quill.sources.SILENT,
-    );
+    q.setSelection(Math.min(range.index + 1, q.getLength()), 'silent');
   }
 
   private insertSoftbreak(quill: Quill, position: number) {
-    quill.insertEmbed(position, 'softbreak', '', Quill.sources.SILENT);
+    // quill.insertEmbed(position, 'softbreak', '', 'silent');
   }
 }

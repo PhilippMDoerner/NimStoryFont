@@ -1,4 +1,4 @@
-import { EmbedBlot } from 'parchment';
+// import { EmbedBlot } from 'parchment';
 import Quill, { QuillOptions } from 'quill';
 import TableUp, {
   defaultCustomSelect,
@@ -52,11 +52,11 @@ export type EditorSettings = typeof TINYMCE_SETTINGS;
 
 Quill.register({ [`modules/${TableUp.moduleName}`]: TableUp }, true);
 
-class SoftBreak extends EmbedBlot {}
-SoftBreak.blotName = 'softbreak';
-SoftBreak.tagName = 'BR';
-
-Quill.register(SoftBreak);
+// We temporarily disable this for now because I currently do not want to deal with bugs that softbreak introduces
+// class SoftBreak extends EmbedBlot {}
+// SoftBreak.blotName = 'softbreak';
+// SoftBreak.tagName = 'BR';
+// Quill.register(SoftBreak);
 
 export const QUILL_SETTINGS: QuillOptions = {
   theme: 'snow',
