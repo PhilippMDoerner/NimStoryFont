@@ -108,8 +108,8 @@ export const ConfigAdministrationPageStore = signalStore(
           switchMap((relationshipType) =>
             relationshipTypeService.create(relationshipType),
           ),
-          tapResponse(
-            (createdRelationshipType) => {
+          tapResponse({
+            next: (createdRelationshipType) => {
               const oldList: any[] | undefined = isGlobal()
                 ? state.nodeLinkTypes()
                 : state.campaignNodeLinkTypes();
@@ -122,9 +122,9 @@ export const ConfigAdministrationPageStore = signalStore(
                 campaignNodeLinkTypes: newList,
               });
             },
-            (error: HttpErrorResponse) =>
+            error: (error: HttpErrorResponse) =>
               toastService.addToast(httpErrorToast(error)),
-          ),
+          }),
         ),
       ),
       deleteRelationshipType: rxMethod<number>(
