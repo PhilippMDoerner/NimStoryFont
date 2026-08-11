@@ -10,9 +10,9 @@ import {
 } from '@angular/core';
 import Quill, { QuillOptions, Range } from 'quill';
 import E from 'quill/core/emitter';
-import { HOTKEY_IGNORE_ATTR } from 'src/app/_models/hotkey';
-import { QUILL_SETTINGS } from 'src/app/app.constants';
-import { componentId } from 'src/utils/DOM';
+import { HOTKEY_IGNORE_ATTR } from '../../../../app/_models/hotkey';
+import { QUILL_SETTINGS } from '../../../../app/app.constants';
+import { componentId } from '../../../../utils/DOM';
 
 type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
 
