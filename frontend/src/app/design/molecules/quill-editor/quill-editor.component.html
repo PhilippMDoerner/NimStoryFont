@@ -1,1 +1,121 @@
-<div #editor></div>
+<div class="editor-wrapper">
+  <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes -->
+  <div #toolbar class="ql-toolbar ql-snow custom-toolbar">
+    <!-- [{ header: [1,2,3,4,5,6,false] }] -->
+    <span class="ql-formats">
+      <select class="ql-header">
+        <option value="1"></option>
+        <option value="2"></option>
+        <option value="3"></option>
+        <option value="4"></option>
+        <option value="5"></option>
+        <option value="6"></option>
+        <option selected></option>
+        <!-- false / normal -->
+      </select>
+    </span>
+
+    <!-- 'bold','italic','underline','strike','blockquote', {script:'sub'}, {script:'super'} -->
+    <span class="ql-formats">
+      <button class="ql-bold" type="button" aria-label="Bold"></button>
+      <button class="ql-italic" type="button" aria-label="Italic"></button>
+      <button
+        class="ql-underline"
+        type="button"
+        aria-label="Underline"
+      ></button>
+      <button class="ql-strike" type="button" aria-label="Strike"></button>
+      <button
+        class="ql-blockquote"
+        type="button"
+        aria-label="Blockquote"
+      ></button>
+      <button
+        class="ql-script"
+        value="sub"
+        type="button"
+        aria-label="Subscript"
+      ></button>
+      <button
+        class="ql-script"
+        value="super"
+        type="button"
+        aria-label="Superscript"
+      ></button>
+    </span>
+
+    <!-- { color: [] }, { background: [] } -->
+    <span class="ql-formats">
+      <select class="ql-color"></select>
+      <select class="ql-background"></select>
+    </span>
+
+    <!-- 'link','image','video' -->
+    <span class="ql-formats">
+      <button class="ql-link" type="button" aria-label="Link"></button>
+      <button class="ql-image" type="button" aria-label="Image"></button>
+      <button class="ql-video" type="button" aria-label="Video"></button>
+    </span>
+
+    <!-- { align:'' }, {align:'center'}, {align:'right'}, {align:'justify'},
+         { list:'ordered' }, { list:'bullet' },
+         { indent:'-1' }, { indent:'+1' } -->
+    <span class="ql-formats">
+      <select class="ql-align">
+        <option selected></option>
+        <!-- align: '' -->
+        <option value="center"></option>
+        <option value="right"></option>
+        <option value="justify"></option>
+      </select>
+      <button
+        class="ql-list"
+        value="ordered"
+        type="button"
+        aria-label="Ordered list"
+      ></button>
+      <button
+        class="ql-list"
+        value="bullet"
+        type="button"
+        aria-label="Bullet list"
+      ></button>
+      <button
+        class="ql-indent"
+        value="-1"
+        type="button"
+        aria-label="Outdent"
+      ></button>
+      <button
+        class="ql-indent"
+        value="+1"
+        type="button"
+        aria-label="Indent"
+      ></button>
+    </span>
+
+    <!-- { [TableUp.toolName]: [] } -->
+    <span class="ql-formats">
+      <!-- Class must be `ql-<TableUp.toolName>` so Quill's toolbar module
+           matches it to the format/handler the plugin registers.
+           Check the plugin's own docs/demo for whether it expects a
+           <select> (picker) or a <button> here — the comment in your
+           original config ("use picker to enable the customSelect option")
+           suggests a <select>, so that's shown below. -->
+      <select class="ql-table-up">
+        <option value="new"></option>
+      </select>
+    </span>
+
+    <!-- 'clean' -->
+    <span class="ql-formats">
+      <button
+        class="ql-clean"
+        type="button"
+        aria-label="Remove formatting"
+      ></button>
+    </span>
+  </div>
+
+  <div class="editor-body" #editor></div>
+</div>

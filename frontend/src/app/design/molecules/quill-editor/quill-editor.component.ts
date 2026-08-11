@@ -12,6 +12,7 @@ import Quill, { QuillOptions, Range } from 'quill';
 import E from 'quill/core/emitter';
 import { HOTKEY_IGNORE_ATTR } from 'src/app/_models/hotkey';
 import { QUILL_SETTINGS } from 'src/app/app.constants';
+import { componentId } from 'src/utils/DOM';
 
 type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
 
@@ -28,7 +29,10 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
   },
 })
 export class QuillEditorComponent {
-  private readonly container = viewChild<ElementRef<HTMLElement>>('editor');
+  private readonly container =
+    viewChild.required<ElementRef<HTMLElement>>('editor');
+  private readonly toolbar =
+    viewChild.required<ElementRef<HTMLElement>>('toolbar');
 
   readonly value = input.required<string>();
   readonly readOnly = input<boolean>(false);
@@ -37,11 +41,14 @@ export class QuillEditorComponent {
   public readonly onBlur = output<void>();
   public readonly onFocus = output<void>();
 
+  protected readonly toolbarId = `${componentId()}-toolbar`;
+
   private quillConfig = computed<QuillOptions>(() => ({
     ...QUILL_SETTINGS,
     readOnly: this.readOnly(),
     modules: {
       ...QUILL_SETTINGS.modules,
+      toolbar: this.toolbar().nativeElement,
       keyboard: {
         bindings: {
           tab: false,
