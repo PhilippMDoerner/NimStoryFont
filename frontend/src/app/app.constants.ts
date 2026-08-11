@@ -68,6 +68,35 @@ export const QUILL_SETTINGS: QuillOptions = {
       maxStack: 100,
       userOnly: true,
     },
+    toolbar: [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [
+        'bold',
+        'italic',
+        'underline',
+        'strike',
+        'blockquote',
+        { script: 'sub' },
+        { script: 'super' },
+      ],
+      [{ color: [] }, { background: [] }],
+      ['link', 'image', 'video'],
+      [
+        { align: '' },
+        { align: 'center' },
+        { align: 'right' },
+        { align: 'justify' },
+        { list: 'ordered' },
+        { list: 'bullet' },
+        { indent: '-1' },
+        { indent: '+1' },
+      ],
+      [
+        // use picker to enable the customSelect option
+        { [TableUp.toolName]: [] },
+      ],
+      ['clean'],
+    ],
     [TableUp.moduleName]: {
       customSelect: defaultCustomSelect,
       modules: [

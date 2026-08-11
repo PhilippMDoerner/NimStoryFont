@@ -1,8 +1,9 @@
 <div class="editor-wrapper">
   <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes -->
-  <div #toolbar class="ql-toolbar ql-snow custom-toolbar">
+  <div ngToolbar #toolbar class="ql-toolbar ql-snow custom-toolbar">
     <!-- [{ header: [1,2,3,4,5,6,false] }] -->
-    <span class="ql-formats">
+    <!-- TODO: Implement this, not yet sure how to do selects as a toolbarwidget -->
+    <!-- <span class="ql-formats">
       <select class="ql-header">
         <option value="1"></option>
         <option value="2"></option>
@@ -11,33 +12,59 @@
         <option value="5"></option>
         <option value="6"></option>
         <option selected></option>
-        <!-- false / normal -->
       </select>
-    </span>
+    </span> -->
 
     <!-- 'bold','italic','underline','strike','blockquote', {script:'sub'}, {script:'super'} -->
     <span class="ql-formats">
-      <button class="ql-bold" type="button" aria-label="Bold"></button>
-      <button class="ql-italic" type="button" aria-label="Italic"></button>
       <button
+        ngToolbarWidget
+        value="bold"
+        class="ql-bold"
+        type="button"
+        aria-label="Bold"
+        [ngbTooltip]="'Ctrl + b'"
+      ></button>
+      <button
+        ngToolbarWidget
+        value="italic"
+        class="ql-italic"
+        type="button"
+        aria-label="Italic"
+        [ngbTooltip]="'Ctrl + i'"
+      ></button>
+      <button
+        ngToolbarWidget
+        value="underline"
         class="ql-underline"
         type="button"
         aria-label="Underline"
+        [ngbTooltip]="'Ctrl + u'"
       ></button>
-      <button class="ql-strike" type="button" aria-label="Strike"></button>
       <button
+        ngToolbarWidget
+        value="strike"
+        class="ql-strike"
+        type="button"
+        aria-label="Strike"
+      ></button>
+      <button
+        ngToolbarWidget
+        value="blockquote"
         class="ql-blockquote"
         type="button"
         aria-label="Blockquote"
       ></button>
       <button
         class="ql-script"
+        ngToolbarWidget
         value="sub"
         type="button"
         aria-label="Subscript"
       ></button>
       <button
         class="ql-script"
+        ngToolbarWidget
         value="super"
         type="button"
         aria-label="Superscript"
@@ -45,48 +72,72 @@
     </span>
 
     <!-- { color: [] }, { background: [] } -->
-    <span class="ql-formats">
+    <!-- TODO: Make selects work here -->
+    <!-- <span class="ql-formats">
       <select class="ql-color"></select>
       <select class="ql-background"></select>
-    </span>
+    </span> -->
 
     <!-- 'link','image','video' -->
     <span class="ql-formats">
-      <button class="ql-link" type="button" aria-label="Link"></button>
-      <button class="ql-image" type="button" aria-label="Image"></button>
-      <button class="ql-video" type="button" aria-label="Video"></button>
+      <button
+        ngToolbarWidget
+        value="link"
+        class="ql-link"
+        type="button"
+        aria-label="Link"
+        [ngbTooltip]="'Ctrl + k'"
+      ></button>
+      <button
+        ngToolbarWidget
+        value="image"
+        class="ql-image"
+        type="button"
+        aria-label="Image"
+      ></button>
+      <button
+        ngToolbarWidget
+        value="video"
+        class="ql-video"
+        type="button"
+        aria-label="Video"
+      ></button>
     </span>
 
     <!-- { align:'' }, {align:'center'}, {align:'right'}, {align:'justify'},
          { list:'ordered' }, { list:'bullet' },
          { indent:'-1' }, { indent:'+1' } -->
     <span class="ql-formats">
-      <select class="ql-align">
+      <!-- TODO: Make selects work -->
+      <!-- <select class="ql-align">
         <option selected></option>
-        <!-- align: '' -->
         <option value="center"></option>
         <option value="right"></option>
         <option value="justify"></option>
-      </select>
+      </select> -->
       <button
+        ngToolbarWidget
         class="ql-list"
         value="ordered"
         type="button"
         aria-label="Ordered list"
       ></button>
       <button
+        ngToolbarWidget
         class="ql-list"
         value="bullet"
         type="button"
         aria-label="Bullet list"
       ></button>
       <button
+        ngToolbarWidget
         class="ql-indent"
         value="-1"
         type="button"
         aria-label="Outdent"
       ></button>
       <button
+        ngToolbarWidget
         class="ql-indent"
         value="+1"
         type="button"
@@ -102,20 +153,22 @@
            <select> (picker) or a <button> here — the comment in your
            original config ("use picker to enable the customSelect option")
            suggests a <select>, so that's shown below. -->
-      <select class="ql-table-up">
+      <!-- TODO: Make selects work -->
+      <!-- <select class="ql-table-up">
         <option value="new"></option>
-      </select>
+      </select> -->
     </span>
 
     <!-- 'clean' -->
     <span class="ql-formats">
       <button
+        ngToolbarWidget
+        value="clean"
         class="ql-clean"
         type="button"
         aria-label="Remove formatting"
       ></button>
     </span>
   </div>
-
   <div class="editor-body" #editor></div>
 </div>
