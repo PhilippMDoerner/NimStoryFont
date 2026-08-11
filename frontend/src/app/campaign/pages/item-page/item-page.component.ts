@@ -8,10 +8,10 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, Observable, take } from 'rxjs';
-import { Item } from 'src/app/_models/item';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ItemComponent } from 'src/app/design/templates/item/item.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Item } from '../../../_models/item';
+import { RoutingService } from '../../../_services/routing.service';
+import { ItemComponent } from '../../../design/templates/item/item.component';
+import { GlobalStore } from '../../../global.store';
 import { ItemPageStore } from './item-page.store';
 
 @Component({

@@ -15,9 +15,9 @@ import {
   shareReplay,
   take,
 } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { log } from 'src/utils/logging';
+import { log } from '../../utils/logging';
 import { ToastConfig } from '../_models/toast';
+import { ToastService } from '../design/organisms/toast-overlay/toast.service';
 
 export type OfflineCampaignData = Record<string, unknown>;
 export interface OfflineCampaignDataRecord {

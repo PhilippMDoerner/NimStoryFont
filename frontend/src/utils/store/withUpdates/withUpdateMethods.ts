@@ -4,8 +4,8 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withMethods } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { Observable, pipe, switchMap, tap } from 'rxjs';
-import { successToast } from 'src/app/_models/toast';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
+import { successToast } from '../../../app/_models/toast';
+import { ToastService } from '../../../app/design/organisms/toast-overlay/toast.service';
 import {
   MethodsDictionary,
   Request,

@@ -20,8 +20,8 @@ import {
   getShiftedOrderIndex,
   nextOrderIndex,
   priorOrderIndex,
-} from 'src/app/_models/encounter';
-import { DiaryentryPageStore } from 'src/app/campaign/pages/diaryentry-page/diaryentry-page.store';
+} from '../../../_models/encounter';
+import { DiaryentryPageStore } from '../../../campaign/pages/diaryentry-page/diaryentry-page.store';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
@@ -35,13 +35,13 @@ import {
   take,
   withLatestFrom,
 } from 'rxjs';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { ScreenService } from 'src/app/_services/screen.service';
-import { slideUpFromBottom } from 'src/app/design/animations/slideDown';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { componentId } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { componentId } from '../../../../utils/DOM';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyService } from '../../../_services/hotkey.service';
+import { ScreenService } from '../../../_services/screen.service';
+import { slideUpFromBottom } from '../../../design/animations/slideDown';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { SpinnerComponent } from '../../../design/atoms/spinner/spinner.component';
 import {
   EncounterCardComponent,
   EncounterCardState,
@@ -72,7 +72,10 @@ export class DiaryentryEncountersComponent {
     encounter: Encounter;
     newOrderIndex: number;
   }>();
-  readonly addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
+  readonly addUnfinishedEncounter = output<{
+    encounter: EncounterRaw;
+    index: number;
+  }>();
 
   readonly store = inject(DiaryentryPageStore);
   readonly route = inject(ActivatedRoute);
@@ -98,9 +101,9 @@ export class DiaryentryEncountersComponent {
   readonly encounterElements$ = toObservable(this.encounterElements);
 
   readonly encounterIndexInFocus = signal<number | undefined>(undefined);
-  readonly encounterIndexInFocus$ = toObservable(this.encounterIndexInFocus).pipe(
-    shareReplay(),
-  );
+  readonly encounterIndexInFocus$ = toObservable(
+    this.encounterIndexInFocus,
+  ).pipe(shareReplay());
   readonly encountersToAdd = signal<EncounterRaw[]>([]);
   readonly isUpdatingGlobally = this.store.isUpdatingGlobally;
   readonly isUpdatingAnything = this.store.isUpdatingAnyEncounters;

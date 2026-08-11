@@ -9,16 +9,16 @@ import {
 } from '@angular/core';
 import { FormGroup, FormsModule } from '@angular/forms';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
-import { Login, SpecialLoginState } from 'src/app/_models/login';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 import { RouterLink } from '@angular/router';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { FeatureService } from 'src/app/_services/utils/feature.service';
-import { backInUp } from 'src/app/design/animations/backInUp';
-import { flipInY } from 'src/app/design/animations/flip';
+import { Login, SpecialLoginState } from '../../../_models/login';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { FeatureService } from '../../../_services/utils/feature.service';
+import { backInUp } from '../../animations/backInUp';
+import { flipInY } from '../../animations/flip';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 

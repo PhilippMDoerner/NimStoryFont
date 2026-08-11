@@ -6,14 +6,14 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SessionAudio, Timestamp } from 'src/app/_models/sessionAudio';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { ArticleFooterComponent } from 'src/app/design/molecules';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { SessionaudioPlayerComponent } from 'src/app/design/organisms/sessionaudio-player/sessionaudio-player.component';
+import { SessionAudio, Timestamp } from '../../../_models/sessionAudio';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { ArticleFooterComponent } from '../../molecules';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
+import { SessionaudioPlayerComponent } from '../../organisms/sessionaudio-player/sessionaudio-player.component';
 
 @Component({
   selector: 'app-sessionaudio',

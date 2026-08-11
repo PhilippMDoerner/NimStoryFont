@@ -1,4 +1,4 @@
-import { capitalize, uncapitalize } from 'src/utils/string';
+import { capitalize, uncapitalize } from '../../string';
 
 export function getKeys<Name extends string>(name: Name) {
   return {

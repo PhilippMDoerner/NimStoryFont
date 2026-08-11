@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { KeyCombination, ShortcutAction } from 'src/app/_models/hotkey';
-import { UserSettingsComponent } from 'src/app/general/components/user-settings/user-settings.component';
-import { UserPreferencesStore } from 'src/app/user-preferences.store';
+import { KeyCombination, ShortcutAction } from '../../../_models/hotkey';
+import { UserPreferencesStore } from '../../../user-preferences.store';
+import { UserSettingsComponent } from '../../components/user-settings/user-settings.component';
 
 @Component({
   selector: 'app-user-settings-page',

@@ -7,11 +7,11 @@ import {
   output,
 } from '@angular/core';
 
-import { ShortcutAction } from 'src/app/_models/hotkey';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
-import { InteractiveBadgeComponent } from 'src/app/design/atoms/interactive-badge/interactive-badge.component';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { ShortcutAction } from '../../../_models/hotkey';
+import { ElementKind } from '../../atoms/_models/button';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { InteractiveBadgeComponent } from '../../atoms/interactive-badge/interactive-badge.component';
 import { BadgeListEntry, BadgeListSelectOptions } from '../_models/badge-list';
 import { SmallCreateFormComponent } from '../small-create-form/small-create-form.component';
 

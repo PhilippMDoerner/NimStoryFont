@@ -25,9 +25,9 @@ import {
   Subject,
   withLatestFrom,
 } from 'rxjs';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { getFirstFocusableChild } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { getFirstFocusableChild } from '../../../../utils/DOM';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyService } from '../../../_services/hotkey.service';
 
 export interface FocusItem<T> {
   id: number;

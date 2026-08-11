@@ -10,13 +10,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormGroup } from '@angular/forms';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ShortcutAction } from 'src/app/_models/hotkey';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ShortcutAction } from '../../../_models/hotkey';
+import { ElementKind } from '../../atoms/_models/button';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { TypeaheadComponent } from '../../atoms/typeahead/typeahead.component';
 
 type State = 'DISPLAY' | 'CREATE';

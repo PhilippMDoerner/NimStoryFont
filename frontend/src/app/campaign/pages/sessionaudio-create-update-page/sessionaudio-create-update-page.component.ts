@@ -12,17 +12,18 @@ import { ActivatedRoute } from '@angular/router';
 import { NgbProgressbarModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, map, mergeMap, Observable, take } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Session } from 'src/app/_models/session';
-import { SessionAudio, SessionAudioRaw } from 'src/app/_models/sessionAudio';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PROLOGUE_FORBIDDEN_CHARACTERS } from 'src/app/app.constants';
-import { PageContainerComponent } from 'src/app/design//organisms/page-container/page-container.component';
-import { CreateUpdateComponent } from 'src/app/design//templates/create-update/create-update.component';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { OverviewItem } from '../../../_models/overview';
+import { Session } from '../../../_models/session';
+import { SessionAudio, SessionAudioRaw } from '../../../_models/sessionAudio';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { PROLOGUE_FORBIDDEN_CHARACTERS } from '../../../app.constants';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { SessionaudioCreateUpdatePageStore } from './sessionaudio-create-update-page.store';
 
 @Component({

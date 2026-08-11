@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { WikiStatistics } from 'src/app/_models/campaign';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
+import { WikiStatistics } from '../../_models/campaign';
 
 @Injectable({
   providedIn: 'root',

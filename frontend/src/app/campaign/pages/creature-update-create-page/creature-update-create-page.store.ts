@@ -5,13 +5,13 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, shareReplay, switchMap, tap } from 'rxjs';
-import { Creature, CreatureRaw } from 'src/app/_models/creature';
-import { CreatureService } from 'src/app/_services/article/creature.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withQueries } from 'src/utils/store/withQueries';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { Creature, CreatureRaw } from '../../../_models/creature';
+import { CreatureService } from '../../../_services/article/creature.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 interface CreatureUpdateCreateState {
   serverModel: CreatureRaw | undefined;
 }

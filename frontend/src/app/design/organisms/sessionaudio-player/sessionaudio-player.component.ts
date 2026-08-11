@@ -8,13 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Timestamp } from 'src/app/_models/sessionAudio';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CardComponent } from 'src/app/design/atoms/card/card.component';
-import { FormComponent } from 'src/app/design/molecules';
-import { LinkEntryComponent } from 'src/app/design/molecules/link-entry/link-entry.component';
+import { Timestamp } from '../../../_models/sessionAudio';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { CardComponent } from '../../atoms/card/card.component';
+import { FormComponent } from '../../molecules';
 import { LinkEntry } from '../../molecules/_models/link-entry';
+import { LinkEntryComponent } from '../../molecules/link-entry/link-entry.component';
 import { PlayerComponent } from '../player/player.component';
 
 type TimestampState = 'CREATE' | 'DISPLAY';
@@ -45,13 +45,15 @@ export class SessionaudioPlayerComponent {
   readonly deleteTimestamp = output<Timestamp>();
   readonly createTimestamp = output<Timestamp>();
 
-  readonly timestampEntries = computed<LinkEntry<Timestamp>[] | undefined>(() => {
-    return this.timestamps()?.map((timestamp) => ({
-      value: timestamp,
-      label: timestamp.name,
-      linkText: this.timeToString(timestamp.time),
-    }));
-  });
+  readonly timestampEntries = computed<LinkEntry<Timestamp>[] | undefined>(
+    () => {
+      return this.timestamps()?.map((timestamp) => ({
+        value: timestamp,
+        label: timestamp.name,
+        linkText: this.timeToString(timestamp.time),
+      }));
+    },
+  );
   readonly timestampState = signal<TimestampState>('DISPLAY');
   readonly currentTime = signal<number | undefined>(0);
   readonly timestampFields = computed<FormlyFieldConfig[]>(() => [

@@ -7,11 +7,11 @@ import {
   inject,
 } from '@angular/core';
 import { NgbToastModule } from '@ng-bootstrap/ng-bootstrap';
-import { ToastType } from 'src/app/_models/toast';
-import { slideRight } from 'src/app/design/animations/slideDown';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { ToastType } from '../../../_models/toast';
+import { slideRight } from '../../animations/slideDown';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import { ToastService } from './toast.service';
 
 @Component({

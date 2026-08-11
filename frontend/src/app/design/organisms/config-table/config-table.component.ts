@@ -5,8 +5,8 @@ import {
   input,
   output,
 } from '@angular/core';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { CardComponent } from '../../atoms/card/card.component';
 import { IconComponent } from '../../atoms/icon/icon.component';

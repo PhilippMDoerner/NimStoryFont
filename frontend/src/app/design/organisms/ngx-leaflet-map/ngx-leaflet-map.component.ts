@@ -28,11 +28,11 @@ import {
   marker,
   popup,
 } from 'leaflet';
-import { ExtendedMap } from 'src/app/_models/map';
-import { MapMarker } from 'src/app/_models/mapMarker';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { Icon, toIconKind } from 'src/app/design/atoms/_models/icon';
-import { stripTags } from 'src/utils/string';
+import { stripTags } from '../../../../utils/string';
+import { ExtendedMap } from '../../../_models/map';
+import { MapMarker } from '../../../_models/mapMarker';
+import { RoutingService } from '../../../_services/routing.service';
+import { Icon, toIconKind } from '../../atoms/_models/icon';
 
 type TextColor = 'black' | 'white';
 

@@ -5,8 +5,8 @@ import {
   input,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 
 @Component({

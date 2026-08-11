@@ -1,9 +1,9 @@
-import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
+import { capitalize } from '../../../../utils/string';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from '../../../_models/overview';
 import {
   SEARCHABLE_ARTICLE_KINDS,
   SearchableArticleKind,
-} from 'src/app/_models/search';
-import { capitalize } from 'src/utils/string';
+} from '../../../_models/search';
 import { Icon } from '../../atoms/_models/icon';
 
 export type ToggleState = 'TOGGLED' | 'UNTOGGLED';

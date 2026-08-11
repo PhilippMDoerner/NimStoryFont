@@ -4,9 +4,9 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { HomeComponent } from 'src/app/design//templates/home/home.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { HomeComponent } from '../../../design/templates/home/home.component';
+import { GlobalStore } from '../../../global.store';
 import { HomePageStore } from './home-page.store';
 
 @Component({

@@ -8,10 +8,10 @@ import {
   signal,
 } from '@angular/core';
 import { NgbAccordionModule } from '@ng-bootstrap/ng-bootstrap';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { CharacterEncounter } from 'src/app/_models/character';
-import { Encounter, EncounterConnection } from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { CharacterEncounter } from '../../../_models/character';
+import { Encounter, EncounterConnection } from '../../../_models/encounter';
+import { OverviewItem } from '../../../_models/overview';
 import { PaginationComponent } from '../../molecules/pagination/pagination.component';
 import { EncounterComponent } from '../encounter/encounter.component';
 

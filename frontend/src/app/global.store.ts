@@ -11,8 +11,8 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { Observable, of, pipe, switchMap } from 'rxjs';
-import { withViewTransition } from 'src/utils/animation';
-import { log } from 'src/utils/logging';
+import { withViewTransition } from '../utils/animation';
+import { log } from '../utils/logging';
 import { CampaignOverview } from './_models/campaign';
 import { CampaignRole } from './_models/token';
 import { OnlineService } from './_services/online.service';

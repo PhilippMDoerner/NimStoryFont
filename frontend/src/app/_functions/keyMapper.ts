@@ -1,4 +1,4 @@
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../utils/string';
 import { Key, KeyCombination } from '../_models/hotkey';
 
 export function encodeKey(event: Key, capitalizeKeys = false) {

@@ -25,9 +25,9 @@ import {
   Subject,
   switchMap,
 } from 'rxjs';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { componentId } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { componentId } from '../../../../utils/DOM';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 
 @Component({
@@ -68,7 +68,10 @@ export class ImageCardComponent {
 
   readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
-  readonly selectorClicked$ = new Subject<{ index: number; event: MouseEvent }>();
+  readonly selectorClicked$ = new Subject<{
+    index: number;
+    event: MouseEvent;
+  }>();
   readonly closeBtnClicked$ = new Subject<MouseEvent>();
   readonly openBtnClicked$ = new Subject<MouseEvent>();
   readonly inFocus = toSignal(

@@ -9,21 +9,21 @@ import {
   output,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
+import { componentId } from '../../../../utils/DOM';
+import { capitalize } from '../../../../utils/string';
+import { encodeKeyCombination } from '../../../_functions/keyMapper';
 import {
   KeyCombination,
   ShortcutAction,
   ShortcutMapping,
-} from 'src/app/_models/hotkey';
-import { ScreenService } from 'src/app/_services/screen.service';
+} from '../../../_models/hotkey';
+import { ScreenService } from '../../../_services/screen.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import {
   ListComponent,
   ListEntry,
-} from 'src/app/design/molecules/list/list.component';
-import { EditShortcutDialogComponent } from 'src/app/general/components/edit-shortcut-dialog/edit-shortcut-dialog.component';
-import { componentId } from 'src/utils/DOM';
-import { capitalize } from 'src/utils/string';
-import { ButtonComponent } from '../../../design/atoms/button/button.component';
+} from '../../../design/molecules/list/list.component';
+import { EditShortcutDialogComponent } from '../edit-shortcut-dialog/edit-shortcut-dialog.component';
 import { ProfileTabLayoutComponent } from '../profile-tab-layout/profile-tab-layout.component';
 
 type MappingEntry = ListEntry<{

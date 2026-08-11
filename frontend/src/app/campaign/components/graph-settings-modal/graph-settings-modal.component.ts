@@ -9,11 +9,11 @@ import {
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { IconComponent } from 'src/app/design//atoms/icon/icon.component';
-import { FormComponent } from 'src/app/design//molecules/form/form.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { GRAPH_SETTINGS } from 'src/app/design/organisms/_model/graph';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { IconComponent } from '../../../design//atoms/icon/icon.component';
+import { FormComponent } from '../../../design//molecules/form/form.component';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { GRAPH_SETTINGS } from '../../../design/organisms/_model/graph';
 
 @Component({
   selector: 'app-graph-settings-modal',

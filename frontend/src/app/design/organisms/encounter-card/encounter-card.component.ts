@@ -6,16 +6,16 @@ import {
   input,
   output,
 } from '@angular/core';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { CharacterEncounter } from 'src/app/_models/character';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { CharacterEncounter } from '../../../_models/character';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
-} from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RequestState } from 'src/utils/store/factory-types';
+} from '../../../_models/encounter';
+import { OverviewItem } from '../../../_models/overview';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { CardComponent } from '../../atoms/card/card.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
@@ -58,7 +58,9 @@ export class EncounterCardComponent {
 
   readonly isUpdating = computed(() => this.updateState() === 'loading');
 
-  readonly headingId = computed(() => `encounter-heading-${this.encounter().pk}`);
+  readonly headingId = computed(
+    () => `encounter-heading-${this.encounter().pk}`,
+  );
 
   readonly connectionDelete = output<EncounterConnection>();
   readonly connectionCreate = output<EncounterConnectionRaw>();

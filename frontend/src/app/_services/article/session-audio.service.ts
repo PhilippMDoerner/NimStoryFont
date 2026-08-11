@@ -2,9 +2,9 @@
 import { HttpClient, HttpEvent, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { convertSingleFileModelToFormData } from 'src/app/_functions/formDataConverter';
-import { OverviewItem } from 'src/app/_models/overview';
-import { SessionAudio, SessionAudioRaw } from 'src/app/_models/sessionAudio';
+import { convertSingleFileModelToFormData } from '../../_functions/formDataConverter';
+import { OverviewItem } from '../../_models/overview';
+import { SessionAudio, SessionAudioRaw } from '../../_models/sessionAudio';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

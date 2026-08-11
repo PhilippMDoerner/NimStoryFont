@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Timestamp } from 'src/app/_models/sessionAudio';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
+import { Timestamp } from '../../_models/sessionAudio';
 
 @Injectable({
   providedIn: 'root',

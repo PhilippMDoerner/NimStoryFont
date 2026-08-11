@@ -9,7 +9,7 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap } from 'rxjs';
-import { withQueries } from 'src/utils/store/withQueries';
+import { withQueries } from '../utils/store/withQueries';
 import { Login } from './_models/login';
 import { httpErrorToast } from './_models/toast';
 import { RoutingService } from './_services/routing.service';

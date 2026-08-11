@@ -9,16 +9,16 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { Timestamp } from 'src/app/_models/sessionAudio';
-import { httpErrorToast, successToast } from 'src/app/_models/toast';
-import { SessionAudioTimestampService } from 'src/app/_services/article/session-audio-timestamp.service';
-import { SessionAudioService } from 'src/app/_services/article/session-audio.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { sortByProp } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { sortByProp } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { Timestamp } from '../../../_models/sessionAudio';
+import { httpErrorToast, successToast } from '../../../_models/toast';
+import { SessionAudioTimestampService } from '../../../_services/article/session-audio-timestamp.service';
+import { SessionAudioService } from '../../../_services/article/session-audio.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface SessionaudioPageState {
   createTimestampState: RequestState;

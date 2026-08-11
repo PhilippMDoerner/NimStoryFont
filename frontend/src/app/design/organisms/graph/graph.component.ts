@@ -12,9 +12,9 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {} from 'd3-zoom';
 import { filter, map, Subject, take } from 'rxjs';
-import { NodeSelection, ParsedNodeMap } from 'src/app/_models/graph';
-import { ArticleService } from 'src/app/_services/article/article.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { NodeSelection, ParsedNodeMap } from '../../../_models/graph';
+import { ArticleService } from '../../../_services/article/article.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { GRAPH_SETTINGS } from '../_model/graph';
 import { GraphService } from './graph.service';
 
@@ -34,7 +34,8 @@ export class GraphComponent {
   readonly activeNodesData = input.required<NodeSelection>();
   readonly graphSettings = input.required<typeof GRAPH_SETTINGS>();
 
-  readonly graphContainer = viewChild<ElementRef<HTMLDivElement>>('graphContainer');
+  readonly graphContainer =
+    viewChild<ElementRef<HTMLDivElement>>('graphContainer');
   readonly elements = toSignal(this.graphService.elements$);
   readonly zoomLevel$ = this.graphService.zoomLevelChangedEvent$;
 

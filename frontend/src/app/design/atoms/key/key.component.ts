@@ -1,6 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { Key } from 'src/app/_models/hotkey';
+import { Key } from '../../../_models/hotkey';
 
 @Component({
   selector: 'app-key',

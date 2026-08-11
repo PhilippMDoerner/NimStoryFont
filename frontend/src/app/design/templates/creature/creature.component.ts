@@ -5,13 +5,13 @@ import {
   input,
   output,
 } from '@angular/core';
-import { Creature } from 'src/app/_models/creature';
-import { Image } from 'src/app/_models/image';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ArticleFooterComponent } from 'src/app/design/molecules';
-import { EditableTextComponent } from 'src/app/design/organisms/editable-text/editable-text.component';
-import { ImageCarouselCardComponent } from 'src/app/design/organisms/image-carousel-card/image-carousel-card.component';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
+import { Creature } from '../../../_models/creature';
+import { Image } from '../../../_models/image';
+import { RoutingService } from '../../../_services/routing.service';
+import { ArticleFooterComponent } from '../../../design/molecules';
+import { EditableTextComponent } from '../../../design/organisms/editable-text/editable-text.component';
+import { ImageCarouselCardComponent } from '../../../design/organisms/image-carousel-card/image-carousel-card.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
@@ -42,7 +42,9 @@ export class CreatureComponent {
   readonly deleteImage = output<Image>();
   readonly updateImage = output<Image>();
 
-  readonly campaignName = computed(() => this.creature().campaign_details?.name);
+  readonly campaignName = computed(
+    () => this.creature().campaign_details?.name,
+  );
   readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('creature-overview', {
       campaign: this.campaignName(),

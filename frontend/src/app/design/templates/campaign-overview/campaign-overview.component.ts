@@ -8,17 +8,17 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CampaignOverview } from 'src/app/_models/campaign';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { FeatureService } from 'src/app/_services/utils/feature.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
+import { CampaignOverview } from '../../../_models/campaign';
+import { RoutingService } from '../../../_services/routing.service';
+import { FeatureService } from '../../../_services/utils/feature.service';
+import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import {
   ImageGridComponent,
   ImageGridEntry,
-} from 'src/app/design/organisms/image-grid/image-grid.component';
-import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
-import { IconComponent } from '../../atoms/icon/icon.component';
+} from '../../organisms/image-grid/image-grid.component';
 
 @Component({
   selector: 'app-campaign-overview',
@@ -60,7 +60,9 @@ export class CampaignOverviewComponent {
   readonly configTableUrl = computed(() =>
     this.routingService.getRoutePath('config-tables'),
   );
-  readonly generalAdminUrl = computed(() => this.routingService.getRoutePath('admin'));
+  readonly generalAdminUrl = computed(() =>
+    this.routingService.getRoutePath('admin'),
+  );
   readonly gridEntries = computed<ImageGridEntry[] | undefined>(() =>
     this.campaigns()?.map((campaign) => ({
       imageUrl: campaign.background_image,

@@ -17,7 +17,7 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { Toggle } from '../_models/toggle';
 

@@ -5,8 +5,8 @@ import { Observable } from 'rxjs';
 import {
   EncounterConnection,
   EncounterConnectionRaw,
-} from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
+} from '../../_models/encounter';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { CreateDeleteService } from '../service.interfaces';
 

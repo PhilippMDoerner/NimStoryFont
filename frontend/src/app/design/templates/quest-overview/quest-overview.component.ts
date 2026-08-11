@@ -5,9 +5,9 @@ import {
   input,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 import { QuestTableComponent } from '../../organisms/quest-table/quest-table.component';
@@ -37,8 +37,8 @@ export class QuestOverviewComponent {
       campaign: this.campaignName,
     }),
   );
-  readonly groupedQuests = computed<{ key: string; value: OverviewItem[] }[]>(() =>
-    this.groupQuestsByTaker(this.quests()),
+  readonly groupedQuests = computed<{ key: string; value: OverviewItem[] }[]>(
+    () => this.groupQuestsByTaker(this.quests()),
   );
 
   constructor(private routingService: RoutingService) {}

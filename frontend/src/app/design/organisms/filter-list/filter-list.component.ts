@@ -8,13 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import {
   GroupByFirstLetterPipe,
   GroupByPipe,
-} from 'src/app/design/atoms/_pipes/groupObjects.pipe';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+} from '../../atoms/_pipes/groupObjects.pipe';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
 import { OverviewEntryComponent } from '../../molecules/overview-entry/overview-entry.component';

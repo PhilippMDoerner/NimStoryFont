@@ -6,9 +6,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbAccordionModule, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { Location } from 'src/app/_models/location';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Location } from '../../../_models/location';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { LocationComponent } from '../location/location.component';
 

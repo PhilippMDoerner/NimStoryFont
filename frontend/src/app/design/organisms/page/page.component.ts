@@ -17,17 +17,17 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { NgbOffcanvas, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { debounceTime, filter, fromEvent, map, switchMap } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ScreenService } from 'src/app/_services/screen.service';
-import { SwipeService } from 'src/app/_services/swipe.service';
-import { SCROLL_UP_DISTANCE, SWIPE_X_THRESHOLD } from 'src/app/app.constants';
-import { PageBackgroundComponent } from 'src/app/design/molecules';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
-import { delayFalsy, filterNil } from 'src/utils/rxjs-operators';
-import { capitalize } from 'src/utils/string';
+import { delayFalsy, filterNil } from '../../../../utils/rxjs-operators';
+import { capitalize } from '../../../../utils/string';
+import { RoutingService } from '../../../_services/routing.service';
+import { ScreenService } from '../../../_services/screen.service';
+import { SwipeService } from '../../../_services/swipe.service';
+import { SCROLL_UP_DISTANCE, SWIPE_X_THRESHOLD } from '../../../app.constants';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { PageBackgroundComponent } from '../../molecules';
 import { MobileHeaderComponent } from '../mobile-header/mobile-header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
@@ -64,12 +64,14 @@ export class PageComponent {
 
   readonly logout = output<void>();
 
-  readonly contentElement = viewChild.required<ElementRef<HTMLDivElement>>('content');
+  readonly contentElement =
+    viewChild.required<ElementRef<HTMLDivElement>>('content');
   readonly innerContentElement =
     viewChild.required<ElementRef<HTMLDivElement>>('innerContent');
   readonly sidebarTemplate =
     viewChild.required<TemplateRef<SidebarComponent>>('sidebar');
-  readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
+  readonly sidebarElement =
+    viewChild<ElementRef<HTMLElement>>('sidebarElement');
   readonly isMobile$ = this.screenService.isMobile$;
   readonly mobileHeaderTitle = computed(() => {
     const campaignName = this.globalStore.campaignName();

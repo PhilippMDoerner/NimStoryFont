@@ -5,13 +5,13 @@ import {
   input,
   output,
 } from '@angular/core';
-import { Image } from 'src/app/_models/image';
-import { Location } from 'src/app/_models/location';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
 import { BadgeListEntry, ListEntry } from '../../molecules';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
+import { Image } from '../../../_models/image';
+import { Location } from '../../../_models/location';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { BadgeListComponent } from '../../molecules/badge-list/badge-list.component';
@@ -55,7 +55,9 @@ export class LocationTemplateComponent {
   readonly locationDelete = output<Location>();
   readonly locationUpdate = output<Location>();
 
-  readonly campaignName = computed(() => this.location().campaign_details?.name);
+  readonly campaignName = computed(
+    () => this.location().campaign_details?.name,
+  );
   readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('location-overview', {
       campaign: this.campaignName(),

@@ -6,7 +6,7 @@ import {
   output,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { CompareFormComponent } from '../../molecules/compare-form/compare-form.component';
 import { FormComponent } from '../../molecules/form/form.component';

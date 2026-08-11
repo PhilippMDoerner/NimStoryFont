@@ -8,10 +8,10 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, Observable, take } from 'rxjs';
-import { Quest } from 'src/app/_models/quest';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { QuestComponent } from 'src/app/design/templates/quest/quest.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Quest } from '../../../_models/quest';
+import { RoutingService } from '../../../_services/routing.service';
+import { QuestComponent } from '../../../design/templates/quest/quest.component';
+import { GlobalStore } from '../../../global.store';
 import { QuestPageStore } from './quest-page.store';
 
 @Component({

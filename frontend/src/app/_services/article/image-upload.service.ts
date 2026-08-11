@@ -2,12 +2,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   convertModelToFormData,
   convertSingleFileModelToFormData,
-} from 'src/app/_functions/formDataConverter';
-import { Image } from 'src/app/_models/image';
-import { environment } from 'src/environments/environment';
+} from '../../_functions/formDataConverter';
+import { Image } from '../../_models/image';
 import { CUDService } from '../service.interfaces';
 
 @Injectable({

@@ -6,8 +6,8 @@ import {
   output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
 
 @Component({

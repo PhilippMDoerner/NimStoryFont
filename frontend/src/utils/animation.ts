@@ -1,4 +1,4 @@
-import { environment } from 'src/environments/environment';
+import { environment } from '../environments/environment';
 
 // We should respect prefers-reduced-motion for those that turned off animations
 const showAnimations =

@@ -5,12 +5,12 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, switchMap, tap } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { ArticleService } from 'src/app/_services/article/article.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { OverviewItem } from '../../../_models/overview';
+import { httpErrorToast } from '../../../_models/toast';
+import { ArticleService } from '../../../_services/article/article.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 export interface HomePageState {
   recentlyUpdatedArticles: OverviewItem[];

@@ -7,7 +7,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
 
 @Component({
   selector: 'app-input',

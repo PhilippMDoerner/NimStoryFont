@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { CharacterDetails, CharacterRaw } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
+import { CharacterDetails, CharacterRaw } from '../../_models/character';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

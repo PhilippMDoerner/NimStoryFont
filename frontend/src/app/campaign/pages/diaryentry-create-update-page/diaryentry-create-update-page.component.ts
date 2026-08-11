@@ -25,18 +25,17 @@ import {
   startWith,
   take,
 } from 'rxjs';
-import { DiaryEntry, DiaryEntryRaw } from 'src/app/_models/diaryentry';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { sessionAlreadyHasAuthor } from 'src/app/_services/formly/validators';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { DiaryEntry, DiaryEntryRaw } from '../../../_models/diaryentry';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { sessionAlreadyHasAuthor } from '../../../_services/formly/validators';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { DiaryEntryCreateUpdatePageStore } from './diaryentry-create-update-page.store';
-
 @Component({
   selector: 'app-diaryentry-create-update-page',
   imports: [CreateUpdateComponent, ButtonComponent],

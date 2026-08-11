@@ -10,10 +10,10 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, switchMap, tap } from 'rxjs';
-import { toBoolean } from 'src/utils/bool';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { toBoolean } from '../utils/bool';
+import { filterNil } from '../utils/rxjs-operators';
+import { RequestState } from '../utils/store/factory-types';
+import { withQueries } from '../utils/store/withQueries';
 import { encodeKeyCombination } from './_functions/keyMapper';
 import {
   DEFAULT_MAPPINGS,

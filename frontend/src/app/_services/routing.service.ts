@@ -9,8 +9,8 @@ import {
   Routes,
   UrlTree,
 } from '@angular/router';
-import { log } from 'src/utils/logging';
-import { getCorrectKey } from 'src/utils/object';
+import { log } from '../../utils/logging';
+import { getCorrectKey } from '../../utils/object';
 
 interface RouteNode {
   fullPath: string;

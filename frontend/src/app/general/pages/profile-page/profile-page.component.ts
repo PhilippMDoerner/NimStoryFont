@@ -8,13 +8,13 @@ import {
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map, Observable } from 'rxjs';
-import { AuthData, CampaignRole } from 'src/app/_models/token';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { TokenService } from 'src/app/_services/utils/token.service';
-import { AuthStore } from 'src/app/auth.store';
-import { ProfileComponent } from 'src/app/design//templates/profile/profile.component';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { AuthData, CampaignRole } from '../../../_models/token';
+import { RoutingService } from '../../../_services/routing.service';
+import { TokenService } from '../../../_services/utils/token.service';
+import { AuthStore } from '../../../auth.store';
+import { ProfileComponent } from '../../../design/templates/profile/profile.component';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { ProfilePageStore } from './profile-page.store';
 
 @Component({

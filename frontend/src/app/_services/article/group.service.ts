@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { PermissionGroup } from 'src/app/_models/auth';
-import { OverviewItem } from 'src/app/_models/overview';
+import { PermissionGroup } from '../../_models/auth';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 
 @Injectable({

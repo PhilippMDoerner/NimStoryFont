@@ -1,4 +1,4 @@
-import { ShortcutAction } from 'src/app/_models/hotkey';
+import { ShortcutAction } from '../../../_models/hotkey';
 import { ElementKind } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
 

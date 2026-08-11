@@ -27,6 +27,9 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs';
+import { log } from '../../../../utils/logging';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { capitalize } from '../../../../utils/string';
 import {
   ArticleNode,
   ArticleNodeKind,
@@ -35,10 +38,7 @@ import {
   NodeLink,
   NodeSelection,
   ParsedNodeMap,
-} from 'src/app/_models/graph';
-import { log } from 'src/utils/logging';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { capitalize } from 'src/utils/string';
+} from '../../../_models/graph';
 import {
   GRAPH_SETTINGS,
   LinkClickEvent,

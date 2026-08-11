@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Quote, QuoteRaw } from 'src/app/_models/quote';
+import { OverviewItem } from '../../_models/overview';
+import { Quote, QuoteRaw } from '../../_models/quote';
 import { BaseService } from '../base.service';
 
 @Injectable({

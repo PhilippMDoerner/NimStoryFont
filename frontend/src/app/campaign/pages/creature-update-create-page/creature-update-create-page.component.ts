@@ -8,12 +8,12 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { filter, Observable, skip, take } from 'rxjs';
-import { Creature, CreatureRaw } from 'src/app/_models/creature';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Creature, CreatureRaw } from '../../../_models/creature';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { CreatureUpdateCreateStore } from './creature-update-create-page.store';
 
 @Component({
@@ -79,7 +79,9 @@ export class CreatureUpdateCreateComponent {
       () => this.userModel() == null || this.globalStore.campaignName() == null,
     );
 
-  private readonly creatureQueryState$ = toObservable(this.store.creatureQueryState);
+  private readonly creatureQueryState$ = toObservable(
+    this.store.creatureQueryState,
+  );
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

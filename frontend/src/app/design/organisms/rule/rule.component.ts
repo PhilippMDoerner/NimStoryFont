@@ -9,12 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
+import { withViewTransition } from '../../../../utils/animation';
+import { Rule, RuleRaw } from '../../../_models/rule';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ElementKind } from '../../atoms/_models/button';
+import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
+import { CompareFormComponent, FormComponent } from '../../molecules';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,

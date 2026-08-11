@@ -10,13 +10,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ElementKind } from '../../atoms/_models/button';
 import { HeadingLevel } from '../../atoms/_models/heading';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import {
   EditorComponent,
   TextFieldState,

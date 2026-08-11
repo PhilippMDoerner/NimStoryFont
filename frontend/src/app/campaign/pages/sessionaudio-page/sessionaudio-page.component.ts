@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SessionaudioComponent } from 'src/app/design//templates/sessionaudio/sessionaudio.component';
-import { GlobalStore } from 'src/app/global.store';
+import { SessionaudioComponent } from '../../../design/templates/sessionaudio/sessionaudio.component';
+import { GlobalStore } from '../../../global.store';
 import { SessionaudioPageStore } from './sessionaudio-page.store';
 
 @Component({

@@ -26,15 +26,15 @@ import {
   Subject,
   timeout,
 } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ScreenService } from 'src/app/_services/screen.service';
-import { EditorSettings, TINYMCE_SETTINGS } from 'src/app/app.constants';
-import { AlertComponent } from 'src/app/design/atoms/alert/alert.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ScreenService } from '../../../_services/screen.service';
+import { EditorSettings, TINYMCE_SETTINGS } from '../../../app.constants';
 import { ElementKind } from '../../atoms/_models/button';
+import { AlertComponent } from '../../atoms/alert/alert.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { SeparatorComponent } from '../../atoms/separator/separator.component';
 
 export type TextFieldState = 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
 

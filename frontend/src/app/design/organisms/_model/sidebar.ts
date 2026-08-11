@@ -1,14 +1,14 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
-import { NamedRouteData, RouteName } from 'src/app/_models/route';
-import { CampaignRole } from 'src/app/_models/token';
-import { PwaService } from 'src/app/_services/pwa.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { AuthStore } from 'src/app/auth.store';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { GlobalStore, hasRoleOrBetter } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from '../../../_models/overview';
+import { NamedRouteData, RouteName } from '../../../_models/route';
+import { CampaignRole } from '../../../_models/token';
+import { PwaService } from '../../../_services/pwa.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { AuthStore } from '../../../auth.store';
+import { GlobalStore, hasRoleOrBetter } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
+import { Icon } from '../../atoms/_models/icon';
 
 export interface ArticleMetaData {
   title: string;

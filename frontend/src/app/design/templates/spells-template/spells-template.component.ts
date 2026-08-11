@@ -7,14 +7,14 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PlayerClass } from 'src/app/_models/playerclass';
+import { withViewTransition } from '../../../../utils/animation';
+import { PlayerClass } from '../../../_models/playerclass';
 import {
   Spell,
   SpellPlayerClassConnection,
   SpellRaw,
-} from 'src/app/_models/spell';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { withViewTransition } from 'src/utils/animation';
+} from '../../../_models/spell';
+import { RoutingService } from '../../../_services/routing.service';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';

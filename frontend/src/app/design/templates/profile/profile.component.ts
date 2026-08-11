@@ -10,11 +10,11 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ProfileTabLayoutComponent } from 'src/app/general/components/profile-tab-layout/profile-tab-layout.component';
-import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ProfileTabLayoutComponent } from '../../../general/components/profile-tab-layout/profile-tab-layout.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';

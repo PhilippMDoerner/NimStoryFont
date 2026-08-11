@@ -6,7 +6,7 @@ import {
   output,
 } from '@angular/core';
 import { NgbPagination, NgbPaginationPages } from '@ng-bootstrap/ng-bootstrap';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
 
 const FILTER_PAG_REGEX = /[^0-9]/g;
 

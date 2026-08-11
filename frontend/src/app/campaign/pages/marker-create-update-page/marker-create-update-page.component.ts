@@ -9,16 +9,19 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, mergeMap, of, take } from 'rxjs';
-import { MapMarker, MapMarkerRaw } from 'src/app/_models/mapMarker';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CreateUpdateComponent } from 'src/app/design//templates/create-update/create-update.component';
-import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
-import { filterNil, takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import {
+  filterNil,
+  takeOnceOrUntilDestroyed,
+} from '../../../../utils/rxjs-operators';
+import { MapMarker, MapMarkerRaw } from '../../../_models/mapMarker';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { formatSearchTerm } from '../../../design/atoms/_models/typeahead';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { MarkerCreateUpdateStore } from './marker-create-update-page.store';
 
 @Component({
@@ -42,8 +45,12 @@ export class MarkerCreateUpdatePageComponent {
   readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  readonly campaignMaps$ = toObservable(this.store.campaignMaps).pipe(filterNil());
-  readonly markerTypes$ = toObservable(this.store.markerTypes).pipe(filterNil());
+  readonly campaignMaps$ = toObservable(this.store.campaignMaps).pipe(
+    filterNil(),
+  );
+  readonly markerTypes$ = toObservable(this.store.markerTypes).pipe(
+    filterNil(),
+  );
   readonly createMarkerState$ = toObservable(this.store.createMarkerState);
   readonly updateMarkerState$ = toObservable(this.store.markerUpdateState);
   readonly marker$ = toObservable(this.store.marker).pipe(filterNil());
@@ -109,33 +116,39 @@ export class MarkerCreateUpdatePageComponent {
     }
   });
 
-  readonly userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(() => {
-    switch (this.state()) {
-      case 'CREATE': {
-        const location = this.getPreselectedLocation();
-        const map = this.getPreselectedMap();
-        const longitudeParam = this.params()?.['longitude'] as
-          | number
-          | undefined;
-        const longitude = longitudeParam
-          ? Math.round(longitudeParam)
-          : undefined;
-        const latitudeParam = this.params()?.['latitude'] as number | undefined;
-        const latitude = latitudeParam ? Math.round(latitudeParam) : undefined;
+  readonly userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(
+    () => {
+      switch (this.state()) {
+        case 'CREATE': {
+          const location = this.getPreselectedLocation();
+          const map = this.getPreselectedMap();
+          const longitudeParam = this.params()?.['longitude'] as
+            | number
+            | undefined;
+          const longitude = longitudeParam
+            ? Math.round(longitudeParam)
+            : undefined;
+          const latitudeParam = this.params()?.['latitude'] as
+            | number
+            | undefined;
+          const latitude = latitudeParam
+            ? Math.round(latitudeParam)
+            : undefined;
 
-        return {
-          campaign: this.globalStore.currentCampaign()?.pk,
-          map: map?.pk,
-          location: location?.pk,
-          latitude,
-          longitude,
-        } as Partial<MapMarkerRaw>;
+          return {
+            campaign: this.globalStore.currentCampaign()?.pk,
+            map: map?.pk,
+            location: location?.pk,
+            latitude,
+            longitude,
+          } as Partial<MapMarkerRaw>;
+        }
+        case 'UPDATE':
+        case 'OUTDATED_UPDATE':
+          return { ...this.store.marker() };
       }
-      case 'UPDATE':
-      case 'OUTDATED_UPDATE':
-        return { ...this.store.marker() };
-    }
-  });
+    },
+  );
 
   readonly heading = computed(() => {
     switch (this.state()) {

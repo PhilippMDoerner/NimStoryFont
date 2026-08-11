@@ -10,14 +10,14 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { MarkerService } from 'src/app/_services/article/marker.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withQueries } from 'src/utils/store/withQueries';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { httpErrorToast } from '../../../_models/toast';
+import { MarkerService } from '../../../_services/article/marker.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 
 interface MarkerState {}
 

@@ -3,8 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { DiaryEntry, DiaryEntryRaw } from 'src/app/_models/diaryentry';
-import { OverviewItem } from 'src/app/_models/overview';
+import { DiaryEntry, DiaryEntryRaw } from '../../_models/diaryentry';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

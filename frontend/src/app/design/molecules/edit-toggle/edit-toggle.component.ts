@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ElementKind } from '../../atoms/_models/button';
+import { ButtonComponent } from '../../atoms/button/button.component';
 
 @Component({
   selector: 'app-edit-toggle',

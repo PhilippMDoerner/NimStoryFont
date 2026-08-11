@@ -3,7 +3,7 @@ import { computed, Directive, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../utils/rxjs-operators';
 
 @Directive({
   selector: 'a[bypass]',

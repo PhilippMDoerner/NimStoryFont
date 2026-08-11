@@ -9,15 +9,15 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { PermissionGroup } from 'src/app/_models/auth';
+import { PermissionGroup } from '../../../_models/auth';
 import {
   BaseCampaignData,
   Campaign,
   WikiStatistics,
-} from 'src/app/_models/campaign';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+} from '../../../_models/campaign';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';

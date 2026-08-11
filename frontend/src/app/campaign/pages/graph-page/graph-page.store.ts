@@ -11,21 +11,21 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, switchMap, take, tap } from 'rxjs';
+import { replaceItem, sortAlphabetically } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
 import {
   LinkGroup,
   NodeLinkRaw,
   NORMAL_LINK_KIND_SET,
   toLinkLabel,
-} from 'src/app/_models/graph';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { RelationshipTypeService } from 'src/app/_services/article/relationship-type.service';
-import { RelationshipService } from 'src/app/_services/article/relationship.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem, sortAlphabetically } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+} from '../../../_models/graph';
+import { httpErrorToast } from '../../../_models/toast';
+import { RelationshipTypeService } from '../../../_services/article/relationship-type.service';
+import { RelationshipService } from '../../../_services/article/relationship.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 export interface GraphPageState {
   createLinkState: RequestState;

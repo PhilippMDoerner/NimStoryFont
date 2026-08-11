@@ -9,13 +9,12 @@ import {
 } from '@angular/core';
 import { NgbSlideEvent, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-
-import { Image } from 'src/app/_models/image';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { FormComponent } from 'src/app/design/molecules';
+import { Image } from '../../../_models/image';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { FormComponent } from '../../molecules';
 import { ImageCarouselComponent } from '../image-carousel/image-carousel.component';
 
 type State = 'DISPLAY' | 'DELETE' | 'UPDATE' | 'UPDATE_OUTDATED' | 'CREATE';
@@ -52,7 +51,9 @@ export class ImageCarouselCardComponent {
   readonly updateImage = output<Image>();
 
   readonly currentImageIndex = signal(0);
-  readonly currentImage = computed(() => this.images()[this.currentImageIndex()]);
+  readonly currentImage = computed(
+    () => this.images()[this.currentImageIndex()],
+  );
   readonly state = signal<State>('DISPLAY');
   readonly userModel = signal<Partial<Image> | null>({});
   readonly isLoading = signal(false);

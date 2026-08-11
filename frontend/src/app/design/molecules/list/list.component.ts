@@ -31,9 +31,9 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs';
-import { encodeKey, encodeKeyCombination } from 'src/app/_functions/keyMapper';
-import { AriaText } from 'src/app/_models/aria';
-import { HotkeyService, WatchOptions } from 'src/app/_services/hotkey.service';
+import { encodeKey, encodeKeyCombination } from '../../../_functions/keyMapper';
+import { AriaText } from '../../../_models/aria';
+import { HotkeyService, WatchOptions } from '../../../_services/hotkey.service';
 import { Icon } from '../../atoms/_models/icon';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ChildTemplateContext } from '../../organisms/focus-list/focus-list.component';
@@ -85,7 +85,8 @@ export class ListComponent<T> {
     >('entryTemplate');
 
   readonly entryElements = viewChildren<ElementRef<HTMLDivElement>>('listItem');
-  readonly tooltipContent = viewChild.required<TemplateRef<HTMLElement>>('tipContent');
+  readonly tooltipContent =
+    viewChild.required<TemplateRef<HTMLElement>>('tipContent');
   readonly shortcutActionKeys = toSignal(
     combineLatest({
       nextEntryKeys: this.shortcutService.getKeySequence('jump-to-next-entry'),
@@ -126,21 +127,23 @@ export class ListComponent<T> {
     ).replaceAll(' ', '');
     return `${nextEntryKeyStr} ${priorEntryKeyStr}`;
   });
-  readonly tooltipLines = computed<{ text: string; icon: Icon }[] | undefined>(() => {
-    const keys = this.shortcutActionKeys();
-    if (!keys) return undefined;
-    const nextEntryKeyStr = keys.nextEntryKeys
-      .map((key) => encodeKey(key).replaceAll('+', ' + '))
-      .join(' + ');
-    const priorEntryKeyStr = keys.priorEntryKeys
-      .map((key) => encodeKey(key).replaceAll('+', ' + '))
-      .join(' + ');
+  readonly tooltipLines = computed<{ text: string; icon: Icon }[] | undefined>(
+    () => {
+      const keys = this.shortcutActionKeys();
+      if (!keys) return undefined;
+      const nextEntryKeyStr = keys.nextEntryKeys
+        .map((key) => encodeKey(key).replaceAll('+', ' + '))
+        .join(' + ');
+      const priorEntryKeyStr = keys.priorEntryKeys
+        .map((key) => encodeKey(key).replaceAll('+', ' + '))
+        .join(' + ');
 
-    return [
-      { text: nextEntryKeyStr, icon: 'arrow-down' },
-      { text: priorEntryKeyStr, icon: 'arrow-up' },
-    ];
-  });
+      return [
+        { text: nextEntryKeyStr, icon: 'arrow-down' },
+        { text: priorEntryKeyStr, icon: 'arrow-up' },
+      ];
+    },
+  );
 
   constructor() {
     this.setupTooltip();

@@ -7,10 +7,10 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Creature } from 'src/app/_models/creature';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CreatureComponent } from 'src/app/design/templates/creature/creature.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Creature } from '../../../_models/creature';
+import { RoutingService } from '../../../_services/routing.service';
+import { CreatureComponent } from '../../../design/templates/creature/creature.component';
+import { GlobalStore } from '../../../global.store';
 import { CreaturePageStore } from './creature-page.store';
 
 @Component({

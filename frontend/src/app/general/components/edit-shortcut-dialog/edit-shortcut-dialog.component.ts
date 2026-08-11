@@ -19,19 +19,19 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
+import { componentId } from '../../../../utils/DOM';
+import { encodeKeyCombination } from '../../../_functions/keyMapper';
 import {
   ACTIONS,
   equals,
   KeyCombination,
   MODIFIER_KEYS,
   ShortcutAction,
-} from 'src/app/_models/hotkey';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { KeyComponent } from 'src/app/design/atoms/key/key.component';
-import { UserPreferencesStore } from 'src/app/user-preferences.store';
-import { componentId } from 'src/utils/DOM';
+} from '../../../_models/hotkey';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { KeyComponent } from '../../../design/atoms/key/key.component';
+import { UserPreferencesStore } from '../../../user-preferences.store';
 
 @Component({
   selector: 'app-edit-shortcut-dialog',
@@ -53,12 +53,15 @@ export class EditShortcutDialogComponent {
   readonly shortcutReset = output<ShortcutAction>();
   readonly cancelled = output<void>();
 
-  readonly keyInput = viewChild.required<ElementRef<HTMLInputElement>>('keyInput');
+  readonly keyInput =
+    viewChild.required<ElementRef<HTMLInputElement>>('keyInput');
   readonly keyInput$ = toObservable(this.keyInput);
   readonly modalId = componentId();
   readonly fieldId = componentId();
 
-  readonly currentKeymap$ = toObservable(inject(UserPreferencesStore).shortcutMappings);
+  readonly currentKeymap$ = toObservable(
+    inject(UserPreferencesStore).shortcutMappings,
+  );
   readonly value$ = this.keyInput$.pipe(
     switchMap((keyInput) =>
       fromEvent<KeyboardEvent>(keyInput.nativeElement, 'keydown'),
@@ -76,7 +79,9 @@ export class EditShortcutDialogComponent {
     }, [] as KeyboardEvent[]),
   );
 
-  readonly text$ = this.value$.pipe(map((keyEvents) => encodeKeyCombination(keyEvents)));
+  readonly text$ = this.value$.pipe(
+    map((keyEvents) => encodeKeyCombination(keyEvents)),
+  );
 
   readonly conflictKind$ = combineLatest({
     currentKeymap: this.currentKeymap$,

@@ -24,8 +24,8 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { FocusOnRender } from 'src/app/_directives/focusOnRender.directive';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { FocusOnRender } from '../../../_directives/focusOnRender.directive';
 import {
   cleanSearchTerm,
   Formatter,
@@ -69,7 +69,8 @@ export class TypeaheadComponent<T> {
   readonly labelProp$ = toObservable(this.labelProp);
   readonly formatter$ = toObservable(this.formatter);
   readonly suggestionLimit$ = toObservable(this.suggestionLimit);
-  readonly inputElement = viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
+  readonly inputElement =
+    viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
   readonly inputElement$ = toObservable(this.inputElement).pipe(
     map((input) => input?.nativeElement),
     filterNil(),

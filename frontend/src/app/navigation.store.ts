@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RoutesRecognized } from '@angular/router';
 import { signalStore, withComputed, withProps } from '@ngrx/signals';
 import { filter, map, pairwise } from 'rxjs';
-import { debugLog } from 'src/utils/rxjs-operators';
+import { debugLog } from '../utils/rxjs-operators';
 
 export const NavigationStore = signalStore(
   withProps(() => {

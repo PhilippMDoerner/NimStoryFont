@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { QuestOverviewComponent } from 'src/app/design/templates/quest-overview/quest-overview.component';
-import { GlobalStore } from 'src/app/global.store';
+import { QuestOverviewComponent } from '../../../design/templates/quest-overview/quest-overview.component';
+import { GlobalStore } from '../../../global.store';
 import { QuestOverviewPageStore } from './quests-overview-page.store';
 
 @Component({

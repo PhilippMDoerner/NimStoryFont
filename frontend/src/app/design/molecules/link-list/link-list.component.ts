@@ -5,10 +5,10 @@ import {
   output,
 } from '@angular/core';
 import { Params, RouterLink, UrlTree } from '@angular/router';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HeadingDirective } from '../../../_directives/heading.directive';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { ListEntry } from '../_models/list';
 import { MenuItem } from '../_models/menu';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';

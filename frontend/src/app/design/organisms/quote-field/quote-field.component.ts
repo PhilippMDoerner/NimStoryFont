@@ -9,22 +9,21 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-
 import { catchError, of, take } from 'rxjs';
-import { CharacterDetails } from 'src/app/_models/character';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { ArticleService } from 'src/app/_services/article/article.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CardComponent } from 'src/app/design/atoms/card/card.component';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
+import { CharacterDetails } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { ArticleService } from '../../../_services/article/article.service';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { CardComponent } from '../../atoms/card/card.component';
+import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
 import {
   BadgeListEntry,
   CompareFormComponent,
   FormComponent,
-} from 'src/app/design/molecules';
+} from '../../molecules';
 import { QuoteComponent, QuoteControlKind } from '../quote/quote.component';
 
 type QuoteState =

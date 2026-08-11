@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
 
 interface FeatureConfig {
   enableRegistration: boolean;

@@ -10,13 +10,13 @@ import { Observable } from 'rxjs';
 import {
   CharacterDetails,
   CharacterEncounter,
-} from 'src/app/_models/character';
-import { Encounter, EncounterConnection } from 'src/app/_models/encounter';
-import { Image } from 'src/app/_models/image';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CharacterComponent } from 'src/app/design/templates/character/character.component';
-import { GlobalStore } from 'src/app/global.store';
+} from '../../../_models/character';
+import { Encounter, EncounterConnection } from '../../../_models/encounter';
+import { Image } from '../../../_models/image';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { RoutingService } from '../../../_services/routing.service';
+import { CharacterComponent } from '../../../design/templates/character/character.component';
+import { GlobalStore } from '../../../global.store';
 import { CharacterStore } from './character-page.store';
 
 @Component({

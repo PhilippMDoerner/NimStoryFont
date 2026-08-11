@@ -9,21 +9,21 @@ import {
   withState,
 } from '@ngrx/signals';
 import { map, switchMap, take } from 'rxjs';
+import { replaceItem, sortByProp } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
 import {
   Spell,
   SpellPlayerClassConnection,
   SpellRaw,
-} from 'src/app/_models/spell';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { PlayerClassService } from 'src/app/_services/article/player-class.service';
-import { SpellPlayerClassConnectionService } from 'src/app/_services/article/spell-player-class-connection.service';
-import { SpellService } from 'src/app/_services/article/spell.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem, sortByProp } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+} from '../../../_models/spell';
+import { httpErrorToast } from '../../../_models/toast';
+import { PlayerClassService } from '../../../_services/article/player-class.service';
+import { SpellPlayerClassConnectionService } from '../../../_services/article/spell-player-class-connection.service';
+import { SpellService } from '../../../_services/article/spell.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface SpellsPageState {
   updateSpellState: RequestState;

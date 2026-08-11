@@ -10,13 +10,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { map } from 'rxjs';
-import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { ExternalLinkComponent } from 'src/app/design/atoms/external-link/external-link.component';
-import { SuccessAnimationComponent } from 'src/app/design/atoms/success-animation/success-animation.component';
-import { StepperComponent } from 'src/app/design/organisms/stepper/stepper.component';
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../../../utils/string';
+import { encodeKeyCombination } from '../../../_functions/keyMapper';
+import { HotkeyService } from '../../../_services/hotkey.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { ExternalLinkComponent } from '../../../design/atoms/external-link/external-link.component';
+import { SuccessAnimationComponent } from '../../../design/atoms/success-animation/success-animation.component';
+import { StepperComponent } from '../../../design/organisms/stepper/stepper.component';
 
 @Component({
   selector: 'app-onboarding-stepper',
@@ -41,7 +41,9 @@ export class OnboardingStepperComponent {
   readonly finished = output<void>();
   readonly firstStep = viewChild.required<CdkStep>('firstStep');
 
-  readonly host = window ? capitalize(window.location.hostname) : 'Nimstoryfont';
+  readonly host = window
+    ? capitalize(window.location.hostname)
+    : 'Nimstoryfont';
   readonly openOnboardingKeys$ = this.hotkeyService
     .getKeySequence('show-onboarding')
     .pipe(map((keys) => encodeKeyCombination(keys)));

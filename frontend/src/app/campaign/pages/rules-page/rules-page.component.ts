@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RulesTemplateComponent } from 'src/app/design/templates/rules-template/rules-template.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RulesTemplateComponent } from '../../../design/templates/rules-template/rules-template.component';
+import { GlobalStore } from '../../../global.store';
 import { RulesPageStore } from './rules-page.store';
 
 @Component({

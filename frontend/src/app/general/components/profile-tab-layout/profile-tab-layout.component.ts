@@ -4,13 +4,13 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
-import { LinkTabsComponent } from 'src/app/design/molecules/link-tabs/link-tabs.component';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 import { ArticleFooterComponent } from '../../../design/molecules/article-footer/article-footer.component';
+import { LinkTabsComponent } from '../../../design/molecules/link-tabs/link-tabs.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { getProfileTabs } from '../../_models/profileTabs';
 
 @Component({

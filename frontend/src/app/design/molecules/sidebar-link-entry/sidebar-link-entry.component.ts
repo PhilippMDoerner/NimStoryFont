@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { OnlineService } from 'src/app/_services/online.service';
+import { OnlineService } from '../../../_services/online.service';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SidebarLinkEntry } from '../../organisms/_model/sidebar';
 

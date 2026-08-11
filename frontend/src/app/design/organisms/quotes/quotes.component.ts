@@ -6,11 +6,11 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { CharacterDetails } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { GroupByPipe } from 'src/app/design/atoms/_pipes/groupObjects.pipe';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
+import { CharacterDetails } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { GroupByPipe } from '../../atoms/_pipes/groupObjects.pipe';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { QuoteFieldComponent } from '../quote-field/quote-field.component';
 import { QuoteControlKind } from '../quote/quote.component';
 

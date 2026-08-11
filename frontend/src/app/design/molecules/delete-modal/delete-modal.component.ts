@@ -5,8 +5,8 @@ import {
   input,
   output,
 } from '@angular/core';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ElementKind } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
 import { ButtonComponent } from '../../atoms/button/button.component';

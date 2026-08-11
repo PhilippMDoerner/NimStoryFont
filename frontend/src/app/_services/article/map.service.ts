@@ -2,9 +2,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { convertSingleFileModelToFormData } from 'src/app/_functions/formDataConverter';
-import { ExtendedMap, Map, MapRaw } from 'src/app/_models/map';
-import { OverviewItem } from 'src/app/_models/overview';
+import { convertSingleFileModelToFormData } from '../../_functions/formDataConverter';
+import { ExtendedMap, Map, MapRaw } from '../../_models/map';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

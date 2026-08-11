@@ -12,21 +12,21 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { DiaryEntry, DiaryEntryStump } from 'src/app/_models/diaryentry';
+import { componentId } from '../../../../utils/DOM';
+import { DiaryEntry, DiaryEntryStump } from '../../../_models/diaryentry';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
   getShiftedOrderIndex,
-} from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Session } from 'src/app/_models/session';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ContextMenuComponent } from 'src/app/design/molecules/context-menu/context-menu.component';
-import { componentId } from 'src/utils/DOM';
+} from '../../../_models/encounter';
+import { OverviewItem } from '../../../_models/overview';
+import { Session } from '../../../_models/session';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
+import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { DeleteModalComponent } from '../../molecules/delete-modal/delete-modal.component';
 import { DiaryentryEncountersComponent } from '../../organisms/diaryentry-encounters/diaryentry-encounters.component';
 import {
@@ -77,12 +77,17 @@ export class DiaryentryComponent {
     newOrderIndex: number;
   }>();
   readonly encounterSwap = output<{ enc1: Encounter; enc2: Encounter }>();
-  readonly addUnfinishedEncounter = output<{ encounter: EncounterRaw; index: number }>();
+  readonly addUnfinishedEncounter = output<{
+    encounter: EncounterRaw;
+    index: number;
+  }>();
 
   readonly modalService = inject(NgbModal);
 
   readonly state = signal<DiaryEntryState>('DISPLAY');
-  readonly campaignName = computed(() => this.diaryentry().campaign_details.name);
+  readonly campaignName = computed(
+    () => this.diaryentry().campaign_details.name,
+  );
   readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('diaryentry-overview', {
       campaign: this.campaignName(),

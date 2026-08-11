@@ -1,3 +1,4 @@
+import { NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,30 +10,28 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { CampaignOverview } from 'src/app/_models/campaign';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { CampaignOverview } from '../../../_models/campaign';
 import {
   ARTICLE_ICONS,
   ArticleKind,
   OverviewItem,
   VisitedState,
-} from 'src/app/_models/overview';
-import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
-
-import { NgOptimizedImage } from '@angular/common';
-import { OnlineService } from 'src/app/_services/online.service';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
-import { IconCardEntry } from 'src/app/design/organisms/_model/icon-card-list';
-import { ContentScrollEvent, GlobalStore } from 'src/app/global.store';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+} from '../../../_models/overview';
+import { OnlineService } from '../../../_services/online.service';
+import { ContentScrollEvent, GlobalStore } from '../../../global.store';
+import { Icon } from '../../atoms/_models/icon';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { PlaceholderComponent } from '../../atoms/placeholder/placeholder.component';
 import { SwitchComponent } from '../../atoms/switch/switch.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
+import { IconCardEntry } from '../../organisms/_model/icon-card-list';
 import { IconCardListComponent } from '../../organisms/icon-card-list/icon-card-list.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 const FILTER_MODES = ['NONE', '1WEEK', '1DAY'] as const;
 type FilterMode = (typeof FILTER_MODES)[number];
@@ -125,7 +124,9 @@ export class HomeComponent {
 
     return hasMoreArticlesInFilter;
   });
-  readonly feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>('INFINITY_SCROLL');
+  readonly feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>(
+    'INFINITY_SCROLL',
+  );
 
   readonly articleEntries = computed<IconCardEntry[]>(() => {
     const filterDate = this.filterDate();

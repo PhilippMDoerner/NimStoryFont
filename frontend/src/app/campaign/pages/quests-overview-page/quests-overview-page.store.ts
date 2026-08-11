@@ -2,10 +2,10 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { signalStore, withComputed, withState } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { QuestService } from 'src/app/_services/article/quest.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withQueries } from 'src/utils/store/withQueries';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { QuestService } from '../../../_services/article/quest.service';
+import { GlobalStore } from '../../../global.store';
 
 interface QuestOverviewPageState {}
 

@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { MarkerComponent } from 'src/app/design//templates/marker/marker.component';
-import { GlobalStore } from 'src/app/global.store';
+import { MarkerComponent } from '../../../design/templates/marker/marker.component';
+import { GlobalStore } from '../../../global.store';
 import { MarkerPageStore } from './marker-page.store';
 
 @Component({

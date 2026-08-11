@@ -7,10 +7,10 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, Observable, take } from 'rxjs';
-import { Location } from 'src/app/_models/location';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { LocationTemplateComponent } from 'src/app/design/templates/location-template/location-template.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Location } from '../../../_models/location';
+import { RoutingService } from '../../../_services/routing.service';
+import { LocationTemplateComponent } from '../../../design/templates/location-template/location-template.component';
+import { GlobalStore } from '../../../global.store';
 import { LocationPageStore } from './location-page.store';
 
 @Component({

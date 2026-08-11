@@ -6,15 +6,14 @@ import {
   input,
   output,
 } from '@angular/core';
-import { MapMarker } from 'src/app/_models/mapMarker';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
-
 import { RouterLink } from '@angular/router';
+import { MapMarker } from '../../../_models/mapMarker';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 @Component({
   selector: 'app-marker',

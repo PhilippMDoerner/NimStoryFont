@@ -5,8 +5,8 @@ import {
   inject,
   Signal,
 } from '@angular/core';
-import { CampaignAdminComponent } from 'src/app/design/templates/campaign-admin/campaign-admin.component';
-import { GlobalStore } from 'src/app/global.store';
+import { CampaignAdminComponent } from '../../../design/templates/campaign-admin/campaign-admin.component';
+import { GlobalStore } from '../../../global.store';
 import { CampaignAdminPageStore } from './campaign-admin-page.store';
 
 @Component({

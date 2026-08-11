@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { Encounter, EncounterRaw } from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
+import { Encounter, EncounterRaw } from '../../_models/encounter';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

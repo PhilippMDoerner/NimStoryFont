@@ -6,9 +6,9 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { OrganizationComponent } from 'src/app/design/templates/organization/organization.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { OrganizationComponent } from '../../../design/templates/organization/organization.component';
+import { GlobalStore } from '../../../global.store';
 import { OrganizationStore } from './organization-page.store';
 
 @Component({

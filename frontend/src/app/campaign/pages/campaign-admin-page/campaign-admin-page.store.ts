@@ -5,16 +5,16 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { EMPTY, filter, map, pipe, switchMap, take } from 'rxjs';
-import { Campaign, WikiStatistics } from 'src/app/_models/campaign';
-import { EmptySearchResponse } from 'src/app/_models/emptySearchResponse';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { CampaignRole } from 'src/app/_models/token';
-import { User } from 'src/app/_models/user';
-import { UserService } from 'src/app/_services/article/user.service';
-import { CampaignService } from 'src/app/_services/utils/campaign.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { Campaign, WikiStatistics } from '../../../_models/campaign';
+import { EmptySearchResponse } from '../../../_models/emptySearchResponse';
+import { httpErrorToast } from '../../../_models/toast';
+import { CampaignRole } from '../../../_models/token';
+import { User } from '../../../_models/user';
+import { UserService } from '../../../_services/article/user.service';
+import { CampaignService } from '../../../_services/utils/campaign.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 export interface CampaignAdminPageState {
   campaign: Campaign | undefined;

@@ -7,16 +7,16 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { Session, SessionRaw } from 'src/app/_models/session';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { Session, SessionRaw } from '../../../_models/session';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { CollapsiblePanelComponent } from 'src/app/design/molecules';
-import { getPseudoRandomId } from 'src/utils/math';
+} from '../../animations/slideDown';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,

@@ -12,16 +12,16 @@ import {
   CharacterEncounterConnections,
   CharacterItem,
   CharacterOrganizationMembership,
-} from 'src/app/_models/character';
-import { Encounter } from 'src/app/_models/encounter';
-import { Image } from 'src/app/_models/image';
-import { OverviewItem } from 'src/app/_models/overview';
+} from '../../../_models/character';
+import { Encounter } from '../../../_models/encounter';
+import { Image } from '../../../_models/image';
+import { OverviewItem } from '../../../_models/overview';
 import {
   CharacterPlayerClassConnectionDetail,
   PlayerClass,
-} from 'src/app/_models/playerclass';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { RoutingService } from 'src/app/_services/routing.service';
+} from '../../../_models/playerclass';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { RoutingService } from '../../../_services/routing.service';
 import { InfoCircleTooltipComponent } from '../../atoms/info-circle-tooltip/info-circle-tooltip.component';
 import { BadgeListEntry, ListEntry } from '../../molecules';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
@@ -94,7 +94,9 @@ export class CharacterComponent {
   readonly addClass = output<PlayerClass>();
   readonly removeClass = output<PlayerClass>();
 
-  readonly campaignName = computed(() => this.character().campaign_details?.name);
+  readonly campaignName = computed(
+    () => this.character().campaign_details?.name,
+  );
   readonly createUrl = computed(() => {
     return this.routingService.getRoutePath('character-update', {
       campaign: this.campaignName(),

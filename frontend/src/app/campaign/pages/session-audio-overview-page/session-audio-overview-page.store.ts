@@ -8,10 +8,10 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { SessionAudioService } from 'src/app/_services/article/session-audio.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withQueries } from 'src/utils/store/withQueries';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { SessionAudioService } from '../../../_services/article/session-audio.service';
+import { GlobalStore } from '../../../global.store';
 
 interface SessionAuddioOverviewPageState {}
 

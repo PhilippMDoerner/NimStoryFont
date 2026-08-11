@@ -10,11 +10,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Session, SessionDiaryEntry } from 'src/app/_models/session';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
+import { Session, SessionDiaryEntry } from '../../../_models/session';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { CompareFormComponent, FormComponent } from '../../molecules';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,

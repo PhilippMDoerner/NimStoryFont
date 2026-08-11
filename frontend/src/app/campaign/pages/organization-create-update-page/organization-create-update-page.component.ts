@@ -8,15 +8,15 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { combineLatest, filter, of, skip, switchMap, take } from 'rxjs';
-import { Organization, OrganizationRaw } from 'src/app/_models/organization';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { Organization, OrganizationRaw } from '../../../_models/organization';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { formatSearchTerm } from '../../../design/atoms/_models/typeahead';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { OrganizationCreateUpdatePageStore } from './organization-create-update-page.store';
 
 @Component({
@@ -35,13 +35,15 @@ export class OrganizationCreateUpdatePageComponent {
   private readonly routingService = inject(RoutingService);
   private readonly formlyService = inject(FormlyService);
 
-  readonly campaignCharacters$ = toObservable(this.store.campaignCharacters).pipe(
-    filterNil(),
-  );
+  readonly campaignCharacters$ = toObservable(
+    this.store.campaignCharacters,
+  ).pipe(filterNil());
   readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  readonly organizationUpdateState$ = toObservable(this.store.organizationUpdateState);
+  readonly organizationUpdateState$ = toObservable(
+    this.store.organizationUpdateState,
+  );
   readonly organizationCreateState$ = toObservable(this.store.createState);
   readonly organization$ = toObservable(this.store.organization);
 

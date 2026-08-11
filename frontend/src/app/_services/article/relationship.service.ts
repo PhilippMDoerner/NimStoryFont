@@ -1,14 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
+
 import {
   ArticleNode,
   LinkGroup,
   NodeLink,
   NodeLinkRaw,
   NodeMap,
-} from 'src/app/_models/graph';
-import { OverviewItem } from 'src/app/_models/overview';
+} from '../../_models/graph';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 
 @Injectable({

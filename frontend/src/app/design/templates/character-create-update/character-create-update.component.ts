@@ -11,10 +11,10 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { of } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { CharacterDetails, CharacterRaw } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { CharacterDetails, CharacterRaw } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { SeparatorComponent } from '../../atoms/separator/separator.component';
 import { CompareFormComponent } from '../../molecules/compare-form/compare-form.component';
@@ -50,7 +50,9 @@ export class CharacterCreateUpdateComponent {
   readonly update = output<CharacterDetails>();
   readonly cancelled = output<void>();
 
-  readonly lastVisitedPlaceOptions$ = toObservable(this.lastVisitedPlaceOptions);
+  readonly lastVisitedPlaceOptions$ = toObservable(
+    this.lastVisitedPlaceOptions,
+  );
   readonly formlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildCheckboxConfig({
       key: 'player_character',

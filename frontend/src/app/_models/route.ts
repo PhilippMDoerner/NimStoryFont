@@ -1,8 +1,8 @@
 import { Route } from '@angular/router';
-import { GeneralOverviewType } from 'src/app/design/templates/_models/generalOverviewType';
 import { siteAdminGuard } from '../_guards/admin.guard';
 import { loginGuard } from '../_guards/login.guard';
 import { onlyOnlineGuard } from '../_guards/only-online.guard';
+import { GeneralOverviewType } from '../design/templates/_models/generalOverviewType';
 import { registrationGuard } from '../general/pages/registration/registration.guard';
 import { CampaignRole } from './token';
 

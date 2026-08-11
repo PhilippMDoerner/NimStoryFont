@@ -1,5 +1,5 @@
-import { RoutingService } from 'src/app/_services/routing.service';
-import { LinkTab } from 'src/app/design/molecules/link-tabs/link-tabs.component';
+import { RoutingService } from '../../_services/routing.service';
+import { LinkTab } from '../../design/molecules/link-tabs/link-tabs.component';
 
 export function getProfileTabs(routingService: RoutingService): LinkTab[] {
   return [

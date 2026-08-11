@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { SiteAdminComponent } from 'src/app/design//templates/site-admin/site-admin.component';
-import { GlobalStore } from 'src/app/global.store';
+import { SiteAdminComponent } from '../../../design//templates/site-admin/site-admin.component';
+import { GlobalStore } from '../../../global.store';
 import { SiteAdministrationPageStore } from './site-administration-page.store';
 
 @Component({

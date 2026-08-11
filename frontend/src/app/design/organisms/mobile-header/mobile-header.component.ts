@@ -9,9 +9,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbModal, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
-import { OnlineService } from 'src/app/_services/online.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SearchModalComponent } from 'src/app/global-components/search/search-modal/search-modal.component';
+import { OnlineService } from '../../../_services/online.service';
+import { SearchModalComponent } from '../../../global-components/search/search-modal/search-modal.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
 @Component({

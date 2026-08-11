@@ -7,11 +7,14 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Image } from 'src/app/_models/image';
-import { Organization, OrganizationMember } from 'src/app/_models/organization';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { sortByProp } from 'src/utils/array';
+import { sortByProp } from '../../../../utils/array';
+import { Image } from '../../../_models/image';
+import {
+  Organization,
+  OrganizationMember,
+} from '../../../_models/organization';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { BadgeListEntry } from '../../molecules';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
@@ -68,22 +71,24 @@ export class OrganizationComponent {
     });
   });
 
-  readonly organizationMembers = computed<BadgeListEntry<OrganizationMember>[]>(() => {
-    const badgeEntries =
-      this.organization().members?.map(
-        (member) =>
-          ({
-            badgeValue: member,
-            text: member.name,
-            link: this.routingService.getRoutePath('character', {
-              campaign: this.organization().campaign_details?.name,
-              name: member.name,
-            }),
-          }) satisfies BadgeListEntry<OrganizationMember>,
-      ) ?? [];
+  readonly organizationMembers = computed<BadgeListEntry<OrganizationMember>[]>(
+    () => {
+      const badgeEntries =
+        this.organization().members?.map(
+          (member) =>
+            ({
+              badgeValue: member,
+              text: member.name,
+              link: this.routingService.getRoutePath('character', {
+                campaign: this.organization().campaign_details?.name,
+                name: member.name,
+              }),
+            }) satisfies BadgeListEntry<OrganizationMember>,
+        ) ?? [];
 
-    return sortByProp(badgeEntries, 'text');
-  });
+      return sortByProp(badgeEntries, 'text');
+    },
+  );
   readonly headquarterUrl = computed(() => {
     const campaignName = this.organization().campaign_details?.name;
     return this.routingService.getRoutePath('location', {

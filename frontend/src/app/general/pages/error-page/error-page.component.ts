@@ -7,12 +7,12 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { AuthStore } from 'src/app/auth.store';
-import { ButtonLinkComponent } from 'src/app/design/atoms/button-link/button-link.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { ErrorType } from 'src/app/general/_models/error';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { AuthStore } from '../../../auth.store';
+import { ButtonLinkComponent } from '../../../design/atoms/button-link/button-link.component';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { GlobalStore } from '../../../global.store';
+import { ErrorType } from '../../_models/error';
 
 const FALLBACK_ERROR: ErrorType = {
   htmlBody: 'Something went wrong',

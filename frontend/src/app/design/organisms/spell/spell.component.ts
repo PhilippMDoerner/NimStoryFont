@@ -9,7 +9,8 @@ import {
   signal,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { PlayerClass } from 'src/app/_models/playerclass';
+import { withViewTransition } from '../../../../utils/animation';
+import { PlayerClass } from '../../../_models/playerclass';
 import {
   Spell,
   SPELL_CASTING_TIME,
@@ -20,18 +21,17 @@ import {
   SPELL_SAVES,
   SPELL_SCHOOLS,
   SpellPlayerClassConnection,
-} from 'src/app/_models/spell';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+} from '../../../_models/spell';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ElementKind } from '../../atoms/_models/button';
+import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
+import { SeparatorComponent } from '../../atoms/separator/separator.component';
 import {
   BadgeListComponent,
   BadgeListEntry,
   CompareFormComponent,
   FormComponent,
-} from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
+} from '../../molecules';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,

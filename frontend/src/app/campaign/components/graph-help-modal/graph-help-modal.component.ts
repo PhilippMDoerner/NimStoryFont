@@ -5,10 +5,10 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { toGroupLabel } from 'src/app/_models/graph';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+import { toGroupLabel } from '../../../_models/graph';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 
 const GRAPH_INFO_RULES = [
   {

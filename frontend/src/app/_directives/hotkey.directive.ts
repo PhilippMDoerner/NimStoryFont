@@ -22,7 +22,7 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { debugLog } from 'src/utils/rxjs-operators';
+import { debugLog } from '../../utils/rxjs-operators';
 import { encodeKeyCombination } from '../_functions/keyMapper';
 import { ShortcutAction } from '../_models/hotkey';
 import { HotkeyService, WatchOptions } from '../_services/hotkey.service';

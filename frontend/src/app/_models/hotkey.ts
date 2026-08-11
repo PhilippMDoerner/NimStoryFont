@@ -1,4 +1,4 @@
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../utils/string';
 
 export type Key = Pick<KeyboardEvent, 'key'> &
   Partial<Pick<KeyboardEvent, 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>>;

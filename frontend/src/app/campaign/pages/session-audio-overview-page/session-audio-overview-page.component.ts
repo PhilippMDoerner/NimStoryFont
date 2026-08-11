@@ -5,12 +5,12 @@ import {
   inject,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SessionaudioCardComponent } from 'src/app/design//organisms/sessionaudio-card/sessionaudio-card.component';
-import { ButtonLinkComponent } from 'src/app/design/atoms/button-link/button-link.component';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { GlobalStore } from 'src/app/global.store';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonLinkComponent } from '../../../design/atoms/button-link/button-link.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { SessionaudioCardComponent } from '../../../design/organisms/sessionaudio-card/sessionaudio-card.component';
+import { GlobalStore } from '../../../global.store';
 import { SessionAudioOverviewPageStore } from './session-audio-overview-page.store';
 
 @Component({

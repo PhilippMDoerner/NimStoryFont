@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { Campaign } from 'src/app/_models/campaign';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
+import { Campaign } from '../../../_models/campaign';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
 import { CreateUpdateState } from '../_models/create-update-states';
 import { CreateUpdateComponent } from '../create-update/create-update.component';
 

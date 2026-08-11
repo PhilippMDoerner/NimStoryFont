@@ -8,8 +8,8 @@ import {
   viewChildren,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IconCardComponent } from 'src/app/design/molecules';
 import { PlaceholderComponent } from '../../atoms/placeholder/placeholder.component';
+import { IconCardComponent } from '../../molecules';
 import { IconCardEntry } from '../_model/icon-card-list';
 
 @Component({
@@ -25,7 +25,8 @@ export class IconCardListComponent {
   readonly ariaLabelId = input.required<string>();
   readonly id = input.required<string>();
 
-  readonly articleLinkElements = viewChildren<ElementRef<HTMLElement>>('articleLink');
+  readonly articleLinkElements =
+    viewChildren<ElementRef<HTMLElement>>('articleLink');
   readonly articleCount = computed(() => this.articleLinkElements().length);
 
   readonly dummyArticles = Array.from({ length: 12 }, (_, idx) => idx);

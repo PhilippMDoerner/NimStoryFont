@@ -7,8 +7,8 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Quest } from 'src/app/_models/quest';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Quest } from '../../../_models/quest';
+import { RoutingService } from '../../../_services/routing.service';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';

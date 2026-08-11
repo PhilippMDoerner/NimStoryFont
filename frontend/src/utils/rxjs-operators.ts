@@ -15,7 +15,7 @@ import {
   tap,
   timeout,
 } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { environment } from '../environments/environment';
 import { log } from './logging';
 
 export function filterNil<T>(): OperatorFunction<T, NonNullable<T>> {

@@ -15,17 +15,17 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { CreatureService } from 'src/app/_services/article/creature.service';
-import { DiaryentryService } from 'src/app/_services/article/diaryentry.service';
-import { ItemService } from 'src/app/_services/article/item.service';
-import { LocationService } from 'src/app/_services/article/location.service';
-import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { BaseService } from 'src/app/_services/base.service';
-import { GeneralOverviewType } from 'src/app/design/templates/_models/generalOverviewType';
-import { GeneralOverviewComponent } from 'src/app/design/templates/general-overview/general-overview.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { CharacterService } from '../../../_services/article/character.service';
+import { CreatureService } from '../../../_services/article/creature.service';
+import { DiaryentryService } from '../../../_services/article/diaryentry.service';
+import { ItemService } from '../../../_services/article/item.service';
+import { LocationService } from '../../../_services/article/location.service';
+import { OrganizationService } from '../../../_services/article/organization.service';
+import { BaseService } from '../../../_services/base.service';
+import { GeneralOverviewType } from '../../../design/templates/_models/generalOverviewType';
+import { GeneralOverviewComponent } from '../../../design/templates/general-overview/general-overview.component';
+import { GlobalStore } from '../../../global.store';
 
 @Component({
   selector: 'app-general-overview-page',
@@ -49,7 +49,9 @@ export class GeneralOverviewPageComponent {
 
   readonly serverUrl = '';
 
-  readonly campaignName$ = toObservable(this.globalStore.campaignName).pipe(filterNil());
+  readonly campaignName$ = toObservable(this.globalStore.campaignName).pipe(
+    filterNil(),
+  );
   readonly canCreate = this.globalStore.canPerformActionsOfRole('member');
   readonly overviewType$ = inject(ActivatedRoute).data.pipe(
     map((data) => data['overviewType'] as GeneralOverviewType),

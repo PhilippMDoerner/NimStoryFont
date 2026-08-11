@@ -11,17 +11,17 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, shareReplay, switchMap, tap } from 'rxjs';
-import { Creature } from 'src/app/_models/creature';
-import { Image } from 'src/app/_models/image';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { CreatureService } from 'src/app/_services/article/creature.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withImages } from 'src/utils/store/withImages';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { replaceItem } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withImages } from '../../../../utils/store/withImages';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Creature } from '../../../_models/creature';
+import { Image } from '../../../_models/image';
+import { httpErrorToast } from '../../../_models/toast';
+import { CreatureService } from '../../../_services/article/creature.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface CreatureState {
   imageServerModel?: Image;

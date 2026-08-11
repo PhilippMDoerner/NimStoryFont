@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SpellsTemplateComponent } from 'src/app/design/templates/spells-template/spells-template.component';
-import { GlobalStore } from 'src/app/global.store';
+import { SpellsTemplateComponent } from '../../../design/templates/spells-template/spells-template.component';
+import { GlobalStore } from '../../../global.store';
 import { SpellsPageStore } from './spells-page.store';
 
 @Component({

@@ -9,15 +9,15 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap } from 'rxjs';
-import { Quest } from 'src/app/_models/quest';
-import { QuestService } from 'src/app/_services/article/quest.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Quest } from '../../../_models/quest';
+import { QuestService } from '../../../_services/article/quest.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface QuestPageState {
   questDeleteState: RequestState;

@@ -9,25 +9,25 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { DiaryEntry } from 'src/app/_models/diaryentry';
+import { replaceItem, sortByNumProp } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { DiaryEntry } from '../../../_models/diaryentry';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
-} from 'src/app/_models/encounter';
-import { httpErrorToast, successToast } from 'src/app/_models/toast';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { DiaryentryService } from 'src/app/_services/article/diaryentry.service';
-import { EncounterConnectionService } from 'src/app/_services/article/encounter-connection.service';
-import { EncounterService } from 'src/app/_services/article/encounter.service';
-import { LocationService } from 'src/app/_services/article/location.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem, sortByNumProp } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+} from '../../../_models/encounter';
+import { httpErrorToast, successToast } from '../../../_models/toast';
+import { CharacterService } from '../../../_services/article/character.service';
+import { DiaryentryService } from '../../../_services/article/diaryentry.service';
+import { EncounterConnectionService } from '../../../_services/article/encounter-connection.service';
+import { EncounterService } from '../../../_services/article/encounter.service';
+import { LocationService } from '../../../_services/article/location.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 export interface DiaryEntryEncounter {
   encounter: Encounter | EncounterRaw;

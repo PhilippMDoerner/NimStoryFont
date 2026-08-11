@@ -12,10 +12,10 @@ import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { distinctUntilChanged, interval, map, startWith } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ElementKind } from '../../atoms/_models/button';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
 
 @Component({
   selector: 'app-form',

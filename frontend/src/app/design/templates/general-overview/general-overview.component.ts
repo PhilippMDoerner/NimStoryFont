@@ -7,10 +7,10 @@ import {
   input,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ArticleFooterComponent } from '../../molecules';
 import { ImageCardComponent } from '../../molecules/image-card/image-card.component';
@@ -72,7 +72,8 @@ export class GeneralOverviewComponent {
   readonly campaignName = input.required<string>();
   readonly canCreate = input.required<boolean>();
 
-  readonly defaultPlayerCharacterImage = 'assets/default_images/icon_default.webp';
+  readonly defaultPlayerCharacterImage =
+    'assets/default_images/icon_default.webp';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly displayEntries = computed<FilterListEntry<any>[]>(() => {
     switch (this.overviewType()) {
@@ -90,7 +91,7 @@ export class GeneralOverviewComponent {
             src: entry.images?.[0] ?? this.defaultPlayerCharacterImage,
             alt: '',
             placeholder: this.defaultPlayerCharacterImage,
-          }
+          },
         }));
     }
   });
@@ -105,7 +106,9 @@ export class GeneralOverviewComponent {
       campaign: this.campaignName,
     }),
   );
-  readonly overviewTypeName = computed(() => this.overviewType().toLocaleLowerCase());
+  readonly overviewTypeName = computed(() =>
+    this.overviewType().toLocaleLowerCase(),
+  );
 
   readonly id = componentId();
 
@@ -113,7 +116,9 @@ export class GeneralOverviewComponent {
   readonly headingSectionId = `${this.id}-heading-section`;
   readonly bodySectionId = `${this.id}-body-section`;
 
-  readonly toLocationTrees = (entries: OverviewItem[]): DataSource<TreeNode>[] => {
+  readonly toLocationTrees = (
+    entries: OverviewItem[],
+  ): DataSource<TreeNode>[] => {
     const rootNodes = entries
       .filter((entry) => !!(entry.parent_location_details?.pk == null))
       .map((rootItem) => recursivelyBuildLocationTree(rootItem, entries, 0));
@@ -130,7 +135,11 @@ export class GeneralOverviewComponent {
       .map((entry) => ({
         ...entry,
         link: entry['getAbsoluteRouterUrl'](),
-        img: { src: entry.images?.[0] ?? this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
+        img: {
+          src: entry.images?.[0] ?? this.defaultPlayerCharacterImage,
+          alt: '',
+          placeholder: this.defaultPlayerCharacterImage,
+        },
       }));
   }
 
@@ -141,7 +150,11 @@ export class GeneralOverviewComponent {
       ...diaryEntry,
       name_full: this.buildDiaryEntryNameForList(diaryEntry),
       link: diaryEntry['getAbsoluteRouterUrl'](),
-              img: { src: this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
+      img: {
+        src: this.defaultPlayerCharacterImage,
+        alt: '',
+        placeholder: this.defaultPlayerCharacterImage,
+      },
     }));
   }
 
@@ -197,7 +210,11 @@ export class GeneralOverviewComponent {
           ...locationEntry,
           name_full: locationPath,
           link: locationEntry.getAbsoluteRouterUrl(),
-              img: { src: locationEntry.images?.[0] ?? this.defaultPlayerCharacterImage, alt: '', placeholder: this.defaultPlayerCharacterImage },
+          img: {
+            src: locationEntry.images?.[0] ?? this.defaultPlayerCharacterImage,
+            alt: '',
+            placeholder: this.defaultPlayerCharacterImage,
+          },
         };
       })
       .sort((location1: OverviewItem, location2: OverviewItem) =>

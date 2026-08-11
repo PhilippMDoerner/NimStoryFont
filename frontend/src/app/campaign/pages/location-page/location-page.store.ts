@@ -8,18 +8,18 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { Location } from 'src/app/_models/location';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { LocationService } from 'src/app/_services/article/location.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withImages } from 'src/utils/store/withImages';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { replaceItem } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withImages } from '../../../../utils/store/withImages';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Location } from '../../../_models/location';
+import { CharacterService } from '../../../_services/article/character.service';
+import { LocationService } from '../../../_services/article/location.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface LocationPageState {
   locationDeleteState: RequestState;

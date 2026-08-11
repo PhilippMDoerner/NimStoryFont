@@ -21,7 +21,7 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../environments/environment';
 import { GlobalStore } from '../global.store';
 import {
   BrowserDatabaseService,
@@ -52,7 +52,9 @@ export class OfflineRequestService {
   private readonly dbService = inject(BrowserDatabaseService);
   private readonly globalStore = inject(GlobalStore);
   private readonly campaigns$ = toObservable(this.globalStore.campaigns);
-  private readonly currentCampaignName$ = toObservable(this.globalStore.campaignName);
+  private readonly currentCampaignName$ = toObservable(
+    this.globalStore.campaignName,
+  );
   private readonly currentCampaignRecord$ = this.currentCampaignName$.pipe(
     switchMap((name) => {
       if (!name) return of(undefined);

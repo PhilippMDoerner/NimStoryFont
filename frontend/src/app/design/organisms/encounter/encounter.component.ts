@@ -24,29 +24,29 @@ import {
   take,
   timer,
 } from 'rxjs';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { CharacterEncounter } from 'src/app/_models/character';
+import { withViewTransition } from '../../../../utils/animation';
+import { componentId } from '../../../../utils/DOM';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { CharacterEncounter } from '../../../_models/character';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
-} from 'src/app/_models/encounter';
-import { FormState } from 'src/app/_models/form';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+} from '../../../_models/encounter';
+import { FormState } from '../../../_models/form';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 import {
   BadgeListComponent,
   BadgeListEntry,
   CompareFormComponent,
   FormComponent,
-} from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
+} from '../../../design/molecules';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { formatSearchTerm } from '../../atoms/_models/typeahead';
 import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
@@ -109,11 +109,15 @@ export class EncounterComponent implements OnInit {
   readonly userModel = signal<Encounter | Partial<EncounterRaw>>({});
   readonly cardState = signal<FormState>('DISPLAY');
   readonly textFieldState = signal<TextFieldState>('DISPLAY');
-  readonly badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(() => {
-    const encounterConnections = this.encounter()?.encounterConnections ?? [];
-    return this.parseConnection(encounterConnections);
-  });
-  readonly campaignName = computed(() => this.encounter()?.campaign_details?.name);
+  readonly badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(
+    () => {
+      const encounterConnections = this.encounter()?.encounterConnections ?? [];
+      return this.parseConnection(encounterConnections);
+    },
+  );
+  readonly campaignName = computed(
+    () => this.encounter()?.campaign_details?.name,
+  );
   readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {

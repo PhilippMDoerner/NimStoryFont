@@ -11,7 +11,7 @@ import {
   NgbSlideEvent,
   NgbTooltip,
 } from '@ng-bootstrap/ng-bootstrap';
-import { Image } from 'src/app/_models/image';
+import { Image } from '../../../_models/image';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';

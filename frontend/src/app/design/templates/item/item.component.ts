@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Image } from 'src/app/_models/image';
-import { Item } from 'src/app/_models/item';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Image } from '../../../_models/image';
+import { Item } from '../../../_models/item';
+import { RoutingService } from '../../../_services/routing.service';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';

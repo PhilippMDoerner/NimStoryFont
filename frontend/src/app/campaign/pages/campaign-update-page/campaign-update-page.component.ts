@@ -7,11 +7,11 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
-import { Campaign, CampaignRaw } from 'src/app/_models/campaign';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CampaignUpdateComponent } from 'src/app/design//templates/campaign-update/campaign-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { takeFirstNonNil } from 'src/utils/rxjs-operators';
+import { takeFirstNonNil } from '../../../../utils/rxjs-operators';
+import { Campaign, CampaignRaw } from '../../../_models/campaign';
+import { RoutingService } from '../../../_services/routing.service';
+import { CampaignUpdateComponent } from '../../../design//templates/campaign-update/campaign-update.component';
+import { GlobalStore } from '../../../global.store';
 import { CampaignUpdatePageStore } from './campaign-update-page.store';
 
 @Component({

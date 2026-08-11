@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { fadeIn } from 'src/app/design/animations/fadeIn';
+import { fadeIn } from '../../animations/fadeIn';
 
 @Component({
   selector: 'app-page-container',

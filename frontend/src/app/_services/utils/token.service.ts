@@ -1,15 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Login } from 'src/app/_models/login';
+import { environment } from '../../../environments/environment';
+import { log } from '../../../utils/logging';
+import { Login } from '../../_models/login';
 import {
   AuthData,
   CampaignMemberships,
   CampaignRole,
   CampaignRoles,
-} from 'src/app/_models/token';
-import { environment } from 'src/environments/environment';
-import { log } from 'src/utils/logging';
+} from '../../_models/token';
 
 @Injectable({
   providedIn: 'root',

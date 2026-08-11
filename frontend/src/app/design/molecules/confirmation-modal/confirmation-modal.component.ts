@@ -6,21 +6,18 @@ import {
   output,
   TemplateRef,
 } from '@angular/core';
-import {
-  NgbActiveModal,
-  NgbModal
-} from '@ng-bootstrap/ng-bootstrap';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { componentId } from 'src/utils/DOM';
-import { DeleteModalComponent } from "../delete-modal/delete-modal.component";
+import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { componentId } from '../../../../utils/DOM';
+import { ElementKind } from '../../atoms/_models/button';
+import { Icon } from '../../atoms/_models/icon';
+import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
 
 @Component({
   selector: 'app-confirmation-modal',
   templateUrl: './confirmation-modal.component.html',
   styleUrls: ['./confirmation-modal.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ DeleteModalComponent],
+  imports: [DeleteModalComponent],
 })
 export class ConfirmationModalComponent<T> {
   readonly heading = input.required<string>();

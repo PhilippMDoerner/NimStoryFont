@@ -12,17 +12,17 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map, take } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { Rule, RuleRaw } from '../../../_models/rule';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { CollapsiblePanelComponent } from 'src/app/design/molecules';
-import { getPseudoRandomId } from 'src/utils/math';
-import { filterNil } from 'src/utils/rxjs-operators';
+} from '../../animations/slideDown';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,

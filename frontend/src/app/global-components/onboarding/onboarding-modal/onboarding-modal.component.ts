@@ -9,12 +9,12 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { combineLatest, filter, map, startWith } from 'rxjs';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { AuthStore } from 'src/app/auth.store';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { UserPreferencesStore } from 'src/app/user-preferences.store';
-import { componentId } from 'src/utils/DOM';
-import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import { componentId } from '../../../../utils/DOM';
+import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
+import { HotkeyService } from '../../../_services/hotkey.service';
+import { AuthStore } from '../../../auth.store';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { UserPreferencesStore } from '../../../user-preferences.store';
 import { OnboardingStepperComponent } from '../onboarding-stepper/onboarding-stepper.component';
 
 @Component({

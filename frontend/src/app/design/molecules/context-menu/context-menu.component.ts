@@ -19,13 +19,13 @@ import {
   NgbModal,
   Placement,
 } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ShortcutAction } from 'src/app/_models/hotkey';
-import { ButtonKind, ElementSize } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ShortcutAction } from '../../../_models/hotkey';
+import { ButtonKind, ElementSize } from '../../atoms/_models/button';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import { MenuItem } from '../_models/menu';
 import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
 
@@ -79,7 +79,10 @@ export class ContextMenuComponent {
   readonly modalService = inject(NgbModal);
 
   readonly isOpen = signal(false);
-  readonly activeModalItem = signal<Extract<MenuItem, { kind: 'CONFIRM' }> | null>(null);
+  readonly activeModalItem = signal<Extract<
+    MenuItem,
+    { kind: 'CONFIRM' }
+  > | null>(null);
 
   readonly id = componentId();
   readonly menuId = `menu-${this.id}`;

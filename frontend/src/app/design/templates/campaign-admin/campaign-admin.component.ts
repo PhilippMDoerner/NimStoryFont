@@ -11,25 +11,25 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { map, Observable } from 'rxjs';
-import { Campaign, WikiStatistics } from 'src/app/_models/campaign';
-import { EmptySearchResponse } from 'src/app/_models/emptySearchResponse';
-import { CampaignRole } from 'src/app/_models/token';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CardComponent } from 'src/app/design/atoms/card/card.component';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { InfoCircleTooltipComponent } from 'src/app/design/atoms/info-circle-tooltip/info-circle-tooltip.component';
+import { Campaign, WikiStatistics } from '../../../_models/campaign';
+import { EmptySearchResponse } from '../../../_models/emptySearchResponse';
+import { CampaignRole } from '../../../_models/token';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { CardComponent } from '../../../design/atoms/card/card.component';
+import { HtmlTextComponent } from '../../../design/atoms/html-text/html-text.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { InfoCircleTooltipComponent } from '../../../design/atoms/info-circle-tooltip/info-circle-tooltip.component';
 
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import {
   ArticleFooterComponent,
   ConfirmationToggleButtonComponent,
   FormComponent,
-} from 'src/app/design/molecules';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
+} from '../../../design/molecules';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({

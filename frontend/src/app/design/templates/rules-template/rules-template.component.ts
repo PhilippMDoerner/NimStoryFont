@@ -7,8 +7,8 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Rule, RuleRaw } from '../../../_models/rule';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 import { RulesComponent } from '../../organisms/rules/rules.component';

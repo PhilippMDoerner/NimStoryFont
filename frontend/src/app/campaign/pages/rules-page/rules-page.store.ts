@@ -9,15 +9,15 @@ import {
   withState,
 } from '@ngrx/signals';
 import { map, shareReplay, switchMap, take } from 'rxjs';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { RuleService } from 'src/app/_services/article/rule.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem, sortByProp } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { replaceItem, sortByProp } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { Rule, RuleRaw } from '../../../_models/rule';
+import { httpErrorToast } from '../../../_models/toast';
+import { RuleService } from '../../../_services/article/rule.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface RulesPageState {
   updateRuleState: RequestState;

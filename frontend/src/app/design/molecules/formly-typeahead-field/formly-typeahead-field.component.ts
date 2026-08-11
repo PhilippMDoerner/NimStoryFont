@@ -31,8 +31,8 @@ import {
   take,
   withLatestFrom,
 } from 'rxjs';
-import { CustomTypeaheadProps } from 'src/app/_models/formly';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { CustomTypeaheadProps } from '../../../_models/formly';
 import {
   cleanSearchTerm,
   matchesSearchterm,
@@ -62,7 +62,8 @@ export class FormlyTypeaheadFieldComponent<T>
     debugName: 'instance',
   });
 
-  readonly inputElement = viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
+  readonly inputElement =
+    viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
   readonly inputElement$ = toObservable(this.inputElement).pipe(
     map((input) => input?.nativeElement),
     filterNil(),

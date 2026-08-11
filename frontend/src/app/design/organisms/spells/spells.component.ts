@@ -9,31 +9,27 @@ import {
   signal,
   viewChildren,
 } from '@angular/core';
-import { PlayerClass } from 'src/app/_models/playerclass';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map, take } from 'rxjs';
+import { withViewTransition } from '../../../../utils/animation';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { PlayerClass } from '../../../_models/playerclass';
 import {
   Spell,
   SpellPlayerClassConnection,
   SpellRaw,
-} from 'src/app/_models/spell';
+} from '../../../_models/spell';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
-import { map, take } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import {
-  BadgeListEntry,
-  CollapsiblePanelComponent,
-} from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
-import { getPseudoRandomId } from 'src/utils/math';
-import { filterNil } from 'src/utils/rxjs-operators';
+} from '../../animations/slideDown';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { BadgeListEntry, CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,

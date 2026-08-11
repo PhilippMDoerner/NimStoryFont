@@ -7,11 +7,11 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Session, SessionRaw } from 'src/app/_models/session';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { SessionsComponent } from 'src/app/design/organisms/sessions/sessions.component';
+import { Session, SessionRaw } from '../../../_models/session';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
+import { SessionsComponent } from '../../organisms/sessions/sessions.component';
 
 @Component({
   selector: 'app-sessions-template',

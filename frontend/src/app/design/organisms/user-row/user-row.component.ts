@@ -7,9 +7,9 @@ import {
   output,
 } from '@angular/core';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { PermissionGroup } from 'src/app/_models/auth';
-import { User } from 'src/app/_models/user';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { PermissionGroup } from '../../../_models/auth';
+import { User } from '../../../_models/user';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
 import {
   BadgeListComponent,
   BadgeListEntry,

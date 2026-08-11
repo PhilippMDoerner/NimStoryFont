@@ -13,8 +13,8 @@ import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { FieldType, FieldTypeConfig, FormlyModule } from '@ngx-formly/core';
 import { filter, fromEvent, map } from 'rxjs';
-import { FileFieldKind } from 'src/app/_models/formly';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
+import { FileFieldKind } from '../../../_models/formly';
+import { ElementKind } from '../../atoms/_models/button';
 
 // WARNING: DO NOT USE IN FORMS THAT UPDATE
 // THIS FIELD DOES NOT TOLERATE RECEIVING EXISTING VALUES
