@@ -76,8 +76,9 @@ export class AppComponent {
     this.globalStore.logout();
   }
 
-  fireEvent(event: BeforeInstallPromptEvent) {
-    this.pwaService.storeInstallEvent(event);
+  fireEvent(event: Event) {
+    const promptEvent = event as BeforeInstallPromptEvent;
+    this.pwaService.storeInstallEvent(promptEvent);
   }
 
   focusMain() {

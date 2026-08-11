@@ -30,7 +30,7 @@ import { ToastService } from './toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[ariaLive]': 'isCurrentlyImportant() ? "assertive" : "polite"',
-    '[role]': 'isCurrentlyImportant() ? "alert" : "status"',
+    '[attr.role]': 'isCurrentlyImportant() ? "alert" : "status"',
   },
 })
 export class ToastOverlayComponent {

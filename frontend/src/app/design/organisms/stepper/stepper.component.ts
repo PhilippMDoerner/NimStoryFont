@@ -52,7 +52,7 @@ export class StepperComponent extends CdkStepper {
   readonly animationDirection = signal<'FORWARD' | 'BACKWARD'>('FORWARD');
   readonly animationEnd$ = new Subject<AnimationState>();
 
-  private readonly id = componentId();
+  protected readonly id = componentId();
   readonly contentId = `stepper-content-${this.id}`;
 
   constructor() {

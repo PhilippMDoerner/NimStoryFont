@@ -7,9 +7,7 @@ if (!document.startViewTransition) {
       finished: Promise.resolve(),
       ready: Promise.resolve(),
       skipTransition: () => {},
-      types: {
-        forEach: () => void 0,
-      },
+      types: new Set<string>(),
       updateCallbackDone: Promise.resolve(),
     };
   };
