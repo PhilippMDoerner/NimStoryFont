@@ -203,17 +203,10 @@ export class QuillEditorComponent {
 
       const eventListeners = {
         // text-change fires on any text change, but not when format changes (e.g. adding an indent)
-        'text-change': () => {
-          this.emitValue(q);
-          console.log('DBB quill text change');
-        },
+        'text-change': () => this.emitValue(q),
         // editor-change fires when format changes (e.g. when adding an indent), but not when text changes
-        'editor-change': () => {
-          console.log('DBB quill editor change');
-          this.emitValue(q);
-        },
+        'editor-change': () => this.emitValue(q),
         'selection-change': () => {
-          console.log('DBB quill selection change');
           this.currentSelection.set(q.getSelection());
         },
       } satisfies Partial<Record<QuillEvent, Function>>;
