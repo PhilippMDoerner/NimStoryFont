@@ -80,11 +80,16 @@ export class QuillEditorComponent {
     viewChild.required<ElementRef<HTMLElement>>('toolbar');
 
   readonly value = input.required<string>();
+  readonly id = input.required<string>();
+  readonly labelId = input.required<string>();
+  readonly describedById = input<string>();
   readonly readOnly = input<boolean>(false);
 
   public readonly inputChanged = output<string>();
 
-  protected readonly toolbarId = `${componentId()}-toolbar`;
+  private readonly compoId = componentId();
+  protected readonly toolbarId = `${this.compoId}-toolbar`;
+  protected readonly headingLabelId = `${this.compoId}-heading-select-label`;
   private readonly currentSelection = signal<Range | null>(null);
   protected readonly headerPopupOpen = signal<boolean>(false);
 
@@ -105,9 +110,12 @@ export class QuillEditorComponent {
         config != null && containerEl?.nativeElement != null,
     ),
     take(1),
-    map(
-      ({ config, containerEl }) => new Quill(containerEl.nativeElement, config),
-    ),
+    map(({ config, containerEl }) => {
+      const quill = new Quill(containerEl.nativeElement, config);
+      quill.root.role = 'textbox';
+      quill.root.ariaMultiLine = 'true';
+      return quill;
+    }),
   );
   public readonly quill = toSignal(this.quill$);
 
@@ -133,7 +141,8 @@ export class QuillEditorComponent {
   constructor() {
     this.setupQuillEventListeners();
     this.setupForwardValueToEditorOnChangeAndMaintainCursorPosition();
-    this.setupUpdateReadonly();
+    this.setupSyncReadonly();
+    this.setupSyncId();
   }
 
   public focus() {
@@ -245,13 +254,27 @@ export class QuillEditorComponent {
     });
   }
 
-  private setupUpdateReadonly() {
+  private setupSyncReadonly() {
     effect(() => {
       const q = this.quill();
       if (this.readOnly()) {
         q?.disable();
       } else {
         q?.enable();
+      }
+    });
+  }
+
+  private setupSyncId() {
+    effect(() => {
+      const q = this.quill();
+      if (!q) return;
+      q.root.id = this.id();
+      q.root.setAttribute('aria-labelledby', this.labelId());
+
+      const descriptorId = this.describedById();
+      if (descriptorId) {
+        q.root.setAttribute('aria-describedby', descriptorId);
       }
     });
   }

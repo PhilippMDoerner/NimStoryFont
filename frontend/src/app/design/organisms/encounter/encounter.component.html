@@ -66,13 +66,15 @@
   <!-- Encounter -->
   @let encounterVal = encounter();
   @if (encounterVal) {
-    <label [for]="editorId" class="cdk-visually-hidden">
+    @let labelId = editorId + "-label-id";
+    <label [id]="labelId" [for]="editorId" class="cdk-visually-hidden">
       Description of encounter {{ encounterVal.title }}
     </label>
     <app-editor
       #editor
       class="card__text"
       [id]="editorId"
+      [labelId]="labelId"
       [state]="textFieldState()"
       [canUpdate]="canUpdate()"
       [text]="encounterVal.description"

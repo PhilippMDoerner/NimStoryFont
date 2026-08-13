@@ -2,12 +2,16 @@
   <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes and applies functionality based on that -->
   <div ngToolbar #toolbar class="ql-toolbar custom-toolbar">
     <span class="ql-formats">
+      <label [id]="headingLabelId" class="cdk-visually-hidden"
+        >Text Level</label
+      >
       <button
         ngCombobox
         [value]="$any(selectionFormat()['header']) || 'normal'"
         #combobox="ngCombobox"
         [(expanded)]="headerPopupOpen"
         ngToolbarWidget
+        [attr.aria-labelledby]="headingLabelId"
         class="tool select-tool"
         type="button"
         (click)="$event.stopPropagation()"

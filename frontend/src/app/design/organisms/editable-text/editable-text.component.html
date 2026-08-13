@@ -1,12 +1,14 @@
 <!-- Heading -->
 @let headingVal = heading();
+@let headingId = editorId + "-heading-id";
 <div class="heading__container">
   @if (headingVal) {
     <div [heading]="ariaLevel()" class="heading h4 m-0">
       @if (state() === "DISPLAY") {
         <div [innerHTML]="headingVal"></div>
       } @else {
-        <label [for]="editorId" [innerHTML]="headingVal"> </label>
+        <label [id]="headingId" [for]="editorId" [innerHTML]="headingVal">
+        </label>
       }
     </div>
     @if (canUpdate()) {
@@ -37,6 +39,7 @@
   [canUpdate]="canUpdate()"
   [serverModel]="serverModel()"
   [id]="editorId"
+  [labelId]="headingId"
   (update)="finishEdit($event)"
   (autosave)="this.update.emit($event)"
   (cancelled)="cancelEdit()"
