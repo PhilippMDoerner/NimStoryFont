@@ -71,32 +71,36 @@ export function withUpdateMethods<Requests extends RequestMap>(
                     [keys.errorField]: undefined,
                   }),
                 ),
-                switchMap((params) => requests[keys.name](params)),
-                tapResponse({
-                  next: (val) => {
-                    toastService.addToast(
-                      successToast('Updated successfully!'),
-                    );
-                    patchState(store, {
-                      [keys.dataField]: val,
-                      [keys.requestStateField]:
-                        'success' satisfies RequestState,
-                      [keys.serverModelField]: undefined,
-                    });
-                  },
-                  error: (err: HttpErrorResponse) => {
-                    const isOutdatedUpdateError = err.status === 409;
-                    const serverModel = isOutdatedUpdateError
-                      ? err.error
-                      : undefined;
+                switchMap((params) =>
+                  requests[keys.name](params).pipe(
+                    tapResponse({
+                      next: (val) => {
+                        toastService.addToast(
+                          successToast('Updated successfully!'),
+                        );
+                        patchState(store, {
+                          [keys.dataField]: val,
+                          [keys.requestStateField]:
+                            'success' satisfies RequestState,
+                          [keys.serverModelField]: undefined,
+                        });
+                      },
+                      error: (err: HttpErrorResponse) => {
+                        const isOutdatedUpdateError = err.status === 409;
+                        const serverModel = isOutdatedUpdateError
+                          ? err.error
+                          : undefined;
 
-                    patchState(store, {
-                      [keys.errorField]: err,
-                      [keys.requestStateField]: 'error' satisfies RequestState,
-                      [keys.serverModelField]: serverModel,
-                    });
-                  },
-                }),
+                        patchState(store, {
+                          [keys.errorField]: err,
+                          [keys.requestStateField]:
+                            'error' satisfies RequestState,
+                          [keys.serverModelField]: serverModel,
+                        });
+                      },
+                    }),
+                  ),
+                ),
               ),
             ),
           };
