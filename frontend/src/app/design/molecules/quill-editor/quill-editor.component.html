@@ -1,6 +1,6 @@
 <div class="editor-wrapper">
   <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes and applies functionality based on that -->
-  <div ngToolbar #toolbar class="ql-toolbar ql-snow custom-toolbar">
+  <div ngToolbar #toolbar class="ql-toolbar custom-toolbar">
     <span class="ql-formats">
       <button
         ngCombobox
@@ -126,12 +126,6 @@
           class="ql-image"
           type="button"
         ></button>
-        <button
-          #videoTool
-          value="video"
-          class="ql-video"
-          type="button"
-        ></button>
       </div>
       <button
         ngToolbarWidget
@@ -157,18 +151,6 @@
         (keydown.space)="imageTool.click()"
       >
         <app-icon [icon]="'image'" />
-      </button>
-      <button
-        ngToolbarWidget
-        value="video"
-        class="tool"
-        type="button"
-        aria-label="Video"
-        (click)="videoTool.click()"
-        (keydown.enter)="videoTool.click()"
-        (keydown.space)="videoTool.click()"
-      >
-        <app-icon [icon]="'film'" />
       </button>
     </span>
 
