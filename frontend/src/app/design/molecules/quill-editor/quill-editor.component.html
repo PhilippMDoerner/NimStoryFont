@@ -1,25 +1,7 @@
 <div class="editor-wrapper">
-  YO: {{ selectionFormat()["header"] }}
-  <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes -->
+  <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes and applies functionality based on that -->
   <div ngToolbar #toolbar class="ql-toolbar ql-snow custom-toolbar">
-    <!-- [{ header: [1,2,3,4,5,6,false] }] -->
     <span class="ql-formats">
-      <!-- <select
-        ngToolbarWidget
-        [value]="selectionFormat()['header'] || 'normal'"
-        #headerTool
-        aria-label="Heading level"
-        (input)="setFormat('header', headerTool.value)"
-      >
-        <option value="1">Heading 1</option>
-        <option value="2">Heading 2</option>
-        <option value="3">Heading 3</option>
-        <option value="4">Heading 4</option>
-        <option value="5">Heading 5</option>
-        <option value="6">Heading 6</option>
-        <option value="normal">Normal</option>
-      </select> -->
-
       <button
         ngCombobox
         [value]="$any(selectionFormat()['header']) || 'normal'"
@@ -38,12 +20,7 @@
       </button>
     </span>
 
-    <!-- 'bold','italic','underline','strike','blockquote', {script:'sub'}, {script:'super'} -->
     <span class="ql-formats">
-      <!-- TODO:
-        1: Fix keyboard nav (enter press does not select entry)
-        2: Fix label in dropdown and adjust its padding to the sides
-        -->
       <button
         ngToolbarWidget
         class="tool"
@@ -53,6 +30,7 @@
         value="bold"
         (click)="toggleFormat('bold')"
         (keydown.enter)="toggleFormat('bold')"
+        (keydown.space)="toggleFormat('bold')"
         [ngbTooltip]="'Ctrl + b'"
       >
         <app-icon [icon]="'bold'" />
@@ -66,6 +44,7 @@
         aria-label="Italic"
         (click)="toggleFormat('italic')"
         (keydown.enter)="toggleFormat('italic')"
+        (keydown.space)="toggleFormat('italic')"
         [ngbTooltip]="'Ctrl + i'"
       >
         <app-icon [icon]="'italic'" />
@@ -79,6 +58,7 @@
         aria-label="Underline"
         (click)="toggleFormat('underline')"
         (keydown.enter)="toggleFormat('underline')"
+        (keydown.space)="toggleFormat('underline')"
         [ngbTooltip]="'Ctrl + u'"
       >
         <app-icon [icon]="'underline'" />
@@ -92,6 +72,7 @@
         aria-label="Strike"
         (click)="toggleFormat('strike')"
         (keydown.enter)="toggleFormat('strike')"
+        (keydown.space)="toggleFormat('strike')"
       >
         <app-icon [icon]="'strikethrough'" />
       </button>
@@ -103,6 +84,7 @@
         type="button"
         (click)="toggleFormat('blockquote')"
         (keydown.enter)="toggleFormat('blockquote')"
+        (keydown.space)="toggleFormat('blockquote')"
         aria-label="Blockquote"
       >
         <app-icon [icon]="'quote-left'" />
@@ -115,6 +97,7 @@
         type="button"
         (click)="toggleFormat('sub')"
         (keydown.enter)="toggleFormat('sub')"
+        (keydown.space)="toggleFormat('sub')"
         aria-label="Subscript"
       >
         <app-icon [icon]="'subscript'" />
@@ -127,41 +110,68 @@
         type="button"
         (click)="toggleFormat('super')"
         (keydown.enter)="toggleFormat('super')"
+        (keydown.space)="toggleFormat('super')"
         aria-label="Superscript"
       >
         <app-icon [icon]="'superscript'" />
       </button>
     </span>
 
-    <!-- 'link','image','video' -->
     <span class="ql-formats">
+      <div class="d-none">
+        <button #linkTool value="link" class="ql-link" type="button"></button>
+        <button
+          #imageTool
+          value="image"
+          class="ql-image"
+          type="button"
+        ></button>
+        <button
+          #videoTool
+          value="video"
+          class="ql-video"
+          type="button"
+        ></button>
+      </div>
       <button
         ngToolbarWidget
         value="link"
-        class="ql-link tool tool--quill-controlled"
+        class="tool"
         type="button"
         aria-label="Link"
         [ngbTooltip]="'Ctrl + k'"
-      ></button>
+        (click)="linkTool.click()"
+        (keydown.enter)="linkTool.click()"
+        (keydown.space)="linkTool.click()"
+      >
+        <app-icon [icon]="'link'" />
+      </button>
       <button
         ngToolbarWidget
         value="image"
-        class="ql-image tool tool--quill-controlled"
+        class="tool"
         type="button"
         aria-label="Image"
-      ></button>
+        (click)="imageTool.click()"
+        (keydown.enter)="imageTool.click()"
+        (keydown.space)="imageTool.click()"
+      >
+        <app-icon [icon]="'image'" />
+      </button>
       <button
         ngToolbarWidget
         value="video"
-        class="ql-video tool tool--quill-controlled"
+        class="tool"
         type="button"
         aria-label="Video"
-      ></button>
+        (click)="videoTool.click()"
+        (keydown.enter)="videoTool.click()"
+        (keydown.space)="videoTool.click()"
+      >
+        <app-icon [icon]="'film'" />
+      </button>
     </span>
 
-    <!-- { align:'' }, {align:'center'}, {align:'right'}, {align:'justify'},
-         { list:'ordered' }, { list:'bullet' },
-         { indent:'-1' }, { indent:'+1' } -->
     <span
       class="ql-formats"
       ngToolbarWidgetGroup
@@ -177,6 +187,7 @@
         role="radio"
         (click)="setFormat('align', '')"
         (keydown.enter)="setFormat('align', '')"
+        (keydown.space)="setFormat('align', '')"
         aria-label="Align left"
       >
         <app-icon [icon]="'align-left'" />
@@ -190,6 +201,7 @@
         role="radio"
         (click)="setFormat('align', 'center')"
         (keydown.enter)="setFormat('align', 'center')"
+        (keydown.space)="setFormat('align', 'center')"
         aria-label="Align center"
       >
         <app-icon [icon]="'align-center'" />
@@ -203,6 +215,7 @@
         role="radio"
         (click)="setFormat('align', 'justify')"
         (keydown.enter)="setFormat('align', 'justify')"
+        (keydown.space)="setFormat('align', 'justify')"
         aria-label="Align justify"
       >
         <app-icon [icon]="'align-justify'" />
@@ -215,6 +228,7 @@
         value="right"
         (click)="setFormat('align', 'right')"
         (keydown.enter)="setFormat('align', 'right')"
+        (keydown.space)="setFormat('align', 'right')"
         aria-label="Align right"
       >
         <app-icon [icon]="'align-right'" />
@@ -224,35 +238,54 @@
     <span class="ql-formats">
       <button
         ngToolbarWidget
-        class="ql-list tool tool--quill-controlled"
+        class="tool"
         value="ordered"
+        (click)="toggleFormatValue('list', 'ordered')"
+        (keydown.enter)="toggleFormatValue('list', 'ordered')"
+        (keydown.space)="toggleFormatValue('list', 'ordered')"
         type="button"
         aria-label="Ordered list"
-      ></button>
+      >
+        <app-icon [icon]="'list-ol'" />
+      </button>
       <button
         ngToolbarWidget
-        class="ql-list tool tool--quill-controlled"
+        class="tool"
         value="bullet"
+        (click)="toggleFormatValue('list', 'bullet')"
+        (keydown.enter)="toggleFormatValue('list', 'bullet')"
+        (keydown.space)="toggleFormatValue('list', 'bullet')"
         type="button"
         aria-label="Bullet list"
-      ></button>
+      >
+        <app-icon [icon]="'list-ul'" />
+      </button>
       <button
         ngToolbarWidget
-        class="ql-indent tool tool--quill-controlled"
-        value="-1"
-        type="button"
-        aria-label="Outdent"
-      ></button>
-      <button
-        ngToolbarWidget
-        class="ql-indent tool tool--quill-controlled"
+        class="tool"
         value="+1"
+        (click)="changeIndent(1)"
+        (keydown.enter)="changeIndent(1)"
+        (keydown.space)="changeIndent(1)"
         type="button"
         aria-label="Indent"
-      ></button>
+      >
+        <app-icon [icon]="'indent'" />
+      </button>
+      <button
+        ngToolbarWidget
+        class="tool"
+        value="-1"
+        (click)="changeIndent(-1)"
+        (keydown.enter)="changeIndent(-1)"
+        (keydown.space)="changeIndent(-1)"
+        type="button"
+        aria-label="Outdent"
+      >
+        <app-icon [icon]="'outdent'" />
+      </button>
     </span>
 
-    <!-- { [TableUp.toolName]: [] } -->
     <span class="ql-formats">
       <button
         ngToolbarWidget
@@ -262,12 +295,12 @@
         aria-label="Insert table"
         (click)="createTable(2, 2)"
         (keydown.enter)="createTable(2, 2)"
+        (keydown.space)="createTable(2, 2)"
       >
         <app-icon [icon]="'table'" />
       </button>
     </span>
 
-    <!-- 'clean' -->
     <span class="ql-formats">
       <button
         ngToolbarWidget
@@ -282,7 +315,6 @@
 </div>
 
 <ng-template
-  class="test"
   [cdkConnectedOverlay]="{ origin: combobox.element, usePopover: 'inline' }"
   [cdkConnectedOverlayOpen]="headerPopupOpen()"
   (overlayOutsideClick)="closeSelect()"
@@ -294,76 +326,19 @@
       ngComboboxWidget
       (click)="headerPopupOpen.set(false)"
     >
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '')"
-        (keydown.enter)="setFormat('header', '')"
-        ngOption
-        value="normal"
-      >
-        Normal
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '1')"
-        (keydown.enter)="setFormat('header', '1')"
-        ngOption
-        value="Heading 1"
-      >
-        Heading 1
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '2')"
-        (keydown.enter)="setFormat('header', '2')"
-        ngOption
-        value="Heading 2"
-      >
-        Heading 2
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '3')"
-        (keydown.enter)="setFormat('header', '3')"
-        ngOption
-        value="Heading 3"
-      >
-        Heading 3
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '4')"
-        (keydown.enter)="setFormat('header', '4')"
-        ngOption
-        value="Heading 4"
-      >
-        Heading 4
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '5')"
-        (keydown.enter)="setFormat('header', '5')"
-        ngOption
-        value="Heading 5"
-      >
-        Heading 5
-      </button>
-      <button
-        class="select-tool__option"
-        type="button"
-        (click)="setFormat('header', '6')"
-        (keydown.enter)="setFormat('header', '6')"
-        ngOption
-        value="Heading 6"
-      >
-        Heading 6
-      </button>
+      @for (opt of textOptions; track $index) {
+        <button
+          class="select-tool__option"
+          type="button"
+          (click)="setFormat('header', opt.formatValue)"
+          (keydown.enter)="setFormat('header', opt.formatValue)"
+          (keydown.space)="setFormat('header', opt.formatValue)"
+          ngOption
+          [value]="opt.optionValue"
+        >
+          {{ FONT_STYLE_LABEL_MAP[opt.optionValue] }}
+        </button>
+      }
     </div>
   </ng-template>
 </ng-template>

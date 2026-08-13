@@ -21,10 +21,12 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import Quill, { QuillOptions, Range } from 'quill';
 import TableUp from 'quill-table-up';
 import E from 'quill/core/emitter';
+import { debounceTime, Subject } from 'rxjs';
 import { HOTKEY_IGNORE_ATTR } from '../../../../app/_models/hotkey';
 import { QUILL_SETTINGS } from '../../../../app/app.constants';
 import { componentId } from '../../../../utils/DOM';
@@ -56,6 +58,19 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
   },
 })
 export class QuillEditorComponent {
+  protected readonly FONT_STYLE_LABEL_MAP: Record<string, string> & {
+    normal: string;
+  } = {
+    '1': 'Heading 1',
+    '2': 'Heading 2',
+    '3': 'Heading 3',
+    '4': 'Heading 4',
+    '5': 'Heading 5',
+    '6': 'Heading 6',
+    normal: 'Text',
+    '': 'Text',
+  };
+
   private readonly container =
     viewChild.required<ElementRef<HTMLElement>>('editor');
   private readonly toolbar =
@@ -66,6 +81,7 @@ export class QuillEditorComponent {
 
   public readonly inputChanged = output<string>();
 
+  private readonly changeEvent$ = new Subject<string>();
   protected readonly toolbarId = `${componentId()}-toolbar`;
   private readonly currentSelection = signal<Range | null>(null);
   protected readonly headerPopupOpen = signal<boolean>(false);
@@ -76,24 +92,17 @@ export class QuillEditorComponent {
     return q.getFormat(selection);
   });
   protected readonly fontStyleLabel = computed(() => {
-    switch (this.selectionFormat()['header'] + '' || 'normal') {
-      case '1':
-        return 'Heading 1';
-      case '2':
-        return 'Heading 2';
-      case '3':
-        return 'Heading 3';
-      case '4':
-        return 'Heading 4';
-      case '5':
-        return 'Heading 5';
-      case '6':
-        return 'Heading 6';
-      case 'normal':
-      default:
-        return 'Normal';
-    }
+    const key = this.selectionFormat()['header'] + '' || 'normal';
+    return this.FONT_STYLE_LABEL_MAP[key] ?? this.FONT_STYLE_LABEL_MAP.normal;
   });
+
+  protected readonly textOptions = [
+    { formatValue: '', optionValue: 'normal' },
+    ...[1, 2, 3, 4, 5, 6].map((val) => ({
+      formatValue: val.toString(),
+      optionValue: val.toString(),
+    })),
+  ];
 
   private quillConfig = computed<QuillOptions>(() => ({
     ...QUILL_SETTINGS,
@@ -104,13 +113,6 @@ export class QuillEditorComponent {
       keyboard: {
         bindings: {
           tab: false,
-          // shiftEnter: {
-          //   key: ['Enter'],
-          //   shiftKey: true,
-          //   handler: (range: Range) => {
-          //     this.handleLinebreakKeybindings(range);
-          //   },
-          // },
         },
       },
     },
@@ -131,33 +133,23 @@ export class QuillEditorComponent {
 
   constructor() {
     this.setupQuillEventListeners();
-
-    effect(() => console.log('DBB is open', this.headerPopupOpen()));
-
-    effect(() => {
-      const q = this.quill();
-      if (!q) return;
-      console.log('DBB Setting', this.value());
-
-      const selection = q.getSelection();
-
-      q.clipboard.dangerouslyPasteHTML(this.value(), 'silent');
-
-      if (selection) {
-        const cursorPosition = Math.min(selection.index, q.getLength() - 1);
-
-        q.setSelection(cursorPosition, selection.length, 'silent');
-      }
-    });
+    this.setupOutputDebounce();
+    this.setupForwardValueToEditorOnChangeAndMaintainCursorPosition();
   }
 
   protected createTable(rows: number, cols: number) {
     const q = this.quill();
     if (!q) return;
-    const tableModule = q.getModule(TableUp.moduleName) as any;
-    // quill-table-up's programmatic insert API — check current version's
-    // exact method name/signature, it varies between releases
-    tableModule.insertTable?.(rows, cols);
+
+    const tableModule = q.getModule(TableUp.moduleName);
+    const hasInsertFunction =
+      tableModule != null &&
+      typeof tableModule === 'object' &&
+      'insertTable' in tableModule &&
+      typeof tableModule.insertTable === 'function';
+    if (!hasInsertFunction) return;
+
+    (tableModule.insertTable as Function)?.(rows, cols);
   }
 
   protected toggleFormat(name: string) {
@@ -165,6 +157,26 @@ export class QuillEditorComponent {
     if (!q) return;
 
     this.setFormat(name, !q.getFormat()[name]);
+  }
+
+  protected toggleFormatValue(name: string, value: string) {
+    const q = this.quill();
+    if (!q) return;
+
+    const currentValue = q.getFormat()[name];
+    const isCurrentlyToggledOn = currentValue === value;
+    const nextValue = isCurrentlyToggledOn ? '' : value;
+    this.setFormat(name, nextValue);
+  }
+
+  protected changeIndent(delta: number) {
+    const q = this.quill();
+    if (!q) return;
+
+    const currentIndent = q.getFormat()['indent'] ?? 0;
+    if (typeof currentIndent !== 'number') return;
+
+    this.setFormat('indent', currentIndent + delta);
   }
 
   protected setFormat(name: string, value: unknown) {
@@ -185,12 +197,15 @@ export class QuillEditorComponent {
       if (!q) return;
 
       const eventListeners = {
+        // text-change fires on any text change, but not when format changes (e.g. adding an indent)
         'text-change': () => {
-          const value = q.root.innerHTML ?? '';
-          this.inputChanged.emit(value);
-          console.log('DBB Emitting', value);
+          this.emitValue(q);
+          console.log('DBB text change');
         },
+        // editor-change fires when format changes (e.g. when adding an indent), but not when text changes
         'editor-change': () => {
+          console.log('DBB editor change', q.root.innerHTML);
+          this.emitValue(q);
           const selection = q.getSelection();
           this.currentSelection.set(selection);
         },
@@ -205,6 +220,34 @@ export class QuillEditorComponent {
           q.off(eventName, callback),
         );
       };
+    });
+  }
+
+  private emitValue(quill: Quill) {
+    const value = quill.root.innerHTML ?? '';
+    this.changeEvent$.next(value);
+  }
+
+  private setupOutputDebounce() {
+    this.changeEvent$
+      .pipe(debounceTime(10), takeUntilDestroyed())
+      .subscribe((value) => this.inputChanged.emit(value));
+  }
+
+  private setupForwardValueToEditorOnChangeAndMaintainCursorPosition() {
+    effect(() => {
+      const q = this.quill();
+      if (!q) return;
+
+      const selection = q.getSelection();
+
+      q.clipboard.dangerouslyPasteHTML(this.value(), 'silent');
+
+      if (selection) {
+        const cursorPosition = Math.min(selection.index, q.getLength() - 1);
+
+        q.setSelection(cursorPosition, selection.length, 'silent');
+      }
     });
   }
 }

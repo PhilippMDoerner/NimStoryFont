@@ -31,6 +31,10 @@
   .ql-toolbar.ql-snow {
     border-top-left-radius: var(--bs-border-radius);
     border-top-right-radius: var(--bs-border-radius);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: var(--spacer-2);
 
     .ql-stroke {
       stroke: var(--toolbar-color);
@@ -52,6 +56,10 @@
     .ql-picker-options {
       background-color: var(--bs-gray-800);
     }
+
+    .ql-formats {
+      margin: unset;
+    }
   }
 
   .ql-container.ql-snow {
@@ -65,6 +73,10 @@
       margin-bottom: 16px;
     }
 
+    a {
+      color: var(--bs-link-hover-color);
+    }
+
     .ql-editor > :first-child {
       margin-top: unset;
     }
@@ -75,6 +87,26 @@
 
     .table-up-menu {
       background-color: var(--bs-gray-800);
+    }
+
+    .ql-tooltip {
+      left: 0px !important;
+      background-color: var(--bs-dark);
+      color: var(--bs-white);
+      border-radius: var(--bs-border-radius);
+
+      input {
+        background-color: var(--bs-dark);
+        border-radius: var(--bs-border-radius);
+        border: 1px solid var(--bs-white);
+        color: var(--bs-white);
+      }
+
+      .ql-action,
+      .ql-preview,
+      .ql-remove {
+        color: var(--bs-link-hover-color);
+      }
     }
   }
 
@@ -155,7 +187,7 @@ button.tool {
     width: unset;
     height: unset;
     min-height: 40px;
-    padding: var(--spacer-0) var(--spacer-3);
+    padding: var(--spacer-1) var(--spacer-3) var(--spacer-0) var(--spacer-3);
     outline-offset: -3px;
 
     &:hover,
