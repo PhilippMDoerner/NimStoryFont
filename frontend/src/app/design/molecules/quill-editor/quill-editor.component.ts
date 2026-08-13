@@ -14,22 +14,25 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
+  inject,
   input,
   output,
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import Quill, { QuillOptions, Range } from 'quill';
+import Quill, { Range } from 'quill';
 import TableUp from 'quill-table-up';
 import E from 'quill/core/emitter';
-import { debounceTime, Subject } from 'rxjs';
+import { combineLatest, filter, map, take } from 'rxjs';
 import { HOTKEY_IGNORE_ATTR } from '../../../../app/_models/hotkey';
 import { QUILL_SETTINGS } from '../../../../app/app.constants';
 import { componentId } from '../../../../utils/DOM';
+import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
 type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
@@ -54,10 +57,10 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     [HOTKEY_IGNORE_ATTR]: '',
-    '(click)': 'logFormat()',
   },
 })
 export class QuillEditorComponent {
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly FONT_STYLE_LABEL_MAP: Record<string, string> & {
     normal: string;
   } = {
@@ -81,10 +84,33 @@ export class QuillEditorComponent {
 
   public readonly inputChanged = output<string>();
 
-  private readonly changeEvent$ = new Subject<string>();
   protected readonly toolbarId = `${componentId()}-toolbar`;
   private readonly currentSelection = signal<Range | null>(null);
   protected readonly headerPopupOpen = signal<boolean>(false);
+
+  private readonly quillConfig$ = toObservable(this.toolbar).pipe(
+    filter((el) => el?.nativeElement != null),
+    map((elRef) => ({
+      ...QUILL_SETTINGS,
+      modules: { ...QUILL_SETTINGS.modules, toolbar: elRef.nativeElement },
+    })),
+    take(1),
+  );
+  private readonly quill$ = combineLatest({
+    config: this.quillConfig$,
+    containerEl: toObservable(this.container),
+  }).pipe(
+    filter(
+      ({ config, containerEl }) =>
+        config != null && containerEl?.nativeElement != null,
+    ),
+    take(1),
+    map(
+      ({ config, containerEl }) => new Quill(containerEl.nativeElement, config),
+    ),
+  );
+  public readonly quill = toSignal(this.quill$);
+
   protected readonly selectionFormat = computed(() => {
     const q = this.quill();
     const selection = this.currentSelection();
@@ -104,37 +130,16 @@ export class QuillEditorComponent {
     })),
   ];
 
-  private quillConfig = computed<QuillOptions>(() => ({
-    ...QUILL_SETTINGS,
-    readOnly: this.readOnly(),
-    modules: {
-      ...QUILL_SETTINGS.modules,
-      toolbar: this.toolbar().nativeElement,
-      keyboard: {
-        bindings: {
-          tab: false,
-        },
-      },
-    },
-  }));
-
-  public readonly quill = computed(() => {
-    const el = this.container()?.nativeElement;
-    if (!el) return undefined;
-
-    const quill = new Quill(el, this.quillConfig());
-    console.log(quill);
-    return quill;
-  });
-
-  logFormat() {
-    console.log(this.quill()?.getFormat());
-  }
-
   constructor() {
     this.setupQuillEventListeners();
-    this.setupOutputDebounce();
     this.setupForwardValueToEditorOnChangeAndMaintainCursorPosition();
+    this.setupUpdateReadonly();
+  }
+
+  public focus() {
+    this.quill$
+      .pipe(takeOnceOrUntilDestroyed(this.destroyRef))
+      .subscribe((q) => q.focus());
   }
 
   protected createTable(rows: number, cols: number) {
@@ -200,14 +205,16 @@ export class QuillEditorComponent {
         // text-change fires on any text change, but not when format changes (e.g. adding an indent)
         'text-change': () => {
           this.emitValue(q);
-          console.log('DBB text change');
+          console.log('DBB quill text change');
         },
         // editor-change fires when format changes (e.g. when adding an indent), but not when text changes
         'editor-change': () => {
-          console.log('DBB editor change', q.root.innerHTML);
+          console.log('DBB quill editor change');
           this.emitValue(q);
-          const selection = q.getSelection();
-          this.currentSelection.set(selection);
+        },
+        'selection-change': () => {
+          console.log('DBB quill selection change');
+          this.currentSelection.set(q.getSelection());
         },
       } satisfies Partial<Record<QuillEvent, Function>>;
 
@@ -224,14 +231,8 @@ export class QuillEditorComponent {
   }
 
   private emitValue(quill: Quill) {
-    const value = quill.root.innerHTML ?? '';
-    this.changeEvent$.next(value);
-  }
-
-  private setupOutputDebounce() {
-    this.changeEvent$
-      .pipe(debounceTime(10), takeUntilDestroyed())
-      .subscribe((value) => this.inputChanged.emit(value));
+    const newValue = quill.root.innerHTML ?? '';
+    this.inputChanged.emit(newValue);
   }
 
   private setupForwardValueToEditorOnChangeAndMaintainCursorPosition() {
@@ -247,6 +248,17 @@ export class QuillEditorComponent {
         const cursorPosition = Math.min(selection.index, q.getLength() - 1);
 
         q.setSelection(cursorPosition, selection.length, 'silent');
+      }
+    });
+  }
+
+  private setupUpdateReadonly() {
+    effect(() => {
+      const q = this.quill();
+      if (this.readOnly()) {
+        q?.disable();
+      } else {
+        q?.enable();
       }
     });
   }

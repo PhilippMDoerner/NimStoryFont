@@ -97,6 +97,11 @@ export const QUILL_SETTINGS: QuillOptions = {
       ],
       ['clean'],
     ],
+    keyboard: {
+      bindings: {
+        tab: false,
+      },
+    },
     [TableUp.moduleName]: {
       customSelect: defaultCustomSelect,
       modules: [
