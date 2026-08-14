@@ -219,7 +219,10 @@ export class QuillEditorComponent {
         // text-change fires on any text change, but not when format changes (e.g. adding an indent)
         'text-change': () => this.emitValue(q),
         // editor-change fires when format changes (e.g. when adding an indent), but not when text changes
-        'editor-change': () => this.emitValue(q),
+        'editor-change': () => {
+          this.currentSelection.set(q.getSelection());
+          this.emitValue(q);
+        },
         'selection-change': () => {
           this.currentSelection.set(q.getSelection());
         },

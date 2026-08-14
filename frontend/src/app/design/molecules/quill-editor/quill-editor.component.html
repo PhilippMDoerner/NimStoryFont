@@ -96,7 +96,7 @@
       <button
         ngToolbarWidget
         class="tool"
-        [class.tool--active]="selectionFormat()['sub']"
+        [class.tool--active]="selectionFormat()['script'] === 'sub'"
         value="sub"
         type="button"
         (click)="toggleFormatValue('script', 'sub')"
@@ -109,7 +109,7 @@
       <button
         ngToolbarWidget
         class="tool"
-        [class.tool--active]="selectionFormat()['super']"
+        [class.tool--active]="selectionFormat()['script'] === 'super'"
         value="super"
         type="button"
         (click)="toggleFormatValue('script', 'super')"
