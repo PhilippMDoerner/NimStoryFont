@@ -57,6 +57,7 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     [HOTKEY_IGNORE_ATTR]: '',
+    '(click)': 'logFormat()',
   },
 })
 export class QuillEditorComponent {
@@ -137,6 +138,10 @@ export class QuillEditorComponent {
       optionValue: val.toString(),
     })),
   ];
+
+  logFormat() {
+    console.log(this.quill()?.getFormat());
+  }
 
   constructor() {
     this.setupQuillEventListeners();

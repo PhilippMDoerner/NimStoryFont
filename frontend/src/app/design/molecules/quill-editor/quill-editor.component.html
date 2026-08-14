@@ -99,9 +99,9 @@
         [class.tool--active]="selectionFormat()['sub']"
         value="sub"
         type="button"
-        (click)="toggleFormat('sub')"
-        (keydown.enter)="toggleFormat('sub')"
-        (keydown.space)="toggleFormat('sub')"
+        (click)="toggleFormatValue('script', 'sub')"
+        (keydown.enter)="toggleFormatValue('script', 'sub')"
+        (keydown.space)="toggleFormatValue('script', 'sub')"
         aria-label="Subscript"
       >
         <app-icon [icon]="'subscript'" />
@@ -112,9 +112,9 @@
         [class.tool--active]="selectionFormat()['super']"
         value="super"
         type="button"
-        (click)="toggleFormat('super')"
-        (keydown.enter)="toggleFormat('super')"
-        (keydown.space)="toggleFormat('super')"
+        (click)="toggleFormatValue('script', 'super')"
+        (keydown.enter)="toggleFormatValue('script', 'super')"
+        (keydown.space)="toggleFormatValue('script', 'super')"
         aria-label="Superscript"
       >
         <app-icon [icon]="'superscript'" />
@@ -310,7 +310,8 @@
       class="select-tool__listbox"
       ngListbox
       ngComboboxWidget
-      (click)="headerPopupOpen.set(false)"
+      (click)="closeSelect()"
+      (blur)="closeSelect()"
     >
       @for (opt of textOptions; track $index) {
         <button
