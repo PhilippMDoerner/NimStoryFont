@@ -1,5 +1,5 @@
 <app-card class="carousel">
-  @if(showContextMenu()){
+  @if (showContextMenu()) {
     <app-context-menu
       class="carousel__actions"
       [menuItems]="contextActions()"
@@ -43,6 +43,15 @@
         <img [src]="'assets/default_images/icon_default.webp'" alt="" />
         <div class="image-caption">
           <p>This article doesn't have an image yet</p>
+          @if (canCreate()) {
+            <button
+              btn
+              [kind]="'PRIMARY'"
+              [icon]="createEntry.icon"
+              [text]="'Add first Image'"
+              (click)="onImageCreate()"
+            ></button>
+          }
         </div>
       </div>
     </ng-template>
