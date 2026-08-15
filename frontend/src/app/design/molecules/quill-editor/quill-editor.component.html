@@ -1,3 +1,6 @@
+Undo length: {{ quill()?.history?.stack?.undo?.length ?? 0 }} -
+{{ (quill()?.history?.stack?.undo?.length ?? 0) === 0 }}
+
 <div class="editor-wrapper">
   <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes and applies functionality based on that -->
   <div ngToolbar #toolbar class="ql-toolbar custom-toolbar">
@@ -25,6 +28,38 @@
     </span>
 
     <span class="ql-formats">
+      @let canUndo = (quill()?.history?.stack?.undo?.length ?? 0) > 0;
+      <button
+        ngToolbarWidget
+        [disabled]="!canUndo"
+        class="tool"
+        [class.tool--disabled]="!canUndo"
+        type="button"
+        aria-label="Undo"
+        value="undo"
+        (click)="undo()"
+        (keydown.enter)="undo()"
+        (keydown.space)="undo()"
+        [ngbTooltip]="canUndo ? '' : 'Disabled'"
+      >
+        <app-icon [icon]="'reply'" />
+      </button>
+      @let canRedo = (quill()?.history?.stack?.redo?.length ?? 0) > 0;
+      <button
+        ngToolbarWidget
+        [disabled]="!canRedo"
+        class="tool"
+        [class.tool--disabled]="!canRedo"
+        type="button"
+        aria-label="Redo"
+        value="redo"
+        (click)="redo()"
+        (keydown.enter)="redo()"
+        (keydown.space)="redo()"
+        [ngbTooltip]="canRedo ? '' : 'Disabled'"
+      >
+        <app-icon [icon]="'share'" />
+      </button>
       <button
         ngToolbarWidget
         class="tool"
@@ -35,7 +70,6 @@
         (click)="toggleFormat('bold')"
         (keydown.enter)="toggleFormat('bold')"
         (keydown.space)="toggleFormat('bold')"
-        [ngbTooltip]="'Ctrl + b'"
       >
         <app-icon [icon]="'bold'" />
       </button>
@@ -49,7 +83,6 @@
         (click)="toggleFormat('italic')"
         (keydown.enter)="toggleFormat('italic')"
         (keydown.space)="toggleFormat('italic')"
-        [ngbTooltip]="'Ctrl + i'"
       >
         <app-icon [icon]="'italic'" />
       </button>
@@ -63,7 +96,6 @@
         (click)="toggleFormat('underline')"
         (keydown.enter)="toggleFormat('underline')"
         (keydown.space)="toggleFormat('underline')"
-        [ngbTooltip]="'Ctrl + u'"
       >
         <app-icon [icon]="'underline'" />
       </button>
@@ -137,7 +169,6 @@
         class="tool"
         type="button"
         aria-label="Link"
-        [ngbTooltip]="'Ctrl + k'"
         (click)="linkTool.click()"
         (keydown.enter)="linkTool.click()"
         (keydown.space)="linkTool.click()"

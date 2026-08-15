@@ -210,6 +210,20 @@ export class QuillEditorComponent {
     this.headerPopupOpen.set(false);
   }
 
+  protected undo() {
+    const q = this.quill();
+    if (!q) return;
+
+    q.history.undo();
+  }
+
+  protected redo() {
+    const q = this.quill();
+    if (!q) return;
+
+    q.history.redo();
+  }
+
   private setupQuillEventListeners() {
     effect(() => {
       const q = this.quill();

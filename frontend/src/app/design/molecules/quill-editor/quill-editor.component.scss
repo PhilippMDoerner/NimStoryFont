@@ -139,19 +139,30 @@ button.tool {
   justify-content: center;
   align-items: center;
 
+  &:hover,
+  &:focus-visible {
+    color: var(--quill-active-color);
+    outline: var(--focus-outline);
+  }
+
   &--active {
     color: var(--quill-active-color);
+  }
+
+  &--disabled {
+    cursor: not-allowed;
+    touch-action: none;
+    opacity: 0.5;
+
+    &:hover,
+    &:focus-visible {
+      color: unset;
+    }
   }
 
   &--quill-controlled {
     box-sizing: border-box;
     padding: 9px;
-  }
-
-  &:hover,
-  &:focus-visible {
-    color: var(--quill-active-color);
-    outline: var(--focus-outline);
   }
 }
 
