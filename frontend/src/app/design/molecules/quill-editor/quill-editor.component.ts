@@ -266,13 +266,14 @@ export class QuillEditorComponent {
       if (!q) return;
 
       const selection = q.getSelection();
+      const previouslyFocused = document.activeElement as HTMLElement | null;
 
       q.clipboard.dangerouslyPasteHTML(this.value(), 'silent');
-
       if (selection) {
         const cursorPosition = Math.min(selection.index, q.getLength() - 1);
 
         q.setSelection(cursorPosition, selection.length, 'silent');
+        previouslyFocused?.focus?.(); // We need to restore focus to where it was, quill jumps you into the editor if you don't
       }
     });
   }
