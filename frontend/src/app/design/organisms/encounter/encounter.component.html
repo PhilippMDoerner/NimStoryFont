@@ -18,12 +18,6 @@
     </h4>
 
     <span class="card__right-container">
-      @if (showUpdateSuccessMarker$ | async) {
-        <span class="card__success-animation">
-          Updated encounter
-          <app-success-animation />
-        </span>
-      }
       @if (cardState() !== "CREATE" && contextMenuItems().length > 0) {
         <app-context-menu
           [menuItems]="contextMenuItems()"

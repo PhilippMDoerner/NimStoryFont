@@ -44,7 +44,7 @@ It explicitly does not support Safari, due to the resources this would cost to a
 - @ngrx - SignalStore
 - @ngx-formly - Generating Forms in bootstrap-style
 - @popperjs - Dependency for ng-bootstrap
-- @tinymce - Texteditor
+- @quilljs - Texteditor
 - animate.css - BackgroundImage-Animation - TODO: Refactor this out
 - leaflet - For map... maybe dependncy of ngx-leaflet, maybe it can be used on its own
 - bootstrap - Visuals, utility classes and components

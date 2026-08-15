@@ -4,12 +4,10 @@
 // import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 // import { action } from 'storybook/actions';
 // import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-// import { EditorModule } from '@tinymce/tinymce-angular';
 // import { OverviewItem } from 'src/app/_models/overview';
 // import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
 // import { DiaryentryPageStore } from 'src/app/campaign/pages/diaryentry-page/diaryentry-page.store';
 // import { GlobalStore } from 'src/app/global.store';
-// import * as all from 'tinymce/tinymce';
 // import { Encounter } from 'src/app/_models/encounter';
 // import { DiaryentryEncountersComponent } from './diaryentry-encounters.component';
 

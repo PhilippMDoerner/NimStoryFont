@@ -44,6 +44,7 @@ export const ALL_SOLID_ICONS = [
   'chevron-right',
   'chevron-up',
   'circle',
+  'circle-check',
   'circle-exclamation',
   'clipboard',
   'cog',

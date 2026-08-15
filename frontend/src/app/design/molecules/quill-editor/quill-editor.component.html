@@ -325,7 +325,10 @@
       ></button>
     </span>
   </div>
-  <div class="editor-body" #editor></div>
+  <div resize-container [heightPx]="450">
+    <!-- Click event handler necessary as otherwise the link handler just closes when you click into it -->
+    <div class="editor-body" #editor (click)="$event.stopPropagation()"></div>
+  </div>
   <div class="editor-bottom">
     <ng-content></ng-content>
   </div>

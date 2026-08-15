@@ -1,30 +1,23 @@
 module.exports = {
-  stories: [
-    '../src/**/*.stories.ts',
-  ],
+  stories: ["../src/**/*.stories.ts"],
 
   addons: [
-    '@storybook/addon-a11y',
-    'storybook-preset-inline-svg',
-    '@chromatic-com/storybook',
-    '@storybook/addon-docs'
+    "@storybook/addon-a11y",
+    "storybook-preset-inline-svg",
+    "@chromatic-com/storybook",
+    "@storybook/addon-docs",
   ],
 
   framework: {
-    name: '@storybook/angular',
-    options: {}
+    name: "@storybook/angular",
+    options: {},
   },
 
   core: {
-    "disableTelemetry": true
+    disableTelemetry: true,
   },
 
-  staticDirs: [
-    '../src/assets', 
-    '../node_modules/tinymce',
-    '../node_modules',
-    '../src'
-  ],
+  staticDirs: ["../src/assets", "../node_modules", "../src"],
 
-  docs: {}
+  docs: {},
 };

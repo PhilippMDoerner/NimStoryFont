@@ -1,15 +1,11 @@
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Rule } from 'src/app/_models/rule';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-import * as all from 'tinymce/tinymce';
+import { action } from 'storybook/actions';
+import { Rule } from '../../../_models/rule';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { RulesComponent } from './rules.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const x = all;
 
 const dummyRule: Rule = {
   getAbsoluteRouterUrl: () => '/dnd/rules/1',

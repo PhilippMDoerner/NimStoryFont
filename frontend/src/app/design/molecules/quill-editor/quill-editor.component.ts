@@ -32,8 +32,8 @@ import { combineLatest, filter, map, shareReplay, take } from 'rxjs';
 import { HOTKEY_IGNORE_ATTR } from '../../../../app/_models/hotkey';
 import { QUILL_SETTINGS } from '../../../../app/app.constants';
 import { componentId } from '../../../../utils/DOM';
-import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { ResizeContainerComponent } from '../../atoms/resize-container/resize-container.component';
 
 type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
 
@@ -51,6 +51,7 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
     CdkConnectedOverlay,
     Listbox,
     Option,
+    ResizeContainerComponent,
   ],
   templateUrl: './quill-editor.component.html',
   styleUrls: ['./quill-editor.component.scss'],
@@ -152,9 +153,9 @@ export class QuillEditorComponent {
   }
 
   public focus() {
-    this.quill$
-      .pipe(takeOnceOrUntilDestroyed(this.destroyRef))
-      .subscribe((q) => q.focus());
+    // this.quill$
+    //   .pipe(takeOnceOrUntilDestroyed(this.destroyRef))
+    //   .subscribe((q) => q.focus());
   }
 
   protected createTable(rows: number, cols: number) {

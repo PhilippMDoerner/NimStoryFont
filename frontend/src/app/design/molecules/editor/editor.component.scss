@@ -29,11 +29,46 @@
     flex-direction: row;
     gap: var(--spacer-3);
   }
+
+  &__bottom {
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 .editor {
   &--focus {
     outline: var(--focus-outline);
     border-radius: var(--bs-border-radius);
+  }
+}
+
+.save-text {
+  padding: var(--spacer-0) var(--spacer-3);
+  display: flex;
+  gap: var(--spacer-2);
+  align-items: center;
+
+  &--saved {
+    color: var(--bs-link-hover-color);
+  }
+
+  &--saving {
+    color: var(--bs-gray-400);
+  }
+
+  &--unsaved {
+    color: var(--bs-light);
+  }
+
+  &__spinner {
+    height: 16px;
+    width: 16px;
+  }
+
+  &__animation {
+    width: 16px;
+    height: 16px;
+    stroke: var(--bs-link-hover-color);
   }
 }

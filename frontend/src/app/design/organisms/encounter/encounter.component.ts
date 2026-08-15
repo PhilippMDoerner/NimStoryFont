@@ -1,4 +1,4 @@
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -14,16 +14,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import {
-  EMPTY,
-  interval,
-  map,
-  of,
-  startWith,
-  switchMap,
-  take,
-  timer,
-} from 'rxjs';
+import { interval, of, take } from 'rxjs';
 import { withViewTransition } from '../../../../utils/animation';
 import { componentId } from '../../../../utils/DOM';
 import { filterNil } from '../../../../utils/rxjs-operators';
@@ -49,7 +40,6 @@ import {
 } from '../../../design/molecules';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { formatSearchTerm } from '../../atoms/_models/typeahead';
-import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -75,8 +65,6 @@ const UPDATE_MARKER_TIMEOUT_MS = 3000;
     CompareFormComponent,
     NgbTooltipModule,
     EditorComponent,
-    AsyncPipe,
-    SuccessAnimationComponent,
     ContextMenuComponent,
     HeadingDirective,
   ],
@@ -164,19 +152,6 @@ export class EncounterComponent implements OnInit {
     return menuItems;
   });
 
-  readonly showUpdateSuccessMarker$ = toObservable(this.updateState).pipe(
-    switchMap((state) => {
-      const hasUpdatedSuccessfully = state === 'success';
-      if (hasUpdatedSuccessfully) {
-        return timer(UPDATE_MARKER_TIMEOUT_MS).pipe(
-          map(() => false),
-          startWith(state === 'success'),
-        );
-      } else {
-        return EMPTY;
-      }
-    }),
-  );
   readonly locations$ = toObservable(this.locations).pipe(filterNil());
   readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({

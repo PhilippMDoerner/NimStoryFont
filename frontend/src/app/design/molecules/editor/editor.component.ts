@@ -2,17 +2,17 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
+  effect,
   inject,
   Injector,
   input,
+  linkedSignal,
   output,
-  signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { EditorComponent as TinyMCEEditorComponent } from '@tinymce/tinymce-angular';
 
 import {
   takeUntilDestroyed,
@@ -20,22 +20,27 @@ import {
   toSignal,
 } from '@angular/core/rxjs-interop';
 import {
-  debounceTime,
+  concat,
   distinctUntilChanged,
   filter,
-  Subject,
-  timeout,
+  map,
+  merge,
+  Observable,
+  of,
+  switchMap,
+  timer,
 } from 'rxjs';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
-import { ScreenService } from '../../../_services/screen.service';
-import { EditorSettings, TINYMCE_SETTINGS } from '../../../app.constants';
 import { ElementKind } from '../../atoms/_models/button';
 import { AlertComponent } from '../../atoms/alert/alert.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SeparatorComponent } from '../../atoms/separator/separator.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { QuillEditorComponent } from '../quill-editor/quill-editor.component';
 
+type SaveState = 'UNSAVED_CHANGES' | 'SAVING' | 'ALL_SAVED';
 export type TextFieldState = 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
 
 @Component({
@@ -44,12 +49,13 @@ export type TextFieldState = 'DISPLAY' | 'UPDATE' | 'OUTDATED_UPDATE';
     NgTemplateOutlet,
     HtmlTextComponent,
     IconComponent,
-    TinyMCEEditorComponent,
     FormsModule,
     AlertComponent,
     SeparatorComponent,
     ButtonComponent,
     HotkeyDirective,
+    QuillEditorComponent,
+    SpinnerComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
@@ -67,45 +73,90 @@ export class EditorComponent {
   readonly submitButtonKind = input<ElementKind>('PRIMARY');
   readonly cancelButtonKind = input<ElementKind>('SECONDARY');
   readonly enableAutosave = input<boolean>(true);
-  readonly maxHeightPercentage = input<number>(0.75); // Range 0-1
-  readonly settings = input<Partial<EditorSettings>>();
   readonly disabledHotkeys = input<boolean>(false);
   readonly id = input.required<string>();
+  readonly labelId = input.required<string>();
+  readonly describedById = input<string>();
 
   readonly editStarted = output<void>();
   readonly update = output<string>();
   readonly autosave = output<string>();
   readonly cancelled = output<void>();
 
-  readonly change$ = new Subject<string>();
-  readonly inFocus = signal(false);
+  protected readonly editorValue = linkedSignal(() => this.text());
+  protected readonly saveState = toSignal(this.getAutoSaveState());
 
-  readonly set = TINYMCE_SETTINGS;
-  readonly windowHeight = toSignal(inject(ScreenService).windowHeight$);
-  readonly maxEditorHeight = computed(() => {
-    const windowHeight = this.windowHeight();
-    if (!windowHeight) return undefined;
-    return windowHeight * this.maxHeightPercentage();
-  });
-  readonly editorHeight = computed(() => {
-    const maxHeight = this.maxEditorHeight();
-    const defaultHeight = TINYMCE_SETTINGS.height;
-    const configuredHeight = this.settings()?.height;
-    if (!configuredHeight || !maxHeight) return defaultHeight;
-    return Math.min(maxHeight, configuredHeight);
-  });
-  readonly _settings = computed(() => ({
-    ...TINYMCE_SETTINGS,
-    ...this.settings(),
-    height: this.editorHeight(),
-  }));
-  textModel = '';
-
-  readonly editorField = viewChild<TinyMCEEditorComponent>('editor');
+  private readonly editorField = viewChild<QuillEditorComponent>('editor');
 
   constructor() {
     this.startAutosaveBehavior();
-    const editorField$ = toObservable(this.editorField);
+    this.setupStateChangeBehavior();
+  }
+
+  protected finishEdit() {
+    this.update.emit(this.editorValue());
+  }
+
+  protected startEdit() {
+    this.editStarted.emit();
+  }
+
+  protected cancelEdit() {
+    this.cancelled.emit();
+  }
+
+  private startAutosaveBehavior() {
+    effect(() => {
+      const isStartingAutosave = this.saveState() === 'SAVING';
+      if (!isStartingAutosave) return;
+
+      const isAutosaveEnabled = untracked(() => this.enableAutosave());
+      if (!isAutosaveEnabled) return;
+
+      const canUpdate = untracked(() => this.state() === 'UPDATE');
+      if (!canUpdate) return;
+
+      const hasTextChanged = this.text() !== this.editorValue();
+      if (!hasTextChanged) return;
+
+      this.autosave.emit(this.editorValue());
+    });
+  }
+
+  private getAutoSaveState(): Observable<SaveState> {
+    const editorValue$ = toObservable(this.editorValue);
+    const currentValue$ = toObservable(this.text);
+    const generalAutoSaveState$ = editorValue$.pipe(
+      distinctUntilChanged(),
+      switchMap((editorValue) =>
+        currentValue$.pipe(
+          map((currentValue) => currentValue === editorValue),
+          distinctUntilChanged(),
+          switchMap(
+            (isEqual): Observable<SaveState> =>
+              isEqual
+                ? of('ALL_SAVED')
+                : concat(
+                    of('UNSAVED_CHANGES' as const),
+                    timer(3000).pipe(map(() => 'SAVING' as const)),
+                  ),
+          ),
+        ),
+      ),
+      distinctUntilChanged(),
+    );
+
+    const outDatedUpdateSaveState$: Observable<SaveState> = toObservable(
+      this.state,
+    ).pipe(
+      filter((state) => state === 'OUTDATED_UPDATE'),
+      map(() => 'UNSAVED_CHANGES'),
+    );
+
+    return merge(generalAutoSaveState$, outDatedUpdateSaveState$);
+  }
+
+  private setupStateChangeBehavior() {
     toObservable(this.state)
       .pipe(takeUntilDestroyed())
       .subscribe((state) => {
@@ -114,53 +165,16 @@ export class EditorComponent {
             return this.resetTextfield();
           case 'UPDATE':
           case 'OUTDATED_UPDATE':
-            this.focusField();
-            return this.toUpdateState();
+            return this.focusField();
         }
       });
   }
 
-  startEdit() {
-    this.editStarted.emit();
-  }
-
-  finishEdit() {
-    this.update.emit(this.textModel.trim());
-  }
-
-  cancelEdit() {
-    this.cancelled.emit();
-  }
-
-  private toUpdateState() {
-    this.resetTextfield();
-    this.focusField();
-  }
-
   private resetTextfield() {
-    this.textModel = this.text();
-  }
-
-  private startAutosaveBehavior() {
-    this.change$
-      .pipe(
-        debounceTime(3_000),
-        filter(() => this.enableAutosave()),
-        distinctUntilChanged(),
-        filter(() => {
-          const newText = this.textModel;
-          const canFireUpdate = this.state() === 'UPDATE';
-          const oldText = this.text();
-          return canFireUpdate && oldText !== newText;
-        }),
-        takeUntilDestroyed(),
-      )
-      .subscribe(() => this.autosave.emit(this.textModel));
+    this.editorValue.set(this.text());
   }
 
   private focusField() {
-    toObservable(this.editorField, { injector: this.injector })
-      .pipe(timeout(3000), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.editorField()?.editor?.focus());
+    this.editorField()?.focus();
   }
 }

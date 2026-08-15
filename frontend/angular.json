@@ -59,11 +59,6 @@
               "src/assets",
               {
                 "glob": "**/*",
-                "input": "node_modules/tinymce",
-                "output": "/tinymce/"
-              },
-              {
-                "glob": "**/*",
                 "input": "node_modules/leaflet/dist/images",
                 "output": "assets/"
               },
@@ -84,9 +79,6 @@
               "src/assets/icons/css/regular.min.css",
               "src/assets/icons/css/brands.min.css",
               "src/assets/icons/css/fontawesome.min.css"
-            ],
-            "scripts": [
-              "node_modules/tinymce/tinymce.min.js"
             ],
             "allowedCommonJsDependencies": [
               "leaflet"

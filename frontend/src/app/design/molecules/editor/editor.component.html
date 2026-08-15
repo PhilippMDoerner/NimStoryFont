@@ -1,82 +1,74 @@
 <div #host>
   <!-- Text Body -->
   @if (canUpdate()) {
-    <!-- Display Mode -->
-    <div
-      class="field field--display"
-      [class.field--hidden]="state() !== 'DISPLAY'"
-      (click)="startEdit()"
-    >
-      <ng-container *ngTemplateOutlet="textBody" />
-    </div>
-    <!-- Update Mode -->
-    <form
-      class="field field--update"
-      [class.field--hidden]="state() !== 'UPDATE'"
-      (submit)="finishEdit()"
-    >
-      @if (_settings().skin === "oxide-dark") {
-        @defer (on idle; on hover(host); when state() === 'UPDATE') {
-          <editor
+    @switch (state()) {
+      @case ("DISPLAY") {
+        <div class="field field--display" (click)="startEdit()">
+          <ng-container *ngTemplateOutlet="textBody" />
+        </div>
+      }
+      @case ("UPDATE") {
+        <form class="field" (submit)="finishEdit()">
+          <app-quill-editor
             #editor
             [id]="id()"
-            [init]="_settings()"
-            [name]="id()"
-            [(ngModel)]="textModel"
+            [labelId]="labelId()"
+            [describedById]="describedById()"
             class="mb-2"
-            [class.editor--focus]="inFocus()"
-            (onKeyDown)="change$.next(textModel)"
-            (onFocus)="inFocus.set(true)"
-            (onBlur)="inFocus.set(false)"
-          ></editor>
-        }
-      }
-
-      <ng-container [ngTemplateOutlet]="formButtons" />
-    </form>
-
-    <!-- Outdated Update Mode -->
-    <div
-      class="field field--update"
-      [class.field--hidden]="state() !== 'OUTDATED_UPDATE'"
-    >
-      <!-- Informating heading -->
-      <app-alert [kind]="'INFO'">
-        <app-icon [icon]="'info-circle'"></app-icon>
-        While you were updating this article, somebody else went ahead and
-        updated it as well. Please include their changes in your update before
-        submitting.
-      </app-alert>
-
-      <!-- Textfield-Form -->
-      <div class="flex-column card p-4">
-        <!-- Comparison text -->
-        <div>
-          <h3>Description From Server</h3>
-          <app-html-text [text]="serverModel()!" />
-        </div>
-
-        <app-separator />
-
-        <!-- Actual edit form -->
-        <form (submit)="finishEdit()">
-          @let outdatedId = id() + "-outdated";
-          <label [for]="outdatedId" class="h3"> Description from You </label>
-
-          @defer (on idle; on hover(host); when state() === 'OUTDATED_UPDATE') {
-            <editor
-              [init]="_settings()"
-              [name]="outdatedId"
-              [id]="outdatedId"
-              [(ngModel)]="textModel"
-              class="mb-2"
-            />
-          }
+            [value]="text()"
+            (inputChanged)="editorValue.set($event)"
+          >
+            <ng-container *ngTemplateOutlet="editorBottom" />
+          </app-quill-editor>
 
           <ng-container [ngTemplateOutlet]="formButtons" />
         </form>
-      </div>
-    </div>
+      }
+      @case ("OUTDATED_UPDATE") {
+        <div class="field">
+          <!-- Informating heading -->
+          <app-alert [kind]="'INFO'">
+            <app-icon [icon]="'info-circle'"></app-icon>
+            While you were updating this article, somebody else went ahead and
+            updated it as well. Please include their changes in your update
+            before submitting.
+          </app-alert>
+
+          <!-- Textfield-Form -->
+          <div class="flex-column card p-4">
+            <!-- Comparison text -->
+            <div>
+              <h3>Text From Server</h3>
+              <app-html-text [text]="serverModel()!" />
+            </div>
+
+            <app-separator />
+
+            <!-- Actual edit form -->
+            <form (submit)="finishEdit()">
+              @let outdatedId = id() + "-outdated";
+              @let outdatedLabelId = id() + "-outdated-label";
+              <label [id]="outdatedLabelId" [for]="outdatedId" class="h3">
+                Text from You
+              </label>
+
+              <app-quill-editor
+                #editor
+                [id]="outdatedId"
+                [labelId]="outdatedLabelId"
+                class="mb-2"
+                [value]="editorValue()"
+                (inputChanged)="editorValue.set($event)"
+              >
+                <ng-container *ngTemplateOutlet="editorBottom" />
+              </app-quill-editor>
+
+              <ng-container [ngTemplateOutlet]="formButtons" />
+            </form>
+          </div>
+        </div>
+      }
+    }
   } @else {
     <ng-container *ngTemplateOutlet="textBody" />
   }
@@ -106,4 +98,27 @@
 
 <ng-template #textBody>
   <app-html-text [text]="text() || placeholder()" />
+</ng-template>
+
+<ng-template #editorBottom>
+  <div class="field__bottom" aria-live="polite">
+    <span
+      class="save-text"
+      [class.save-text--saved]="saveState() === 'ALL_SAVED'"
+      [class.save-text--saving]="saveState() === 'SAVING'"
+      [class.save-text--unsaved]="saveState() === 'UNSAVED_CHANGES'"
+    >
+      @switch (saveState()) {
+        @case ("UNSAVED_CHANGES") {
+          Unsaved Changes
+        }
+        @case ("SAVING") {
+          Saving <app-spinner class="save-text__spinner" />
+        }
+        @case ("ALL_SAVED") {
+          All changes saved <app-icon [icon]="'circle-check'" />
+        }
+      }
+    </span>
+  </div>
 </ng-template>
