@@ -18,12 +18,12 @@ import {
 } from 'rxjs';
 import { debugLog } from '../../utils/rxjs-operators';
 import {
-  ACTIONS,
   equals,
+  HOTKEY_ACTIONS,
   HOTKEY_IGNORE_ATTR,
+  HotkeyAction,
   Key,
   MODIFIER_KEYS,
-  ShortcutAction,
 } from '../_models/hotkey';
 import { UserPreferencesStore } from '../user-preferences.store';
 
@@ -41,14 +41,14 @@ export class HotkeyService {
   private readonly modalService = inject(NgbModal);
   private readonly preferencesStore = inject(UserPreferencesStore);
 
-  private readonly hotkeyMap = this.preferencesStore.shortcutMappings;
+  private readonly hotkeyMap = this.preferencesStore.hotkeyMappings;
   private readonly hotkeyMap$ = toObservable(this.hotkeyMap);
 
-  private readonly globalActions$: Observable<ShortcutAction> =
+  private readonly globalActions$: Observable<HotkeyAction> =
     this.createActionListener(document.body);
 
   public watchAction(
-    action: ShortcutAction,
+    action: HotkeyAction,
     options: WatchOptions = {},
   ): Observable<void> {
     const actions$ = options.eventSource
@@ -85,7 +85,7 @@ export class HotkeyService {
     );
   }
 
-  public getKeySequence(action: ShortcutAction): Observable<Key[]> {
+  public getKeySequence(action: HotkeyAction): Observable<Key[]> {
     return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
   }
 
@@ -97,7 +97,7 @@ export class HotkeyService {
 
     return this.hotkeyMap$.pipe(
       map((hotkeyMap) => {
-        const sequences = ACTIONS.map((action) => ({
+        const sequences = HOTKEY_ACTIONS.map((action) => ({
           sequence: hotkeyMap[action].keys.map((key) => ({
             ...key,
             key: key.key.toLowerCase(),

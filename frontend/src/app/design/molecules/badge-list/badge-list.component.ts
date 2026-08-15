@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 
 import { componentId } from '../../../../utils/DOM';
-import { ShortcutAction } from '../../../_models/hotkey';
+import { HotkeyAction } from '../../../_models/hotkey';
 import { ElementKind } from '../../atoms/_models/button';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { InteractiveBadgeComponent } from '../../atoms/interactive-badge/interactive-badge.component';
@@ -21,14 +21,14 @@ interface LinkCreateOptions {
   kind: 'LINK';
   link: string;
   createBadgeLabel?: string;
-  hotkeyAction?: ShortcutAction | undefined;
+  hotkeyAction?: HotkeyAction | undefined;
 }
 interface BadgeCreateOptions<T> {
   kind: 'SELECT';
   config: BadgeListSelectOptions<T>;
   createBadgeLabel?: string;
   formFieldLabel: string;
-  hotkeyAction?: ShortcutAction | undefined;
+  hotkeyAction?: HotkeyAction | undefined;
 }
 type CreateOptions<T> =
   | BadgeCreateOptions<T>
@@ -101,7 +101,7 @@ export class BadgeListComponent<T, O> {
       ? (this.createOptions() as BadgeCreateOptions<O>).formFieldLabel
       : undefined,
   );
-  readonly hotkeyAction = computed<ShortcutAction | undefined>(() => {
+  readonly hotkeyAction = computed<HotkeyAction | undefined>(() => {
     const createOptions = this.createOptions();
     switch (createOptions?.kind) {
       case 'NONE':

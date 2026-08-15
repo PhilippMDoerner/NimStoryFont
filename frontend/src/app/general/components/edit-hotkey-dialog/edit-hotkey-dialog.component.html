@@ -17,9 +17,11 @@
     @let value = value$ | async;
     <form
       class="body__shortcut-form"
-      (submit)="emitShortcutEdited(value, $event)"
+      (submit)="emitHotkeyEdited(value, $event)"
     >
-      <label class="form-label" [for]="fieldId"> New Shortcut keys </label>
+      <label class="form-label" [for]="fieldId">
+        New Shortcut keys (up to 2, alt/ctrl/shift modifiers optional)
+      </label>
 
       <input
         [id]="fieldId"
@@ -27,6 +29,7 @@
         type="text"
         class="form-control"
         [value]="text$ | async"
+        [placeholder]="'Press up to 2 key '"
         (change)="$event.preventDefault()"
       />
       @let conflictKind = conflictKind$ | async;
@@ -75,7 +78,7 @@
           [kind]="'INFO-OUTLINE'"
           [icon]="'arrow-rotate-left'"
           [text]="'Reset to default'"
-          (clicked)="emitShortcutReset()"
+          (clicked)="emitHotkeyReset()"
         ></button>
       </div>
     </form>

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { KeyCombination, ShortcutAction } from '../../../_models/hotkey';
+import { HotkeyAction, KeyCombination } from '../../../_models/hotkey';
 import { UserPreferencesStore } from '../../../user-preferences.store';
 import { UserSettingsComponent } from '../../components/user-settings/user-settings.component';
 
@@ -13,13 +13,13 @@ import { UserSettingsComponent } from '../../components/user-settings/user-setti
 export class UserSettingsPageComponent {
   readonly preferencesStore = inject(UserPreferencesStore);
 
-  readonly shortcuts = this.preferencesStore.shortcutMappings;
+  readonly shortcuts = this.preferencesStore.hotkeyMappings;
 
-  updateShortcut(event: { action: ShortcutAction; keys: KeyCombination }) {
-    this.preferencesStore.updateShortcut(event);
+  updateHotkey(event: { action: HotkeyAction; keys: KeyCombination }) {
+    this.preferencesStore.updateHotkey(event);
   }
 
-  resetShortcut(action: ShortcutAction) {
+  resetHotkey(action: HotkeyAction) {
     this.preferencesStore.resetShortcut(action);
   }
 }

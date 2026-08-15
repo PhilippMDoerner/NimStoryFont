@@ -24,7 +24,7 @@ import {
 } from 'rxjs';
 import { debugLog } from '../../utils/rxjs-operators';
 import { encodeKeyCombination } from '../_functions/keyMapper';
-import { ShortcutAction } from '../_models/hotkey';
+import { HotkeyAction } from '../_models/hotkey';
 import { HotkeyService, WatchOptions } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
@@ -46,7 +46,7 @@ export class HotkeyDirective {
   private readonly modalService = inject(NgbModal);
   public readonly element = inject(ElementRef<HTMLElement>);
 
-  readonly hotkeyAction = input.required<ShortcutAction | undefined>();
+  readonly hotkeyAction = input.required<HotkeyAction | undefined>();
   readonly watchOptions = input<DirectiveWatchOptions>({
     isModalAction: false,
     suppressEvent: false,

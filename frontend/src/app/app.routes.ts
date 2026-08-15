@@ -70,8 +70,7 @@ export const ROUTES: Routes = [
         resolve: {
           loadGeneralPreferences: () =>
             inject(UserPreferencesStore).loadGeneral(),
-          loadShortcuts: () =>
-            inject(UserPreferencesStore).loadShortcutEntries(),
+          loadHotkeys: () => inject(UserPreferencesStore).loadHotkeyEntries(),
         },
         children: [
           ...generalRoutes,

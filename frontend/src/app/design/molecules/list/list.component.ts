@@ -67,7 +67,7 @@ export interface ListEntryTemplateContext<T> {
   },
 })
 export class ListComponent<T> {
-  private readonly shortcutService = inject(HotkeyService);
+  private readonly hotkeyService = inject(HotkeyService);
   private readonly tooltip = inject(NgbTooltip);
   private readonly host = inject(ElementRef<HTMLElement>);
 
@@ -87,12 +87,10 @@ export class ListComponent<T> {
   readonly entryElements = viewChildren<ElementRef<HTMLDivElement>>('listItem');
   readonly tooltipContent =
     viewChild.required<TemplateRef<HTMLElement>>('tipContent');
-  readonly shortcutActionKeys = toSignal(
+  readonly hotkeyActionKeys = toSignal(
     combineLatest({
-      nextEntryKeys: this.shortcutService.getKeySequence('jump-to-next-entry'),
-      priorEntryKeys: this.shortcutService.getKeySequence(
-        'jump-to-prior-entry',
-      ),
+      nextEntryKeys: this.hotkeyService.getKeySequence('jump-to-next-entry'),
+      priorEntryKeys: this.hotkeyService.getKeySequence('jump-to-prior-entry'),
     }),
   );
   readonly listItemClassStr = computed(() => {
@@ -114,8 +112,8 @@ export class ListComponent<T> {
   );
   readonly lastElementIndex = computed(() => this.entries().length - 1);
   readonly lastElementIndex$ = toObservable(this.lastElementIndex);
-  readonly shortcutText = computed(() => {
-    const keys = this.shortcutActionKeys();
+  readonly hotkeyText = computed(() => {
+    const keys = this.hotkeyActionKeys();
     if (!keys) return undefined;
 
     const nextEntryKeyStr = encodeKeyCombination(keys.nextEntryKeys).replaceAll(
@@ -129,7 +127,7 @@ export class ListComponent<T> {
   });
   readonly tooltipLines = computed<{ text: string; icon: Icon }[] | undefined>(
     () => {
-      const keys = this.shortcutActionKeys();
+      const keys = this.hotkeyActionKeys();
       if (!keys) return undefined;
       const nextEntryKeyStr = keys.nextEntryKeys
         .map((key) => encodeKey(key).replaceAll('+', ' + '))
@@ -163,13 +161,11 @@ export class ListComponent<T> {
     );
     const toNextEntryAction$ = options$.pipe(
       switchMap((options) =>
-        this.shortcutService.watchAction('jump-to-next-entry', options),
+        this.hotkeyService.watchAction('jump-to-next-entry', options),
       ),
     );
     const arrowDown$ = options$.pipe(
-      switchMap((options) =>
-        this.shortcutService.watchKey('ArrowDown', options),
-      ),
+      switchMap((options) => this.hotkeyService.watchKey('ArrowDown', options)),
       tap((event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -181,11 +177,11 @@ export class ListComponent<T> {
 
     const toPriorEntryAction$ = options$.pipe(
       switchMap((options) =>
-        this.shortcutService.watchAction('jump-to-prior-entry', options),
+        this.hotkeyService.watchAction('jump-to-prior-entry', options),
       ),
     );
     const arrowUp$ = options$.pipe(
-      switchMap((options) => this.shortcutService.watchKey('ArrowUp', options)),
+      switchMap((options) => this.hotkeyService.watchKey('ArrowUp', options)),
       tap((event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -198,8 +194,8 @@ export class ListComponent<T> {
     merge(toNextEntry$, toPriorEntry$)
       .pipe(
         withLatestFrom(this.focusIndex$, this.lastElementIndex$),
-        map(([shortcutAction, focusIndex, lastElementIndex]) =>
-          this.toNextFocusIndex(shortcutAction, focusIndex, lastElementIndex),
+        map(([hotkeyAction, focusIndex, lastElementIndex]) =>
+          this.toNextFocusIndex(hotkeyAction, focusIndex, lastElementIndex),
         ),
         map(
           (nextElementIndex) =>
@@ -211,11 +207,11 @@ export class ListComponent<T> {
   }
 
   private toNextFocusIndex(
-    shortcutAction: 'jump-to-next-entry' | 'jump-to-prior-entry',
+    hotkeyAction: 'jump-to-next-entry' | 'jump-to-prior-entry',
     focusIndex: number | undefined,
     lastElementIndex: number,
   ): number {
-    switch (shortcutAction) {
+    switch (hotkeyAction) {
       case 'jump-to-next-entry':
         switch (focusIndex) {
           case lastElementIndex:

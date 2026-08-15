@@ -21,7 +21,7 @@ import {
 } from '@ng-bootstrap/ng-bootstrap';
 import { componentId } from '../../../../utils/DOM';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
-import { ShortcutAction } from '../../../_models/hotkey';
+import { HotkeyAction } from '../../../_models/hotkey';
 import { ButtonKind, ElementSize } from '../../atoms/_models/button';
 import { Icon } from '../../atoms/_models/icon';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -57,7 +57,7 @@ export class ContextMenuComponent {
   readonly menuButtonText = input.required<string>();
   readonly menuButtonIcon = input<Icon>();
   readonly menuButtonSize = input<ElementSize>('MEDIUM');
-  readonly menuButtonHotkey = input<ShortcutAction>();
+  readonly menuButtonHotkey = input<HotkeyAction>();
   readonly menuButtonShowText = input<boolean>(true);
   readonly placement = input<PlacementArray>([
     'bottom-start',

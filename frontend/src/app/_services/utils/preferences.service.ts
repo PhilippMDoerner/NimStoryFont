@@ -35,7 +35,7 @@ export class PreferencesService {
     );
   }
 
-  getUserShortcuts(): Observable<ShortcutMetadataEntry[]> {
+  getUserHotkeys(): Observable<ShortcutMetadataEntry[]> {
     return this.http
       .get<MetaDataEntry[]>(`${this.settingsApiUrl}/shortcut/`)
       .pipe(

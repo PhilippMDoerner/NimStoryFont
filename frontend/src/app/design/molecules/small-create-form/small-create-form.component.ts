@@ -13,7 +13,7 @@ import { FormGroup } from '@angular/forms';
 import { componentId } from '../../../../utils/DOM';
 import { withViewTransition } from '../../../../utils/animation';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
-import { ShortcutAction } from '../../../_models/hotkey';
+import { HotkeyAction } from '../../../_models/hotkey';
 import { ElementKind } from '../../atoms/_models/button';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -46,7 +46,7 @@ export class SmallCreateFormComponent<T> {
   readonly valueProp = input.required<keyof T>();
   readonly submitButtonType = input<ElementKind>('PRIMARY');
   readonly cancelButtonType = input<ElementKind>('SECONDARY');
-  readonly createHotkey = input<ShortcutAction | undefined>();
+  readonly createHotkey = input<HotkeyAction | undefined>();
   readonly disableHotkeys = input<boolean>(false);
 
   readonly create = output<T>();

@@ -22,11 +22,11 @@ import {
 import { componentId } from '../../../../utils/DOM';
 import { encodeKeyCombination } from '../../../_functions/keyMapper';
 import {
-  ACTIONS,
   equals,
+  HOTKEY_ACTIONS,
+  HotkeyAction,
   KeyCombination,
   MODIFIER_KEYS,
-  ShortcutAction,
 } from '../../../_models/hotkey';
 import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import { IconComponent } from '../../../design/atoms/icon/icon.component';
@@ -34,23 +34,23 @@ import { KeyComponent } from '../../../design/atoms/key/key.component';
 import { UserPreferencesStore } from '../../../user-preferences.store';
 
 @Component({
-  selector: 'app-edit-shortcut-dialog',
+  selector: 'app-edit-hotkey-dialog',
   imports: [ButtonComponent, AsyncPipe, IconComponent, KeyComponent],
-  templateUrl: './edit-shortcut-dialog.component.html',
-  styleUrl: './edit-shortcut-dialog.component.scss',
+  templateUrl: './edit-hotkey-dialog.component.html',
+  styleUrl: './edit-hotkey-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditShortcutDialogComponent {
+export class EditHotkeyDialogComponent {
   readonly modalService = inject(NgbModal);
 
-  readonly action = model.required<ShortcutAction>();
+  readonly action = model.required<HotkeyAction>();
   readonly modified = model.required<boolean>();
 
-  readonly shortcutEdited = output<{
-    action: ShortcutAction;
-    shortcut: KeyCombination;
+  readonly hotkeyEdited = output<{
+    action: HotkeyAction;
+    hotkey: KeyCombination;
   }>();
-  readonly shortcutReset = output<ShortcutAction>();
+  readonly hotkeyReset = output<HotkeyAction>();
   readonly cancelled = output<void>();
 
   readonly keyInput =
@@ -60,7 +60,7 @@ export class EditShortcutDialogComponent {
   readonly fieldId = componentId();
 
   readonly currentKeymap$ = toObservable(
-    inject(UserPreferencesStore).shortcutMappings,
+    inject(UserPreferencesStore).hotkeyMappings,
   );
   readonly value$ = this.keyInput$.pipe(
     switchMap((keyInput) =>
@@ -88,7 +88,7 @@ export class EditShortcutDialogComponent {
     selectedKeys: this.value$,
   }).pipe(
     map(({ currentKeymap, selectedKeys }) => {
-      const isAlreadyInASequence = ACTIONS.some((action) => {
+      const isAlreadyInASequence = HOTKEY_ACTIONS.some((action) => {
         const existingCombo = currentKeymap?.[action]?.keys;
         return existingCombo.every((key, index) =>
           equals(selectedKeys[index], key),
@@ -104,18 +104,18 @@ export class EditShortcutDialogComponent {
     map((conflictKind) => conflictKind !== undefined),
   );
 
-  emitShortcutEdited(keys: KeyboardEvent[] | null, event: Event) {
+  emitHotkeyEdited(keys: KeyboardEvent[] | null, event: Event) {
     event.preventDefault();
     if (!keys) return;
 
-    this.shortcutEdited.emit({
+    this.hotkeyEdited.emit({
       action: this.action(),
-      shortcut: keys,
+      hotkey: keys,
     });
   }
 
-  emitShortcutReset() {
-    this.shortcutReset.emit(this.action());
+  emitHotkeyReset() {
+    this.hotkeyReset.emit(this.action());
   }
 
   closeDialog() {
