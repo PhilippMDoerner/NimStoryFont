@@ -77,6 +77,7 @@ export const ALL_SOLID_ICONS = [
   'gear',
   'gavel',
   'globe-americas',
+  'grip-lines',
   'hammer',
   'hand-sparkles',
   'hat-wizard',
