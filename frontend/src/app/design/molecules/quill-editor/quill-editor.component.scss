@@ -34,23 +34,6 @@
       stroke: var(--toolbar-color);
     }
 
-    .ql-fill {
-      fill: var(--toolbar-color);
-
-      &:hover,
-      &:focus-visible {
-        stroke: var(--quill-active-color) !important;
-      }
-    }
-
-    .ql-header {
-      color: var(--toolbar-color);
-    }
-
-    .ql-picker-options {
-      background-color: var(--bs-gray-800);
-    }
-
     .ql-formats {
       margin: unset;
     }
