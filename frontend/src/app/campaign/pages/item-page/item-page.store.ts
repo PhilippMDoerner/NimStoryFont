@@ -129,10 +129,13 @@ export const ItemPageStore = signalStore(
       ),
     };
   }),
-  withUpdates(() => {
-    const itemService = inject(ItemService);
-    return {
-      item: (update: Item) => itemService.update(update.pk!, update),
-    };
-  }),
+  withUpdates(
+    () => {
+      const itemService = inject(ItemService);
+      return {
+        item: (update: Item) => itemService.update(update.pk!, update),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
 );

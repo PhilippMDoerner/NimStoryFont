@@ -55,13 +55,16 @@ export const CreaturePageStore = signalStore(
         ),
     };
   }),
-  withUpdates(() => {
-    const creatureService = inject(CreatureService);
-    return {
-      creature: (data: Creature) =>
-        creatureService.patch(data.pk as number, data),
-    };
-  }),
+  withUpdates(
+    () => {
+      const creatureService = inject(CreatureService);
+      return {
+        creature: (data: Creature) =>
+          creatureService.patch(data.pk as number, data),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
   withImages('creature', {
     onCreateSuccess: (store, image) => {
       const updatedCreature: Creature = {

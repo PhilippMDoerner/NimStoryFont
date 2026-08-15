@@ -52,8 +52,13 @@ type NewMethodUnion<Requests extends RequestMap> =
  */ export type AllNewMethods<Requests extends RequestMap> =
   UnionToIntersection<NewMethodUnion<Requests>>;
 
+export interface UpdateFeatureConfig {
+  suppressUpdateNotification?: boolean;
+}
+
 export function withUpdateMethods<Requests extends RequestMap>(
   requests: Requests,
+  config: UpdateFeatureConfig | undefined,
 ) {
   return signalStoreFeature(
     withMethods((store) => {
@@ -75,9 +80,11 @@ export function withUpdateMethods<Requests extends RequestMap>(
                   requests[keys.name](params).pipe(
                     tapResponse({
                       next: (val) => {
-                        toastService.addToast(
-                          successToast('Updated successfully!'),
-                        );
+                        if (!config?.suppressUpdateNotification) {
+                          toastService.addToast(
+                            successToast('Updated successfully!'),
+                          );
+                        }
                         patchState(store, {
                           [keys.dataField]: val,
                           [keys.requestStateField]:

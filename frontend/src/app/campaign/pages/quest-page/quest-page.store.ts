@@ -53,13 +53,16 @@ export const QuestPageStore = signalStore(
         ),
     };
   }),
-  withUpdates(() => {
-    const questService = inject(QuestService);
-    return {
-      quest: (updatedQuest: Quest) =>
-        questService.update(updatedQuest.pk as number, updatedQuest),
-    };
-  }),
+  withUpdates(
+    () => {
+      const questService = inject(QuestService);
+      return {
+        quest: (updatedQuest: Quest) =>
+          questService.update(updatedQuest.pk as number, updatedQuest),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
   withMethods((state) => {
     const questService = inject(QuestService);
     const toastService = inject(ToastService);

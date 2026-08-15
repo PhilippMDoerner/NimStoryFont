@@ -64,13 +64,16 @@ export const LocationPageStore = signalStore(
         ),
     };
   }),
-  withUpdates(() => {
-    const locationService = inject(LocationService);
-    return {
-      location: (location: Location) =>
-        locationService.update(location.pk as number, location),
-    };
-  }),
+  withUpdates(
+    () => {
+      const locationService = inject(LocationService);
+      return {
+        location: (location: Location) =>
+          locationService.update(location.pk as number, location),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
   withImages('location', {
     onCreateSuccess: (store, image) => {
       const updatedLocation: Location = {

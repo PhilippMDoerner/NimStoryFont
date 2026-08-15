@@ -5,7 +5,11 @@ import {
   WritableStateSource,
 } from '@ngrx/signals';
 import { MethodsDictionary, RequestMap } from '../factory-types';
-import { AllNewMethods, withUpdateMethods } from './withUpdateMethods';
+import {
+  AllNewMethods,
+  UpdateFeatureConfig,
+  withUpdateMethods,
+} from './withUpdateMethods';
 import { AllNewProperties, withUpdateState } from './withUpdateState';
 
 export interface UpdateFeatureResult<Requests extends RequestMap> {
@@ -26,6 +30,7 @@ export function withUpdates<
   Requests extends RequestMap,
 >(
   updatesFactory: (store: InnerStore<Input>) => Requests,
+  config?: UpdateFeatureConfig,
 ): SignalStoreFeature<Input, UpdateFeatureResult<Requests>> {
   return ((store) => {
     const updates = updatesFactory({
@@ -35,6 +40,6 @@ export function withUpdates<
     } as InnerStore<Input>);
 
     const storeWithstate = withUpdateState(updates)(store);
-    return withUpdateMethods(updates)(storeWithstate);
+    return withUpdateMethods(updates, config)(storeWithstate);
   }) as SignalStoreFeature<Input, UpdateFeatureResult<Requests>>;
 }

@@ -209,11 +209,14 @@ export const OrganizationStore = signalStore(
       ),
     };
   }),
-  withUpdates(() => {
-    const organizationService = inject(OrganizationService);
-    return {
-      organization: (update: Organization) =>
-        organizationService.update(update.pk!, update),
-    };
-  }),
+  withUpdates(
+    () => {
+      const organizationService = inject(OrganizationService);
+      return {
+        organization: (update: Organization) =>
+          organizationService.update(update.pk!, update),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
 );

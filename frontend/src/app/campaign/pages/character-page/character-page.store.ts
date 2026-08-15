@@ -166,13 +166,16 @@ export const CharacterStore = signalStore(
       patchState(state, { character: updatedChar });
     },
   }),
-  withUpdates(() => {
-    const characterService = inject(CharacterService);
-    return {
-      character: (update: CharacterDetails) =>
-        characterService.patch(update.pk!, update),
-    };
-  }),
+  withUpdates(
+    () => {
+      const characterService = inject(CharacterService);
+      return {
+        character: (update: CharacterDetails) =>
+          characterService.patch(update.pk!, update),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
   withMethods((state) => {
     const quoteConnectionService = inject(QuoteConnectionService);
     const toastService = inject(ToastService);
