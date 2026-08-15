@@ -28,7 +28,7 @@ import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import Quill, { Range } from 'quill';
 import TableUp from 'quill-table-up';
 import E from 'quill/core/emitter';
-import { combineLatest, filter, map, take } from 'rxjs';
+import { combineLatest, filter, map, shareReplay, take } from 'rxjs';
 import { HOTKEY_IGNORE_ATTR } from '../../../../app/_models/hotkey';
 import { QUILL_SETTINGS } from '../../../../app/app.constants';
 import { componentId } from '../../../../utils/DOM';
@@ -117,6 +117,7 @@ export class QuillEditorComponent {
       quill.root.ariaMultiLine = 'true';
       return quill;
     }),
+    shareReplay(1),
   );
   public readonly quill = toSignal(this.quill$);
 

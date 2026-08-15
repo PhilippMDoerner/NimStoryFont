@@ -5,6 +5,13 @@
   --toolbar-color: white;
   --focus-border-width: 2px;
   --quill-active-color: var(--bs-link-hover-color);
+
+  &:focus-within {
+    .editor-wrapper {
+      border-color: var(--quill-active-color);
+      border-width: 3px;
+    }
+  }
 }
 
 .editor-wrapper {
@@ -51,9 +58,7 @@
   .ql-container.ql-snow {
     height: 400px;
     font-size: unset;
-    border-left: none;
-    border-right: none;
-    border-top: none;
+    border: none;
 
     p {
       margin-top: 16px;
