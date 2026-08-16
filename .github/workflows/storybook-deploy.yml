@@ -25,13 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "26"
-          cache: npm
-          cache-dependency-path: frontend/src/app/design/package-lock.json
 
       - name: Show versions
         run: |
           node --version
           npm --version
+          pwd
+          ls -la
+          ls -la frontend/src/app/design
 
       - name: Install and Build
         run: |
