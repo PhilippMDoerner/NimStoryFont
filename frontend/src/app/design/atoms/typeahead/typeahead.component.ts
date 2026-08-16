@@ -98,8 +98,9 @@ export class TypeaheadComponent<T> {
       this.changed.emit(event.item);
     } else {
       this.changed.emit(undefined);
-      event.preventDefault();
     }
+    event.preventDefault();
+    this.typeaheadElement().writeValue('');
   }
 
   clearOnEmptyInput(target: EventTarget | null): void {
@@ -109,7 +110,8 @@ export class TypeaheadComponent<T> {
     }
   }
 
-  resetValueAndText() {
+  resetValueAndText(event: Event) {
+    event.stopPropagation();
     this.resetSelectedValue();
     this.typeaheadElement()?.writeValue('');
   }
