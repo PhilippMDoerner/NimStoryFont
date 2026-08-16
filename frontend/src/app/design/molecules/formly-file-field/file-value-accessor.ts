@@ -6,7 +6,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 @Directive({
   selector: 'input[type="file"]',
   host: {
-    '(change)': 'onChange($event.target.files)',
+    '(change)': 'onChange($any($event.target)?.files)',
     '(blur)': 'onTouched()',
   },
   providers: [
@@ -17,8 +17,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 // https://github.com/angular/angular/issues/7341
 export class FileValueAccessor implements ControlValueAccessor {
   readonly value: any;
-  readonly onChange = () => {};
-  readonly onTouched = () => {};
+  onChange = Function;
+  onTouched = Function;
 
   writeValue() {}
   registerOnChange(fn: any) {
