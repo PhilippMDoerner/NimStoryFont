@@ -19,12 +19,23 @@ jobs:
         working-directory: "./frontend/src/app/design"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/src/app/design/package-lock.json
+
+      - name: Show versions
+        run: |
+          node --version
+          npm --version
 
       - name: Install and Build
         run: |
           npm ci
-          npm i
           npm run build-storybook
           ls -l
 
